@@ -1,11 +1,15 @@
 {
-  "name": "aldepos-core-root",
+  "name": "aldepos-sistem-root",
   "private": true,
   "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
-    "start": "npm --prefix backend start",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "npm --prefix backend run dev"
+    "dev:backend": "npm --workspace=apps/api-backend run dev",
+    "dev:portal": "npm --workspace=apps/core-portal run dev",
+    "build:portal": "npm --workspace=apps/core-portal run build",
+    "migrate:core": "npm --workspace=apps/api-backend run migrate",
+    "seed:core": "npm --workspace=apps/api-backend run seed"
   }
 }
