@@ -8,7 +8,37 @@
     "dev": "nodemon server.js",
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "seed": "knex seed:run"
+    "seed": "knex seed:run",
+    "migrate:kepegawaian": "knex --knexfile knexfile.kepegawaian.js migrate:latest",
+    "migrate:kepegawaian:rollback": "knex --knexfile knexfile.kepegawaian.js migrate:rollback",
+    "seed:kepegawaian": "knex --knexfile knexfile.kepegawaian.js seed:run",
+    "migrate:akademik": "knex --knexfile knexfile.akademik.js migrate:latest",
+    "migrate:akademik:rollback": "knex --knexfile knexfile.akademik.js migrate:rollback",
+    "seed:akademik": "knex --knexfile knexfile.akademik.js seed:run",
+    "migrate:keuangan": "knex --knexfile knexfile.keuangan.js migrate:latest",
+    "migrate:keuangan:rollback": "knex --knexfile knexfile.keuangan.js migrate:rollback",
+    "seed:keuangan": "knex --knexfile knexfile.keuangan.js seed:run",
+    "migrate:alquran": "knex --knexfile knexfile.alquran.js migrate:latest",
+    "migrate:alquran:rollback": "knex --knexfile knexfile.alquran.js migrate:rollback",
+    "seed:alquran": "knex --knexfile knexfile.alquran.js seed:run",
+    "migrate:kantin": "knex --knexfile knexfile.kantin.js migrate:latest",
+    "migrate:kantin:rollback": "knex --knexfile knexfile.kantin.js migrate:rollback",
+    "seed:kantin": "knex --knexfile knexfile.kantin.js seed:run",
+    "migrate:sarpras": "knex --knexfile knexfile.sarpras.js migrate:latest",
+    "migrate:sarpras:rollback": "knex --knexfile knexfile.sarpras.js migrate:rollback",
+    "seed:sarpras": "knex --knexfile knexfile.sarpras.js seed:run",
+    "migrate:dapur": "knex --knexfile knexfile.dapur.js migrate:latest",
+    "migrate:dapur:rollback": "knex --knexfile knexfile.dapur.js migrate:rollback",
+    "seed:dapur": "knex --knexfile knexfile.dapur.js seed:run",
+    "migrate:perpustakaan": "knex --knexfile knexfile.perpustakaan.js migrate:latest",
+    "migrate:perpustakaan:rollback": "knex --knexfile knexfile.perpustakaan.js migrate:rollback",
+    "seed:perpustakaan": "knex --knexfile knexfile.perpustakaan.js seed:run",
+    "migrate:manajemen": "knex --knexfile knexfile.manajemen.js migrate:latest",
+    "migrate:manajemen:rollback": "knex --knexfile knexfile.manajemen.js migrate:rollback",
+    "seed:manajemen": "knex --knexfile knexfile.manajemen.js seed:run",
+    "migrate:website-utama": "knex --knexfile knexfile.website-utama.js migrate:latest",
+    "migrate:website-utama:rollback": "knex --knexfile knexfile.website-utama.js migrate:rollback",
+    "seed:website-utama": "knex --knexfile knexfile.website-utama.js seed:run"
   },
   "keywords": [
     "core-service",
@@ -29,7 +59,8 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
-    "mysql2": "^3.10.1"
+    "mysql2": "^3.10.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

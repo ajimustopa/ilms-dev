@@ -75,7 +75,10 @@ class AuthController {
 
       res.status(200).json({
         success: true,
-        data: result,
+        data: {
+          user: result,
+          ...result
+        },
         message: 'Profil berhasil dimuat',
         errors: null
       });

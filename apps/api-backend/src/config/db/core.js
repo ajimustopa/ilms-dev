@@ -29,6 +29,7 @@ try {
         password: dbPassword,
         database: dbName,
         charset: 'utf8mb4',
+        ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
       pool: { min: 2, max: 10 },
     },
@@ -41,6 +42,7 @@ try {
         password: dbPassword,
         database: dbName,
         charset: 'utf8mb4',
+        ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
       pool: { min: 2, max: 10 },
     }

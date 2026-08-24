@@ -210,8 +210,22 @@ class WebhooksService {
       data_after: null,
       occurred_at: db.fn.now()
     });
-
     return true;
+  }
+
+  async recordEvent(eventType, payload, schoolUnitId = null) {
+    try {
+      const [id] = await db('webhook_events').insert({
+        event_type: eventType,
+        school_unit_id: schoolUnitId || null,
+        payload: typeof payload === 'string' ? payload : JSON.stringify(payload),
+        published_at: db.fn.now()
+      });
+      return id;
+    } catch (e) {
+      console.warn('[Webhook Event Error]:', e.message);
+      return null;
+    }
   }
 }
 

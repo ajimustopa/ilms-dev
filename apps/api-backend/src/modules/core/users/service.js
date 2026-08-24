@@ -1,6 +1,7 @@
 /**
  * Users Service Implementation
- * Fitur #1 & #3: Manajemen Pengguna, Provisioning Akun Otomatis & Reset Password
+ * Fitur #1 & #3: Manajemen Pengguna, Provisioning Akun Otomatis, Reset Password,
+ * Penetapan Hak Akses Ganda (Pilihan Role Baku & Kustom Matrix Aplikasi)
  */
 const bcrypt = require('bcryptjs');
 const db = require('../../../config/db/core');
@@ -40,20 +41,22 @@ class UsersService {
       .limit(limit)
       .offset(offset);
 
-    // Ambil penugasan school_roles untuk setiap user
+    // Ambil penugasan school_roles untuk setiap user (gunakan leftJoin agar school_unit_id: null tetap muncul)
     const userIds = users.map((u) => u.id);
     let allSchoolRoles = [];
     if (userIds.length > 0) {
       allSchoolRoles = await db('user_school_roles')
-        .join('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
-        .join('roles', 'user_school_roles.role_id', 'roles.id')
+        .leftJoin('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
+        .leftJoin('roles', 'user_school_roles.role_id', 'roles.id')
         .whereIn('user_school_roles.user_id', userIds)
         .select(
+          'user_school_roles.id as user_school_role_id',
           'user_school_roles.user_id',
           'user_school_roles.school_unit_id',
-          'school_units.name as school_name',
+          db.raw('COALESCE(school_units.name, "Yayasan / Lintas Seluruh Satuan Pendidikan") as school_name'),
           'user_school_roles.role_id',
-          'roles.name as role_name'
+          'roles.name as role_name',
+          'roles.description as role_description'
         );
     }
 
@@ -86,25 +89,37 @@ class UsersService {
     }
 
     const schoolRoles = await db('user_school_roles')
-      .join('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
-      .join('roles', 'user_school_roles.role_id', 'roles.id')
+      .leftJoin('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
+      .leftJoin('roles', 'user_school_roles.role_id', 'roles.id')
       .where('user_school_roles.user_id', id)
       .select(
         'user_school_roles.id as user_school_role_id',
-        'school_units.id as school_unit_id',
-        'school_units.name as school_name',
+        'user_school_roles.school_unit_id',
+        db.raw('COALESCE(school_units.name, "Yayasan / Lintas Seluruh Satuan Pendidikan") as school_name'),
         'roles.id as role_id',
-        'roles.name as role_name'
+        'roles.name as role_name',
+        'roles.description as role_description'
       );
+
+    // Ambil detail permissions jika ada role
+    const roleIds = schoolRoles.map((sr) => sr.role_id).filter(Boolean);
+    let permissions = [];
+    if (roleIds.length > 0) {
+      permissions = await db('role_permissions')
+        .join('permissions', 'role_permissions.permission_id', 'permissions.id')
+        .whereIn('role_permissions.role_id', roleIds)
+        .select('permissions.id', 'permissions.code', 'permissions.module', 'permissions.description');
+    }
 
     return {
       ...user,
-      school_roles: schoolRoles
+      school_roles: schoolRoles,
+      permissions
     };
   }
 
   /**
-   * Membuat user khusus Admin dari UI Core Service
+   * Membuat user baru dari UI Core Service
    */
   async createAdminUser(payload, adminUser, ipAddress) {
     if (!payload.username || !payload.password || !payload.full_name) {
@@ -127,34 +142,16 @@ class UsersService {
       username: payload.username.trim(),
       password_hash: passwordHash,
       full_name: payload.full_name.trim(),
-      account_type: 'admin',
-      ref_type: null,
-      ref_id: null,
+      account_type: payload.account_type || 'admin',
+      ref_type: payload.ref_type || null,
+      ref_id: payload.ref_id || null,
       status: 'active',
       created_at: db.fn.now(),
       updated_at: db.fn.now()
     });
 
-    // Pasang initial roles jika disertakan
-    if (payload.roles && Array.isArray(payload.roles)) {
-      for (const r of payload.roles) {
-        await db('user_school_roles').insert({
-          user_id: userId,
-          school_unit_id: r.school_unit_id,
-          role_id: r.role_id,
-          created_at: db.fn.now(),
-          updated_at: db.fn.now()
-        });
-      }
-    } else if (payload.school_unit_id && payload.role_id) {
-      await db('user_school_roles').insert({
-        user_id: userId,
-        school_unit_id: payload.school_unit_id,
-        role_id: payload.role_id,
-        created_at: db.fn.now(),
-        updated_at: db.fn.now()
-      });
-    }
+    // Terapkan hak akses
+    await this.applyUserAccess(userId, payload);
 
     const createdUser = await this.getUserById(userId);
 
@@ -172,6 +169,120 @@ class UsersService {
     });
 
     return createdUser;
+  }
+
+  /**
+   * Helper penetapan hak akses (Baku vs Kustom Matrix)
+   */
+  async applyUserAccess(userId, payload) {
+    const { assignment_method, role_id, school_unit_id, app_permissions, roles } = payload;
+    const targetSchoolUnitId = school_unit_id && school_unit_id !== 'all' && school_unit_id !== 'yayasan' ? Number(school_unit_id) : null;
+
+    // Bersihkan penugasan lama
+    await db('user_school_roles').where({ user_id: userId }).del();
+
+    if (assignment_method === 'custom' && app_permissions && typeof app_permissions === 'object') {
+      // METODE 2: Kustom Hak Akses Matrix Per Aplikasi
+      const customRoleName = `custom_user_${userId}`;
+      let customRole = await db('roles').where({ name: customRoleName }).first();
+
+      if (!customRole) {
+        const [newRoleId] = await db('roles').insert({
+          name: customRoleName,
+          description: `Peran Kustom untuk User ID ${userId}`,
+          is_system_role: false,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        customRole = { id: newRoleId, name: customRoleName };
+      }
+
+      // Hapus permission lama di custom role
+      await db('role_permissions').where({ role_id: customRole.id }).del();
+
+      // Kumpulkan kode permission yang dipilih
+      const selectedCodes = [];
+      for (const [moduleName, accessType] of Object.entries(app_permissions)) {
+        if (accessType === 'view') {
+          selectedCodes.push(`${moduleName}.view`);
+        } else if (accessType === 'admin') {
+          selectedCodes.push(`${moduleName}.view`, `${moduleName}.manage`);
+        }
+      }
+
+      if (selectedCodes.length > 0) {
+        const matchedPerms = await db('permissions').whereIn('code', selectedCodes).select('id');
+        const rolePermInserts = matchedPerms.map((p) => ({
+          role_id: customRole.id,
+          permission_id: p.id,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        }));
+        if (rolePermInserts.length > 0) {
+          await db('role_permissions').insert(rolePermInserts);
+        }
+      }
+
+      await db('user_school_roles').insert({
+        user_id: userId,
+        school_unit_id: targetSchoolUnitId,
+        role_id: customRole.id,
+        created_at: db.fn.now(),
+        updated_at: db.fn.now()
+      });
+    } else {
+      // METODE 1: Pilih Role yang Sudah Ditetapkan (Preset Standar)
+      if (roles && Array.isArray(roles) && roles.length > 0) {
+        for (const r of roles) {
+          await db('user_school_roles').insert({
+            user_id: userId,
+            school_unit_id: r.school_unit_id ? Number(r.school_unit_id) : null,
+            role_id: Number(r.role_id),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+        }
+      } else if (role_id) {
+        await db('user_school_roles').insert({
+          user_id: userId,
+          school_unit_id: targetSchoolUnitId,
+          role_id: Number(role_id),
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+      }
+    }
+  }
+
+  /**
+   * Mengatur ulang hak akses pengguna
+   */
+  async updateUserAccess(userId, payload, adminUser, ipAddress) {
+    const user = await db('users').where({ id: userId }).first();
+    if (!user) {
+      const error = new Error('Pengguna tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const before = await this.getUserById(userId);
+    await this.applyUserAccess(userId, payload);
+    const after = await this.getUserById(userId);
+
+    await db('activity_logs').insert({
+      log_type: 'admin_action',
+      user_id: adminUser?.id || null,
+      school_unit_id: payload.school_unit_id || null,
+      application: 'core',
+      module: 'users',
+      action: 'update_user_access',
+      ip_address: ipAddress || null,
+      data_before: JSON.stringify(before),
+      data_after: JSON.stringify(after),
+      occurred_at: db.fn.now()
+    });
+
+    return after;
   }
 
   async updateUserStatus(id, status, adminUser, ipAddress) {
@@ -279,7 +390,7 @@ class UsersService {
   }
 
   /**
-   * Internal Service: Buat akun otomatis saat data diinput di modul asal (Akademik / Kepegawaian)
+   * Internal Service: Buat akun otomatis saat data diinput di modul asal
    */
   async internalCreateUser(payload) {
     const { username, password, full_name, account_type, ref_type, ref_id, school_unit_id, role_id } = payload;
@@ -312,10 +423,10 @@ class UsersService {
       updated_at: db.fn.now()
     });
 
-    if (school_unit_id && role_id) {
+    if (role_id) {
       await db('user_school_roles').insert({
         user_id: userId,
-        school_unit_id,
+        school_unit_id: school_unit_id || null,
         role_id,
         created_at: db.fn.now(),
         updated_at: db.fn.now()

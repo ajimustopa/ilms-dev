@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
-import { Lock, User, AlertCircle, Loader2, Info } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, Info, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -46,6 +46,19 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-10">
       <div className="max-w-md w-full">
+        {/* Tombol Kembali ke Pusat Akses */}
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition group"
+          >
+            <div className="p-1.5 rounded-xl bg-slate-800 border border-slate-700 group-hover:bg-slate-700 group-hover:border-slate-600 transition">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            <span>Kembali ke Pusat Akses 14 Modul Aplikasi Sekolah</span>
+          </Link>
+        </div>
+
         {/* Card Login */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
           {/* Logo & Header */}
@@ -148,6 +161,17 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          {/* Link Kembali di bagian bawah card */}
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Kembali ke Pusat Akses 14 Modul</span>
+            </Link>
+          </div>
         </div>
 
         {/* Footer Info */}

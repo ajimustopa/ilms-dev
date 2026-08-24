@@ -10,6 +10,14 @@
     "dev:portal": "npm --workspace=apps/core-portal run dev",
     "build:portal": "npm --workspace=apps/core-portal run build",
     "migrate:core": "npm --workspace=apps/api-backend run migrate",
-    "seed:core": "npm --workspace=apps/api-backend run seed"
+    "seed:core": "npm --workspace=apps/api-backend run seed",
+    "migrate:kepegawaian": "npm --workspace=apps/api-backend run migrate:kepegawaian",
+    "seed:kepegawaian": "npm --workspace=apps/api-backend run seed:kepegawaian",
+    "migrate:akademik": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.akademik.js migrate:latest",
+    "seed:akademik": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.akademik.js seed:run",
+    "migrate:perpustakaan": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.perpustakaan.js migrate:latest",
+    "seed:perpustakaan": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.perpustakaan.js seed:run",
+    "migrate:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js migrate:latest",
+    "seed:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js seed:run"
   }
 }

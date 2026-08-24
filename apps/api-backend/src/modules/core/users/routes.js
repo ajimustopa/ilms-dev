@@ -17,6 +17,7 @@ router.put('/change-password', authenticate, usersController.changePassword);
 router.get('/', authenticate, usersController.list);
 router.post('/', authenticate, usersController.createAdmin);
 router.get('/:id', authenticate, usersController.getById);
+router.put('/:id/access', authenticate, usersController.updateAccess);
 router.patch('/:id/status', authenticate, usersController.updateStatus);
 router.post('/:id/reset-password', authenticate, usersController.resetPassword);
 

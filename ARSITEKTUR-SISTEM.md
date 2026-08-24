@@ -66,15 +66,19 @@ Yang **tidak berubah** meski deployment digabung:
 | Sarpras | 9 | Inventaris aset, peminjaman fasilitas, maintenance, pengadaan |
 | Kantin | 9 | Menu, transaksi kasir, saldo cashless siswa, laporan penjualan |
 | Dapur | 8 | Perencanaan menu & porsi makan, stok bahan baku, laporan konsumsi |
-| Perpustakaan | 9 | Katalog buku, sirkulasi (pinjam/kembali/denda), OPAC |
+| Perpustakaan | 14 | Katalog buku & bahan pustaka non-buku, sirkulasi (pinjam/kembali/denda/reservasi/hilang-rusak), OPAC, notifikasi jatuh tempo, laporan & statistik pemanfaatan, endpoint parent-facing *(9 fitur asli PRD + 5 fitur tambahan disetujui developer 2026-08-18, lihat `rancangan-perpustakaan.md` §4)* |
 | Ujian & Bank Soal (CBE) | 6 | Bank soal, ujian daring terjadwal, analisis hasil ujian |
 | Komunikasi & Notifikasi | 6 | Broadcast SMS/WA/Email, notifikasi otomatis presensi/nilai/tagihan, direktori kontak |
 | Tahfidz & Al-Quran | 6 | Target & capaian hafalan, ujian/munaqasyah, kitab kuning |
 | Pengelolaan | 13 | RIPS/RKS/Program Kerja, KPI & mutu, evaluasi kinerja, supervisi, manajemen proyek, dashboard agregat |
 
-**Total: 202 fitur.** Rincian lengkap tiap fitur (kolom/atribut, aksi, aktor, prioritas MoSCoW,
-sumber & konsumen data) ada di `PRD_Template_Fitur_Sistem_Manajemen_Sekolah.xlsx` sheet
-"Daftar Fitur" — file ini hanya rekapnya.
+**Total: 207 fitur** *(202 fitur asli PRD + 5 fitur tambahan modul Perpustakaan, lihat catatan di
+baris Perpustakaan pada tabel di atas dan Bagian 9 log perubahan)*. Rincian lengkap tiap fitur
+(kolom/atribut, aksi, aktor, prioritas MoSCoW, sumber & konsumen data) ada di
+`PRD_Template_Fitur_Sistem_Manajemen_Sekolah.xlsx` sheet "Daftar Fitur" — file ini hanya
+rekapnya. **Catatan:** 5 fitur tambahan Perpustakaan (172–176) belum ditambahkan ke sheet
+`.xlsx` tersebut secara fisik — developer perlu menambahkannya secara manual, detail lengkap ada
+di `rancangan-perpustakaan.md` §4.
 
 ## 3. Prinsip Arsitektur Global (Berlaku untuk SEMUA Aplikasi, Tanpa Kecuali)
 
@@ -320,6 +324,7 @@ Fase 7  Pengelolaan                                           (agregator — but
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-08-18 | **Ruang lingkup Perpustakaan diperluas:** dari 9 fitur PRD asli (163–171) jadi **14 fitur** — ditambah 5 fitur hasil penyempurnaan yang disetujui developer (172: bahan pustaka non-buku, 173: buku hilang/rusak, 174: riwayat peminjaman anggota, 175: pengingat jatuh tempo & denda, 176: statistik pemanfaatan). Total fitur sistem berubah dari 202 → **207**. Prioritas fitur #169 (OPAC) dinaikkan dari Should → **Must**. Baris Perpustakaan di Bagian 2 dan kalimat "Total 202 fitur" di Bagian 2 diperbarui. Detail lengkap 14 fitur ada di `rancangan-perpustakaan.md` §4 (dokumen baru, dibuat sesi ini bersama `erd-perpustakaan.md`, `api-contract-perpustakaan.md`, `roles-perpustakaan.md`, `panduan-pengembangan-perpustakaan.md`). Sheet `PRD_Template_Fitur_Sistem_Manajemen_Sekolah.xlsx` **belum** diperbarui fisik — masih perlu dilakukan manual oleh developer. |
 | 2026-08-16 | **Revisi kedua:** repo digabung jadi **1 monorepo** (bukan 3 repo terpisah seperti revisi sebelumnya) — `apps/website-utama/`, `apps/core-portal/`, `apps/api-backend/` dalam satu repo GitHub. Koreksi Bagian 1.1: halaman kartu (`Launcher`) di `core.aldeposibs.com` tampil **publik tanpa login**; login tetap per aplikasi (klik kartu → halaman login milik aplikasi itu sendiri), bukan satu login bersama. Bagian 4.7 & 4.6 diperbarui: alur kerja wajib diuji lokal dulu sebelum `git push`. Bagian 3 poin 1, 4.1, 4.2, 4.5, 8 disesuaikan referensi repo→folder. |
 | 2026-08-16 | **Revisi arsitektur deployment (Bagian 1.1):** dari model "14 aplikasi terpisah = 14 subdomain/repo/slot hosting" jadi **3 domain**: `aldeposibs.com` (Website Utama, Next.js, publik), `core.aldeposibs.com` (Portal Aplikasi Internal — 1 React SPA berisi launcher kartu + 13 modul internal, login per modul setelah klik kartu), `api.aldeposibs.com` (1 backend Express modular monolith untuk semua 14 domain fungsi, terhubung MariaDB). Isolasi data per modul (1 database per modul) tetap dipertahankan; yang digabung cuma proses backend, deployment frontend internal, dan repo (14 → 3: `website-utama`, `core-portal`, `api-backend`). Bagian 3 poin 1, 4.1, 4.2, 4.5, 4.6, 4.7, 5, 6, 7, 8 diperbarui menyesuaikan. |
 | 2026-08-16 | Bagian 4 (Konvensi Teknis Global) diperluas jadi 7 subbagian: Backend & Database, Frontend (React Vite untuk aplikasi internal, Next.js khusus Website Utama untuk kebutuhan SEO), Format & Penamaan API, Penamaan Tabel/Kolom (final: Inggris `snake_case`, mengacu `erd-coreservice.md`), Environment Variable, Infrastruktur & Deployment Hostinger (pola subdomain per aplikasi, PM2, Remote MySQL), Version Control & CI/CD GitHub (satu repo per aplikasi, branch `main`, GitHub Actions + Secrets). |

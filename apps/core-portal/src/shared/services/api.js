@@ -1,6 +1,8 @@
 import axios from 'axios';
+import { getAppLoginPath } from '../utils/authHelper';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -72,9 +74,10 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('aldepos_refresh_token');
       if (!refreshToken) {
-        // Logout & arahkan ke login jika tidak ada refresh token
+        // Logout & arahkan ke login aplikasi terkait jika tidak ada refresh token
+        const targetLogin = getAppLoginPath(window.location.pathname);
         localStorage.clear();
-        window.location.href = '/core/login';
+        window.location.href = targetLogin;
         return Promise.reject(error);
       }
 
@@ -99,8 +102,9 @@ api.interceptors.response.use(
         }
       } catch (refreshErr) {
         processQueue(refreshErr, null);
+        const targetLogin = getAppLoginPath(window.location.pathname);
         localStorage.clear();
-        window.location.href = '/core/login';
+        window.location.href = targetLogin;
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

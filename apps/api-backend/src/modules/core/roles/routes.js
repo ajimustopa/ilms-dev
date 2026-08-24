@@ -6,6 +6,9 @@ const router = express.Router();
 const rolesController = require('./controller');
 const { authenticate } = require('../../../middlewares/auth');
 
+// Permissions Endpoint
+router.get('/permissions', authenticate, rolesController.listPermissions);
+
 // Role CRUD Endpoints
 router.get('/', authenticate, rolesController.list);
 router.post('/', authenticate, rolesController.create);

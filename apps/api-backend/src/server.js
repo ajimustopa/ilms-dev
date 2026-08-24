@@ -31,6 +31,10 @@ async function startServer() {
     console.log(` Core API    : http://localhost:${PORT}/api/v1/core`);
     console.log(` Health Check: http://localhost:${PORT}/`);
     console.log(`==============================================`);
+
+    // Inisialisasi Background Scheduler
+    const { startScheduler } = require('./services/scheduler');
+    startScheduler();
   });
 }
 

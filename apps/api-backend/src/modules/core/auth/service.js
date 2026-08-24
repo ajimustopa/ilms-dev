@@ -38,9 +38,9 @@ class AuthService {
    * Mengambil relasi Satuan Pendidikan, Role, dan Permissions milik pengguna
    */
   async getUserPermissionsAndRoles(userId) {
-    // 1. Ambil seluruh penugasan sekolah dan role
+    // 1. Ambil seluruh penugasan sekolah dan role (gunakan leftJoin agar role yayasan/global tanpa school_unit_id tetap terbaca)
     const schoolRoles = await db('user_school_roles')
-      .join('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
+      .leftJoin('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
       .join('roles', 'user_school_roles.role_id', 'roles.id')
       .where('user_school_roles.user_id', userId)
       .select(
@@ -126,17 +126,18 @@ class AuthService {
       activeSchoolRole = schoolRoles[0];
     }
 
-    // Filter permissions untuk active role/sekolah
-    const activePermissions = activeSchoolRole
-      ? permissions
-          .filter((p) => p.role_id === activeSchoolRole.role_id)
-          .map((p) => p.code)
-      : [];
+    // Filter permissions untuk active role/sekolah atau global roles
+    const activeRoleIds = activeSchoolRole ? [activeSchoolRole.role_id] : [...new Set(schoolRoles.map((sr) => sr.role_id))];
+    const activePermissions = permissions
+      .filter((p) => activeRoleIds.includes(p.role_id))
+      .map((p) => p.code);
 
     // 5. Generate Access Token (JWT - Durasi Pendek mis. 15m)
     const jwtSecret = process.env.CORE_JWT_SECRET || 'default_core_jwt_secret_key';
     const jwtExpiry = process.env.CORE_JWT_EXPIRES_IN || '15m';
     const expiresInSeconds = this.parseDurationToSeconds(jwtExpiry, 900);
+
+    const roleNames = [...new Set(schoolRoles.map((sr) => sr.role_name))];
 
     const tokenPayload = {
       sub: user.id,
@@ -147,7 +148,14 @@ class AuthService {
       ref_type: user.ref_type,
       ref_id: user.ref_id,
       active_school_unit_id: activeSchoolRole?.school_unit_id || null,
-      active_role: activeSchoolRole?.role_name || null,
+      active_role: activeSchoolRole?.role_name || (roleNames[0] || null),
+      roles: roleNames,
+      school_units: schoolRoles.map((sr) => ({
+        id: sr.school_unit_id,
+        name: sr.school_name,
+        level: sr.school_level,
+        role: sr.role_name
+      })),
       permissions: activePermissions
     };
 
@@ -254,16 +262,17 @@ class AuthService {
     // 3. Ambil role dan permissions
     const { schoolRoles, permissions } = await this.getUserPermissionsAndRoles(user.id);
     const activeSchoolRole = schoolRoles.length > 0 ? schoolRoles[0] : null;
-    const activePermissions = activeSchoolRole
-      ? permissions
-          .filter((p) => p.role_id === activeSchoolRole.role_id)
-          .map((p) => p.code)
-      : [];
+    const activeRoleIds = activeSchoolRole ? [activeSchoolRole.role_id] : [...new Set(schoolRoles.map((sr) => sr.role_id))];
+    const activePermissions = permissions
+      .filter((p) => activeRoleIds.includes(p.role_id))
+      .map((p) => p.code);
 
     // 4. Terbitkan Access Token baru
     const jwtSecret = process.env.CORE_JWT_SECRET || 'default_core_jwt_secret_key';
     const jwtExpiry = process.env.CORE_JWT_EXPIRES_IN || '15m';
     const expiresInSeconds = this.parseDurationToSeconds(jwtExpiry, 900);
+
+    const roleNames = [...new Set(schoolRoles.map((sr) => sr.role_name))];
 
     const tokenPayload = {
       sub: user.id,
@@ -274,7 +283,14 @@ class AuthService {
       ref_type: user.ref_type,
       ref_id: user.ref_id,
       active_school_unit_id: activeSchoolRole?.school_unit_id || null,
-      active_role: activeSchoolRole?.role_name || null,
+      active_role: activeSchoolRole?.role_name || (roleNames[0] || null),
+      roles: roleNames,
+      school_units: schoolRoles.map((sr) => ({
+        id: sr.school_unit_id,
+        name: sr.school_name,
+        level: sr.school_level,
+        role: sr.role_name
+      })),
       permissions: activePermissions
     };
 
@@ -338,9 +354,23 @@ class AuthService {
     }
 
     const { schoolRoles, permissions } = await this.getUserPermissionsAndRoles(user.id);
+    const activeSchoolRole = schoolRoles.length > 0 ? schoolRoles[0] : null;
 
     return {
       ...user,
+      active_school_unit: activeSchoolRole
+        ? {
+            id: activeSchoolRole.school_unit_id,
+            name: activeSchoolRole.school_name,
+            level: activeSchoolRole.school_level
+          }
+        : null,
+      roles: schoolRoles.map((sr) => ({
+        role_id: sr.role_id,
+        role_name: sr.role_name,
+        school_unit_id: sr.school_unit_id,
+        school_name: sr.school_name
+      })),
       school_roles: schoolRoles.map((sr) => ({
         school_unit_id: sr.school_unit_id,
         school_name: sr.school_name,

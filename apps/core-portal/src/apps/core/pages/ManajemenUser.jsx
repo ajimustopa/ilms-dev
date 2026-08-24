@@ -12,8 +12,35 @@ import {
   ChevronRight,
   RefreshCw,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Shield,
+  Building2,
+  Key,
+  Globe,
+  Sliders,
+  Check,
+  Eye,
+  Settings,
+  HelpCircle,
+  LayoutGrid
 } from 'lucide-react';
+
+const ECOSYSTEM_APPS = [
+  { module: 'core', name: 'Core Service & Sistem', desc: 'Profil Yayasan, Satuan Pendidikan, User, Role RBAC, Audit Log, API Client' },
+  { module: 'kepegawaian', name: 'Kepegawaian & SDM', desc: 'Data Induk GTK, Alamat & Berkas, DUK, Presensi, Cuti, Payroll, Rekrutmen, Psikotes' },
+  { module: 'akademik', name: 'Akademik & Kurikulum', desc: 'Data Siswa Dapodik, Rombel/Kelas, Jadwal, Nilai & Rapor, Presensi Siswa, Kelulusan' },
+  { module: 'keuangan', name: 'Keuangan & SPP', desc: 'Pos Keuangan, Tagihan SPP & Uang Gedung, Virtual Account/Payment, Kas & Jurnal' },
+  { module: 'kesiswaan', name: 'Kesiswaan & Ekskul', desc: 'Ekstrakurikuler, Prestasi Siswa, Tata Tertib & Poin Pelanggaran, OSIS / Beasiswa' },
+  { module: 'sarpras', name: 'Sarana & Prasarana', desc: 'Inventaris Gedung & Ruang, Aset Sekolah, Peminjaman Fasilitas, Servis & Pemeliharaan' },
+  { module: 'perpustakaan', name: 'Perpustakaan Digital', desc: 'Katalog Buku & ISBN, Sirkulasi Peminjaman, E-Book Digital, Kartu Anggota' },
+  { module: 'cbt', name: 'CBT & Ujian Online', desc: 'Bank Soal, Jadwal Ujian Online, Monitoring Anti-Cheat, Analisis Butir Soal' },
+  { module: 'bk', name: 'Bimbingan & Konseling', desc: 'Catatan Konseling, Sosiometri & Home Visit, Rekomendasi Peminatan / Karir Siswa' },
+  { module: 'alumni', name: 'Tracer Study & Alumni', desc: 'Database Alumni, Forum Karir & Lowongan Kerja, Donasi & Kontribusi Alumni' },
+  { module: 'ppdb', name: 'PPDB / PSB Online', desc: 'Formulir Pendaftaran, Seleksi Berkas, Tes Masuk Online, Pengumuman & Daftar Ulang' },
+  { module: 'portal_ortu', name: 'Portal Orang Tua', desc: 'Monitoring Nilai, Presensi, Tagihan SPP, & Catatan Karakter Anak Mandiri' },
+  { module: 'portal_siswa', name: 'Portal Siswa', desc: 'Jadwal Kelas, Materi Pembelajaran, Tugas Online, Presensi, & Raport Siswa' },
+  { module: 'al_quran', name: 'Al-Qur\'an & Tahfidz', desc: 'Setoran Hafalan, Ziyadah & Muraja\'ah, Penilaian Tajwid/Tilawah, Ujian Tahfidz' }
+];
 
 export default function ManajemenUser() {
   const [users, setUsers] = useState([]);
@@ -34,24 +61,37 @@ export default function ManajemenUser() {
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAccessModal, setShowAccessModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State Add Admin
-  const [formData, setFormData] = useState({
+  // Form State: Add User
+  const [addForm, setAddForm] = useState({
     username: '',
     password: '',
     full_name: '',
     account_type: 'admin',
+    school_scope_type: 'yayasan', // 'yayasan' or 'school'
     school_unit_id: '',
+    assignment_method: 'role', // 'role' or 'custom'
     role_id: '',
+    app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
   });
 
-  // Form State Reset Password
+  // Form State: Access Configuration for Existing User
+  const [accessForm, setAccessForm] = useState({
+    school_scope_type: 'yayasan',
+    school_unit_id: '',
+    assignment_method: 'role',
+    role_id: '',
+    app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
+  });
+
+  // Form State: Reset Password
   const [newPassword, setNewPassword] = useState('');
 
-  // Fetch Users from API
+  // Fetch Users
   const fetchUsers = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -84,7 +124,7 @@ export default function ManajemenUser() {
     }
   };
 
-  // Fetch Metadata (School Units & Roles) for Modals
+  // Fetch Metadata (Units & Roles)
   const fetchMetadata = async () => {
     try {
       const [schoolsRes, rolesRes] = await Promise.all([
@@ -94,15 +134,12 @@ export default function ManajemenUser() {
 
       if (schoolsRes.data?.success && schoolsRes.data.data?.items) {
         setSchoolUnits(schoolsRes.data.data.items);
-        if (schoolsRes.data.data.items.length > 0) {
-          setFormData((prev) => ({ ...prev, school_unit_id: String(schoolsRes.data.data.items[0].id) }));
-        }
       }
 
       if (rolesRes.data?.success && rolesRes.data.data) {
         setRoles(rolesRes.data.data);
         if (rolesRes.data.data.length > 0) {
-          setFormData((prev) => ({ ...prev, role_id: String(rolesRes.data.data[0].id) }));
+          setAddForm((prev) => ({ ...prev, role_id: String(rolesRes.data.data[0].id) }));
         }
       }
     } catch (err) {
@@ -124,41 +161,103 @@ export default function ManajemenUser() {
     fetchUsers();
   };
 
-  // Handle Add Admin Submit
-  const handleAddAdmin = async (e) => {
+  // Open Access Modal for existing user
+  const handleOpenAccessModal = (user) => {
+    setSelectedUser(user);
+    const primaryRole = user.school_roles?.[0];
+    const isYayasan = !primaryRole?.school_unit_id;
+    const isCustom = primaryRole?.role_name?.startsWith('custom_user_');
+
+    const initialPermissions = ECOSYSTEM_APPS.reduce((acc, app) => {
+      acc[app.module] = 'none';
+      return acc;
+    }, {});
+
+    if (user.permissions && Array.isArray(user.permissions)) {
+      user.permissions.forEach((p) => {
+        const [mod, action] = p.code.split('.');
+        if (action === 'manage') {
+          initialPermissions[mod] = 'admin';
+        } else if (action === 'view' && initialPermissions[mod] !== 'admin') {
+          initialPermissions[mod] = 'view';
+        }
+      });
+    }
+
+    setAccessForm({
+      school_scope_type: isYayasan ? 'yayasan' : 'school',
+      school_unit_id: primaryRole?.school_unit_id ? String(primaryRole.school_unit_id) : (schoolUnits[0]?.id ? String(schoolUnits[0].id) : ''),
+      assignment_method: isCustom ? 'custom' : 'role',
+      role_id: primaryRole?.role_id ? String(primaryRole.role_id) : (roles[0]?.id ? String(roles[0].id) : ''),
+      app_permissions: initialPermissions
+    });
+
+    setFormError('');
+    setShowAccessModal(true);
+  };
+
+  // Submit Access Form for existing user
+  const handleSaveAccess = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setFormError('');
 
     try {
       const payload = {
-        username: formData.username.trim(),
-        password: formData.password,
-        full_name: formData.full_name.trim(),
-        account_type: 'admin',
-        school_unit_id: formData.school_unit_id ? Number(formData.school_unit_id) : null,
-        role_id: formData.role_id ? Number(formData.role_id) : null,
+        assignment_method: accessForm.assignment_method,
+        school_unit_id: accessForm.school_scope_type === 'yayasan' ? null : Number(accessForm.school_unit_id),
+        role_id: accessForm.assignment_method === 'role' ? Number(accessForm.role_id) : null,
+        app_permissions: accessForm.assignment_method === 'custom' ? accessForm.app_permissions : null
+      };
+
+      const res = await api.put(`/core/users/${selectedUser.id}/access`, payload);
+      if (res.data?.success) {
+        setShowAccessModal(false);
+        fetchUsers();
+      }
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Gagal memperbarui hak akses pengguna');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle Add User Submit
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setFormError('');
+
+    try {
+      const payload = {
+        username: addForm.username.trim(),
+        password: addForm.password,
+        full_name: addForm.full_name.trim(),
+        account_type: addForm.account_type,
+        school_unit_id: addForm.school_scope_type === 'yayasan' ? null : Number(addForm.school_unit_id),
+        assignment_method: addForm.assignment_method,
+        role_id: addForm.assignment_method === 'role' ? Number(addForm.role_id) : null,
+        app_permissions: addForm.assignment_method === 'custom' ? addForm.app_permissions : null
       };
 
       const res = await api.post('/core/users', payload);
       if (res.data?.success) {
         setShowAddModal(false);
-        setFormData({
+        setAddForm({
           username: '',
           password: '',
           full_name: '',
           account_type: 'admin',
+          school_scope_type: 'yayasan',
           school_unit_id: schoolUnits[0] ? String(schoolUnits[0].id) : '',
+          assignment_method: 'role',
           role_id: roles[0] ? String(roles[0].id) : '',
+          app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
         });
         fetchUsers();
       }
     } catch (err) {
-      setFormError(
-        err.response?.data?.message ||
-        (err.response?.data?.errors ? err.response.data.errors.join(', ') : null) ||
-        'Gagal menambahkan admin'
-      );
+      setFormError(err.response?.data?.message || 'Gagal menambahkan pengguna');
     } finally {
       setSubmitting(false);
     }
@@ -195,30 +294,36 @@ export default function ManajemenUser() {
         setSelectedUser(null);
       }
     } catch (err) {
-      setFormError(
-        err.response?.data?.message ||
-        (err.response?.data?.errors ? err.response.data.errors.join(', ') : null) ||
-        'Gagal mereset password'
-      );
+      setFormError(err.response?.data?.message || 'Gagal mereset password');
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Quick Matrix Action Helpers
+  const setAllMatrix = (setter, targetState, accessValue) => {
+    const updated = { ...targetState.app_permissions };
+    ECOSYSTEM_APPS.forEach((app) => {
+      updated[app.module] = accessValue;
+    });
+    setter((prev) => ({ ...prev, app_permissions: updated }));
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header Title & Action Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Manajemen User & Akun</h2>
-          <p className="text-xs text-slate-500">
-            Daftar akun login terpusat untuk seluruh ekosistem 14 aplikasi sekolah.
+          <h2 className="text-xl font-bold text-slate-800">Manajemen Pengguna & Hak Akses</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Kelola akun login terpusat, lingkup satuan pendidikan, dan penetapan hak akses aplikasi (Role Baku atau Matrix Kustom).
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchUsers}
-            className="p-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-slate-600 transition"
+            disabled={loading}
+            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 transition shadow-2xs"
             title="Muat Ulang Data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -228,49 +333,41 @@ export default function ManajemenUser() {
               setFormError('');
               setShowAddModal(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition shadow-xs"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Tambah Akun Admin</span>
+            <span>+ Tambah Pengguna</span>
           </button>
         </div>
       </div>
 
-      {/* Error Alert */}
-      {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
       {/* Filter & Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
           <input
             type="text"
+            placeholder="Cari username atau nama..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari berdasarkan username atau nama lengkap..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-        </div>
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        </form>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <select
             value={typeFilter}
             onChange={(e) => {
               setTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none"
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
           >
             <option value="all">Semua Tipe Akun</option>
             <option value="admin">Admin</option>
-            <option value="teacher">Guru (Teacher)</option>
-            <option value="staff">Staf (Staff)</option>
-            <option value="student">Siswa (Student)</option>
+            <option value="staff">Staf / Guru</option>
+            <option value="student">Siswa</option>
+            <option value="parent">Orang Tua</option>
           </select>
 
           <select
@@ -279,138 +376,149 @@ export default function ManajemenUser() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none"
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
           >
             <option value="all">Semua Status</option>
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
           </select>
-
-          <button
-            type="submit"
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition shrink-0"
-          >
-            Cari
-          </button>
         </div>
-      </form>
+      </div>
 
-      {/* Table Data */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* Main Users Table */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3">Pengguna</th>
-                <th className="px-5 py-3">Tipe Akun</th>
-                <th className="px-5 py-3">Penugasan Satuan & Role</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Login Terakhir</th>
-                <th className="px-5 py-3 text-right">Aksi</th>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
+                <th className="py-3.5 px-4">Pengguna</th>
+                <th className="py-3.5 px-4">Tipe Akun</th>
+                <th className="py-3.5 px-4">Lingkup Satuan Pendidikan</th>
+                <th className="py-3.5 px-4">Peran / Hak Akses</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-5 py-8 text-center text-slate-400">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-600 mb-2" />
+                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
                     <span>Memuat data pengguna...</span>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-5 py-8 text-center text-slate-400">
-                    Tidak ada data pengguna ditemukan
+                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <span>Tidak ada pengguna yang sesuai dengan filter</span>
                   </td>
                 </tr>
               ) : (
-                users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/80 transition">
-                    <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-800">{u.full_name}</div>
-                      <div className="text-[11px] text-slate-400">@{u.username}</div>
-                    </td>
-                    <td className="px-5 py-3.5 capitalize">
-                      <span className="px-2.5 py-1 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700">
-                        {u.account_type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {u.school_roles && u.school_roles.length > 0 ? (
-                        u.school_roles.map((sr, idx) => (
-                          <span key={idx} className="block text-[11px] text-slate-700 font-medium">
-                            &bull; {sr.school_name} <span className="text-emerald-600">({sr.role_name})</span>
+                users.map((u) => {
+                  const primaryRole = u.school_roles?.[0];
+                  const isCustom = primaryRole?.role_name?.startsWith('custom_user_');
+                  const isYayasan = !primaryRole?.school_unit_id;
+
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-slate-800">{u.full_name}</div>
+                        <div className="text-[11px] font-mono text-slate-400">@{u.username}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
+                          {u.account_type}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {isYayasan ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            <Globe className="w-3 h-3" />
+                            <span>Yayasan (Lintas Satuan Pendidikan)</span>
                           </span>
-                        ))
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">-</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => handleToggleStatus(u)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold cursor-pointer transition ${
-                          u.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                        }`}
-                        title="Klik untuk ubah status"
-                      >
-                        {u.status === 'active' ? (
-                          <>
-                            <CheckCircle className="w-3 h-3" />
-                            <span>Aktif</span>
-                          </>
                         ) : (
-                          <>
-                            <XCircle className="w-3 h-3" />
-                            <span>Nonaktif</span>
-                          </>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <Building2 className="w-3 h-3" />
+                            <span>{primaryRole?.school_name}</span>
+                          </span>
                         )}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-400 font-mono text-[11px]">
-                      {u.last_login_at ? new Date(u.last_login_at).toLocaleString('id-ID') : 'Belum pernah'}
-                    </td>
-                    <td className="px-5 py-3.5 text-right space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setFormError('');
-                          setShowResetModal(true);
-                        }}
-                        className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-                      >
-                        Reset Password
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {isCustom ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Sliders className="w-3 h-3" />
+                            <span>Kustom (Matrix Aplikasi)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <Shield className="w-3 h-3" />
+                            <span>{primaryRole?.role_name || 'Tanpa Peran'}</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          onClick={() => handleToggleStatus(u)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
+                            u.status === 'active'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                          }`}
+                        >
+                          {u.status === 'active' ? '● Aktif' : '○ Nonaktif'}
+                        </button>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenAccessModal(u)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-[11px] transition"
+                            title="Atur Lingkup Satuan Pendidikan & Hak Akses Aplikasi"
+                          >
+                            <Shield className="w-3.5 h-3.5" />
+                            <span>Atur Akses</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setNewPassword('');
+                              setFormError('');
+                              setShowResetModal(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                            title="Reset Password"
+                          >
+                            <Key className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <div>
-            Total {totalItems} pengguna terdaftar
-          </div>
+        {/* Pagination */}
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span>Menampilkan {users.length} dari {totalItems} total pengguna</span>
           <div className="flex items-center gap-1">
             <button
-              disabled={currentPage === 1 || loading}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 font-semibold text-slate-700">
+            <span className="px-3 py-1 font-semibold text-slate-700">
               {currentPage} / {totalPages}
             </span>
             <button
-              disabled={currentPage === totalPages || loading}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -418,121 +526,275 @@ export default function ManajemenUser() {
         </div>
       </div>
 
-      {/* Modal Tambah Admin Baru */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">Tambah Akun Admin Baru</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
+      {/* ======================================================== */}
+      {/* MODAL 1: ATUR HAK AKSES PENGGUNA (DUAL METHOD + SCOPE)   */}
+      {/* ======================================================== */}
+      {showAccessModal && selectedUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] flex flex-col animate-in fade-in">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-indigo-600" />
+                  <span>Konfigurasi Hak Akses: {selectedUser.full_name}</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">@{selectedUser.username}</p>
+              </div>
+              <button onClick={() => setShowAccessModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {formError && (
-              <div className="mt-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleAddAdmin} className="space-y-3.5 mt-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nama Lengkap Admin <span className="text-red-500">*</span>
+            <form onSubmit={handleSaveAccess} className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* 1. Pemilihan Lingkup Satuan Pendidikan */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                  1. Lingkup Satuan Pendidikan
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="mis. Budi Santoso"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Username Akun <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="mis. admin.budi"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Password Awal <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Masukkan password aman"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Satuan Pendidikan
-                  </label>
-                  <select
-                    value={formData.school_unit_id}
-                    onChange={(e) => setFormData({ ...formData, school_unit_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      accessForm.school_scope_type === 'yayasan'
+                        ? 'bg-purple-50/80 border-purple-300 text-purple-900 font-bold shadow-2xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
                   >
-                    {schoolUnits.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    <input
+                      type="radio"
+                      name="access_scope"
+                      value="yayasan"
+                      checked={accessForm.school_scope_type === 'yayasan'}
+                      onChange={() => setAccessForm({ ...accessForm, school_scope_type: 'yayasan' })}
+                      className="text-purple-600"
+                    />
+                    <Globe className="w-4 h-4 text-purple-600 shrink-0" />
+                    <div>
+                      <div>Lingkup Yayasan</div>
+                      <div className="text-[10px] font-normal text-purple-700">Akses Lintas Seluruh Satuan Pendidikan</div>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      accessForm.school_scope_type === 'school'
+                        ? 'bg-blue-50/80 border-blue-300 text-blue-900 font-bold shadow-2xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="access_scope"
+                      value="school"
+                      checked={accessForm.school_scope_type === 'school'}
+                      onChange={() => setAccessForm({ ...accessForm, school_scope_type: 'school' })}
+                      className="text-blue-600"
+                    />
+                    <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div>
+                      <div>Satuan Pendidikan Spesifik</div>
+                      <div className="text-[10px] font-normal text-blue-700">Dibatasi pada 1 Unit Sekolah</div>
+                    </div>
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Role Penugasan
-                  </label>
-                  <select
-                    value={formData.role_id}
-                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  >
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {accessForm.school_scope_type === 'school' && (
+                  <div className="pt-2">
+                    <label className="block font-semibold text-slate-700 mb-1">Pilih Unit Sekolah *</label>
+                    <select
+                      value={accessForm.school_unit_id}
+                      onChange={(e) => setAccessForm({ ...accessForm, school_unit_id: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800"
+                    >
+                      {schoolUnits.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              {/* 2. Dua Metode Penetapan Hak Akses */}
+              <div className="space-y-3">
+                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                  2. Metode Penetapan Hak Akses
+                </label>
+
+                {/* Tabs Metode */}
+                <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setAccessForm({ ...accessForm, assignment_method: 'role' })}
+                    className={`flex-1 py-2 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                      accessForm.assignment_method === 'role'
+                        ? 'bg-white text-indigo-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Metode 1: Pilih Peran Baku (Preset Standar)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccessForm({ ...accessForm, assignment_method: 'custom' })}
+                    className={`flex-1 py-2 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 ${
+                      accessForm.assignment_method === 'custom'
+                        ? 'bg-white text-indigo-600 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Metode 2: Kustom Hak Akses per Aplikasi</span>
+                  </button>
+                </div>
+
+                {/* METODE 1: PILIH PERAN BAKU */}
+                {accessForm.assignment_method === 'role' && (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <label className="block font-semibold text-slate-700 mb-1">Pilih Peran Standar RBAC *</label>
+                    <select
+                      value={accessForm.role_id}
+                      onChange={(e) => setAccessForm({ ...accessForm, role_id: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800"
+                    >
+                      {roles.filter(r => !r.name.startsWith('custom_user_')).map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} — {r.description || 'Peran Sistem'}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Peran baku memaketkan serangkaian hak akses default yang telah dikonfigurasi sesuai tupoksi.
+                    </p>
+                  </div>
+                )}
+
+                {/* METODE 2: KUSTOM MATRIX APLIKASI */}
+                {accessForm.assignment_method === 'custom' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <span className="font-semibold text-slate-700">Aksi Cepat Matrix:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setAllMatrix(setAccessForm, accessForm, 'view')}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 font-semibold text-[11px]"
+                        >
+                          Semua View Only
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAllMatrix(setAccessForm, accessForm, 'admin')}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px]"
+                        >
+                          Semua Admin
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAllMatrix(setAccessForm, accessForm, 'none')}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-rose-600 font-semibold text-[11px]"
+                        >
+                          Reset Kosong
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {ECOSYSTEM_APPS.map((app) => {
+                        const currentVal = accessForm.app_permissions[app.module] || 'none';
+                        return (
+                          <div
+                            key={app.module}
+                            className="p-3 bg-white rounded-xl border border-slate-200 hover:border-slate-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-800">{app.name}</div>
+                              <div className="text-[11px] text-slate-400 line-clamp-1">{app.desc}</div>
+                            </div>
+
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg shrink-0">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAccessForm({
+                                    ...accessForm,
+                                    app_permissions: { ...accessForm.app_permissions, [app.module]: 'none' }
+                                  })
+                                }
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition ${
+                                  currentVal === 'none'
+                                    ? 'bg-slate-300 text-slate-800 shadow-2xs'
+                                    : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                              >
+                                Tidak Ada
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAccessForm({
+                                    ...accessForm,
+                                    app_permissions: { ...accessForm.app_permissions, [app.module]: 'view' }
+                                  })
+                                }
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition flex items-center gap-1 ${
+                                  currentVal === 'view'
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Hanya Tampil</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAccessForm({
+                                    ...accessForm,
+                                    app_permissions: { ...accessForm.app_permissions, [app.module]: 'admin' }
+                                  })
+                                }
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition flex items-center gap-1 ${
+                                  currentVal === 'admin'
+                                    ? 'bg-indigo-600 text-white shadow-2xs'
+                                    : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                              >
+                                <Shield className="w-3 h-3" />
+                                <span>Sebagai Admin</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl"
+                  onClick={() => setShowAccessModal(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
                 >
-                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>{submitting ? 'Menyimpan...' : 'Simpan Akun'}</span>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Simpan Perubahan Hak Akses</span>
                 </button>
               </div>
             </form>
@@ -540,61 +802,313 @@ export default function ManajemenUser() {
         </div>
       )}
 
-      {/* Modal Reset Password */}
-      {showResetModal && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">Reset Password Pengguna</h3>
-              <button
-                onClick={() => setShowResetModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
+      {/* ======================================================== */}
+      {/* MODAL 2: TAMBAH PENGGUNA BARU DENGAN PILIHAN AKSES       */}
+      {/* ======================================================== */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] flex flex-col animate-in fade-in">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-indigo-600" />
+                <span>Tambah Pengguna & Konfigurasi Hak Akses</span>
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {formError && (
-              <div className="mt-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+              <div className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleResetPassword} className="space-y-3 mt-4">
-              <p className="text-xs text-slate-600">
-                Atur password baru untuk akun <strong>@{selectedUser.username}</strong> ({selectedUser.full_name}).
-              </p>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Password Baru <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Masukkan password baru"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+            <form onSubmit={handleAddUser} className="mt-4 space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Info Dasar Akun */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Username Login *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="mis. ahmad.fauzi"
+                    value={addForm.username}
+                    onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Password Awal *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Minimal 6 karakter"
+                    value={addForm.password}
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ahmad Fauzi, S.Pd."
+                    value={addForm.full_name}
+                    onChange={(e) => setAddForm({ ...addForm, full_name: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Tipe Akun *</label>
+                  <select
+                    value={addForm.account_type}
+                    onChange={(e) => setAddForm({ ...addForm, account_type: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                  >
+                    <option value="admin">Administrator</option>
+                    <option value="staff">Staf / Guru</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 1. Lingkup Satuan Pendidikan */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                  Lingkup Satuan Pendidikan
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      addForm.school_scope_type === 'yayasan'
+                        ? 'bg-purple-50/80 border-purple-300 text-purple-900 font-bold'
+                        : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="add_scope"
+                      value="yayasan"
+                      checked={addForm.school_scope_type === 'yayasan'}
+                      onChange={() => setAddForm({ ...addForm, school_scope_type: 'yayasan' })}
+                      className="text-purple-600"
+                    />
+                    <Globe className="w-4 h-4 text-purple-600" />
+                    <span>Lingkup Yayasan (Lintas Unit)</span>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      addForm.school_scope_type === 'school'
+                        ? 'bg-blue-50/80 border-blue-300 text-blue-900 font-bold'
+                        : 'bg-white border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="add_scope"
+                      value="school"
+                      checked={addForm.school_scope_type === 'school'}
+                      onChange={() => setAddForm({ ...addForm, school_scope_type: 'school' })}
+                      className="text-blue-600"
+                    />
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <span>Satuan Pendidikan Tertentu</span>
+                  </label>
+                </div>
+
+                {addForm.school_scope_type === 'school' && (
+                  <div className="pt-2">
+                    <label className="block font-semibold text-slate-700 mb-1">Pilih Unit Sekolah *</label>
+                    <select
+                      value={addForm.school_unit_id}
+                      onChange={(e) => setAddForm({ ...addForm, school_unit_id: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl"
+                    >
+                      {schoolUnits.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Metode Penetapan Hak Akses */}
+              <div className="space-y-3">
+                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                  Metode Penetapan Hak Akses
+                </label>
+
+                <div className="flex items-center p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setAddForm({ ...addForm, assignment_method: 'role' })}
+                    className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
+                      addForm.assignment_method === 'role' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500'
+                    }`}
+                  >
+                    Metode 1: Peran Baku (Preset)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddForm({ ...addForm, assignment_method: 'custom' })}
+                    className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
+                      addForm.assignment_method === 'custom' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500'
+                    }`}
+                  >
+                    Metode 2: Matrix Kustom per Aplikasi
+                  </button>
+                </div>
+
+                {addForm.assignment_method === 'role' ? (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <label className="block font-semibold text-slate-700 mb-1">Pilih Peran Standar *</label>
+                    <select
+                      value={addForm.role_id}
+                      onChange={(e) => setAddForm({ ...addForm, role_id: e.target.value })}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium"
+                    >
+                      {roles.filter(r => !r.name.startsWith('custom_user_')).map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} — {r.description || 'Peran Sistem'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {ECOSYSTEM_APPS.map((app) => {
+                      const currentVal = addForm.app_permissions[app.module] || 'none';
+                      return (
+                        <div
+                          key={app.module}
+                          className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                        >
+                          <div className="font-semibold text-slate-800">{app.name}</div>
+                          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddForm({
+                                  ...addForm,
+                                  app_permissions: { ...addForm.app_permissions, [app.module]: 'none' }
+                                })
+                              }
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                currentVal === 'none' ? 'bg-slate-300 text-slate-800' : 'text-slate-500'
+                              }`}
+                            >
+                              Tidak Ada
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddForm({
+                                  ...addForm,
+                                  app_permissions: { ...addForm.app_permissions, [app.module]: 'view' }
+                                })
+                              }
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                currentVal === 'view' ? 'bg-blue-600 text-white' : 'text-slate-500'
+                              }`}
+                            >
+                              Tampil
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddForm({
+                                  ...addForm,
+                                  app_permissions: { ...addForm.app_permissions, [app.module]: 'admin' }
+                                })
+                              }
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                currentVal === 'admin' ? 'bg-indigo-600 text-white' : 'text-slate-500'
+                              }`}
+                            >
+                              Admin
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowResetModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
                 >
-                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>{submitting ? 'Mereset...' : 'Reset Sekarang'}</span>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Buat Akun Pengguna</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 3: RESET PASSWORD PENGGUNA                         */}
+      {/* ======================================================== */}
+      {showResetModal && selectedUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Key className="w-4 h-4 text-amber-500" />
+                <span>Reset Password Pengguna</span>
+              </h3>
+              <button onClick={() => setShowResetModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4">
+              Anda akan mengatur ulang kata sandi untuk akun <strong>@{selectedUser.username}</strong> ({selectedUser.full_name}).
+            </p>
+
+            <form onSubmit={handleResetPassword} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Password Baru (Opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Kosongkan untuk default: Password123!"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {submitting ? 'Mereset...' : 'Reset Password'}
                 </button>
               </div>
             </form>

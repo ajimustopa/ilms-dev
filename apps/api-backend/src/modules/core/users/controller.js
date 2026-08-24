@@ -116,6 +116,25 @@ class UsersController {
     }
   }
 
+  async updateAccess(req, res, next) {
+    try {
+      const result = await usersService.updateUserAccess(
+        req.params.id,
+        req.body,
+        req.user,
+        req.ip || req.connection?.remoteAddress
+      );
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Hak akses pengguna berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async changePassword(req, res, next) {
     try {
       await usersService.changePassword(req.user?.id, req.body);

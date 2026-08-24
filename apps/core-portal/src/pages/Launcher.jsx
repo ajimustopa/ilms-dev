@@ -35,9 +35,9 @@ export default function Launcher() {
       return;
     }
 
-    if (app.id === 'core') {
+    if (app.id === 'core' || app.id === 'website-utama') {
       if (isAuthenticated) {
-        navigate('/core/dashboard');
+        navigate(`/${app.id}/dashboard`);
       } else {
         navigate('/core/login');
       }
@@ -69,19 +69,17 @@ export default function Launcher() {
       category: 'Utilitas & Fondasi'
     },
     {
-      id: 'website',
-      name: 'Website Utama & PPDB',
-      moduleName: 'Website Utama',
-      description: 'Portal publik sekolah, pendaftaran siswa baru (PPDB daring), CMS berita & galeri kegiatan.',
+      id: 'website-utama',
+      name: 'Website Utama (CMS)',
+      moduleName: 'CMS Website & PPDB',
+      description: 'Panel administrasi konten website resmi sekolah, publikasi berita, galeri, PPDB online & layanan konsultasi.',
       icon: Globe,
       color: 'from-blue-500 to-indigo-700',
       textColor: 'text-blue-600',
-      badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-      status: 'Publik (Next.js)',
-      available: false,
-      isExternal: true,
-      url: 'https://aldeposibs.com',
-      category: 'Publik'
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
+      category: 'Publik & Portal'
     },
     {
       id: 'kepegawaian',
@@ -91,9 +89,9 @@ export default function Launcher() {
       icon: Users2,
       color: 'from-indigo-500 to-violet-700',
       textColor: 'text-indigo-600',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-      status: 'Fase 1',
-      available: false,
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Operasional Sekolah'
     },
     {
@@ -102,11 +100,11 @@ export default function Launcher() {
       moduleName: 'Akademik',
       description: 'Data induk siswa, kurikulum pembelajaran, jadwal pelajaran, penilaian, e-Rapor & kesiswaan.',
       icon: GraduationCap,
-      color: 'from-cyan-500 to-blue-700',
-      textColor: 'text-cyan-600',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-      status: 'Fase 2',
-      available: false,
+      color: 'from-teal-500 to-emerald-700',
+      textColor: 'text-teal-600',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Operasional Sekolah'
     },
     {
@@ -117,9 +115,9 @@ export default function Launcher() {
       icon: Wallet,
       color: 'from-amber-500 to-orange-700',
       textColor: 'text-amber-600',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-      status: 'Fase 4',
-      available: false,
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Finansial & Bisnis'
     },
     {
@@ -137,15 +135,15 @@ export default function Launcher() {
     },
     {
       id: 'kantin',
-      name: 'Kasir & Kantin Sekolah',
+      name: 'Kantin',
       moduleName: 'Kantin',
-      description: 'POS kasir kantin, transaksi digital kartu RFID/cashless santri & inventaris tenant.',
+      description: 'POS kasir kantin, transaksi digital cashless santri, pengelolaan vendor titipan & bagi hasil.',
       icon: Utensils,
-      color: 'from-orange-500 to-amber-700',
-      textColor: 'text-orange-600',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-      status: 'Fase 5',
-      available: false,
+      color: 'from-amber-500 to-orange-600',
+      textColor: 'text-amber-600',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Finansial & Bisnis'
     },
     {
@@ -154,11 +152,11 @@ export default function Launcher() {
       moduleName: 'Sarpras',
       description: 'Inventaris aset, pemeliharaan fasilitas, jadwal peminjaman ruang & logistik pengadaan.',
       icon: Building,
-      color: 'from-slate-600 to-slate-800',
-      textColor: 'text-slate-600',
-      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      status: 'Fase 6',
-      available: false,
+      color: 'from-indigo-600 to-sky-700',
+      textColor: 'text-indigo-600',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Operasional Sekolah'
     },
     {
@@ -167,24 +165,24 @@ export default function Launcher() {
       moduleName: 'Dapur',
       description: 'Perencanaan menu makan santri, stok bahan pangan basah/kering & kontrol porsi harian.',
       icon: ChefHat,
-      color: 'from-lime-600 to-emerald-800',
-      textColor: 'text-lime-600',
-      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      status: 'Fase 6',
-      available: false,
+      color: 'from-amber-500 to-orange-700',
+      textColor: 'text-amber-600',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Operasional Sekolah'
     },
     {
       id: 'perpustakaan',
-      name: 'Perpustakaan (E-Library)',
+      name: 'Perpustakaan',
       moduleName: 'Perpustakaan',
       description: 'Katalog buku perpustakaan digital (OPAC), sirkulasi peminjaman, tracking denda & barcode.',
       icon: BookOpen,
       color: 'from-teal-600 to-emerald-800',
       textColor: 'text-teal-600',
-      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      status: 'Fase 6',
-      available: false,
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Akademik & Santri'
     },
     {
@@ -214,29 +212,29 @@ export default function Launcher() {
       category: 'Utilitas & Fondasi'
     },
     {
-      id: 'tahfidz',
+      id: 'alquran',
       name: 'Tahfidz & Al-Qur\'an',
       moduleName: 'Tahfidz',
       description: 'Rekap setoran hafalan Qur\'an, mutaba\'ah yaumiyah, ujian munaqasyah & kajian kitab.',
       icon: BookMarked,
       color: 'from-emerald-600 to-green-800',
       textColor: 'text-emerald-700',
-      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      status: 'Fase 6',
-      available: false,
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Akademik & Santri'
     },
     {
-      id: 'pengelolaan',
+      id: 'manajemen',
       name: 'Manajemen & Mutu Sekolah',
-      moduleName: 'Pengelolaan',
+      moduleName: 'Manajemen',
       description: 'Rencana kerja RKS/RIPS, pencapaian KPI mutu, supervisi guru & eksekutif dashboard.',
       icon: BarChart3,
-      color: 'from-stone-600 to-stone-800',
-      textColor: 'text-stone-600',
-      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      status: 'Fase 7',
-      available: false,
+      color: 'from-indigo-600 to-violet-800',
+      textColor: 'text-indigo-600',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      status: 'Aktif / Ready',
+      available: true,
       category: 'Operasional Sekolah'
     }
   ];
@@ -364,7 +362,7 @@ export default function Launcher() {
                         </span>
                       ) : (
                         <span className="text-emerald-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                          <span>{isAuthenticated && app.id === 'core' ? 'Ke Dashboard' : 'Buka Aplikasi'}</span>
+                          <span>{isAuthenticated ? 'Ke Dashboard' : 'Buka Aplikasi'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </span>
                       )

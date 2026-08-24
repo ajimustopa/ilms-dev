@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { getAppLoginPath } from '../utils/authHelper';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('aldepos_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('aldepos_user');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const [accessToken, setAccessToken] = useState(() => {
@@ -18,49 +23,87 @@ export function AuthProvider({ children }) {
   });
 
   const [schoolUnits, setSchoolUnits] = useState(() => {
-    const saved = localStorage.getItem('aldepos_school_units');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('aldepos_school_units');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [activeSchoolUnit, setActiveSchoolUnit] = useState(() => {
-    const saved = localStorage.getItem('aldepos_active_school_unit');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('aldepos_active_school_unit');
+      return saved && saved !== 'undefined' ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync user profile when token exists
+  // Sync user profile & school units when token exists
   useEffect(() => {
-    const fetchMe = async () => {
+    const fetchMeAndUnits = async () => {
       if (accessToken) {
         try {
-          const res = await api.get('/core/auth/me');
-          if (res.data?.success && res.data.data) {
-            const userData = res.data.data.user;
-            setUser(userData);
-            localStorage.setItem('aldepos_user', JSON.stringify(userData));
+          const [meRes, unitsRes] = await Promise.all([
+            api.get('/core/auth/me'),
+            api.get('/core/school-units').catch(() => ({ data: { data: { items: [] } } }))
+          ]);
 
-            const units = userData.roles?.map((r) => ({
-              id: r.school_unit_id,
-              name: r.school_name,
-              role_name: r.role_name,
-            })) || [];
-            setSchoolUnits(units);
-            localStorage.setItem('aldepos_school_units', JSON.stringify(units));
+          if (meRes.data?.success && meRes.data.data) {
+            const userData = meRes.data.data.user || meRes.data.data;
+            if (userData) {
+              setUser(userData);
+              localStorage.setItem('aldepos_user', JSON.stringify(userData));
 
-            if (!activeSchoolUnit && units.length > 0) {
-              setActiveSchoolUnit(units[0]);
-              localStorage.setItem('aldepos_active_school_unit', JSON.stringify(units[0]));
-              localStorage.setItem('aldepos_active_school_unit_id', String(units[0].id));
+              let allUnits = unitsRes.data?.data?.items || (Array.isArray(unitsRes.data?.data) ? unitsRes.data.data : []);
+              
+              // Check if user is super_admin or admin_yayasan
+              const isAdmin = userData.account_type === 'admin' || userData.account_type === 'super_admin' || 
+                              userData.roles?.some(r => r.role_name === 'admin_yayasan' || r.role_name === 'super_admin');
+
+            let permittedUnits = allUnits;
+            if (!isAdmin && userData.roles && userData.roles.length > 0) {
+              const allowedIds = userData.roles.map(r => r.school_unit_id).filter(Boolean);
+              if (allowedIds.length > 0) {
+                permittedUnits = allUnits.filter(u => allowedIds.includes(u.id));
+              }
+            }
+
+            if (permittedUnits.length === 0 && allUnits.length > 0) {
+              permittedUnits = allUnits;
+            }
+
+            setSchoolUnits(permittedUnits);
+            localStorage.setItem('aldepos_school_units', JSON.stringify(permittedUnits));
+
+            // Sync active school unit
+            const savedUnitId = localStorage.getItem('aldepos_active_school_unit_id');
+            let initialUnit = null;
+            if (savedUnitId === 'all' && isAdmin) {
+              initialUnit = null;
+            } else if (savedUnitId) {
+              initialUnit = permittedUnits.find(u => String(u.id) === String(savedUnitId)) || permittedUnits[0] || null;
+            } else {
+              initialUnit = permittedUnits[0] || null;
+            }
+
+            setActiveSchoolUnit(initialUnit);
+            if (initialUnit) {
+              localStorage.setItem('aldepos_active_school_unit', JSON.stringify(initialUnit));
+              localStorage.setItem('aldepos_active_school_unit_id', String(initialUnit.id));
             }
           }
-        } catch (err) {
+        }
+      } catch (err) {
           console.warn('Gagal memverifikasi profil user aktif:', err);
         }
       }
     };
 
-    fetchMe();
+    fetchMeAndUnits();
   }, [accessToken]);
 
   const login = async (username, password, schoolUnitId = null) => {
@@ -122,7 +165,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = async () => {
+  const logout = async (redirectPath) => {
+    // Tentukan URL login aplikasi asal sebelum state/token dihapus
+    const targetLogin = typeof redirectPath === 'string' && redirectPath 
+      ? redirectPath 
+      : getAppLoginPath(window.location.pathname);
+
     try {
       if (refreshToken) {
         await api.post('/core/auth/logout', { refresh_token: refreshToken });
@@ -136,21 +184,19 @@ export function AuthProvider({ children }) {
       setActiveSchoolUnit(null);
       setSchoolUnits([]);
       localStorage.clear();
-      window.location.href = '/core/login';
+      window.location.href = targetLogin;
     }
   };
 
   const changeActiveSchoolUnit = (unit) => {
     setActiveSchoolUnit(unit);
-    if (unit) {
+    if (unit && unit.id) {
       localStorage.setItem('aldepos_active_school_unit', JSON.stringify(unit));
       localStorage.setItem('aldepos_active_school_unit_id', String(unit.id));
     } else {
       localStorage.removeItem('aldepos_active_school_unit');
-      localStorage.removeItem('aldepos_active_school_unit_id');
+      localStorage.setItem('aldepos_active_school_unit_id', 'all');
     }
-    // Refresh window to re-fetch context-dependent data
-    window.location.reload();
   };
 
   return (

@@ -1,0 +1,42 @@
+/**
+ * Expenses (Pengeluaran) Routes for Keuangan Module
+ * 
+ * Sesuai api-contract-keuangan.md §2 (Modul 6) & roles-keuangan.md §4.2
+ */
+const express = require('express');
+const router = express.Router();
+const controller = require('./controller');
+const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
+
+router.get(
+  '/expenses',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.listExpenses
+);
+router.get(
+  '/expenses/:id',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.getExpenseById
+);
+router.post(
+  '/expenses',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.createExpense
+);
+router.put(
+  '/expenses/:id',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.updateExpense
+);
+router.delete(
+  '/expenses/:id',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.deleteExpense
+);
+
+module.exports = router;
