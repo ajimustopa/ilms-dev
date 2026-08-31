@@ -68,7 +68,7 @@ class StudentsService {
         this.select('student_class_enrollments.student_id')
           .from('student_class_enrollments')
           .where('student_class_enrollments.academic_year_id', query.academic_year_id)
-          .andWhere('student_class_enrollments.status', 'aktif');
+          .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal']);
       });
     }
 
@@ -99,7 +99,7 @@ class StudentsService {
         .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
         .leftJoin('academic_years', 'student_class_enrollments.academic_year_id', 'academic_years.id')
         .whereIn('student_class_enrollments.student_id', studentIds)
-        .where('student_class_enrollments.status', 'aktif')
+        .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
         .where(function() {
           this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
         });
