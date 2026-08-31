@@ -405,6 +405,155 @@ class ScoresController {
       next(err);
     }
   }
+
+  // ==========================================
+  // Dimensi Sikap & Nilai Sikap
+  // ==========================================
+  async listAttitudeDimensions(req, res, next) {
+    try {
+      const data = await scoresService.listAttitudeDimensions(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar dimensi sikap berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createAttitudeDimension(req, res, next) {
+    try {
+      const data = await scoresService.createAttitudeDimension(req.body);
+      res.status(201).json({
+        success: true,
+        data,
+        message: 'Dimensi sikap berhasil dibuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateAttitudeDimension(req, res, next) {
+    try {
+      const data = await scoresService.updateAttitudeDimension(req.params.id, req.body);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Dimensi sikap berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteAttitudeDimension(req, res, next) {
+    try {
+      const data = await scoresService.deleteAttitudeDimension(req.params.id);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Dimensi sikap berhasil dihapus',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAttitudeScoresMatrix(req, res, next) {
+    try {
+      const data = await scoresService.getAttitudeScoresMatrix(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Matriks nilai sikap siswa berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAttitudeScoresBulk(req, res, next) {
+    try {
+      const data = await scoresService.saveAttitudeScoresBulk(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Nilai deskripsi sikap siswa berhasil disimpan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // ==========================================
+  // Nilai Ekstrakurikuler Wajib Pramuka
+  // ==========================================
+  async getScoutScores(req, res, next) {
+    try {
+      const data = await scoresService.getScoutScores(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Nilai pramuka berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveScoutScoresBulk(req, res, next) {
+    try {
+      const data = await scoresService.saveScoutScoresBulk(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Nilai pramuka siswa berhasil disimpan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // ==========================================
+  // Catatan Wali Kelas
+  // ==========================================
+  async getHomeroomNotes(req, res, next) {
+    try {
+      const data = await scoresService.getHomeroomNotes(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Catatan wali kelas berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveHomeroomNotesBulk(req, res, next) {
+    try {
+      const data = await scoresService.saveHomeroomNotesBulk(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Catatan wali kelas berhasil disimpan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new ScoresController();

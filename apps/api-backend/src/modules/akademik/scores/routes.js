@@ -42,11 +42,26 @@ router.post('/scores/calculate-final', authenticate, requirePermission('akademik
 router.get('/tp-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listTpScores);
 router.post('/tp-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveTpScoresBulk);
 
-// 7. Nilai Sikap / Karakter
-router.get('/attitude-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeScores);
-router.post('/attitude-scores', authenticate, requirePermission('akademik.scores.create'), scoresController.createAttitudeScore);
+// 7. Dimensi Sikap & Nilai Sikap
+router.get('/attitude-dimensions', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeDimensions);
+router.post('/attitude-dimensions', authenticate, requirePermission('akademik.scores.create'), scoresController.createAttitudeDimension);
+router.put('/attitude-dimensions/:id', authenticate, requirePermission('akademik.scores.update'), scoresController.updateAttitudeDimension);
+router.delete('/attitude-dimensions/:id', authenticate, requirePermission('akademik.scores.delete'), scoresController.deleteAttitudeDimension);
 
-// 8. Penilaian Ekstrakurikuler
+router.get('/attitude-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeScores);
+router.get('/attitude-scores/matrix', authenticate, requirePermission('akademik.scores.read'), scoresController.getAttitudeScoresMatrix);
+router.post('/attitude-scores', authenticate, requirePermission('akademik.scores.create'), scoresController.createAttitudeScore);
+router.post('/attitude-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveAttitudeScoresBulk);
+
+// 8. Nilai Ekstrakurikuler Wajib Pramuka
+router.get('/scout-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.getScoutScores);
+router.post('/scout-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveScoutScoresBulk);
+
+// 9. Catatan Wali Kelas
+router.get('/homeroom-notes', authenticate, requirePermission('akademik.scores.read'), scoresController.getHomeroomNotes);
+router.post('/homeroom-notes/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveHomeroomNotesBulk);
+
+// 10. Penilaian Ekstrakurikuler
 router.get('/extracurricular-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listExtracurricularScores);
 router.get('/extracurricular-scores/sheet', authenticate, requirePermission('akademik.scores.read'), scoresController.getExtracurricularScoringSheet);
 router.post('/extracurricular-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveExtracurricularScoresBulk);

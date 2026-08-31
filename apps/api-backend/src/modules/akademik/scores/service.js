@@ -1603,6 +1603,429 @@ class ScoresService {
       items: results
     };
   }
+
+  // ==========================================
+  // 8. Dimensi Sikap & Nilai Sikap (Attitude Management)
+  // ==========================================
+  async listAttitudeDimensions(query = {}) {
+    const unitId = query.satuan_pendidikan_id || 1;
+    const academicYearId = query.academic_year_id || null;
+
+    let q = db('attitude_dimensions').where('satuan_pendidikan_id', unitId);
+    if (academicYearId) {
+      q = q.where(function() {
+        this.where('academic_year_id', academicYearId).orWhereNull('academic_year_id');
+      });
+    }
+
+    let dimensions = await q.orderBy('order_index', 'asc');
+
+    // Jika belum ada dimensi sama sekali untuk tahun ajaran ini, otomatis inisialisasi Profil Pelajar Pancasila
+    if (dimensions.length === 0) {
+      const defaults = [
+        { code: 'DIM-1', name: 'Beriman, Bertakwa kepada Tuhan YME, dan Berakhlak Mulia', order_index: 1 },
+        { code: 'DIM-2', name: 'Berkebinekaan Global', order_index: 2 },
+        { code: 'DIM-3', name: 'Bergotong Royong', order_index: 3 },
+        { code: 'DIM-4', name: 'Mandiri', order_index: 4 },
+        { code: 'DIM-5', name: 'Bernalar Kritis', order_index: 5 },
+        { code: 'DIM-6', name: 'Kreatif', order_index: 6 }
+      ];
+
+      for (const d of defaults) {
+        await db('attitude_dimensions').insert({
+          satuan_pendidikan_id: unitId,
+          academic_year_id: academicYearId,
+          code: d.code,
+          name: d.name,
+          order_index: d.order_index,
+          is_active: true,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+      }
+
+      dimensions = await db('attitude_dimensions')
+        .where('satuan_pendidikan_id', unitId)
+        .where(function() {
+          if (academicYearId) this.where('academic_year_id', academicYearId).orWhereNull('academic_year_id');
+        })
+        .orderBy('order_index', 'asc');
+    }
+
+    return dimensions;
+  }
+
+  async createAttitudeDimension(payload) {
+    const { satuan_pendidikan_id, academic_year_id, code, name, description, order_index } = payload;
+    if (!name) {
+      const error = new Error('Nama dimensi sikap wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const [id] = await db('attitude_dimensions').insert({
+      satuan_pendidikan_id: satuan_pendidikan_id || 1,
+      academic_year_id: academic_year_id || null,
+      code: code || `DIM-${Date.now().toString().slice(-4)}`,
+      name: name.trim(),
+      description: description || null,
+      order_index: order_index || 1,
+      is_active: true,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    });
+
+    return db('attitude_dimensions').where({ id }).first();
+  }
+
+  async updateAttitudeDimension(id, payload) {
+    const existing = await db('attitude_dimensions').where({ id }).first();
+    if (!existing) {
+      const error = new Error('Dimensi sikap tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await db('attitude_dimensions').where({ id }).update({
+      name: payload.name !== undefined ? payload.name.trim() : existing.name,
+      code: payload.code !== undefined ? payload.code : existing.code,
+      description: payload.description !== undefined ? payload.description : existing.description,
+      order_index: payload.order_index !== undefined ? payload.order_index : existing.order_index,
+      is_active: payload.is_active !== undefined ? payload.is_active : existing.is_active,
+      updated_at: db.fn.now()
+    });
+
+    return db('attitude_dimensions').where({ id }).first();
+  }
+
+  async deleteAttitudeDimension(id) {
+    const existing = await db('attitude_dimensions').where({ id }).first();
+    if (!existing) {
+      const error = new Error('Dimensi sikap tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await db('attitude_dimensions').where({ id }).del();
+    return { success: true, message: 'Dimensi sikap berhasil dihapus', deleted_id: id };
+  }
+
+  async getAttitudeScoresMatrix(query = {}) {
+    const { class_group_id, semester_id, academic_year_id } = query;
+    if (!class_group_id || !semester_id) {
+      const error = new Error('Field class_group_id dan semester_id wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const classGroup = await db('class_groups').where({ id: class_group_id }).first();
+    const ayId = academic_year_id || classGroup?.academic_year_id;
+    const unitId = classGroup?.satuan_pendidikan_id || 1;
+
+    // 1. Ambil siswa
+    const students = await db('student_class_enrollments')
+      .join('students', 'student_class_enrollments.student_id', 'students.id')
+      .where({ 'student_class_enrollments.class_group_id': class_group_id })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+      .select(
+        'students.id as student_id',
+        'students.full_name as student_name',
+        'students.nis',
+        'students.nisn',
+        'students.gender'
+      )
+      .orderBy('students.full_name', 'asc');
+
+    // 2. Ambil dimensi sikap
+    const dimensions = await this.listAttitudeDimensions({
+      satuan_pendidikan_id: unitId,
+      academic_year_id: ayId
+    });
+
+    // 3. Ambil nilai sikap yang sudah tersimpan
+    const rawScores = await db('student_attitude_scores')
+      .where({ semester_id })
+      .whereIn('student_id', students.map(s => s.student_id));
+
+    const scoresMap = {};
+    for (const sc of rawScores) {
+      if (!scoresMap[sc.student_id]) {
+        scoresMap[sc.student_id] = {};
+      }
+      const key = sc.dimension_id ? String(sc.dimension_id) : (sc.aspect || 'general');
+      scoresMap[sc.student_id][key] = {
+        id: sc.id,
+        aspect: sc.aspect,
+        description: sc.description || ''
+      };
+    }
+
+    return {
+      class_group: classGroup,
+      dimensions,
+      students,
+      scores_map: scoresMap
+    };
+  }
+
+  async saveAttitudeScoresBulk(payload, user = null) {
+    const { class_group_id, semester_id, academic_year_id, items } = payload;
+    if (!class_group_id || !semester_id || !Array.isArray(items)) {
+      const error = new Error('Field class_group_id, semester_id, dan array items wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const classGroup = await db('class_groups').where({ id: class_group_id }).first();
+    const ayId = academic_year_id || classGroup?.academic_year_id || null;
+    const results = [];
+
+    for (const item of items) {
+      if (!item.student_id) continue;
+      const sId = item.student_id;
+      const dimId = item.dimension_id || null;
+      const aspectName = item.aspect || (dimId ? `Dimensi ${dimId}` : 'Sikap & Karakter');
+      const desc = item.description !== undefined ? item.description : '';
+
+      let queryCheck = db('student_attitude_scores').where({
+        student_id: sId,
+        semester_id
+      });
+      if (dimId) {
+        queryCheck = queryCheck.where('dimension_id', dimId);
+      } else {
+        queryCheck = queryCheck.where('aspect', aspectName);
+      }
+      const existing = await queryCheck.first();
+
+      if (existing) {
+        await db('student_attitude_scores').where({ id: existing.id }).update({
+          aspect: aspectName,
+          description: desc,
+          class_group_id,
+          academic_year_id: ayId,
+          updated_at: db.fn.now()
+        });
+        results.push({ id: existing.id, student_id: sId, dimension_id: dimId });
+      } else {
+        const [id] = await db('student_attitude_scores').insert({
+          student_id: sId,
+          semester_id,
+          dimension_id: dimId,
+          class_group_id,
+          academic_year_id: ayId,
+          aspect: aspectName,
+          predicate: null, // User requirement: nilai sikap hanya berupa deskripsi
+          description: desc,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        results.push({ id, student_id: sId, dimension_id: dimId });
+      }
+    }
+
+    return {
+      success: true,
+      total_saved: results.length,
+      class_group_id,
+      semester_id,
+      items: results
+    };
+  }
+
+  // ==========================================
+  // 9. Nilai Ekstrakurikuler Wajib Pramuka
+  // ==========================================
+  async getScoutScores(query = {}) {
+    const { class_group_id, semester_id } = query;
+    if (!class_group_id || !semester_id) {
+      const error = new Error('Field class_group_id dan semester_id wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const classGroup = await db('class_groups').where({ id: class_group_id }).first();
+
+    const students = await db('student_class_enrollments')
+      .join('students', 'student_class_enrollments.student_id', 'students.id')
+      .where({ 'student_class_enrollments.class_group_id': class_group_id })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+      .select(
+        'students.id as student_id',
+        'students.full_name as student_name',
+        'students.nis',
+        'students.nisn',
+        'students.gender'
+      )
+      .orderBy('students.full_name', 'asc');
+
+    const scoutScores = await db('student_scout_scores')
+      .where({ semester_id })
+      .whereIn('student_id', students.map(s => s.student_id));
+
+    const scoresMap = {};
+    for (const sc of scoutScores) {
+      scoresMap[sc.student_id] = {
+        id: sc.id,
+        predicate: sc.predicate || 'Baik',
+        description: sc.description || ''
+      };
+    }
+
+    return {
+      class_group: classGroup,
+      students,
+      scores_map: scoresMap
+    };
+  }
+
+  async saveScoutScoresBulk(payload, user = null) {
+    const { class_group_id, semester_id, academic_year_id, items } = payload;
+    if (!class_group_id || !semester_id || !Array.isArray(items)) {
+      const error = new Error('Field class_group_id, semester_id, dan array items wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const classGroup = await db('class_groups').where({ id: class_group_id }).first();
+    const ayId = academic_year_id || classGroup?.academic_year_id || null;
+    const unitId = classGroup?.satuan_pendidikan_id || 1;
+    const results = [];
+
+    for (const item of items) {
+      if (!item.student_id) continue;
+      const sId = item.student_id;
+      const predicate = item.predicate || 'Baik';
+      const description = item.description || `Melaksanakan kegiatan kepramukaan dengan predikat ${predicate}.`;
+
+      const existing = await db('student_scout_scores')
+        .where({ student_id: sId, semester_id })
+        .first();
+
+      if (existing) {
+        await db('student_scout_scores').where({ id: existing.id }).update({
+          predicate,
+          description,
+          class_group_id,
+          academic_year_id: ayId,
+          updated_at: db.fn.now()
+        });
+        results.push({ id: existing.id, student_id: sId, predicate });
+      } else {
+        const [id] = await db('student_scout_scores').insert({
+          satuan_pendidikan_id: unitId,
+          student_id: sId,
+          class_group_id,
+          semester_id,
+          academic_year_id: ayId,
+          predicate,
+          description,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        results.push({ id, student_id: sId, predicate });
+      }
+    }
+
+    return {
+      success: true,
+      total_saved: results.length,
+      class_group_id,
+      semester_id,
+      items: results
+    };
+  }
+
+  // ==========================================
+  // 10. Catatan Wali Kelas (Homeroom Notes)
+  // ==========================================
+  async getHomeroomNotes(query = {}) {
+    const { class_group_id, semester_id } = query;
+    if (!class_group_id || !semester_id) {
+      const error = new Error('Field class_group_id dan semester_id wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const classGroup = await db('class_groups').where({ id: class_group_id }).first();
+
+    const students = await db('student_class_enrollments')
+      .join('students', 'student_class_enrollments.student_id', 'students.id')
+      .where({ 'student_class_enrollments.class_group_id': class_group_id })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+      .select(
+        'students.id as student_id',
+        'students.full_name as student_name',
+        'students.nis',
+        'students.nisn',
+        'students.gender'
+      )
+      .orderBy('students.full_name', 'asc');
+
+    const reportCards = await db('report_cards')
+      .where({ semester_id })
+      .whereIn('student_id', students.map(s => s.student_id));
+
+    const notesMap = {};
+    for (const rc of reportCards) {
+      notesMap[rc.student_id] = rc.homeroom_note || '';
+    }
+
+    return {
+      class_group: classGroup,
+      students,
+      notes_map: notesMap
+    };
+  }
+
+  async saveHomeroomNotesBulk(payload, user = null) {
+    const { class_group_id, semester_id, items } = payload;
+    if (!class_group_id || !semester_id || !Array.isArray(items)) {
+      const error = new Error('Field class_group_id, semester_id, dan array items wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const empId = user?.ref_type === 'staff' ? user.ref_id : null;
+    const results = [];
+
+    for (const item of items) {
+      if (!item.student_id) continue;
+      const sId = item.student_id;
+      const note = item.homeroom_note !== undefined ? item.homeroom_note : '';
+
+      const existing = await db('report_cards')
+        .where({ student_id: sId, semester_id })
+        .first();
+
+      if (existing) {
+        await db('report_cards').where({ id: existing.id }).update({
+          homeroom_note: note,
+          generated_by_employee_id: empId || existing.generated_by_employee_id,
+          updated_at: db.fn.now()
+        });
+        results.push({ id: existing.id, student_id: sId });
+      } else {
+        const [id] = await db('report_cards').insert({
+          student_id: sId,
+          semester_id,
+          homeroom_note: note,
+          generated_by_employee_id: empId,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        results.push({ id, student_id: sId });
+      }
+    }
+
+    return {
+      success: true,
+      total_saved: results.length,
+      class_group_id,
+      semester_id,
+      items: results
+    };
+  }
 }
 
 module.exports = new ScoresService();

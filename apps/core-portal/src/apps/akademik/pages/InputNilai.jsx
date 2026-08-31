@@ -42,7 +42,14 @@ import {
   ToggleLeft,
   ToggleRight,
   ShieldCheck,
-  Search
+  Search,
+  HeartHandshake,
+  Compass,
+  MessageSquare,
+  Smile,
+  Settings,
+  Tag,
+  CheckSquare
 } from 'lucide-react';
 
 function CustomFilterSelect({
@@ -323,6 +330,31 @@ export default function InputNilai() {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ----------------------------------------------------
+  // TAB 4 SUB-TABS (Akademik, Sikap, Pramuka, Catatan Wali Kelas)
+  // ----------------------------------------------------
+  const [reportSubTab, setReportSubTab] = useState('academic'); // 'academic' | 'attitude' | 'scout' | 'homeroom_notes'
+
+  // Sub-Tab 2: Dimensi Sikap & Nilai Sikap
+  const [attitudeDimensions, setAttitudeDimensions] = useState([]);
+  const [activeDimensionId, setActiveDimensionId] = useState('');
+  const [dimensionModalOpen, setDimensionModalOpen] = useState(false);
+  const [dimensionForm, setDimensionForm] = useState({ id: null, code: '', name: '', description: '', order_index: 1 });
+  const [editingDimension, setEditingDimension] = useState(null);
+  const [attitudeItems, setAttitudeItems] = useState([]); // [{ student_id, student_name, nis, scores: { [dimId]: { id, aspect, description } } }]
+  const [loadingAttitude, setLoadingAttitude] = useState(false);
+  const [savingAttitude, setSavingAttitude] = useState(false);
+
+  // Sub-Tab 3: Nilai Ekstrakurikuler Wajib Pramuka
+  const [scoutScoresList, setScoutScoresList] = useState([]); // [{ student_id, student_name, nis, predicate: 'Baik', description: '' }]
+  const [loadingScout, setLoadingScout] = useState(false);
+  const [savingScout, setSavingScout] = useState(false);
+
+  // Sub-Tab 4: Catatan Wali Kelas
+  const [homeroomNotesList, setHomeroomNotesList] = useState([]); // [{ student_id, student_name, nis, homeroom_note: '' }]
+  const [loadingHomeroom, setLoadingHomeroom] = useState(false);
+  const [savingHomeroom, setSavingHomeroom] = useState(false);
+
+  // ----------------------------------------------------
   // TAB 5: BUKU NILAI (LEGER) & CETAK RAPOR STATE
   // ----------------------------------------------------
   const [legerData, setLegerData] = useState(null);
@@ -339,6 +371,7 @@ export default function InputNilai() {
       fetchSemesters();
       fetchClasses();
       fetchSubjects();
+      fetchAttitudeDimensions();
     }
   }, [selectedAcademicYearId]);
 
@@ -361,15 +394,23 @@ export default function InputNilai() {
         fetchRecapMatrix();
       }
     } else if (activeTab === 'report_processor') {
-      if (selectedClassId && selectedSubjectId && selectedSemesterId) {
-        fetchReportProcessorData();
+      if (selectedClassId && selectedSemesterId) {
+        if (reportSubTab === 'academic' && selectedSubjectId) {
+          fetchReportProcessorData();
+        } else if (reportSubTab === 'attitude') {
+          fetchAttitudeScoresMatrix();
+        } else if (reportSubTab === 'scout') {
+          fetchScoutScores();
+        } else if (reportSubTab === 'homeroom_notes') {
+          fetchHomeroomNotes();
+        }
       }
     } else if (activeTab === 'ledger_print') {
       if (selectedClassId && selectedSemesterId) {
         fetchLeger();
       }
     }
-  }, [activeTab, selectedClassId, selectedSubjectId, selectedSemesterId, selectedAcademicYearId]);
+  }, [activeTab, reportSubTab, selectedClassId, selectedSubjectId, selectedSemesterId, selectedAcademicYearId]);
 
   // ----------------------------------------------------
   // FETCHERS
@@ -627,6 +668,320 @@ export default function InputNilai() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ----------------------------------------------------
+  // SUB-TAB 2: DIMENSI SIKAP & NILAI SIKAP HANDLERS
+  // ----------------------------------------------------
+  const fetchAttitudeDimensions = async () => {
+    try {
+      const res = await api.get('/akademik/attitude-dimensions', {
+        params: {
+          satuan_pendidikan_id: activeSchoolUnit?.id || 1,
+          academic_year_id: selectedAcademicYearId
+        }
+      });
+      const dims = res.data?.data || [];
+      setAttitudeDimensions(dims);
+      if (dims.length > 0 && (!activeDimensionId || !dims.find(d => String(d.id) === String(activeDimensionId)))) {
+        setActiveDimensionId(String(dims[0].id));
+      }
+      return dims;
+    } catch (err) {
+      console.error('Error fetching attitude dimensions:', err);
+      return [];
+    }
+  };
+
+  const fetchAttitudeScoresMatrix = async () => {
+    if (!selectedClassId || !selectedSemesterId) return;
+    try {
+      setLoadingAttitude(true);
+      const res = await api.get('/akademik/attitude-scores/matrix', {
+        params: {
+          class_group_id: selectedClassId,
+          semester_id: selectedSemesterId,
+          academic_year_id: selectedAcademicYearId
+        }
+      });
+      const data = res.data?.data;
+      if (data) {
+        setAttitudeDimensions(data.dimensions || []);
+        if (data.dimensions?.length > 0 && (!activeDimensionId || !data.dimensions.find(d => String(d.id) === String(activeDimensionId)))) {
+          setActiveDimensionId(String(data.dimensions[0].id));
+        }
+        const items = (data.students || []).map(st => ({
+          student_id: st.student_id,
+          student_name: st.student_name,
+          nis: st.nis,
+          scores: data.scores_map?.[st.student_id] || {}
+        }));
+        setAttitudeItems(items);
+      }
+    } catch (err) {
+      console.error('Error fetching attitude scores matrix:', err);
+    } finally {
+      setLoadingAttitude(false);
+    }
+  };
+
+  const handleOpenAddDimension = () => {
+    setEditingDimension(null);
+    setDimensionForm({
+      id: null,
+      code: `DIM-${attitudeDimensions.length + 1}`,
+      name: '',
+      description: '',
+      order_index: attitudeDimensions.length + 1
+    });
+    setDimensionModalOpen(true);
+  };
+
+  const handleOpenEditDimension = (dim) => {
+    setEditingDimension(dim);
+    setDimensionForm({
+      id: dim.id,
+      code: dim.code || '',
+      name: dim.name || '',
+      description: dim.description || '',
+      order_index: dim.order_index || 1
+    });
+    setDimensionModalOpen(true);
+  };
+
+  const handleSaveDimensionForm = async (e) => {
+    e.preventDefault();
+    if (!dimensionForm.name.trim()) return;
+    try {
+      if (editingDimension) {
+        await api.put(`/akademik/attitude-dimensions/${editingDimension.id}`, dimensionForm);
+        setSuccessMsg('Dimensi sikap berhasil diperbarui!');
+      } else {
+        await api.post('/akademik/attitude-dimensions', {
+          ...dimensionForm,
+          satuan_pendidikan_id: activeSchoolUnit?.id || 1,
+          academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : null
+        });
+        setSuccessMsg('Dimensi sikap baru berhasil ditambahkan!');
+      }
+      setDimensionModalOpen(false);
+      fetchAttitudeDimensions();
+      fetchAttitudeScoresMatrix();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan dimensi sikap');
+    }
+  };
+
+  const handleDeleteDimension = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus dimensi sikap ini?')) return;
+    try {
+      await api.delete(`/akademik/attitude-dimensions/${id}`);
+      setSuccessMsg('Dimensi sikap berhasil dihapus!');
+      fetchAttitudeDimensions();
+      fetchAttitudeScoresMatrix();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Gagal menghapus dimensi sikap');
+    }
+  };
+
+  const handleAutoFillAttitudeDescriptions = () => {
+    const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId));
+    const dimName = activeDim?.name || 'Sikap dan Karakter';
+    const updated = attitudeItems.map(st => {
+      const existing = st.scores?.[activeDimensionId]?.description;
+      const desc = existing || `Menunjukkan sikap yang sangat baik dan konsisten dalam ${dimName.toLowerCase()}.`;
+      return {
+        ...st,
+        scores: {
+          ...st.scores,
+          [activeDimensionId]: {
+            ...(st.scores?.[activeDimensionId] || {}),
+            aspect: dimName,
+            description: desc
+          }
+        }
+      };
+    });
+    setAttitudeItems(updated);
+    setSuccessMsg(`Narasi sikap untuk dimensi "${dimName}" berhasil diisi otomatis!`);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleSaveAttitudeScores = async () => {
+    if (attitudeItems.length === 0 || !selectedClassId || !selectedSemesterId) return;
+    try {
+      setSavingAttitude(true);
+      setErrorMsg('');
+      const payloadItems = [];
+      attitudeItems.forEach(st => {
+        attitudeDimensions.forEach(dim => {
+          const desc = st.scores?.[dim.id]?.description ?? '';
+          payloadItems.push({
+            student_id: st.student_id,
+            dimension_id: dim.id,
+            aspect: dim.name,
+            description: desc
+          });
+        });
+      });
+
+      await api.post('/akademik/attitude-scores/bulk', {
+        class_group_id: Number(selectedClassId),
+        semester_id: Number(selectedSemesterId),
+        academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : null,
+        items: payloadItems
+      });
+
+      setSuccessMsg('Seluruh nilai deskripsi sikap siswa berhasil disimpan!');
+      fetchAttitudeScoresMatrix();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan nilai sikap');
+    } finally {
+      setSavingAttitude(false);
+    }
+  };
+
+  // ----------------------------------------------------
+  // SUB-TAB 3: NILAI PRAMUKA HANDLERS
+  // ----------------------------------------------------
+  const buildDefaultScoutNarrative = (name, pred) => {
+    if (pred === 'Amat Baik') {
+      return `Sangat aktif, disiplin, dan menunjukkan jiwa kepemimpinan serta keteladanan yang tinggi dalam setiap kegiatan kepramukaan.`;
+    }
+    if (pred === 'Baik') {
+      return `Aktif, tertib, dan mampu bekerja sama dengan baik dalam melaksanakan tugas-tugas latihan kepramukaan.`;
+    }
+    return `Cukup mampu mengikuti kegiatan kepramukaan dan perlu peningkatan keaktifan serta kedisiplinan regu.`;
+  };
+
+  const fetchScoutScores = async () => {
+    if (!selectedClassId || !selectedSemesterId) return;
+    try {
+      setLoadingScout(true);
+      const res = await api.get('/akademik/scout-scores', {
+        params: {
+          class_group_id: selectedClassId,
+          semester_id: selectedSemesterId
+        }
+      });
+      const data = res.data?.data;
+      if (data) {
+        const items = (data.students || []).map(st => {
+          const sc = data.scores_map?.[st.student_id];
+          const pred = sc?.predicate || 'Baik';
+          return {
+            student_id: st.student_id,
+            student_name: st.student_name,
+            nis: st.nis,
+            predicate: pred,
+            description: sc?.description || buildDefaultScoutNarrative(st.student_name, pred)
+          };
+        });
+        setScoutScoresList(items);
+      }
+    } catch (err) {
+      console.error('Error fetching scout scores:', err);
+    } finally {
+      setLoadingScout(false);
+    }
+  };
+
+  const handleAutoGenerateScoutDescriptions = () => {
+    const updated = scoutScoresList.map(item => ({
+      ...item,
+      description: buildDefaultScoutNarrative(item.student_name, item.predicate)
+    }));
+    setScoutScoresList(updated);
+    setSuccessMsg('Narasi kegiatan pramuka berhasil di-generate otomatis sesuai predikat!');
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const handleSaveScoutScores = async () => {
+    if (scoutScoresList.length === 0 || !selectedClassId || !selectedSemesterId) return;
+    try {
+      setSavingScout(true);
+      setErrorMsg('');
+      await api.post('/akademik/scout-scores/bulk', {
+        class_group_id: Number(selectedClassId),
+        semester_id: Number(selectedSemesterId),
+        academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : null,
+        items: scoutScoresList.map(it => ({
+          student_id: it.student_id,
+          predicate: it.predicate,
+          description: it.description
+        }))
+      });
+      setSuccessMsg('Nilai ekstrakurikuler wajib Pramuka berhasil disimpan!');
+      fetchScoutScores();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan nilai pramuka');
+    } finally {
+      setSavingScout(false);
+    }
+  };
+
+  // ----------------------------------------------------
+  // SUB-TAB 4: CATATAN WALI KELAS HANDLERS
+  // ----------------------------------------------------
+  const fetchHomeroomNotes = async () => {
+    if (!selectedClassId || !selectedSemesterId) return;
+    try {
+      setLoadingHomeroom(true);
+      const res = await api.get('/akademik/homeroom-notes', {
+        params: {
+          class_group_id: selectedClassId,
+          semester_id: selectedSemesterId
+        }
+      });
+      const data = res.data?.data;
+      if (data) {
+        const items = (data.students || []).map(st => ({
+          student_id: st.student_id,
+          student_name: st.student_name,
+          nis: st.nis,
+          homeroom_note: data.notes_map?.[st.student_id] || ''
+        }));
+        setHomeroomNotesList(items);
+      }
+    } catch (err) {
+      console.error('Error fetching homeroom notes:', err);
+    } finally {
+      setLoadingHomeroom(false);
+    }
+  };
+
+  const handleSaveHomeroomNotes = async () => {
+    if (homeroomNotesList.length === 0 || !selectedClassId || !selectedSemesterId) return;
+    try {
+      setSavingHomeroom(true);
+      setErrorMsg('');
+      await api.post('/akademik/homeroom-notes/bulk', {
+        class_group_id: Number(selectedClassId),
+        semester_id: Number(selectedSemesterId),
+        academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : null,
+        items: homeroomNotesList.map(it => ({
+          student_id: it.student_id,
+          homeroom_note: it.homeroom_note
+        }))
+      });
+      setSuccessMsg('Catatan wali kelas berhasil disimpan!');
+      fetchHomeroomNotes();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan catatan wali kelas');
+    } finally {
+      setSavingHomeroom(false);
+    }
+  };
+
+  const handleApplyHomeroomTemplate = (idx, templateText) => {
+    const updated = [...homeroomNotesList];
+    updated[idx].homeroom_note = templateText;
+    setHomeroomNotesList(updated);
   };
 
   // ----------------------------------------------------
@@ -2305,214 +2660,718 @@ export default function InputNilai() {
       )}
 
       {/* ======================================================== */}
-      {/* 4. TAB 4: PENGOLAHAN NILAI RAPOR & DESKRIPSI CAPAIAN TP */}
+      {/* 4. TAB 4: PENGOLAHAN NILAI RAPOR, SIKAP, PRAMUKA & CATATAN */}
       {/* ======================================================== */}
       {activeTab === 'report_processor' && (
         <div className="space-y-4">
-          <div className="p-4 bg-gradient-to-r from-teal-50 via-indigo-50 to-amber-50 border border-teal-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
-            <div>
-              <span className="font-black text-teal-950 text-sm block flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>Pengolahan Nilai Akhir & Narasi Capaian Rapor</span>
-              </span>
-              <p className="text-[11px] text-slate-600 mt-0.5">
-                Nilai Akhir Rapor dihitung dari bobot jenis pengujian. Deskripsi dirumuskan otomatis berdasarkan capaian TP tertinggi & terendah pada semester terpilih.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setHistoryModalOpen(true)}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
-                title="Buka riwayat versi penginputan nilai rapor"
-              >
-                <History className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Riwayat & Versi Nilai</span>
-                {historyList.length > 0 && (
-                  <span className="px-1.5 py-0.2 bg-teal-500 text-slate-950 rounded-full text-[10px] font-black">
-                    {historyList.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleCalculateFromComponents}
-                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
-                title="Kalkulasi nilai akhir dari bobot jenis pengujian"
-              >
-                <Calculator className="w-3.5 h-3.5" />
-                <span>Hitung dari Bobot Komponen</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadReportTemplate}
-                className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
-                title="Unduh format spreadsheet Excel (.xlsx) nilai rapor & deskripsi capaian"
-              >
-                <Download className="w-3.5 h-3.5 text-teal-600" />
-                <span>Unduh Template</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTriggerFileInput('report')}
-                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
-                title="Unggah spreadsheet untuk update nilai rapor & deskripsi sekaligus"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>Import Excel</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerateAllNarratives}
-                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Auto Narasi TP</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOpenSaveModal('manual')}
-                disabled={processingReport || reportItems.length === 0}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Simpan Nilai Rapor</span>
-              </button>
-            </div>
+          {/* Sub-Tab Navigation Bar */}
+          <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/80 overflow-x-auto shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setReportSubTab('academic')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                reportSubTab === 'academic'
+                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>1. Nilai Mapel & Narasi TP</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportSubTab('attitude')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                reportSubTab === 'attitude'
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
+              }`}
+            >
+              <HeartHandshake className="w-4 h-4" />
+              <span>2. Nilai Sikap & Karakter (Dimensi Sikap)</span>
+              {attitudeDimensions.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  reportSubTab === 'attitude' ? 'bg-white text-amber-900' : 'bg-amber-100 text-amber-900'
+                }`}>
+                  {attitudeDimensions.length} Dimensi
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportSubTab('scout')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                reportSubTab === 'scout'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
+              }`}
+            >
+              <Compass className="w-4 h-4" />
+              <span>3. Nilai Pramuka (Wajib)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportSubTab('homeroom_notes')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                reportSubTab === 'homeroom_notes'
+                  ? 'bg-slate-800 text-white shadow-md shadow-slate-800/20'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>4. Catatan Wali Kelas</span>
+            </button>
           </div>
 
-          {/* Active Version Info Banner */}
-          {(() => {
-            const activeVersion = historyList.find(h => h.is_active);
-            if (!activeVersion) return null;
-            return (
-              <div className="p-3.5 bg-teal-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-teal-800">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-teal-500/20 rounded-xl text-teal-300">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-xs text-white">Versi Rapor Aktif: {activeVersion.version_label}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                        activeVersion.method === 'calculated_from_components' ? 'bg-indigo-500/30 text-indigo-200' : 'bg-amber-500/30 text-amber-200'
-                      }`}>
-                        {activeVersion.method === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-teal-200 mt-0.5">
-                      Catatan: <em>{activeVersion.user_notes || 'Tanpa keterangan'}</em> • Disimpan oleh <strong>{activeVersion.recorded_by_name || 'Staf'}</strong> ({new Date(activeVersion.created_at).toLocaleString('id-ID')})
-                    </p>
-                  </div>
+          {/* ---------------------------------------------------- */}
+          {/* 4.1 SUB-TAB 1: NILAI MAPEL & NARASI TP */}
+          {/* ---------------------------------------------------- */}
+          {reportSubTab === 'academic' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-teal-50 via-indigo-50 to-amber-50 border border-teal-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+                <div>
+                  <span className="font-black text-teal-950 text-sm block flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>Pengolahan Nilai Akhir & Narasi Capaian Mata Pelajaran</span>
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Mapel: <strong>{activeSubjectName}</strong> • Rombel: <strong>{activeClassName}</strong> • Semester: <strong>{activeSemesterName}</strong>
+                  </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setHistoryModalOpen(true)}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
-                >
-                  <History className="w-3.5 h-3.5 text-teal-300" />
-                  <span>Kelola Versi</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryModalOpen(true)}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
+                    title="Buka riwayat versi penginputan nilai rapor"
+                  >
+                    <History className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Riwayat & Versi Nilai</span>
+                    {historyList.length > 0 && (
+                      <span className="px-1.5 py-0.2 bg-teal-500 text-slate-950 rounded-full text-[10px] font-black">
+                        {historyList.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCalculateFromComponents}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
+                    title="Kalkulasi nilai akhir dari bobot jenis pengujian"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>Hitung dari Bobot Komponen</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadReportTemplate}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unduh format spreadsheet Excel (.xlsx) nilai rapor & deskripsi capaian"
+                  >
+                    <Download className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Unduh Template</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerFileInput('report')}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unggah spreadsheet untuk update nilai rapor & deskripsi sekaligus"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Import Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAllNarratives}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Auto Narasi TP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSaveModal('manual')}
+                    disabled={processingReport || reportItems.length === 0}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan Nilai Rapor</span>
+                  </button>
+                </div>
               </div>
-            );
-          })()}
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 w-12 text-center">No</th>
-                  <th className="py-3 px-4 w-24">NIS</th>
-                  <th className="py-3 px-4 w-48">Nama Siswa</th>
-                  <th className="py-3 px-4 w-28 text-center bg-teal-50 font-black text-teal-900">
-                    Nilai Akhir (NA) *
-                  </th>
-                  <th className="py-3 px-4 w-20 text-center">Predikat</th>
-                  <th className="py-3 px-4 min-w-[320px]">
-                    Deskripsi Capaian Kompetensi Rapor (Bisa Diedit Manual)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {reportItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                      Tidak ada data siswa untuk diolah.
-                    </td>
-                  </tr>
-                ) : (
-                  reportItems.map((item, idx) => {
-                    const targetKkm = recapData?.kkm || 75;
-                    const numFinal = parseFloat(item.final_score) || 0;
-                    const isPass = numFinal >= targetKkm;
-
-                    return (
-                      <tr key={item.student_id} className="hover:bg-slate-50/70 transition">
-                        <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
-                        <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{item.nis || '-'}</td>
-                        <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
-                        
-                        {/* Input Nilai Akhir */}
-                        <td className="py-3 px-4 text-center bg-teal-50/30">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={item.final_score}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const updated = [...reportItems];
-                              updated[idx].final_score = val;
-                              const n = parseFloat(val) || 0;
-                              if (n >= 90) updated[idx].predicate = 'A';
-                              else if (n >= 80) updated[idx].predicate = 'B';
-                              else if (n >= 70) updated[idx].predicate = 'C';
-                              else updated[idx].predicate = 'D';
-                              setReportItems(updated);
-                            }}
-                            className={`w-20 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-teal-500 focus:outline-none ${
-                              isPass
-                                ? 'bg-teal-600 text-white border-teal-700'
-                                : 'bg-rose-50 text-rose-800 border-rose-300'
-                            }`}
-                          />
-                        </td>
-
-                        {/* Predikat */}
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-lg font-black text-xs ${
-                            item.predicate === 'A' ? 'bg-emerald-100 text-emerald-900' :
-                            item.predicate === 'B' ? 'bg-teal-100 text-teal-900' :
-                            item.predicate === 'C' ? 'bg-amber-100 text-amber-900' :
-                            'bg-rose-100 text-rose-900'
+              {/* Active Version Info Banner */}
+              {(() => {
+                const activeVersion = historyList.find(h => h.is_active);
+                if (!activeVersion) return null;
+                return (
+                  <div className="p-3.5 bg-teal-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-teal-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 bg-teal-500/20 rounded-xl text-teal-300">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-xs text-white">Versi Rapor Aktif: {activeVersion.version_label}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            activeVersion.method === 'calculated_from_components' ? 'bg-indigo-500/30 text-indigo-200' : 'bg-amber-500/30 text-amber-200'
                           }`}>
-                            {item.predicate}
+                            {activeVersion.method === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'}
                           </span>
-                        </td>
+                        </div>
+                        <p className="text-[11px] text-teal-200 mt-0.5">
+                          Catatan: <em>{activeVersion.user_notes || 'Tanpa keterangan'}</em> • Disimpan oleh <strong>{activeVersion.recorded_by_name || 'Staf'}</strong> ({new Date(activeVersion.created_at).toLocaleString('id-ID')})
+                        </p>
+                      </div>
+                    </div>
 
-                        {/* Live Text Area Narasi */}
-                        <td className="py-3 px-4">
-                          <textarea
-                            rows={2}
-                            value={item.competency_description}
-                            onChange={(e) => {
-                              const updated = [...reportItems];
-                              updated[idx].competency_description = e.target.value;
-                              setReportItems(updated);
-                            }}
-                            placeholder="Contoh: Mencapai kompetensi dengan sangat baik dalam ... Perlu peningkatan dalam ..."
-                            className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none leading-relaxed text-slate-800"
-                          />
+                    <button
+                      type="button"
+                      onClick={() => setHistoryModalOpen(true)}
+                      className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                    >
+                      <History className="w-3.5 h-3.5 text-teal-300" />
+                      <span>Kelola Versi</span>
+                    </button>
+                  </div>
+                );
+              })()}
+
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4 w-12 text-center">No</th>
+                      <th className="py-3 px-4 w-24">NIS</th>
+                      <th className="py-3 px-4 w-48">Nama Siswa</th>
+                      <th className="py-3 px-4 w-28 text-center bg-teal-50 font-black text-teal-900">
+                        Nilai Akhir (NA) *
+                      </th>
+                      <th className="py-3 px-4 w-20 text-center">Predikat</th>
+                      <th className="py-3 px-4 min-w-[320px]">
+                        Deskripsi Capaian Kompetensi Rapor (Bisa Diedit Manual)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {reportItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                          Tidak ada data siswa untuk diolah.
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : (
+                      reportItems.map((item, idx) => {
+                        const targetKkm = recapData?.kkm || 75;
+                        const numFinal = parseFloat(item.final_score) || 0;
+                        const isPass = numFinal >= targetKkm;
+
+                        return (
+                          <tr key={item.student_id} className="hover:bg-slate-50/70 transition">
+                            <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
+                            <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{item.nis || '-'}</td>
+                            <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
+                            
+                            {/* Input Nilai Akhir */}
+                            <td className="py-3 px-4 text-center bg-teal-50/30">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={item.final_score}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const updated = [...reportItems];
+                                  updated[idx].final_score = val;
+                                  const n = parseFloat(val) || 0;
+                                  if (n >= 90) updated[idx].predicate = 'A';
+                                  else if (n >= 80) updated[idx].predicate = 'B';
+                                  else if (n >= 70) updated[idx].predicate = 'C';
+                                  else updated[idx].predicate = 'D';
+                                  setReportItems(updated);
+                                }}
+                                className={`w-20 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-teal-500 focus:outline-none ${
+                                  isPass
+                                    ? 'bg-teal-600 text-white border-teal-700'
+                                    : 'bg-rose-50 text-rose-800 border-rose-300'
+                                }`}
+                              />
+                            </td>
+
+                            {/* Predikat */}
+                            <td className="py-3 px-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-lg font-black text-xs ${
+                                item.predicate === 'A' ? 'bg-emerald-100 text-emerald-900' :
+                                item.predicate === 'B' ? 'bg-teal-100 text-teal-900' :
+                                item.predicate === 'C' ? 'bg-amber-100 text-amber-900' :
+                                'bg-rose-100 text-rose-900'
+                              }`}>
+                                {item.predicate}
+                              </span>
+                            </td>
+
+                            {/* Live Text Area Narasi */}
+                            <td className="py-3 px-4">
+                              <textarea
+                                rows={2}
+                                value={item.competency_description}
+                                onChange={(e) => {
+                                  const updated = [...reportItems];
+                                  updated[idx].competency_description = e.target.value;
+                                  setReportItems(updated);
+                                }}
+                                placeholder="Contoh: Mencapai kompetensi dengan sangat baik dalam ... Perlu peningkatan dalam ..."
+                                className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none leading-relaxed text-slate-800"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* 4.2 SUB-TAB 2: NILAI SIKAP & KARAKTER (DIMENSI SIKAP) */}
+          {/* ---------------------------------------------------- */}
+          {reportSubTab === 'attitude' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 border border-amber-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+                <div>
+                  <span className="font-black text-amber-950 text-sm block flex items-center gap-2">
+                    <HeartHandshake className="w-4 h-4 text-amber-600" />
+                    <span>Penilaian Sikap & Karakter (Profil Pelajar Pancasila / Dimensi Sikap)</span>
+                  </span>
+                  <p className="text-[11px] text-amber-800 mt-0.5">
+                    Tahun Ajaran: <strong>{academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || 'Aktif'}</strong> • Rombel: <strong>{activeClassName}</strong> • Nilai sikap berupa deskripsi naratif per dimensi sikap.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleOpenAddDimension}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Kelola Dimensi Sikap TA</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAutoFillAttitudeDescriptions}
+                    disabled={attitudeItems.length === 0 || attitudeDimensions.length === 0}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Auto-Isi Narasi Dimensi Ini</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveAttitudeScores}
+                    disabled={savingAttitude || attitudeItems.length === 0}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    {savingAttitude ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Simpan Nilai Sikap</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Dimension Selector Pills */}
+              <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+                <span className="text-[11px] font-bold text-slate-400 px-3 uppercase tracking-wider shrink-0">
+                  Pilih Dimensi:
+                </span>
+                {attitudeDimensions.map((dim, idx) => {
+                  const isSelected = String(dim.id) === String(activeDimensionId);
+                  return (
+                    <button
+                      key={dim.id}
+                      type="button"
+                      onClick={() => setActiveDimensionId(String(dim.id))}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/20'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-black ${
+                        isSelected ? 'bg-white text-amber-900' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className="truncate max-w-[200px]">{dim.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Dimension Description Banner */}
+              {(() => {
+                const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId));
+                if (!activeDim) return null;
+                return (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-amber-700 shrink-0" />
+                      <div>
+                        <strong>Dimensi Aktif: {activeDim.name}</strong>
+                        {activeDim.description && <span className="text-amber-700 ml-1.5">({activeDim.description})</span>}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditDimension(activeDim)}
+                      className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      <span>Edit Dimensi</span>
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* Table Attitude Scores */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4 w-12 text-center">No</th>
+                      <th className="py-3 px-4 w-24">NIS</th>
+                      <th className="py-3 px-4 w-48">Nama Siswa</th>
+                      <th className="py-3 px-4 min-w-[380px]">
+                        Deskripsi Capaian Sikap & Karakter (Dimensi: {attitudeDimensions.find(d => String(d.id) === String(activeDimensionId))?.name || 'Aktif'})
+                      </th>
+                      <th className="py-3 px-4 w-32 text-center">Status Terisi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {loadingAttitude ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-600" />
+                          <span>Memuat data nilai sikap siswa...</span>
+                        </td>
+                      </tr>
+                    ) : attitudeItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                          Belum ada siswa pada rombel ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      attitudeItems.map((st, idx) => {
+                        const currentDesc = st.scores?.[activeDimensionId]?.description || '';
+                        const isFilled = currentDesc.trim().length > 0;
+
+                        return (
+                          <tr key={st.student_id} className="hover:bg-slate-50/70 transition">
+                            <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
+                            <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{st.nis || '-'}</td>
+                            <td className="py-3 px-4 font-bold text-slate-900">{st.student_name}</td>
+                            
+                            {/* Live Textarea Deskripsi Sikap */}
+                            <td className="py-3 px-4">
+                              <textarea
+                                rows={2}
+                                value={currentDesc}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const updated = [...attitudeItems];
+                                  const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId));
+                                  updated[idx].scores = {
+                                    ...updated[idx].scores,
+                                    [activeDimensionId]: {
+                                      ...(updated[idx].scores?.[activeDimensionId] || {}),
+                                      aspect: activeDim?.name || 'Dimensi Sikap',
+                                      description: val
+                                    }
+                                  };
+                                  setAttitudeItems(updated);
+                                }}
+                                placeholder={`Tuliskan narasi perkembangan sikap ${st.student_name} pada dimensi ini...`}
+                                className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none leading-relaxed text-slate-800"
+                              />
+                            </td>
+
+                            <td className="py-3 px-4 text-center">
+                              {isFilled ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[11px]">
+                                  <Check className="w-3 h-3" />
+                                  <span>Terisi</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full font-medium text-[11px]">
+                                  <span>Kosong</span>
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* 4.3 SUB-TAB 3: NILAI PRAMUKA (WAJIB) */}
+          {/* ---------------------------------------------------- */}
+          {reportSubTab === 'scout' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 via-blue-50 to-teal-50 border border-indigo-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+                <div>
+                  <span className="font-black text-indigo-950 text-sm block flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-indigo-600" />
+                    <span>Penilaian Ekstrakurikuler Wajib Kepramukaan</span>
+                  </span>
+                  <p className="text-[11px] text-indigo-800 mt-0.5">
+                    Rombel: <strong>{activeClassName}</strong> • Semester: <strong>{activeSemesterName}</strong> • Predikat (Amat Baik, Baik, Cukup) beserta deskripsi capaian kegiatan pramuka.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateScoutDescriptions}
+                    disabled={scoutScoresList.length === 0}
+                    className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Auto Narasi Sesuai Predikat</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveScoutScores}
+                    disabled={savingScout || scoutScoresList.length === 0}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    {savingScout ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Simpan Nilai Pramuka</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Table Scout Scores */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4 w-12 text-center">No</th>
+                      <th className="py-3 px-4 w-24">NIS</th>
+                      <th className="py-3 px-4 w-48">Nama Siswa</th>
+                      <th className="py-3 px-4 w-36 text-center bg-indigo-50 font-black text-indigo-900">
+                        Predikat Pramuka *
+                      </th>
+                      <th className="py-3 px-4 min-w-[360px]">
+                        Deskripsi Capaian Kepramukaan
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {loadingScout ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+                          <span>Memuat nilai pramuka siswa...</span>
+                        </td>
+                      </tr>
+                    ) : scoutScoresList.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                          Belum ada data siswa untuk diolah.
+                        </td>
+                      </tr>
+                    ) : (
+                      scoutScoresList.map((item, idx) => (
+                        <tr key={item.student_id} className="hover:bg-slate-50/70 transition">
+                          <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
+                          <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{item.nis || '-'}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
+
+                          {/* Predikat Pramuka */}
+                          <td className="py-3 px-4 text-center bg-indigo-50/30">
+                            <select
+                              value={item.predicate}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const updated = [...scoutScoresList];
+                                updated[idx].predicate = val;
+                                updated[idx].description = buildDefaultScoutNarrative(item.student_name, val);
+                                setScoutScoresList(updated);
+                              }}
+                              className="px-3 py-1.5 text-xs font-black rounded-lg border border-indigo-200 bg-white text-indigo-950 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                            >
+                              <option value="Amat Baik">Amat Baik</option>
+                              <option value="Baik">Baik</option>
+                              <option value="Cukup">Cukup</option>
+                            </select>
+                          </td>
+
+                          {/* Deskripsi Kepramukaan */}
+                          <td className="py-3 px-4">
+                            <textarea
+                              rows={2}
+                              value={item.description}
+                              onChange={(e) => {
+                                const updated = [...scoutScoresList];
+                                updated[idx].description = e.target.value;
+                                setScoutScoresList(updated);
+                              }}
+                              placeholder="Deskripsi keaktifan dan capaian kegiatan pramuka..."
+                              className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed text-slate-800"
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* 4.4 SUB-TAB 4: CATATAN WALI KELAS */}
+          {/* ---------------------------------------------------- */}
+          {reportSubTab === 'homeroom_notes' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-slate-100 via-slate-50 to-teal-50 border border-slate-300 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+                <div>
+                  <span className="font-black text-slate-900 text-sm block flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-teal-600" />
+                    <span>Catatan Wali Kelas untuk Buku Rapor Siswa</span>
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Rombel: <strong>{activeClassName}</strong> • Wali Kelas: <strong>{classes.find(c => String(c.id) === String(selectedClassId))?.homeroom_teacher_name || '-'}</strong> • Catatan motivasi dan saran pengembangan bagi siswa.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleSaveHomeroomNotes}
+                    disabled={savingHomeroom || homeroomNotesList.length === 0}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                  >
+                    {savingHomeroom ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Simpan Catatan Wali Kelas</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Template Suggestion Chips */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                  Template Cepat Catatan Wali Kelas (Klik untuk terapkan ke siswa yang kosong):
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[
+                    'Tingkatkan kedisiplinan dan pertahankan prestasimu di semester depan!',
+                    'Terus asah bakat dan kreativitasmu, jangan mudah menyerah!',
+                    'Perbanyak membaca buku dan aktif berdiskusi dalam kelompok belajar.',
+                    'Prestasi yang sangat membanggakan, teruslah menjadi teladan bagi teman-teman!',
+                    'Perlu meningkatkan kehadiran dan keaktifan dalam menyelesaikan tugas-tugas kelas.'
+                  ].map((tpl, tIdx) => (
+                    <button
+                      key={tIdx}
+                      type="button"
+                      onClick={() => {
+                        const updated = homeroomNotesList.map(item => ({
+                          ...item,
+                          homeroom_note: item.homeroom_note ? item.homeroom_note : tpl
+                        }));
+                        setHomeroomNotesList(updated);
+                        setSuccessMsg('Template catatan diterapkan pada kolom yang masih kosong!');
+                        setTimeout(() => setSuccessMsg(''), 3000);
+                      }}
+                      className="px-2.5 py-1 bg-white hover:bg-teal-50 hover:text-teal-900 hover:border-teal-300 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-medium transition text-left"
+                    >
+                      "{tpl}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table Homeroom Notes */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4 w-12 text-center">No</th>
+                      <th className="py-3 px-4 w-24">NIS</th>
+                      <th className="py-3 px-4 w-48">Nama Siswa</th>
+                      <th className="py-3 px-4 min-w-[380px]">
+                        Catatan & Motivasi Wali Kelas untuk Rapor
+                      </th>
+                      <th className="py-3 px-4 w-36 text-center">Aksi Cepat</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {loadingHomeroom ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-600" />
+                          <span>Memuat catatan wali kelas...</span>
+                        </td>
+                      </tr>
+                    ) : homeroomNotesList.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                          Belum ada data siswa untuk diolah.
+                        </td>
+                      </tr>
+                    ) : (
+                      homeroomNotesList.map((item, idx) => (
+                        <tr key={item.student_id} className="hover:bg-slate-50/70 transition">
+                          <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
+                          <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{item.nis || '-'}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
+
+                          {/* Live Textarea Catatan */}
+                          <td className="py-3 px-4">
+                            <textarea
+                              rows={2}
+                              value={item.homeroom_note}
+                              onChange={(e) => {
+                                const updated = [...homeroomNotesList];
+                                updated[idx].homeroom_note = e.target.value;
+                                setHomeroomNotesList(updated);
+                              }}
+                              placeholder="Tuliskan catatan wali kelas untuk lembar rapor siswa..."
+                              className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-500 focus:outline-none leading-relaxed text-slate-800"
+                            />
+                          </td>
+
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleApplyHomeroomTemplate(idx, 'Pertahankan prestasimu dan teruslah bersemangat dalam belajar!')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition w-full"
+                            >
+                              + Motivasi Positif
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3474,6 +4333,159 @@ export default function InputNilai() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 6: KELOLA DIMENSI SIKAP PER TAHUN AJARAN */}
+      {/* ======================================================== */}
+      {dimensionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200 shadow-xs">
+                  <HeartHandshake className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    {editingDimension ? 'Edit Dimensi Sikap' : 'Kelola Dimensi Sikap TA'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Tahun Ajaran: <strong>{academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || 'Aktif'}</strong> • Profil Pelajar Pancasila
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setDimensionModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List Existing Dimensions */}
+            {!editingDimension && (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Daftar Dimensi Terkonfigurasi ({attitudeDimensions.length}):
+                  </span>
+                </div>
+                {attitudeDimensions.map((dim, idx) => (
+                  <div key={dim.id} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-5 h-5 rounded-lg bg-amber-100 text-amber-900 font-bold text-[10px] flex items-center justify-center shrink-0">
+                        {dim.order_index || idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-bold text-slate-800 block truncate">{dim.name}</span>
+                        {dim.code && <span className="text-[10px] text-slate-400 font-mono">Kode: {dim.code}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditDimension(dim)}
+                        className="p-1.5 hover:bg-white text-slate-600 hover:text-amber-700 rounded-lg transition"
+                        title="Edit Dimensi"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDimension(dim.id)}
+                        className="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition"
+                        title="Hapus Dimensi"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Form Input / Edit Dimensi */}
+            <form onSubmit={handleSaveDimensionForm} className="space-y-3 pt-2 border-t border-slate-100 shrink-0">
+              <span className="text-xs font-black text-slate-800 block">
+                {editingDimension ? 'Form Edit Dimensi Sikap' : '+ Tambah Dimensi Sikap Baru'}
+              </span>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="col-span-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Kode</label>
+                  <input
+                    type="text"
+                    value={dimensionForm.code}
+                    onChange={(e) => setDimensionForm({ ...dimensionForm, code: e.target.value })}
+                    placeholder="DIM-1"
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Urutan</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={dimensionForm.order_index}
+                    onChange={(e) => setDimensionForm({ ...dimensionForm, order_index: parseInt(e.target.value) || 1 })}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Nama Dimensi Sikap *</label>
+                  <input
+                    type="text"
+                    required
+                    value={dimensionForm.name}
+                    onChange={(e) => setDimensionForm({ ...dimensionForm, name: e.target.value })}
+                    placeholder="Contoh: Beriman, Bertakwa kepada Tuhan YME dan Berakhlak Mulia"
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-slate-800"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Keterangan / Indikator (Opsional)</label>
+                  <textarea
+                    rows={2}
+                    value={dimensionForm.description}
+                    onChange={(e) => setDimensionForm({ ...dimensionForm, description: e.target.value })}
+                    placeholder="Deskripsi singkat indikator sikap dimensi ini..."
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                {editingDimension && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingDimension(null);
+                      setDimensionForm({ id: null, code: `DIM-${attitudeDimensions.length + 1}`, name: '', description: '', order_index: attitudeDimensions.length + 1 });
+                    }}
+                    className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800 font-bold"
+                  >
+                    Batal Edit
+                  </button>
+                )}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setDimensionModalOpen(false)}
+                    className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-95 flex items-center gap-1"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{editingDimension ? 'Perbarui Dimensi' : 'Simpan Dimensi'}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
