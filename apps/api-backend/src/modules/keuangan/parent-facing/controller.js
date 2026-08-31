@@ -56,6 +56,26 @@ class ParentFacingController {
       res.json({ success: true, data, message: 'Data tabungan anak berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
+
+  submitTransferProof = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const studentId = this.getStudentId(req);
+      const data = await parentFacingService.submitTransferProof(
+        schoolUnitId,
+        studentId,
+        req.params.id,
+        req.body,
+        req.user?.id
+      );
+      res.status(201).json({
+        success: true,
+        data,
+        message: 'Bukti transfer berhasil dikirim, menunggu verifikasi bendahara',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
 }
 
 module.exports = new ParentFacingController();

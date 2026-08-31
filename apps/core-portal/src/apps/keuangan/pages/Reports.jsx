@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import * as XLSX from 'xlsx';
 import {
   BarChart3,
   FileSpreadsheet,
@@ -10,25 +11,38 @@ import {
   Printer,
   Loader2,
   Calendar,
-  Filter
+  Filter,
+  DollarSign,
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function Reports() {
   const [reportType, setReportType] = useState('trial-balance');
-  // 'budget-realization' | 'general-ledger' | 'trial-balance' | 'income-statement' | 'cash-flow' | 'balance-sheet'
+  // 'trial-balance' | 'general-ledger' | 'income-statement' | 'cash-flow' | 'balance-sheet' | 'budget-realization'
   const [period, setPeriod] = useState('2026-08');
   const [loading, setLoading] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [reportData, setReportData] = useState(null);
+
+  const getEndpoint = (format = '') => {
+    let endpoint = `/keuangan/reports/${reportType}?period=${period}`;
+    if (reportType === 'general-ledger') {
+      endpoint = `/keuangan/reports/general-ledger?period_from=${period}-01&period_to=${period}-31`;
+    }
+    if (format === 'pdf') {
+      endpoint += (endpoint.includes('?') ? '&' : '?') + 'format=pdf';
+    }
+    return endpoint;
+  };
 
   const fetchReport = async () => {
     setLoading(true);
     setReportData(null);
     try {
-      let endpoint = `/keuangan/reports/${reportType}?period=${period}`;
-      if (reportType === 'general-ledger') {
-        endpoint = `/keuangan/reports/general-ledger?period_from=${period}-01&period_to=${period}-31`;
-      }
-      const res = await api.get(endpoint);
+      const res = await api.get(getEndpoint());
       setReportData(res.data?.data);
     } catch (err) {
       console.error('Error fetching report:', err);
@@ -45,6 +59,95 @@ export default function Reports() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
   };
 
+  // Export PDF via Backend API Stream (?format=pdf)
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      const response = await api.get(getEndpoint('pdf'), {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `laporan-${reportType}-${period}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengunduh file PDF laporan');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // Export Excel via XLSX Client-Side
+  const handleExportExcel = () => {
+    if (!reportData) return;
+
+    let wsData = [];
+    const title = `Laporan ${reportType.toUpperCase()} - Periode ${period}`;
+
+    if (reportType === 'trial-balance') {
+      wsData.push(['Kode Akun', 'Nama Akun', 'Kelompok', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo Bersih']);
+      reportData.rows?.forEach(r => {
+        wsData.push([r.account_code, r.account_name, r.account_group, r.debit, r.credit, r.net_balance]);
+      });
+      wsData.push(['TOTAL', '', '', reportData.total_debit, reportData.total_credit, '']);
+    } else if (reportType === 'general-ledger') {
+      wsData.push(['Akun', 'Tanggal', 'No. Jurnal', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo']);
+      reportData.forEach(acc => {
+        acc.mutations?.forEach(m => {
+          wsData.push([
+            `${acc.account_code} - ${acc.account_name}`,
+            m.journal_date ? m.journal_date.slice(0, 10) : '',
+            m.journal_number,
+            m.description,
+            m.entry_side === 'debit' ? m.amount : 0,
+            m.entry_side === 'credit' ? m.amount : 0,
+            m.balance_after
+          ]);
+        });
+      });
+    } else if (reportType === 'income-statement') {
+      wsData.push(['Kategori', 'Nama Akun', 'Nominal (Rp)']);
+      reportData.revenues?.forEach(r => wsData.push(['Pendapatan', r.account_name, r.credit - r.debit]));
+      wsData.push(['Total Pendapatan', '', reportData.total_revenue]);
+      reportData.expenses?.forEach(e => wsData.push(['Beban Operasional', e.account_name, e.debit - e.credit]));
+      wsData.push(['Total Beban', '', reportData.total_expense]);
+      wsData.push(['SURPLUS / (DEFISIT)', '', reportData.surplus_defisit]);
+    } else if (reportType === 'cash-flow') {
+      wsData.push(['Tanggal', 'Keterangan', 'Jenis Arus Kas', 'Nominal (Rp)']);
+      reportData.activities?.forEach(a => {
+        wsData.push([
+          a.journal_date ? a.journal_date.slice(0, 10) : '',
+          a.description,
+          a.entry_side === 'debit' ? 'Kas Masuk' : 'Kas Keluar',
+          a.amount
+        ]);
+      });
+      wsData.push(['Total Kas Masuk', '', '', reportData.cash_inflow]);
+      wsData.push(['Total Kas Keluar', '', '', reportData.cash_outflow]);
+      wsData.push(['Arus Kas Bersih', '', '', reportData.net_cash_flow]);
+    } else if (reportType === 'balance-sheet') {
+      wsData.push(['Kelompok', 'Nama Akun', 'Nilai Buku (Rp)']);
+      reportData.assets?.forEach(a => wsData.push(['Aset / Aktiva', a.account_name, a.debit - a.credit]));
+      wsData.push(['TOTAL ASET', '', reportData.total_assets]);
+      reportData.liabilities?.forEach(l => wsData.push(['Kewajiban', l.account_name, l.credit - l.debit]));
+      wsData.push(['Subtotal Kewajiban', '', reportData.total_liabilities]);
+      reportData.equity?.forEach(eq => wsData.push(['Ekuitas', eq.account_name, eq.credit - eq.debit]));
+      wsData.push(['Subtotal Ekuitas', '', reportData.total_equity]);
+      wsData.push(['TOTAL KEWAJIBAN & EKUITAS', '', reportData.total_liabilities + reportData.total_equity]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
+    XLSX.writeFile(wb, `laporan-${reportType}-${period}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Export Actions */}
@@ -52,25 +155,26 @@ export default function Reports() {
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">Laporan Keuangan & Akuntansi</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Laporan standar akuntansi sekolah: Buku Besar, Neraca Saldo, Arus Kas & Neraca posisi keuangan
+            Laporan standar akuntansi sekolah: Buku Besar, Neraca Saldo, Laba Rugi, Arus Kas & Neraca Posisi Keuangan
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition"
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded-xl transition shadow-2xs"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Ekspor Excel</span>
           </button>
           <button
             type="button"
-            onClick={() => alert(`Laporan ${reportType} format PDF berhasil diekspor!`)}
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
           >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>Ekspor PDF / Excel</span>
+            {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+            <span>{exportingPdf ? 'Mengunduh PDF...' : 'Ekspor PDF'}</span>
           </button>
         </div>
       </div>
@@ -89,7 +193,7 @@ export default function Reports() {
               <option value="general-ledger">2. Buku Besar (General Ledger)</option>
               <option value="income-statement">3. Laporan Surplus / Defisit (Laba Rugi)</option>
               <option value="cash-flow">4. Laporan Arus Kas (Cash Flow)</option>
-              <option value="balance-sheet">5. Laporan Neraca (Balance Sheet)</option>
+              <option value="balance-sheet">5. Laporan Posisi Keuangan (Neraca)</option>
               <option value="budget-realization">6. Laporan Realisasi RAPBS</option>
             </select>
           </div>
@@ -100,7 +204,7 @@ export default function Reports() {
               type="month"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
             />
           </div>
         </div>
@@ -133,11 +237,11 @@ export default function Reports() {
                 {reportType === 'trial-balance' && 'Laporan Neraca Saldo (Trial Balance)'}
                 {reportType === 'general-ledger' && 'Laporan Buku Besar (General Ledger)'}
                 {reportType === 'income-statement' && 'Laporan Surplus / Defisit (Laba Rugi)'}
-                {reportType === 'cash-flow' && 'Laporan Arus Kas'}
+                {reportType === 'cash-flow' && 'Laporan Arus Kas (Cash Flow)'}
                 {reportType === 'balance-sheet' && 'Laporan Posisi Keuangan (Neraca)'}
                 {reportType === 'budget-realization' && 'Laporan Realisasi RAPBS'}
               </h2>
-              <p className="text-xs text-slate-500">Yayasan Pendidikan Al-Depok &bull; Periode: {period}</p>
+              <p className="text-xs text-slate-500">Aldepos Islamic Boarding School &bull; Periode: {period}</p>
             </div>
 
             {/* 1. NERACA SALDO */}
@@ -262,6 +366,115 @@ export default function Reports() {
                 <div className={`p-4 rounded-xl border flex items-center justify-between text-sm font-extrabold ${reportData.is_surplus ? 'bg-emerald-100 border-emerald-300 text-emerald-950' : 'bg-red-100 border-red-300 text-red-950'}`}>
                   <span>SURPLUS / (DEFISIT) PERIODE BERJALAN</span>
                   <span>{formatCurrency(reportData.surplus_defisit)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* 4. ARUS KAS (CASH FLOW) */}
+            {reportType === 'cash-flow' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <span className="text-xs text-emerald-700 font-semibold">Total Kas Masuk (Inflow)</span>
+                    <div className="text-lg font-bold text-emerald-900 mt-1">{formatCurrency(reportData.cash_inflow)}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-200">
+                    <span className="text-xs text-rose-700 font-semibold">Total Kas Keluar (Outflow)</span>
+                    <div className="text-lg font-bold text-rose-900 mt-1">{formatCurrency(reportData.cash_outflow)}</div>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${reportData.net_cash_flow >= 0 ? 'bg-blue-50 border-blue-200 text-blue-950' : 'bg-amber-50 border-amber-200 text-amber-950'}`}>
+                    <span className="text-xs font-semibold">Arus Kas Bersih (Net Cash Flow)</span>
+                    <div className="text-lg font-bold mt-1">{formatCurrency(reportData.net_cash_flow)}</div>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="px-4 py-3">Tanggal</th>
+                        <th className="px-4 py-3">Keterangan Transaksi</th>
+                        <th className="px-4 py-3">Jenis Arus Kas</th>
+                        <th className="px-4 py-3 text-right">Nominal (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {reportData.activities?.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-4 py-2.5 text-slate-500">{a.journal_date ? a.journal_date.slice(0, 10) : '-'}</td>
+                          <td className="px-4 py-2.5 font-medium text-slate-800">{a.description}</td>
+                          <td className="px-4 py-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${a.entry_side === 'debit' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {a.entry_side === 'debit' ? 'Kas Masuk' : 'Kas Keluar'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatCurrency(a.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 5. NERACA POSISI KEUANGAN (BALANCE SHEET) */}
+            {reportType === 'balance-sheet' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Sisi Aktiva (Aset) */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ASET (AKTIVA)</h3>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
+                    {reportData.assets?.map((a, i) => (
+                      <div key={i} className="flex justify-between px-4 py-2.5">
+                        <span className="font-semibold text-slate-700">{a.account_name}</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(a.debit - a.credit)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between px-4 py-2.5 bg-blue-50 font-bold text-blue-900">
+                      <span>TOTAL ASET</span>
+                      <span>{formatCurrency(reportData.total_assets)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sisi Pasiva (Kewajiban & Ekuitas) */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">KEWAJIBAN & EKUITAS (PASIVA)</h3>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
+                      {reportData.liabilities?.map((l, i) => (
+                        <div key={i} className="flex justify-between px-4 py-2.5">
+                          <span className="text-slate-600">{l.account_name}</span>
+                          <span className="font-medium text-slate-800">{formatCurrency(l.credit - l.debit)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between px-4 py-2 bg-slate-50 font-semibold text-slate-700 text-[11px]">
+                        <span>Subtotal Kewajiban</span>
+                        <span>{formatCurrency(reportData.total_liabilities)}</span>
+                      </div>
+
+                      {reportData.equity?.map((eq, i) => (
+                        <div key={i} className="flex justify-between px-4 py-2.5">
+                          <span className="text-slate-600">{eq.account_name}</span>
+                          <span className="font-medium text-slate-800">{formatCurrency(eq.credit - eq.debit)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between px-4 py-2 bg-slate-50 font-semibold text-slate-700 text-[11px]">
+                        <span>Subtotal Ekuitas</span>
+                        <span>{formatCurrency(reportData.total_equity)}</span>
+                      </div>
+
+                      <div className="flex justify-between px-4 py-2.5 bg-purple-50 font-bold text-purple-900">
+                        <span>TOTAL KEWAJIBAN & EKUITAS</span>
+                        <span>{formatCurrency(reportData.total_liabilities + reportData.total_equity)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Neraca Seimbang: Total Aset = Total Kewajiban & Ekuitas</span>
+                  </div>
                 </div>
               </div>
             )}

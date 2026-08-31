@@ -276,6 +276,14 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/akademik/pages/RombelManagement')),
           },
           {
+            path: 'kenaikan-kelulusan',
+            element: lazyLoad(() => import('./apps/akademik/pages/KenaikanKelulusan')),
+          },
+          {
+            path: 'promotion-graduation',
+            element: lazyLoad(() => import('./apps/akademik/pages/KenaikanKelulusan')),
+          },
+          {
             path: 'master',
             element: lazyLoad(() => import('./apps/akademik/pages/MasterAkademik')),
           },
@@ -354,6 +362,39 @@ export const router = createBrowserRouter([
           {
             path: 'kalender',
             element: lazyLoad(() => import('./apps/akademik/pages/KalenderAkademik')),
+          },
+          // PSB (Penerimaan Murid Baru)
+          {
+            path: 'psb/proses',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBProcess')),
+          },
+          {
+            path: 'psb/kelompok',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBGroups')),
+          },
+          {
+            path: 'psb/pendataan',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrants')),
+          },
+          {
+            path: 'psb/pendataan/:id',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrantDetail')),
+          },
+          {
+            path: 'psb/testing',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBTests')),
+          },
+          {
+            path: 'psb/penempatan',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBPlacement')),
+          },
+          {
+            path: 'riwayat-data',
+            element: lazyLoad(() => import('./apps/akademik/pages/RiwayatAkademik')),
+          },
+          {
+            path: 'academic-history',
+            element: lazyLoad(() => import('./apps/akademik/pages/RiwayatAkademik')),
           },
         ],
       },
@@ -868,12 +909,60 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/manajemen/pages/Dashboard')),
           },
           {
+            path: 'institution-profile',
+            element: lazyLoad(() => import('./apps/manajemen/pages/InstitutionProfile')),
+          },
+          {
             path: 'planning',
             element: lazyLoad(() => import('./apps/manajemen/pages/Planning')),
           },
           {
+            path: 'planning/rips',
+            element: lazyLoad(() => import('./apps/manajemen/pages/RipsPlanning')),
+          },
+          {
+            path: 'planning/rkjp-rkjm',
+            element: lazyLoad(() => import('./apps/manajemen/pages/LongTermPlanning')),
+          },
+          {
+            path: 'planning/rkt',
+            element: lazyLoad(() => import('./apps/manajemen/pages/AnnualWorkPlan')),
+          },
+          {
+            path: 'evadir',
+            element: lazyLoad(() => import('./apps/manajemen/pages/SelfEvaluation')),
+          },
+          {
+            path: 'bsc',
+            element: lazyLoad(() => import('./apps/manajemen/pages/BalancedScorecard')),
+          },
+          {
             path: 'quality',
             element: lazyLoad(() => import('./apps/manajemen/pages/Quality')),
+          },
+          {
+            path: 'risks',
+            element: lazyLoad(() => import('./apps/manajemen/pages/RiskManagement')),
+          },
+          {
+            path: 'tasks',
+            element: lazyLoad(() => import('./apps/manajemen/pages/TaskProjectHub')),
+          },
+          {
+            path: 'projects',
+            element: <Navigate to="/manajemen/tasks" replace />,
+          },
+          {
+            path: 'evaluation',
+            element: lazyLoad(() => import('./apps/manajemen/pages/EvaluationMonev')),
+          },
+          {
+            path: 'approvals',
+            element: lazyLoad(() => import('./apps/manajemen/pages/ApprovalCenter')),
+          },
+          {
+            path: 'documents',
+            element: lazyLoad(() => import('./apps/manajemen/pages/DocumentRepository')),
           },
           {
             path: 'performance',
@@ -883,18 +972,132 @@ export const router = createBrowserRouter([
             path: 'supervision',
             element: lazyLoad(() => import('./apps/manajemen/pages/Supervision')),
           },
+        ],
+      },
+    ],
+  },
+
+  // 15. Portal Guru Login & Module
+  {
+    path: '/guru/login',
+    element: lazyLoad(() => import('./apps/guru/pages/Login')),
+  },
+  {
+    path: '/guru',
+    element: <ProtectedRoute redirectTo="/guru/login" />,
+    children: [
+      {
+        element: lazyLoad(() => import('./apps/guru/components/GuruLayout')),
+        children: [
           {
-            path: 'projects',
-            element: lazyLoad(() => import('./apps/manajemen/pages/Projects')),
+            index: true,
+            element: <Navigate to="/guru/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: lazyLoad(() => import('./apps/guru/pages/Dashboard')),
+          },
+          {
+            path: 'jadwal',
+            element: lazyLoad(() => import('./apps/guru/pages/JadwalMengajar')),
+          },
+          {
+            path: 'absensi',
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiDiri')),
+          },
+          {
+            path: 'presensi',
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiDiri')),
+          },
+          {
+            path: 'absensi-kelas',
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiKelas')),
+          },
+          {
+            path: 'nilai',
+            element: lazyLoad(() => import('./apps/guru/pages/InputNilai')),
+          },
+          {
+            path: 'penilaian',
+            element: lazyLoad(() => import('./apps/guru/pages/InputNilai')),
+          },
+          {
+            path: 'tujuan-pembelajaran',
+            element: lazyLoad(() => import('./apps/guru/pages/TujuanPembelajaran')),
+          },
+          {
+            path: 'tp',
+            element: lazyLoad(() => import('./apps/guru/pages/TujuanPembelajaran')),
+          },
+          {
+            path: 'siswa',
+            element: lazyLoad(() => import('./apps/guru/pages/InformasiSiswa')),
+          },
+          {
+            path: 'pengumuman',
+            element: lazyLoad(() => import('./apps/guru/pages/Pengumuman')),
+          },
+          {
+            path: 'profil',
+            element: lazyLoad(() => import('./apps/guru/pages/ProfilSaya')),
+          },
+          {
+            path: 'profile',
+            element: lazyLoad(() => import('./apps/guru/pages/ProfilSaya')),
           },
         ],
       },
     ],
   },
 
-  // 15. Fallback Not Found
+  // 16. Portal Calon Murid & Santri (PSB)
+  {
+    path: '/calon-murid/login',
+    element: lazyLoad(() => import('./apps/calon-murid/pages/Login')),
+  },
+  {
+    path: '/calon-murid',
+    element: <ProtectedRoute redirectTo="/calon-murid/login" />,
+    children: [
+      {
+        element: lazyLoad(() => import('./apps/calon-murid/components/CalonMuridLayout')),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/calon-murid/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: lazyLoad(() => import('./apps/calon-murid/pages/Dashboard')),
+          },
+          {
+            path: 'data-lengkap',
+            element: lazyLoad(() => import('./apps/calon-murid/pages/DataLengkap')),
+          },
+          {
+            path: 'dokumen',
+            element: lazyLoad(() => import('./apps/calon-murid/pages/Dokumen')),
+          },
+          {
+            path: 'test',
+            element: lazyLoad(() => import('./apps/calon-murid/pages/TesSeleksi')),
+          },
+          {
+            path: 'tes',
+            element: <Navigate to="/calon-murid/test" replace />,
+          },
+        ],
+      },
+    ],
+  },
+
+  // 17. Fallback Not Found
   {
     path: '*',
     element: <Navigate to="/" replace />,
   },
-]);
+], {
+  future: {
+    v7_relativeSplatPath: true,
+  },
+});

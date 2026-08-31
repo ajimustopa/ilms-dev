@@ -14,6 +14,13 @@ router.get(
   qualityController.listIndicators
 );
 
+router.get(
+  '/quality-indicators/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.view'),
+  qualityController.getIndicatorById
+);
+
 router.post(
   '/quality-indicators',
   verifyJwt,
@@ -26,6 +33,13 @@ router.put(
   verifyJwt,
   requirePermission('manajemen.quality.kpi.manage'),
   qualityController.updateIndicator
+);
+
+router.delete(
+  '/quality-indicators/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.manage'),
+  qualityController.deleteIndicator
 );
 
 router.get(
@@ -42,11 +56,54 @@ router.post(
   qualityController.recordAchievement
 );
 
+router.patch(
+  '/quality-indicators/achievements/:id/verify',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.manage'),
+  qualityController.verifyAchievement
+);
+
 router.get(
   '/quality-indicators/dashboard',
   verifyJwt,
   requirePermission('manajemen.quality.kpi.view'),
   qualityController.getKpiDashboard
+);
+
+// Sasaran Mutu (#8)
+router.get(
+  '/quality-goals',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.view'),
+  qualityController.listQualityGoals
+);
+
+router.get(
+  '/quality-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.view'),
+  qualityController.getQualityGoalById
+);
+
+router.post(
+  '/quality-goals',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.manage'),
+  qualityController.createQualityGoal
+);
+
+router.put(
+  '/quality-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.manage'),
+  qualityController.updateQualityGoal
+);
+
+router.delete(
+  '/quality-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.kpi.manage'),
+  qualityController.deleteQualityGoal
 );
 
 // Evadir (#195)
@@ -129,12 +186,26 @@ router.post(
   qualityController.triggerSnapshot
 );
 
-// Manajemen Risiko (#202)
+// Manajemen Risiko (#202 & Fitur 9)
 router.get(
   '/school-risks',
   verifyJwt,
   requirePermission('manajemen.quality.risks.view'),
   qualityController.listRisks
+);
+
+router.get(
+  '/school-risks/heatmap',
+  verifyJwt,
+  requirePermission('manajemen.quality.risks.view'),
+  qualityController.getRiskHeatmap
+);
+
+router.get(
+  '/school-risks/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.risks.view'),
+  qualityController.getRiskById
 );
 
 router.post(
@@ -152,10 +223,24 @@ router.put(
 );
 
 router.patch(
+  '/school-risks/:id/mitigation',
+  verifyJwt,
+  requirePermission('manajemen.quality.risks.manage'),
+  qualityController.updateRiskMitigation
+);
+
+router.patch(
   '/school-risks/:id/status',
   verifyJwt,
   requirePermission('manajemen.quality.risks.manage'),
   qualityController.updateRiskStatus
+);
+
+router.delete(
+  '/school-risks/:id',
+  verifyJwt,
+  requirePermission('manajemen.quality.risks.manage'),
+  qualityController.deleteRisk
 );
 
 module.exports = router;

@@ -35,18 +35,13 @@ export default function Login() {
     setError(null);
     setSubmitting(true);
 
-    try {
-      await login({
-        username,
-        password,
-        school_unit_id: schoolUnitId ? Number(schoolUnitId) : undefined
-      });
+    const res = await login(username, password, schoolUnitId ? Number(schoolUnitId) : undefined);
+    if (res.success) {
       navigate('/dapur/dashboard', { replace: true });
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Gagal login ke Modul Dapur & Gizi');
-    } finally {
-      setSubmitting(false);
+    } else {
+      setError(res.message || 'Gagal login ke Modul Dapur & Gizi');
     }
+    setSubmitting(false);
   };
 
   if (authLoading) {

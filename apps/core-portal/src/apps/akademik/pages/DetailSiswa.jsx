@@ -23,7 +23,9 @@ import {
   Paperclip,
   ExternalLink,
   FileSpreadsheet,
-  RotateCw
+  RotateCw,
+  History,
+  GraduationCap
 } from 'lucide-react';
 
 export default function DetailSiswa() {
@@ -201,6 +203,13 @@ export default function DetailSiswa() {
     dapodik_mutation_letter_status: 'belum_diproses'
   });
 
+  // Riwayat Rombel & Kenaikan (student_class_history)
+  const [classHistory, setClassHistory] = useState([]);
+
+  // Riwayat Rapor & Nilai Semester (report_card_history)
+  const [reportCardHistory, setReportCardHistory] = useState([]);
+  const [expandedReportId, setExpandedReportId] = useState(null);
+
   // File Preview Modal
   const [previewFile, setPreviewFile] = useState(null);
 
@@ -212,12 +221,16 @@ export default function DetailSiswa() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [res, cRes] = await Promise.all([
+      const [res, cRes, hRes, rcRes] = await Promise.all([
         api.get(`/akademik/students/${id}`),
-        api.get('/akademik/cohorts').catch(() => ({ data: { data: [] } }))
+        api.get('/akademik/cohorts').catch(() => ({ data: { data: [] } })),
+        api.get(`/akademik/students/${id}/class-history`).catch(() => ({ data: { data: [] } })),
+        api.get(`/akademik/students/${id}/report-card-history`).catch(() => ({ data: { data: { report_cards: [] } } }))
       ]);
 
       setCohorts(cRes.data?.data || []);
+      setClassHistory(hRes.data?.data || []);
+      setReportCardHistory(rcRes.data?.data?.report_cards || rcRes.data?.report_cards || []);
 
       if (res.data?.success && res.data.data) {
         const d = res.data.data;
@@ -481,7 +494,9 @@ export default function DetailSiswa() {
     { id: 'ortu', label: '3. Data Orang Tua & Wali', icon: Users },
     { id: 'kelembagaan', label: '4. Registrasi & Upload Berkas', icon: Building },
     { id: 'rapor', label: '5. Rekap & Scan Rapor', icon: FileCheck },
-    { id: 'kelulusan', label: '6. Kelulusan & Mutasi Keluar', icon: LogOut }
+    { id: 'kelulusan', label: '6. Kelulusan & Mutasi Keluar', icon: LogOut },
+    { id: 'riwayat_rombel', label: '7. Riwayat Rombel & Kenaikan', icon: History },
+    { id: 'riwayat_rapor', label: '8. Riwayat Rapor & Nilai Semester', icon: FileSpreadsheet }
   ];
 
   return (
@@ -1729,6 +1744,240 @@ export default function DetailSiswa() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: RIWAYAT ROMBEL & KENAIKAN KELAS */}
+      {activeTab === 'riwayat_rombel' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-600" />
+                  <span>Audit Trail Riwayat Rombel & Kenaikan Siswa (student_class_history)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Rekam jejak historis penempatan kelas dari PSB awal, mutasi masuk, hingga promosi kenaikan kelas / kelulusan.
+                </p>
+              </div>
+            </div>
+
+            {classHistory.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <History className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                <p className="text-xs font-semibold">Belum ada catatan riwayat rombel tersimpan untuk santri ini.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4">Tahun Ajaran</th>
+                      <th className="py-3 px-4">Jenjang & Rombel</th>
+                      <th className="py-3 px-4">Tipe Penempatan</th>
+                      <th className="py-3 px-4">Keputusan / Catatan</th>
+                      <th className="py-3 px-4">Dicatat Oleh</th>
+                      <th className="py-3 px-4 text-right">Waktu Pencatatan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {classHistory.map((h) => {
+                      let typeBadge = { text: 'Manual', bg: 'bg-slate-50 text-slate-700 border-slate-200' };
+                      if (h.enrollment_type === 'psb_placement') {
+                        typeBadge = { text: 'PSB Masuk', bg: 'bg-teal-50 text-teal-700 border-teal-200' };
+                      } else if (h.enrollment_type === 'promotion') {
+                        typeBadge = { text: 'Kenaikan Kelas', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+                      } else if (h.enrollment_type === 'transfer') {
+                        typeBadge = { text: 'Transfer / Pindah', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+                      }
+
+                      return (
+                        <tr key={h.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-3 px-4 font-bold text-slate-900">
+                            {h.academic_year_name || '2026/2027'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-emerald-800">
+                              {h.class_group_name || `Kelas ID ${h.class_group_id}`}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block">{h.grade_level_name || 'Tingkat'}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeBadge.bg}`}>
+                              {typeBadge.text}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-800">{h.decision || '-'}</div>
+                          </td>
+                          <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">
+                            {h.recorded_by || 'Sistem'}
+                          </td>
+                          <td className="py-3 px-4 text-right text-slate-400 font-mono text-[11px]">
+                            {h.recorded_at ? new Date(h.recorded_at).toLocaleString('id-ID') : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 8: RIWAYAT RAPOR & NILAI SEMESTER (LINTAS TAHUN AJARAN) */}
+      {activeTab === 'riwayat_rapor' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
+                  <span>Riwayat Rapor & Nilai Semester (Arsip Lengkap)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Daftar seluruh lembar rapor peserta didik lintas tahun ajaran dan semester, mencakup nilai akhir mata pelajaran ter-materialisasi.
+                </p>
+              </div>
+
+              <div className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                Total: {reportCardHistory.length} Semester Terdata
+              </div>
+            </div>
+
+            {reportCardHistory.length === 0 ? (
+              <div className="py-14 text-center text-slate-400">
+                <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                <p className="text-xs font-semibold text-slate-600">Belum ada data rapor untuk siswa ini.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Nilai rapor dapat di-generate dari menu Rapor Siswa atau diinput melalui menu Riwayat & Impor Data.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reportCardHistory.map((rc) => {
+                  const isExpanded = expandedReportId === rc.id;
+                  const isLegacy = !!rc.is_legacy;
+                  const dataSourceLabel =
+                    rc.data_source === 'bulk_import'
+                      ? 'Impor Riwayat'
+                      : rc.data_source === 'manual_input'
+                      ? 'Input Manual'
+                      : 'Digenerate Sistem';
+
+                  return (
+                    <div
+                      key={rc.id}
+                      className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs transition hover:border-indigo-200"
+                    >
+                      {/* Header Kartu Rapor */}
+                      <div className="p-4 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-bold text-indigo-600 text-xs shadow-2xs">
+                            <FileSpreadsheet className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-800 text-sm">{rc.semester_name}</span>
+                              <span className="text-xs text-slate-500 font-semibold">({rc.academic_year_name})</span>
+                              {isLegacy ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300">
+                                  Data Riwayat / Lampau
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                  Tahun Berjalan
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {dataSourceLabel}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              Diterbitkan: {rc.generated_at ? new Date(rc.generated_at).toLocaleDateString('id-ID') : '-'}
+                              {rc.homeroom_note && ` • Catatan: "${rc.homeroom_note}"`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {rc.file_url && (
+                            <a
+                              href={rc.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs transition"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Lihat PDF</span>
+                            </a>
+                          )}
+
+                          <button
+                            onClick={() => setExpandedReportId(isExpanded ? null : rc.id)}
+                            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition"
+                          >
+                            {isExpanded ? 'Sembunyikan Nilai' : `Lihat ${rc.subject_scores?.length || 0} Nilai Mapel`}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Detail Tabel Nilai Mapel (Accordion) */}
+                      {isExpanded && (
+                        <div className="p-4 bg-white border-t border-slate-100 space-y-3 animate-in fade-in">
+                          <h4 className="font-bold text-xs text-slate-700">Rincian Nilai Akhir per Mata Pelajaran:</h4>
+                          {rc.subject_scores && rc.subject_scores.length > 0 ? (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                                <thead className="bg-slate-50 text-slate-700 font-bold">
+                                  <tr>
+                                    <th className="py-2.5 px-3">Mata Pelajaran</th>
+                                    <th className="py-2.5 px-3 w-20 text-center">KKM</th>
+                                    <th className="py-2.5 px-3 w-24 text-center">Nilai Akhir</th>
+                                    <th className="py-2.5 px-3 w-20 text-center">Predikat</th>
+                                    <th className="py-2.5 px-3">Catatan Capaian Kompetensi</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {rc.subject_scores.map((sc) => (
+                                    <tr key={sc.id} className="hover:bg-slate-50/70">
+                                      <td className="py-2.5 px-3 font-bold text-slate-800">
+                                        {sc.subject_name}
+                                        <span className="text-[10px] text-slate-400 font-normal ml-1.5">({sc.subject_code})</span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center text-slate-500">{sc.kkm_snapshot || 75}</td>
+                                      <td className="py-2.5 px-3 text-center font-extrabold text-indigo-700 text-sm">
+                                        {sc.score}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span className="px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-800">
+                                          {sc.predikat || '-'}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-slate-600 text-xs">
+                                        {sc.notes || <span className="text-slate-400 italic">Tidak ada catatan</span>}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="p-3 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">
+                              Belum ada rincian nilai mapel yang tersimpan untuk rapor ini.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

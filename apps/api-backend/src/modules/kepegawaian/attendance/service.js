@@ -33,8 +33,25 @@ class AttendanceService {
     return baseQuery.orderBy('employee_attendances.attendance_date', 'desc');
   }
 
+  // Helper hitung jarak Haversine (dalam meter)
+  _calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+    const R = 6371e3; // radius bumi dalam meter
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return Math.round(R * c);
+  }
+
   async checkIn(payload, user = null) {
-    let { employee_id, school_unit_id, attendance_date, check_in_time } = payload;
+    let { employee_id, school_unit_id, attendance_date, check_in_time, latitude, longitude, device_info, notes } = payload;
 
     // Jika pegawai self-service, pakai ref_id dari token
     if (!employee_id && user && user.ref_type === 'staff') {
@@ -70,7 +87,22 @@ class AttendanceService {
       throw error;
     }
 
-    const [id] = await db('employee_attendances').insert({
+    // Default target koordinat Aldepos Islamic Boarding School jika belum diatur di database
+    const defaultSchoolLat = -6.6521;
+    const defaultSchoolLng = 106.8123;
+    const maxAllowedRadius = 200; // 200 meter radius toleransi HRD
+
+    let calculatedDistance = null;
+    if (latitude && longitude) {
+      calculatedDistance = this._calculateDistanceMeters(
+        parseFloat(latitude),
+        parseFloat(longitude),
+        defaultSchoolLat,
+        defaultSchoolLng
+      );
+    }
+
+    const insertData = {
       employee_id,
       school_unit_id: targetSchoolUnitId,
       attendance_date: today,
@@ -79,9 +111,18 @@ class AttendanceService {
       status: 'present',
       created_at: db.fn.now(),
       updated_at: db.fn.now()
-    });
+    };
 
-    return db('employee_attendances').where({ id }).first();
+    const [id] = await db('employee_attendances').insert(insertData);
+    const record = await db('employee_attendances').where({ id }).first();
+
+    return {
+      ...record,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      distance_meters: calculatedDistance,
+      is_within_radius: calculatedDistance !== null ? calculatedDistance <= maxAllowedRadius : true
+    };
   }
 
   async checkOut(id, payload = {}) {

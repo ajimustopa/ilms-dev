@@ -284,6 +284,291 @@ class AttendanceService {
 
     return db('student_leave_requests').where({ id }).first();
   }
+
+  // ==========================================
+  // 3. Presensi Per Jam Pelajaran (Lesson Attendances)
+  // ==========================================
+  async listLessonAttendances(query = {}) {
+    let baseQuery = db('lesson_attendances')
+      .join('students', 'lesson_attendances.student_id', 'students.id')
+      .join('class_groups', 'lesson_attendances.class_group_id', 'class_groups.id')
+      .leftJoin('subject_schedules', 'lesson_attendances.subject_schedule_id', 'subject_schedules.id')
+      .leftJoin('subjects', 'subject_schedules.subject_id', 'subjects.id')
+      .select(
+        'lesson_attendances.*',
+        'students.full_name as student_name',
+        'students.nis',
+        'class_groups.name as class_group_name',
+        'subjects.name as subject_name',
+        'subject_schedules.start_time',
+        'subject_schedules.end_time'
+      );
+
+    if (query.student_id) {
+      baseQuery = baseQuery.where('lesson_attendances.student_id', query.student_id);
+    }
+    if (query.class_group_id) {
+      baseQuery = baseQuery.where('lesson_attendances.class_group_id', query.class_group_id);
+    }
+    if (query.subject_schedule_id) {
+      baseQuery = baseQuery.where('lesson_attendances.subject_schedule_id', query.subject_schedule_id);
+    }
+    if (query.date) {
+      baseQuery = baseQuery.where('lesson_attendances.date', query.date);
+    }
+    if (query.start_date && query.end_date) {
+      baseQuery = baseQuery.whereBetween('lesson_attendances.date', [query.start_date, query.end_date]);
+    }
+
+    return baseQuery.orderBy('lesson_attendances.date', 'desc').orderBy('lesson_attendances.id', 'asc');
+  }
+
+  async recordLessonAttendanceBulk(payload, user = null) {
+    const { subject_schedule_id, class_group_id, date, attendances } = payload;
+    const items = attendances || payload.items;
+
+    if (!subject_schedule_id || !class_group_id || !date || !Array.isArray(items) || items.length === 0) {
+      const error = new Error('Field subject_schedule_id, class_group_id, date, dan attendances (array) wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const recordedBy = user?.ref_type === 'staff' ? user.ref_id : (user?.id || null);
+
+    const results = [];
+    for (const item of items) {
+      const validStatus = ['present', 'sick', 'permitted', 'absent', 'late'].includes(item.status) ? item.status : 'present';
+      
+      const existing = await db('lesson_attendances')
+        .where({
+          student_id: item.student_id,
+          subject_schedule_id,
+          date
+        })
+        .first();
+
+      if (existing) {
+        await db('lesson_attendances')
+          .where({ id: existing.id })
+          .update({
+            class_group_id,
+            status: validStatus,
+            check_in_time: item.check_in_time || existing.check_in_time,
+            recorded_by: recordedBy,
+            input_method: item.input_method || 'manual',
+            device_ref: item.device_ref || null,
+            notes: item.notes !== undefined ? item.notes : existing.notes,
+            updated_at: db.fn.now()
+          });
+        results.push(existing.id);
+      } else {
+        const [insertedId] = await db('lesson_attendances').insert({
+          student_id: item.student_id,
+          class_group_id,
+          subject_schedule_id,
+          date,
+          status: validStatus,
+          check_in_time: item.check_in_time || null,
+          recorded_by: recordedBy,
+          input_method: item.input_method || 'manual',
+          device_ref: item.device_ref || null,
+          notes: item.notes || null,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        results.push(insertedId);
+      }
+    }
+
+    return {
+      message: `Presensi ${results.length} siswa per jam pelajaran berhasil disimpan`,
+      total_processed: results.length,
+      date,
+      subject_schedule_id,
+      class_group_id
+    };
+  }
+
+  async getLessonAttendanceSummary(query = {}) {
+    let baseQuery = db('lesson_attendances');
+
+    if (query.student_id) {
+      baseQuery = baseQuery.where('student_id', query.student_id);
+    }
+    if (query.class_group_id) {
+      baseQuery = baseQuery.where('class_group_id', query.class_group_id);
+    }
+    if (query.subject_schedule_id) {
+      baseQuery = baseQuery.where('subject_schedule_id', query.subject_schedule_id);
+    }
+    if (query.start_date && query.end_date) {
+      baseQuery = baseQuery.whereBetween('date', [query.start_date, query.end_date]);
+    } else if (query.date) {
+      baseQuery = baseQuery.where('date', query.date);
+    }
+
+    const rows = await baseQuery.select('status').count('id as count').groupBy('status');
+    const summary = {
+      present: 0,
+      sick: 0,
+      permitted: 0,
+      absent: 0,
+      late: 0,
+      total: 0,
+      attendance_rate: 0
+    };
+
+    rows.forEach((r) => {
+      if (summary[r.status] !== undefined) {
+        summary[r.status] = Number(r.count);
+      }
+      summary.total += Number(r.count);
+    });
+
+    if (summary.total > 0) {
+      summary.attendance_rate = Number((((summary.present + summary.late) / summary.total) * 100).toFixed(1));
+    }
+
+    return summary;
+  }
+
+  // ==========================================
+  // 4. Presensi Kegiatan (Ekskul / Acara Sekolah / Lainnya)
+  // ==========================================
+  async listActivityAttendances(query = {}) {
+    let baseQuery = db('activity_attendances')
+      .join('students', 'activity_attendances.student_id', 'students.id')
+      .select(
+        'activity_attendances.*',
+        'students.full_name as student_name',
+        'students.nis'
+      );
+
+    if (query.student_id) {
+      baseQuery = baseQuery.where('activity_attendances.student_id', query.student_id);
+    }
+    if (query.activity_type) {
+      baseQuery = baseQuery.where('activity_attendances.activity_type', query.activity_type);
+    }
+    if (query.activity_ref_id) {
+      baseQuery = baseQuery.where('activity_attendances.activity_ref_id', query.activity_ref_id);
+    }
+    if (query.date) {
+      baseQuery = baseQuery.where('activity_attendances.date', query.date);
+    }
+    if (query.start_date && query.end_date) {
+      baseQuery = baseQuery.whereBetween('activity_attendances.date', [query.start_date, query.end_date]);
+    }
+
+    return baseQuery.orderBy('activity_attendances.date', 'desc').orderBy('activity_attendances.id', 'asc');
+  }
+
+  async recordActivityAttendanceBulk(payload, user = null) {
+    const { activity_type, activity_ref_id, activity_name, date, attendances } = payload;
+    const items = attendances || payload.items;
+
+    if (!activity_type || !activity_name || !date || !Array.isArray(items) || items.length === 0) {
+      const error = new Error('Field activity_type, activity_name, date, dan attendances (array) wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const recordedBy = user?.ref_type === 'staff' ? user.ref_id : (user?.id || null);
+
+    const results = [];
+    for (const item of items) {
+      const validStatus = ['present', 'absent', 'excused'].includes(item.status) ? item.status : 'present';
+
+      const existing = await db('activity_attendances')
+        .where({
+          student_id: item.student_id,
+          activity_type,
+          activity_ref_id: activity_ref_id || null,
+          date
+        })
+        .first();
+
+      if (existing) {
+        await db('activity_attendances')
+          .where({ id: existing.id })
+          .update({
+            activity_name,
+            status: validStatus,
+            recorded_by: recordedBy,
+            input_method: item.input_method || 'manual',
+            device_ref: item.device_ref || null,
+            notes: item.notes !== undefined ? item.notes : existing.notes,
+            updated_at: db.fn.now()
+          });
+        results.push(existing.id);
+      } else {
+        const [insertedId] = await db('activity_attendances').insert({
+          student_id: item.student_id,
+          activity_type,
+          activity_ref_id: activity_ref_id || null,
+          activity_name,
+          date,
+          status: validStatus,
+          recorded_by: recordedBy,
+          input_method: item.input_method || 'manual',
+          device_ref: item.device_ref || null,
+          notes: item.notes || null,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        results.push(insertedId);
+      }
+    }
+
+    return {
+      message: `Presensi ${results.length} siswa untuk kegiatan ${activity_name} berhasil disimpan`,
+      total_processed: results.length,
+      activity_type,
+      activity_name,
+      date
+    };
+  }
+
+  async getActivityAttendanceSummary(query = {}) {
+    let baseQuery = db('activity_attendances');
+
+    if (query.student_id) {
+      baseQuery = baseQuery.where('student_id', query.student_id);
+    }
+    if (query.activity_type) {
+      baseQuery = baseQuery.where('activity_type', query.activity_type);
+    }
+    if (query.activity_ref_id) {
+      baseQuery = baseQuery.where('activity_ref_id', query.activity_ref_id);
+    }
+    if (query.start_date && query.end_date) {
+      baseQuery = baseQuery.whereBetween('date', [query.start_date, query.end_date]);
+    } else if (query.date) {
+      baseQuery = baseQuery.where('date', query.date);
+    }
+
+    const rows = await baseQuery.select('status').count('id as count').groupBy('status');
+    const summary = {
+      present: 0,
+      absent: 0,
+      excused: 0,
+      total: 0,
+      attendance_rate: 0
+    };
+
+    rows.forEach((r) => {
+      if (summary[r.status] !== undefined) {
+        summary[r.status] = Number(r.count);
+      }
+      summary.total += Number(r.count);
+    });
+
+    if (summary.total > 0) {
+      summary.attendance_rate = Number(((summary.present / summary.total) * 100).toFixed(1));
+    }
+
+    return summary;
+  }
 }
 
 module.exports = new AttendanceService();

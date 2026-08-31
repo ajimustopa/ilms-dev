@@ -18,7 +18,13 @@ import {
   School,
   Grid,
   Users,
-  Building2
+  Building2,
+  PanelLeft,
+  PanelLeftClose,
+  FileCheck2,
+  UserPlus,
+  CalendarDays,
+  History
 } from 'lucide-react';
 
 export default function AkademikLayout() {
@@ -27,6 +33,19 @@ export default function AkademikLayout() {
   const [localUnits, setLocalUnits] = useState([]);
   const [activeYear, setActiveYear] = useState(null);
   const [activeSemester, setActiveSemester] = useState(null);
+
+  // State Sidebar Collapsed (Icon-Only Mode)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('aldepos_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed(prev => {
+      const nextVal = !prev;
+      localStorage.setItem('aldepos_sidebar_collapsed', String(nextVal));
+      return nextVal;
+    });
+  };
 
   useEffect(() => {
     api.get('/core/school-units')
@@ -91,6 +110,11 @@ export default function AkademikLayout() {
       icon: Users,
     },
     {
+      label: 'Kenaikan & Kelulusan',
+      path: '/akademik/kenaikan-kelulusan',
+      icon: Award,
+    },
+    {
       label: 'Master Data',
       path: '/akademik/master',
       icon: Building2,
@@ -140,30 +164,76 @@ export default function AkademikLayout() {
       path: '/akademik/calendar',
       icon: Calendar,
     },
+    // PSB (Penerimaan Murid Baru)
+    {
+      label: 'PSB: Proses & Kuota',
+      path: '/akademik/psb/proses',
+      icon: CalendarDays,
+    },
+    {
+      label: 'PSB: Kelompok Gelombang',
+      path: '/akademik/psb/kelompok',
+      icon: Users,
+    },
+    {
+      label: 'PSB: Pendataan Calon Murid',
+      path: '/akademik/psb/pendataan',
+      icon: UserPlus,
+    },
+    {
+      label: 'PSB: Tes Seleksi Masuk',
+      path: '/akademik/psb/testing',
+      icon: FileCheck2,
+    },
+    {
+      label: 'PSB: Penempatan Rombel',
+      path: '/akademik/psb/penempatan',
+      icon: GraduationCap,
+    },
+    // Riwayat & Arsip
+    {
+      label: 'Riwayat & Impor Data',
+      path: '/akademik/riwayat-data',
+      icon: History,
+    },
   ];
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* Sidebar Kiri */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0">
+      {/* Sidebar Kiri - Sticky Top & Independent Scroll */}
+      <aside className={`sticky top-0 h-screen bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0 transition-all duration-300 z-30 ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}>
         {/* Header Modul */}
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            A
+        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
+              A
+            </div>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <h1 className="text-xs font-black text-white leading-none truncate">
+                  Akademik & Kesiswaan
+                </h1>
+                <span className="text-[10px] text-teal-400 font-bold tracking-wide uppercase block mt-1">
+                  SIAKAD Aldepos
+                </span>
+              </div>
+            )}
           </div>
-          <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-white leading-none truncate">
-              Akademik & Kesiswaan
-            </h1>
-            <span className="text-[10px] text-teal-400 font-medium tracking-wide uppercase">
-              SIAKAD Aldepos
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            title={isCollapsed ? "Buka Sidebar Navigation (Tampilkan Teks)" : "Sembunyikan Navigasi (Tampilkan Ikon Saja)"}
+            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition shrink-0 border border-slate-700/60 shadow-2xs"
+          >
+            {isCollapsed ? <PanelLeft className="w-4 h-4 text-teal-400" /> : <PanelLeftClose className="w-4 h-4 text-slate-400" />}
+          </button>
         </div>
 
         {/* School Unit Selector */}
-        {availableUnits && availableUnits.length > 0 && (
-          <div className="p-3 bg-slate-800/40 border-b border-slate-800/60">
+        {availableUnits && availableUnits.length > 0 && !isCollapsed && (
+          <div className="p-3 bg-slate-800/40 border-b border-slate-800/60 shrink-0">
             <label className="text-[10px] font-semibold uppercase text-slate-400 block mb-1">
               Satuan Pendidikan Aktif
             </label>
@@ -194,103 +264,218 @@ export default function AkademikLayout() {
           </div>
         )}
 
-        {/* Menu Navigasi Submodul */}
-        <div className="p-3">
-          <span className="text-[10px] font-semibold uppercase text-slate-300 tracking-wider px-3 block mb-1">
-            Menu Akademik
-          </span>
-        </div>
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        {/* Menu Navigasi Submodul - Independent Scroll Area */}
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
+          {!isCollapsed && (
+            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider px-3 block mb-1">
+              Menu Akademik
+            </span>
+          )}
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
+                title={isCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} py-2.5 text-xs font-semibold rounded-xl transition-all ${
                     isActive
-                      ? 'bg-teal-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-teal-600 text-white shadow-md'
+                      : 'text-slate-400 hover:bg-slate-800/90 hover:text-white'
                   }`
                 }
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
               </NavLink>
             );
           })}
         </nav>
 
         {/* Launcher & User Profile Bottom */}
-        <div className="p-3 border-t border-slate-800 space-y-2">
+        <div className="p-3 border-t border-slate-800 space-y-2 shrink-0">
           <Link
             to="/"
-            className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            title={isCollapsed ? "Kembali ke Launcher" : undefined}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2 px-3'} py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors`}
           >
-            <Grid className="w-4 h-4 text-teal-400" />
-            <span>Kembali ke Launcher</span>
+            <Grid className="w-4 h-4 text-teal-400 shrink-0" />
+            {!isCollapsed && <span>Kembali ke Launcher</span>}
           </Link>
 
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between px-1">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+          <div className={`pt-2 border-t border-slate-800/80 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-1'}`}>
+            {!isCollapsed ? (
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  {user?.full_name?.charAt(0) || 'U'}
+                </div>
+                <div className="truncate">
+                  <p className="text-xs font-medium text-white truncate">
+                    {user?.full_name || user?.username}
+                  </p>
+                  <p className="text-[10px] text-slate-300 capitalize truncate">
+                    {currentRole}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-xs shrink-0" title={user?.full_name || user?.username}>
                 {user?.full_name?.charAt(0) || 'U'}
               </div>
-              <div className="truncate">
-                <p className="text-xs font-medium text-white truncate">
-                  {user?.full_name || user?.username}
-                </p>
-                <p className="text-[10px] text-slate-300 capitalize truncate">
-                  {currentRole}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              title="Logout"
-              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            )}
+            {!isCollapsed && (
+              <button
+                onClick={logout}
+                title="Logout"
+                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-xs z-10">
+        {/* Top Navbar - Sticky Top Header */}
+        <header className="sticky top-0 z-[100] h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-xs">
           <div className="flex items-center gap-3">
-            {/* School Unit Selector at Top */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl transition shadow-2xs">
-              <School className="w-4 h-4 text-teal-600 shrink-0" />
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Satuan Pendidikan:</span>
-              <select
-                value={activeSchoolUnit?.id || ''}
-                onChange={(e) => {
-                  if (!e.target.value) {
-                    changeActiveSchoolUnit(null);
-                  } else {
-                    const selected = availableUnits.find(u => u.id === Number(e.target.value));
-                    if (selected) changeActiveSchoolUnit(selected);
-                  }
-                }}
-                className="bg-transparent text-xs font-extrabold text-teal-950 focus:outline-none cursor-pointer pr-2"
+            {/* Toggle Sidebar Button at Top Navbar */}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              title={isCollapsed ? "Buka Navigasi (Tampilkan Teks)" : "Sembunyikan Navigasi (Tampilkan Ikon Saja)"}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 font-bold text-xs shadow-2xs border border-slate-200"
+            >
+              {isCollapsed ? <PanelLeft className="w-4 h-4 text-teal-600" /> : <PanelLeftClose className="w-4 h-4 text-slate-600" />}
+              <span className="hidden sm:inline">{isCollapsed ? 'Buka Sidebar' : 'Ciutkan Navigasi'}</span>
+            </button>
+
+            {/* Custom Interactive School Unit Selector at Top Navbar */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border transition-all duration-200 shadow-2xs group ${
+                  dropdownOpen
+                    ? 'bg-teal-50/90 border-teal-500 ring-2 ring-teal-500/20 shadow-md'
+                    : 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-teal-300'
+                }`}
               >
-                {(user?.account_type === 'admin' || user?.account_type === 'super_admin' || user?.school_roles?.some(r => r.role_name === 'admin_yayasan' || r.role_name === 'super_admin')) && (
-                  <option value="">Semua Satuan Pendidikan (Yayasan)</option>
-                )}
-                {availableUnits && availableUnits.length > 0 ? (
-                  availableUnits.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">Memuat data satuan pendidikan...</option>
-                )}
-              </select>
+                <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                  <School className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[9.5px] font-black uppercase text-slate-400 block tracking-wider leading-none">
+                    Satuan Pendidikan
+                  </span>
+                  <span className="text-xs font-black text-slate-800 group-hover:text-teal-950 truncate block mt-0.5 max-w-[180px] sm:max-w-[260px]">
+                    {activeSchoolUnit?.name || 'Semua Unit (Yayasan)'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 pl-1 shrink-0 border-l border-slate-200 ml-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180 text-teal-600' : ''}`} />
+                </div>
+              </button>
+
+              {/* Custom Popover Dropdown Menu */}
+              {dropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[999]"
+                    onClick={() => setDropdownOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[1000] p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                        Pilih Satuan Pendidikan
+                      </span>
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                        {availableUnits?.length || 0} Satuan
+                      </span>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto space-y-1 p-1 scrollbar-thin">
+                      {(user?.account_type === 'admin' || user?.account_type === 'super_admin' || user?.school_roles?.some(r => r.role_name === 'admin_yayasan' || r.role_name === 'super_admin')) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            changeActiveSchoolUnit(null);
+                            setDropdownOpen(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group ${
+                            !activeSchoolUnit
+                              ? 'bg-teal-600 text-white shadow-md'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              !activeSchoolUnit ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-black leading-tight">Semua Satuan Pendidikan</p>
+                              <p className={`text-[10px] ${!activeSchoolUnit ? 'text-teal-100' : 'text-slate-400'}`}>Tingkat Lembaga / Yayasan</p>
+                            </div>
+                          </div>
+                          {!activeSchoolUnit && (
+                            <span className="text-white font-black text-xs">✓</span>
+                          )}
+                        </button>
+                      )}
+
+                      {availableUnits && availableUnits.length > 0 ? (
+                        availableUnits.map((unit) => {
+                          const isSelected = activeSchoolUnit?.id === unit.id;
+                          return (
+                            <button
+                              key={unit.id}
+                              type="button"
+                              onClick={() => {
+                                changeActiveSchoolUnit(unit);
+                                setDropdownOpen(false);
+                              }}
+                              className={`w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group ${
+                                isSelected
+                                  ? 'bg-teal-600 text-white shadow-md'
+                                  : 'hover:bg-slate-50 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                                  isSelected
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-teal-50 text-teal-700 border border-teal-100'
+                                }`}>
+                                  {unit.code || unit.name?.substring(0, 3)?.toUpperCase() || 'SCH'}
+                                </div>
+                                <div className="truncate">
+                                  <p className="text-xs font-black leading-tight truncate">{unit.name}</p>
+                                  <p className={`text-[10px] truncate ${isSelected ? 'text-teal-100' : 'text-slate-400'}`}>
+                                    {unit.type || unit.level || 'Satuan Pendidikan Formal'}
+                                  </p>
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <span className="text-white font-black text-xs">✓</span>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="py-4 text-center text-slate-400 text-xs font-semibold">
+                          Memuat data satuan pendidikan...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

@@ -19,6 +19,13 @@ class TimetableController {
     } catch (err) { next(err); }
   }
 
+  async copyTimeSlots(req, res, next) {
+    try {
+      const data = await timetableService.copyTimeSlots(req.body);
+      res.json({ success: true, data, message: data.message });
+    } catch (err) { next(err); }
+  }
+
   async deleteTimeSlot(req, res, next) {
     try {
       const data = await timetableService.deleteTimeSlot(req.params.id);

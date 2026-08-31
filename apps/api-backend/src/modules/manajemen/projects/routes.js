@@ -6,7 +6,49 @@ const router = express.Router();
 const projectsController = require('./controller');
 const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
 
-// Tasks (#198)
+// Tasks & Task Hub
+router.get(
+  '/tasks/bucket',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getTasksBucket
+);
+
+router.get(
+  '/tasks/gantt',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getTasksGantt
+);
+
+router.patch(
+  '/tasks/gantt/:item_type/:raw_id/schedule',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.updateTaskGanttSchedule
+);
+
+router.get(
+  '/dashboard/tasks-progress',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getTasksProgressDashboard
+);
+
+router.get(
+  '/program-discussions',
+  verifyJwt,
+  requirePermission('manajemen.projects.discussions.view'),
+  projectsController.listProgramDiscussions
+);
+
+router.post(
+  '/program-discussions',
+  verifyJwt,
+  requirePermission('manajemen.projects.discussions.manage'),
+  projectsController.createProgramDiscussion
+);
+
 router.get(
   '/tasks',
   verifyJwt,
@@ -40,6 +82,34 @@ router.patch(
   verifyJwt,
   requirePermission('manajemen.projects.tasks.manage_own'),
   projectsController.updateTaskStatus
+);
+
+router.delete(
+  '/tasks/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.deleteTask
+);
+
+router.post(
+  '/tasks/:id/checklists',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.createTaskChecklist
+);
+
+router.patch(
+  '/tasks/checklists/:id/toggle',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.toggleTaskChecklist
+);
+
+router.delete(
+  '/tasks/checklists/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.deleteTaskChecklist
 );
 
 router.post(
@@ -114,11 +184,25 @@ router.post(
   projectsController.createWorkflow
 );
 
+router.delete(
+  '/approval-workflows/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.approvals.manage_workflow'),
+  projectsController.deleteWorkflow
+);
+
 router.get(
   '/approval-requests',
   verifyJwt,
   requirePermission('manajemen.projects.approvals.request'),
   projectsController.listApprovalRequests
+);
+
+router.get(
+  '/approval-requests/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.approvals.request'),
+  projectsController.getApprovalRequestById
 );
 
 router.post(
@@ -135,11 +219,105 @@ router.patch(
   projectsController.actOnApprovalRequest
 );
 
+router.post(
+  '/approval-requests/:id/resubmit',
+  verifyJwt,
+  requirePermission('manajemen.projects.approvals.request'),
+  projectsController.resubmitApprovalRequest
+);
+
 router.get(
   '/approval-requests/:id/actions',
   verifyJwt,
   requirePermission('manajemen.projects.approvals.request'),
   projectsController.getApprovalRequestActions
+);
+
+// ==========================================
+// Timeline, Kalender, Agenda & Reminder (#Fitur 11)
+// ==========================================
+router.get(
+  '/timeline/hierarchy',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getHierarchicalTimeline
+);
+
+router.get(
+  '/calendar/events',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getCalendarEvents
+);
+
+router.get(
+  '/agendas/buckets',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getAgendaBuckets
+);
+
+router.get(
+  '/agendas',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.listAgendas
+);
+
+router.get(
+  '/agendas/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.getAgendaById
+);
+
+router.post(
+  '/agendas',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.createAgenda
+);
+
+router.put(
+  '/agendas/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.updateAgenda
+);
+
+router.delete(
+  '/agendas/:id',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.deleteAgenda
+);
+
+router.post(
+  '/reminders/generate',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.generateDueReminders
+);
+
+router.get(
+  '/notifications',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.listNotifications
+);
+
+router.patch(
+  '/notifications/:id/read',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.markNotificationAsRead
+);
+
+router.patch(
+  '/notifications/read-all',
+  verifyJwt,
+  requirePermission('manajemen.projects.tasks.manage_own'),
+  projectsController.markAllNotificationsAsRead
 );
 
 module.exports = router;

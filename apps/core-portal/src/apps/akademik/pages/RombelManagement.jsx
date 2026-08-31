@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import { useAuth } from '../../../shared/store/AuthContext';
@@ -46,6 +47,7 @@ export default function RombelManagement() {
   const [cohorts, setCohorts] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [extracurriculars, setExtracurriculars] = useState([]);
+  const [subjectsList, setSubjectsList] = useState([]);
   const [schoolUnitsList, setSchoolUnitsList] = useState([]);
   const [selectedYearId, setSelectedYearId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
@@ -150,13 +152,14 @@ export default function RombelManagement() {
       const params = {};
       if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
 
-      const [yRes, gRes, cRes, tRes, exRes, suRes] = await Promise.all([
+      const [yRes, gRes, cRes, tRes, exRes, suRes, subRes] = await Promise.all([
         api.get('/akademik/academic-years', { params }),
         api.get('/akademik/grade-levels', { params }),
         api.get('/akademik/cohorts', { params }),
         api.get('/kepegawaian/employees', { params: { per_page: 200 } }).catch(() => ({ data: { data: [] } })),
         api.get('/akademik/extracurriculars', { params }).catch(() => ({ data: { data: [] } })),
-        api.get('/core/school-units').catch(() => ({ data: { data: [] } }))
+        api.get('/core/school-units').catch(() => ({ data: { data: [] } })),
+        api.get('/akademik/subjects', { params }).catch(() => ({ data: { data: [] } }))
       ]);
 
       const years = yRes.data?.data || [];
@@ -166,6 +169,7 @@ export default function RombelManagement() {
       const teachersList = tRes.data?.data?.items || (Array.isArray(tRes.data?.data) ? tRes.data.data : []);
       setTeachers(teachersList);
       setExtracurriculars(exRes.data?.data || []);
+      setSubjectsList(subRes.data?.data || []);
       const unitsList = suRes.data?.data?.items || (Array.isArray(suRes.data?.data) ? suRes.data.data : []);
       setSchoolUnitsList(Array.isArray(unitsList) ? unitsList : []);
 
@@ -239,10 +243,11 @@ export default function RombelManagement() {
       academic_year_id: selectedYearId || activeYear?.id || '',
       grade_level_id: gradeLevels[0]?.id || '',
       extracurricular_id: extracurriculars[0]?.id || '',
+      subject_id: subjectsList.find(s => s.is_elective)?.id || subjectsList[0]?.id || '',
       name: '',
       capacity: rombelTab === 'reguler' ? 32 : 50,
       homeroom_teacher_employee_id: '',
-      is_cross_unit: false,
+      is_cross_unit: rombelTab !== 'reguler',
       target_school_unit_ids: []
     });
     setShowClassModal(true);
@@ -264,6 +269,7 @@ export default function RombelManagement() {
       academic_year_id: cg.academic_year_id,
       grade_level_id: cg.grade_level_id || '',
       extracurricular_id: cg.extracurricular_id || '',
+      subject_id: cg.subject_id || '',
       name: cg.name,
       capacity: cg.capacity || 32,
       homeroom_teacher_employee_id: cg.homeroom_teacher_employee_id || '',
@@ -282,17 +288,20 @@ export default function RombelManagement() {
         type: classForm.type || 'reguler',
         name: classForm.name.trim(),
         capacity: Number(classForm.capacity),
-        homeroom_teacher_employee_id: classForm.homeroom_teacher_employee_id
-          ? Number(classForm.homeroom_teacher_employee_id)
-          : null,
-        is_cross_unit: classForm.type === 'ekstrakurikuler' ? !!classForm.is_cross_unit : false,
-        target_school_unit_ids: classForm.type === 'ekstrakurikuler' && classForm.is_cross_unit
+        homeroom_teacher_employee_id: classForm.type === 'pilihan'
+          ? null
+          : (classForm.homeroom_teacher_employee_id ? Number(classForm.homeroom_teacher_employee_id) : null),
+        is_cross_unit: classForm.type !== 'reguler' ? !!classForm.is_cross_unit : false,
+        target_school_unit_ids: classForm.type !== 'reguler' && classForm.is_cross_unit
           ? classForm.target_school_unit_ids
           : []
       };
 
       if (classForm.type === 'reguler') {
         payload.grade_level_id = Number(classForm.grade_level_id);
+      } else if (classForm.type === 'pilihan') {
+        payload.grade_level_id = classForm.grade_level_id ? Number(classForm.grade_level_id) : null;
+        payload.subject_id = classForm.subject_id ? Number(classForm.subject_id) : null;
       } else {
         payload.grade_level_id = classForm.grade_level_id ? Number(classForm.grade_level_id) : null;
         payload.extracurricular_id = classForm.extracurricular_id ? Number(classForm.extracurricular_id) : null;
@@ -545,7 +554,7 @@ export default function RombelManagement() {
   });
 
   const filteredClasses = classGroups.filter((cg) => {
-    const matchesTab = rombelTab === 'ekstrakurikuler' ? cg.type === 'ekstrakurikuler' : (cg.type === 'reguler' || !cg.type);
+    const matchesTab = rombelTab === 'pilihan' ? cg.type === 'pilihan' : rombelTab === 'ekstrakurikuler' ? cg.type === 'ekstrakurikuler' : (cg.type === 'reguler' || !cg.type);
     const matchesSearch = !searchRombel || cg.name?.toLowerCase().includes(searchRombel.toLowerCase()) || (cg.extracurricular_name && cg.extracurricular_name.toLowerCase().includes(searchRombel.toLowerCase()));
     return matchesTab && matchesSearch;
   });
@@ -618,12 +627,20 @@ export default function RombelManagement() {
             </div>
           )}
 
+          <Link
+            to="/akademik/kenaikan-kelulusan"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-2xs transition"
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Kenaikan & Kelulusan</span>
+          </Link>
+
           <button
             onClick={handleOpenAddClassModal}
             className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs transition"
           >
             <Plus className="w-4 h-4" />
-            <span>{rombelTab === 'reguler' ? '+ Tambah Rombel Reguler' : '+ Tambah Rombel Ekskul'}</span>
+            <span>{rombelTab === 'reguler' ? '+ Tambah Rombel Reguler' : rombelTab === 'pilihan' ? '+ Tambah Rombel Mapel Pilihan' : '+ Tambah Rombel Ekskul'}</span>
           </button>
         </div>
       </div>
@@ -642,6 +659,17 @@ export default function RombelManagement() {
           <span>1. Rombel Reguler (Kelas Pokok)</span>
         </button>
         <button
+          onClick={() => { setRombelTab('pilihan'); setSelectedClass(null); }}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition ${
+            rombelTab === 'pilihan'
+              ? 'bg-amber-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>2. Rombel Mapel Pilihan (Lintas Kelas)</span>
+        </button>
+        <button
           onClick={() => { setRombelTab('ekstrakurikuler'); setSelectedClass(null); }}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition ${
             rombelTab === 'ekstrakurikuler'
@@ -650,7 +678,7 @@ export default function RombelManagement() {
           }`}
         >
           <Activity className="w-4 h-4" />
-          <span>2. Rombel Ekstrakurikuler (Peserta & Nilai Ekskul)</span>
+          <span>3. Rombel Ekstrakurikuler (Peserta & Nilai Ekskul)</span>
         </button>
       </div>
 
@@ -774,6 +802,11 @@ export default function RombelManagement() {
                                 <Activity className="w-3 h-3 text-amber-600" />
                                 <span>{cg.extracurricular_name || 'Ekskul'}</span>
                               </span>
+                            ) : cg.type === 'pilihan' ? (
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 flex items-center gap-1">
+                                <Layers className="w-3 h-3 text-amber-600" />
+                                <span>Mapel Pilihan (Lintas Kelas)</span>
+                              </span>
                             ) : (
                               <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/60">
                                 {cg.grade_level_name || 'Tingkat'}
@@ -826,15 +859,17 @@ export default function RombelManagement() {
                         </div>
                       </div>
 
-                      {/* Wali Kelas / Pembina Ekskul */}
-                      <div className="mt-3 space-y-1 text-xs">
-                        <div className="text-slate-500 font-medium">
-                          {cg.type === 'ekstrakurikuler' ? 'Pembina / Pelatih:' : 'Wali Kelas:'}
+                      {/* Wali Kelas / Pembina Ekskul (Tidak tampil untuk Mapel Pilihan) */}
+                      {cg.type !== 'pilihan' && (
+                        <div className="mt-3 space-y-1 text-xs">
+                          <div className="text-slate-500 font-medium">
+                            {cg.type === 'ekstrakurikuler' ? 'Pembina / Pelatih:' : 'Wali Kelas:'}
+                          </div>
+                          <div className="font-bold text-slate-800">
+                            {cg.homeroom_teacher_name || <span className="text-slate-400 italic">Belum ditentukan</span>}
+                          </div>
                         </div>
-                        <div className="font-bold text-slate-800">
-                          {cg.homeroom_teacher_name || <span className="text-slate-400 italic">Belum ditentukan</span>}
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     <button
@@ -868,13 +903,21 @@ export default function RombelManagement() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-extrabold text-slate-800">{selectedClass.name}</h3>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
-                    selectedClass.type === 'ekstrakurikuler' ? 'bg-amber-50 text-amber-800' : 'bg-teal-50 text-teal-800'
+                    selectedClass.type === 'ekstrakurikuler'
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                      : selectedClass.type === 'pilihan'
+                      ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                      : 'bg-teal-50 text-teal-800 border border-teal-200'
                   }`}>
-                    {selectedClass.type === 'ekstrakurikuler' ? `Ekskul: ${selectedClass.extracurricular_name || 'Umum'}` : `Tingkat: ${selectedClass.grade_level_name}`}
+                    {selectedClass.type === 'ekstrakurikuler'
+                      ? `Ekskul: ${selectedClass.extracurricular_name || 'Umum'}`
+                      : selectedClass.type === 'pilihan'
+                      ? 'Mapel Pilihan (Lintas Kelas)'
+                      : `Tingkat: ${selectedClass.grade_level_name || '-'}`}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Tahun Ajaran: {selectedClass.academic_year_name} | {selectedClass.type === 'ekstrakurikuler' ? 'Pembina:' : 'Wali Kelas:'} {selectedClass.homeroom_teacher_name || '-'} | Kapasitas: {members.length}/{selectedClass.capacity || 32}
+                  Tahun Ajaran: {selectedClass.academic_year_name} {selectedClass.type !== 'pilihan' && (<>| {selectedClass.type === 'ekstrakurikuler' ? 'Pembina:' : 'Wali Kelas:'} {selectedClass.homeroom_teacher_name || '-'}</>)} | Kapasitas: {members.length}/{selectedClass.capacity || 32}
                 </p>
               </div>
             </div>
@@ -1061,6 +1104,17 @@ export default function RombelManagement() {
                     <input
                       type="radio"
                       name="modal_rombel_type"
+                      value="pilihan"
+                      checked={classForm.type === 'pilihan'}
+                      onChange={() => setClassForm({ ...classForm, type: 'pilihan', is_cross_unit: true })}
+                      className="text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="font-semibold text-amber-900">Rombel Mapel Pilihan</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="modal_rombel_type"
                       value="ekstrakurikuler"
                       checked={classForm.type === 'ekstrakurikuler'}
                       onChange={() => setClassForm({ ...classForm, type: 'ekstrakurikuler' })}
@@ -1070,6 +1124,41 @@ export default function RombelManagement() {
                   </label>
                 </div>
               </div>
+
+              {classForm.type === 'pilihan' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-700">Pilih Mata Pelajaran Pilihan *</label>
+                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full">
+                      Khusus Mapel Pilihan
+                    </span>
+                  </div>
+                  <SearchableSelect
+                    options={subjectsList
+                      .filter(s => s.is_elective == 1 || s.is_elective === true || s.is_elective === '1')
+                      .map(s => ({
+                        value: s.id,
+                        label: s.name,
+                        sublabel: `✨ Blok: ${s.elective_group_name || 'Mapel Pilihan'} • Kode: ${s.code || '-'}`
+                      }))}
+                    value={classForm.subject_id}
+                    onChange={(val) => {
+                      const selSub = subjectsList.find(s => String(s.id) === String(val));
+                      setClassForm({
+                        ...classForm,
+                        subject_id: val,
+                        name: classForm.name || (selSub ? `Rombel Pilihan ${selSub.name}` : '')
+                      });
+                    }}
+                    placeholder="-- Pilih Mata Pelajaran Pilihan --"
+                    searchPlaceholder="Cari nama mapel pilihan / blok..."
+                    emptyText="Tidak ada mata pelajaran pilihan yang terdaftar di kurikulum"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Hanya menampilkan mata pelajaran yang telah ditandai sebagai <b>Mata Pelajaran Pilihan</b> di menu Kurikulum & Mapel.
+                  </p>
+                </div>
+              )}
 
               {classForm.type === 'ekstrakurikuler' && (
                 <div>
@@ -1141,26 +1230,33 @@ export default function RombelManagement() {
                 </select>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  {classForm.type === 'ekstrakurikuler' ? 'Pembina / Pelatih Ekskul' : 'Wali Kelas'}
-                </label>
-                <SearchableSelect
-                  options={[
-                    { value: '', label: '-- Belum Ditentukan / Kosongkan --' },
-                    ...(Array.isArray(teachers) ? teachers : []).map((t) => ({
-                      value: String(t.id),
-                      label: t.full_name,
-                      sublabel: `NIP/Kode: ${t.nip || t.employee_code || t.employee_number || t.nuptk || '-'} • ${t.position_name || 'Guru / Pegawai'}`
-                    }))
-                  ]}
-                  value={String(classForm.homeroom_teacher_employee_id || '')}
-                  onChange={(val) => setClassForm({ ...classForm, homeroom_teacher_employee_id: val })}
-                  placeholder={classForm.type === 'ekstrakurikuler' ? '-- Cari & Pilih Pembina / Pelatih --' : '-- Cari & Pilih Wali Kelas --'}
-                  searchPlaceholder="Ketik nama guru, pembina, atau NIP..."
-                  emptyText="Guru/Pembina tidak ditemukan"
-                />
-              </div>
+              {classForm.type !== 'pilihan' ? (
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    {classForm.type === 'ekstrakurikuler' ? 'Pembina / Pelatih Ekskul' : 'Wali Kelas'}
+                  </label>
+                  <SearchableSelect
+                    options={[
+                      { value: '', label: '-- Belum Ditentukan / Kosongkan --' },
+                      ...(Array.isArray(teachers) ? teachers : []).map((t) => ({
+                        value: String(t.id),
+                        label: t.full_name,
+                        sublabel: `NIP/Kode: ${t.nip || t.employee_code || t.employee_number || t.nuptk || '-'} • ${t.position_name || 'Guru / Pegawai'}`
+                      }))
+                    ]}
+                    value={String(classForm.homeroom_teacher_employee_id || '')}
+                    onChange={(val) => setClassForm({ ...classForm, homeroom_teacher_employee_id: val })}
+                    placeholder={classForm.type === 'ekstrakurikuler' ? '-- Cari & Pilih Pembina / Pelatih --' : '-- Cari & Pilih Wali Kelas --'}
+                    searchPlaceholder="Ketik nama guru, pembina, atau NIP..."
+                    emptyText="Guru/Pembina tidak ditemukan"
+                  />
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>💡 Rombel Mata Pelajaran Pilihan tidak memerlukan Wali Kelas. Penetapan guru pengampu dilakukan pada Pembagian Tugas Mengajar.</span>
+                </div>
+              )}
 
               {/* FITUR GABUNG DENGAN SATUAN PENDIDIKAN LAIN (KHUSUS EKSKUL) */}
               {classForm.type === 'ekstrakurikuler' && (

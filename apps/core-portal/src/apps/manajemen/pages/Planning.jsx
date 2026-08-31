@@ -32,13 +32,13 @@ export default function Planning() {
     setLoading(true);
     try {
       if (activeTab === 'rips') {
-        const res = await api.get('/api/v1/manajemen/institution-development-plans');
+        const res = await api.get('/manajemen/institution-development-plans');
         setRipsList(res.data.data || []);
       } else if (activeTab === 'rks') {
-        const res = await api.get('/api/v1/manajemen/school-work-plans');
+        const res = await api.get('/manajemen/school-work-plans');
         setRksList(res.data.data || []);
       } else if (activeTab === 'programs') {
-        const res = await api.get('/api/v1/manajemen/work-plan-programs');
+        const res = await api.get('/manajemen/work-plan-programs');
         setProgramsList(res.data.data || []);
       }
     } catch (err) {
@@ -93,11 +93,11 @@ export default function Planning() {
 
     try {
       if (modalType === 'create_rips') {
-        await api.post('/api/v1/manajemen/institution-development-plans', formData);
+        await api.post('/manajemen/institution-development-plans', formData);
       } else if (modalType === 'create_rks') {
-        await api.post('/api/v1/manajemen/school-work-plans', formData);
+        await api.post('/manajemen/school-work-plans', formData);
       } else if (modalType === 'create_program') {
-        await api.post('/api/v1/manajemen/work-plan-programs', formData);
+        await api.post('/manajemen/work-plan-programs', formData);
       }
       setModalOpen(false);
       fetchData();
@@ -110,21 +110,21 @@ export default function Planning() {
 
   const handleApproveRips = async (id) => {
     if (window.confirm('Setujui dan aktifkan RIPS ini?')) {
-      await api.patch(`/api/v1/manajemen/institution-development-plans/${id}/approve`);
+      await api.patch(`/manajemen/institution-development-plans/${id}/approve`);
       fetchData();
     }
   };
 
   const handleApproveRks = async (id) => {
     if (window.confirm('Setujui RKS tahunan ini?')) {
-      await api.patch(`/api/v1/manajemen/school-work-plans/${id}/approve`);
+      await api.patch(`/manajemen/school-work-plans/${id}/approve`);
       fetchData();
     }
   };
 
   const handleDeleteProgram = async (id) => {
     if (window.confirm('Hapus program kerja ini?')) {
-      await api.delete(`/api/v1/manajemen/work-plan-programs/${id}`);
+      await api.delete(`/manajemen/work-plan-programs/${id}`);
       fetchData();
     }
   };

@@ -16,10 +16,20 @@ class QualityController {
     }
   }
 
+  async getIndicatorById(req, res, next) {
+    try {
+      const data = await qualityService.getIndicatorById(req.params.id);
+      res.json({ success: true, data, message: 'Detail indikator mutu berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async createIndicator(req, res, next) {
     try {
-      const schoolUnitId = getSchoolUnitId(req);
-      const data = await qualityService.createIndicator({ ...req.body, school_unit_id: schoolUnitId });
+      const schoolUnitId = req.body.school_unit_id !== undefined ? req.body.school_unit_id : getSchoolUnitId(req);
+      const userId = getUserId(req);
+      const data = await qualityService.createIndicator({ ...req.body, school_unit_id: schoolUnitId }, userId);
       res.status(201).json({ success: true, data, message: 'Indikator mutu berhasil dibuat', errors: null });
     } catch (err) {
       next(err);
@@ -28,8 +38,18 @@ class QualityController {
 
   async updateIndicator(req, res, next) {
     try {
-      const data = await qualityService.updateIndicator(req.params.id, req.body);
+      const userId = getUserId(req);
+      const data = await qualityService.updateIndicator(req.params.id, req.body, userId);
       res.json({ success: true, data, message: 'Indikator mutu berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteIndicator(req, res, next) {
+    try {
+      const data = await qualityService.deleteIndicator(req.params.id);
+      res.json({ success: true, data, message: 'Indikator mutu berhasil dihapus', errors: null });
     } catch (err) {
       next(err);
     }
@@ -60,11 +80,71 @@ class QualityController {
     }
   }
 
+  async verifyAchievement(req, res, next) {
+    try {
+      const userId = getUserId(req);
+      const data = await qualityService.verifyAchievement(req.params.id, req.body.verification_status, userId);
+      res.json({ success: true, data, message: 'Status verifikasi capaian berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getKpiDashboard(req, res, next) {
     try {
       const schoolUnitId = getSchoolUnitId(req);
       const data = await qualityService.getKpiDashboard(schoolUnitId, req.query.period);
       res.json({ success: true, data, message: 'Dashboard KPI mutu berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Sasaran Mutu (#8)
+  async listQualityGoals(req, res, next) {
+    try {
+      const schoolUnitId = getSchoolUnitId(req);
+      const data = await qualityService.listQualityGoals(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Daftar sasaran mutu berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getQualityGoalById(req, res, next) {
+    try {
+      const data = await qualityService.getQualityGoalById(req.params.id);
+      res.json({ success: true, data, message: 'Detail sasaran mutu berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createQualityGoal(req, res, next) {
+    try {
+      const schoolUnitId = req.body.school_unit_id !== undefined ? req.body.school_unit_id : getSchoolUnitId(req);
+      const userId = getUserId(req);
+      const data = await qualityService.createQualityGoal({ ...req.body, school_unit_id: schoolUnitId }, userId);
+      res.status(201).json({ success: true, data, message: 'Sasaran mutu berhasil dibuat', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateQualityGoal(req, res, next) {
+    try {
+      const userId = getUserId(req);
+      const data = await qualityService.updateQualityGoal(req.params.id, req.body, userId);
+      res.json({ success: true, data, message: 'Sasaran mutu berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteQualityGoal(req, res, next) {
+    try {
+      const data = await qualityService.deleteQualityGoal(req.params.id);
+      res.json({ success: true, data, message: 'Sasaran mutu berhasil dihapus', errors: null });
     } catch (err) {
       next(err);
     }
@@ -181,7 +261,7 @@ class QualityController {
     }
   }
 
-  // Risiko
+  // Risiko (#202 & Fitur 9)
   async listRisks(req, res, next) {
     try {
       const schoolUnitId = getSchoolUnitId(req);
@@ -192,10 +272,30 @@ class QualityController {
     }
   }
 
-  async createRisk(req, res, next) {
+  async getRiskHeatmap(req, res, next) {
     try {
       const schoolUnitId = getSchoolUnitId(req);
-      const data = await qualityService.createRisk({ ...req.body, school_unit_id: schoolUnitId });
+      const data = await qualityService.getRiskHeatmapData(schoolUnitId);
+      res.json({ success: true, data, message: 'Peta risiko heatmap 5x5 berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getRiskById(req, res, next) {
+    try {
+      const data = await qualityService.getRiskById(req.params.id);
+      res.json({ success: true, data, message: 'Detail risiko berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createRisk(req, res, next) {
+    try {
+      const schoolUnitId = req.body.school_unit_id !== undefined ? req.body.school_unit_id : getSchoolUnitId(req);
+      const userId = getUserId(req);
+      const data = await qualityService.createRisk({ ...req.body, school_unit_id: schoolUnitId }, userId);
       res.status(201).json({ success: true, data, message: 'Risiko sekolah berhasil dicatat', errors: null });
     } catch (err) {
       next(err);
@@ -204,8 +304,19 @@ class QualityController {
 
   async updateRisk(req, res, next) {
     try {
-      const data = await qualityService.updateRisk(req.params.id, req.body);
+      const userId = getUserId(req);
+      const data = await qualityService.updateRisk(req.params.id, req.body, userId);
       res.json({ success: true, data, message: 'Detail risiko berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateRiskMitigation(req, res, next) {
+    try {
+      const userId = getUserId(req);
+      const data = await qualityService.updateRiskMitigation(req.params.id, req.body, userId);
+      res.json({ success: true, data, message: 'Rencana mitigasi dan residual risk berhasil diperbarui', errors: null });
     } catch (err) {
       next(err);
     }
@@ -214,7 +325,16 @@ class QualityController {
   async updateRiskStatus(req, res, next) {
     try {
       const data = await qualityService.updateRiskStatus(req.params.id, req.body.status);
-      res.json({ success: true, data, message: 'Status risiko berhasil diubah', errors: null });
+      res.json({ success: true, data, message: 'Status risiko berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteRisk(req, res, next) {
+    try {
+      const data = await qualityService.deleteRisk(req.params.id);
+      res.json({ success: true, data, message: 'Risiko berhasil dihapus', errors: null });
     } catch (err) {
       next(err);
     }

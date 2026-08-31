@@ -20,6 +20,7 @@ export default function Rapor() {
   const [semesters, setSemesters] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
+  const [selectedDataSource, setSelectedDataSource] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -42,7 +43,7 @@ export default function Rapor() {
     if (selectedSemesterId) {
       fetchReports();
     }
-  }, [selectedClassId, selectedSemesterId]);
+  }, [selectedClassId, selectedSemesterId, selectedDataSource]);
 
   const fetchFilters = async () => {
     try {
@@ -68,6 +69,7 @@ export default function Rapor() {
       const params = {};
       if (selectedClassId) params.class_group_id = selectedClassId;
       if (selectedSemesterId) params.semester_id = selectedSemesterId;
+      if (selectedDataSource) params.data_source = selectedDataSource;
 
       const res = await api.get('/akademik/report-cards', { params });
       setReports(res.data?.data || []);
@@ -174,29 +176,43 @@ export default function Rapor() {
 
       {/* Filter Panel */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
-        <div className="w-full sm:w-64">
+        <div className="w-full sm:w-56">
           <label className="block text-[10px] font-semibold text-slate-500 mb-1">Pilih Rombel:</label>
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
           >
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
 
-        <div className="w-full sm:w-64">
+        <div className="w-full sm:w-56">
           <label className="block text-[10px] font-semibold text-slate-500 mb-1">Pilih Semester:</label>
           <select
             value={selectedSemesterId}
             onChange={(e) => setSelectedSemesterId(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold"
           >
             {semesters.map(s => (
               <option key={s.id} value={s.id}>
                 Semester {s.name.toUpperCase()} {s.is_active ? '(Aktif)' : ''}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div className="w-full sm:w-56">
+          <label className="block text-[10px] font-semibold text-slate-500 mb-1">Sumber Data:</label>
+          <select
+            value={selectedDataSource}
+            onChange={(e) => setSelectedDataSource(e.target.value)}
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="">Semua Sumber Data</option>
+            <option value="generated">Digenerate Sistem (Otomatis)</option>
+            <option value="manual_input">Input Manual</option>
+            <option value="bulk_import">Impor Riwayat (Excel)</option>
           </select>
         </div>
       </div>
@@ -207,9 +223,10 @@ export default function Rapor() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
               <tr>
-                <th className="py-3 px-4">NIS</th>
+                <th className="py-3 px-4">NIS / NISN</th>
                 <th className="py-3 px-4">Nama Siswa</th>
                 <th className="py-3 px-4">Semester</th>
+                <th className="py-3 px-4">Sumber / Tipe</th>
                 <th className="py-3 px-4">Catatan Wali Kelas</th>
                 <th className="py-3 px-4">Status File</th>
                 <th className="py-3 px-4 text-right">Aksi</th>
@@ -218,49 +235,74 @@ export default function Rapor() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
                     <span>Memuat daftar rapor...</span>
                   </td>
                 </tr>
               ) : reports.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-400">
-                    Belum ada rapor yang digenerate untuk rombel & semester ini. Klik tombol "Generate Rapor" di atas.
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                    Belum ada rapor yang sesuai filter. Klik tombol "Generate Rapor" di atas atau buka menu Riwayat & Impor Data.
                   </td>
                 </tr>
               ) : (
-                reports.map((report) => (
-                  <tr key={report.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-slate-700">{report.nis}</td>
-                    <td className="py-3 px-4 font-bold text-slate-800">{report.student_name}</td>
-                    <td className="py-3 px-4 uppercase font-semibold text-slate-600">{report.semester_name}</td>
-                    <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
-                      {report.homeroom_note || <span className="text-slate-400 italic">Belum ada catatan</span>}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-semibold text-[10px] rounded-full">
-                        PDF Siap
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-1">
-                      <button
-                        onClick={() => handleViewDetail(report.id)}
-                        title="Lihat Detail Nilai Lengkap"
-                        className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenNoteModal(report)}
-                        title="Tulis Catatan Wali Kelas"
-                        className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                reports.map((report) => {
+                  const isLegacy = !!report.is_legacy;
+                  const sourceBadge =
+                    report.data_source === 'bulk_import'
+                      ? { text: 'Impor Riwayat', bg: 'bg-purple-50 text-purple-700 border-purple-200' }
+                      : report.data_source === 'manual_input'
+                      ? { text: 'Input Manual', bg: 'bg-amber-50 text-amber-700 border-amber-200' }
+                      : { text: 'Digenerate', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+
+                  return (
+                    <tr key={report.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-slate-700">
+                        <div>{report.nis || '-'}</div>
+                        <div className="text-[10px] text-slate-400">{report.nisn || ''}</div>
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-800">{report.student_name}</td>
+                      <td className="py-3 px-4 uppercase font-semibold text-slate-600">{report.semester_name}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${sourceBadge.bg}`}>
+                            {sourceBadge.text}
+                          </span>
+                          {isLegacy && (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-200 text-slate-600 border border-slate-300">
+                              Lampau
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                        {report.homeroom_note || <span className="text-slate-400 italic">Belum ada catatan</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-semibold text-[10px] rounded-full border border-emerald-200">
+                          PDF Siap
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-1">
+                        <button
+                          onClick={() => handleViewDetail(report.id)}
+                          title="Lihat Detail Nilai Lengkap"
+                          className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenNoteModal(report)}
+                          title="Tulis Catatan Wali Kelas"
+                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -292,14 +334,38 @@ export default function Rapor() {
                 <thead className="bg-slate-50 font-semibold text-slate-600">
                   <tr>
                     <th className="py-2.5 px-3">Mata Pelajaran</th>
-                    <th className="py-2.5 px-3 w-16">KKM</th>
-                    <th className="py-2.5 px-3 w-20">Nilai Akhir</th>
+                    <th className="py-2.5 px-3 w-16 text-center">KKM</th>
+                    <th className="py-2.5 px-3 w-20 text-center">Nilai Akhir</th>
+                    <th className="py-2.5 px-3 w-16 text-center">Predikat</th>
                     <th className="py-2.5 px-3">Capaian Kompetensi (Deskripsi Rapor)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {selectedReportDetail.scores?.length === 0 ? (
-                    <tr><td colSpan={4} className="p-3 text-center text-slate-400">Belum ada nilai yang diinput.</td></tr>
+                  {selectedReportDetail.subject_scores && selectedReportDetail.subject_scores.length > 0 ? (
+                    selectedReportDetail.subject_scores.map(s => (
+                      <tr key={s.id}>
+                        <td className="py-2.5 px-3 font-bold text-slate-800 align-top">
+                          {s.subject_name}
+                          <div className="text-[10px] text-slate-400 font-normal">{s.subject_code || ''}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500 text-center align-top">{s.kkm_snapshot || 75}</td>
+                        <td className="py-2.5 px-3 font-extrabold text-teal-700 text-sm text-center align-top">{s.score || '-'}</td>
+                        <td className="py-2.5 px-3 font-bold text-slate-700 text-center align-top">{s.predikat || '-'}</td>
+                        <td className="py-2.5 px-3 text-slate-700 text-xs leading-relaxed align-top">
+                          {s.notes ? (
+                            <div className="p-2 bg-emerald-50/70 border border-emerald-200 rounded-lg text-emerald-950 font-medium">
+                              {s.notes}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">
+                              Tercatat pada lembar rapor resmi
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : selectedReportDetail.scores?.length === 0 ? (
+                    <tr><td colSpan={5} className="p-3 text-center text-slate-400">Belum ada nilai yang diinput.</td></tr>
                   ) : (
                     selectedReportDetail.scores
                       .filter(s => s.score_type === 'nilai_akhir' || !selectedReportDetail.scores.some(x => x.subject_id === s.subject_id && x.score_type === 'nilai_akhir'))
@@ -309,8 +375,9 @@ export default function Rapor() {
                             {s.subject_name}
                             <div className="text-[10px] text-slate-400 font-normal">{s.code || s.score_type?.toUpperCase()}</div>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-500 align-top">{s.kkm || 75}</td>
-                          <td className="py-2.5 px-3 font-extrabold text-teal-700 text-sm align-top">{s.score || '-'}</td>
+                          <td className="py-2.5 px-3 text-slate-500 text-center align-top">{s.kkm || 75}</td>
+                          <td className="py-2.5 px-3 font-extrabold text-teal-700 text-sm text-center align-top">{s.score || '-'}</td>
+                          <td className="py-2.5 px-3 font-bold text-slate-700 text-center align-top">-</td>
                           <td className="py-2.5 px-3 text-slate-700 text-xs leading-relaxed align-top">
                             {s.competency_description ? (
                               <div className="p-2 bg-emerald-50/70 border border-emerald-200 rounded-lg text-emerald-950 font-medium">

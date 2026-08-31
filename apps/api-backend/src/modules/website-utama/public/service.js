@@ -284,11 +284,13 @@ class PublicWebsiteService {
       school_unit_id: payload.school_unit_id,
       school_year: payload.school_year,
       registration_path: payload.registration_path,
+      nisn: payload.nisn ? payload.nisn.trim() : null,
       candidate_full_name: payload.candidate_full_name.trim(),
       candidate_birth_place: payload.candidate_birth_place || null,
       candidate_birth_date: payload.candidate_birth_date || null,
       candidate_gender: payload.candidate_gender || null,
       candidate_address: payload.candidate_address || null,
+      previous_school_name: payload.previous_school_name || null,
       father_name: payload.father_name || null,
       mother_name: payload.mother_name || null,
       parent_contact: payload.parent_contact || null,
@@ -327,8 +329,30 @@ class PublicWebsiteService {
       throw error;
     }
 
+    const updateFields = {};
+    const allowed = [
+      'school_year',
+      'registration_path',
+      'nisn',
+      'candidate_full_name',
+      'candidate_birth_place',
+      'candidate_birth_date',
+      'candidate_gender',
+      'candidate_address',
+      'previous_school_name',
+      'father_name',
+      'mother_name',
+      'parent_contact'
+    ];
+
+    for (const k of allowed) {
+      if (payload[k] !== undefined) {
+        updateFields[k] = payload[k];
+      }
+    }
+
     await db('ppdb_registrants').where({ id }).update({
-      ...payload,
+      ...updateFields,
       updated_at: db.fn.now()
     });
 
@@ -363,7 +387,7 @@ class PublicWebsiteService {
       throw error;
     }
 
-    // Panggil mock service intake Akademik untuk verifikasi
+    // Panggil service intake Akademik untuk sinkronisasi pendaftar & auto-provisioning akun
     const intakeResult = await sendToAkademikForVerification(reg);
 
     await db('ppdb_registrants').where({ id }).update({
@@ -372,11 +396,19 @@ class PublicWebsiteService {
       updated_at: db.fn.now()
     });
 
-    // Catat log
+    // Catat log status 'submitted'
     await db('ppdb_status_logs').insert({
       registrant_id: id,
       status: 'submitted',
       note: 'Formulir pendaftaran berhasil diajukan dan diteruskan untuk verifikasi berkas',
+      occurred_at: db.fn.now()
+    });
+
+    // Catat log status 'verifying' (Tersinkron ke sistem Akademik)
+    await db('ppdb_status_logs').insert({
+      registrant_id: id,
+      status: 'verifying',
+      note: 'Tersinkron ke sistem Akademik',
       occurred_at: db.fn.now()
     });
 
@@ -386,7 +418,11 @@ class PublicWebsiteService {
       id,
       status: 'submitted',
       tracking_code: trackingCode,
-      academic_ref_id: intakeResult.academic_ref_id
+      academic_ref_id: intakeResult.academic_ref_id,
+      registration_number: intakeResult.registration_number,
+      username: intakeResult.username,
+      password: intakeResult.password,
+      message: 'Pendaftaran berhasil diajukan dan tersinkronisasi ke modul Akademik.'
     };
   }
 

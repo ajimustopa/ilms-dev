@@ -18,4 +18,14 @@ router.get('/leave-requests', authenticate, attendanceController.listLeaveReques
 router.post('/leave-requests', authenticate, attendanceController.createLeaveRequest);
 router.put('/leave-requests/:id/approve', authenticate, requirePermission('akademik.attendances.create'), attendanceController.approveLeaveRequest);
 
+// 3. Presensi Per Jam Pelajaran (Lesson Attendances)
+router.get('/lesson-attendances', authenticate, requirePermission('akademik.attendances.read'), attendanceController.listLessonAttendances);
+router.post('/lesson-attendances/bulk', authenticate, requirePermission('akademik.attendances.create'), attendanceController.recordLessonAttendanceBulk);
+router.get('/lesson-attendances/summary', authenticate, requirePermission('akademik.attendances.read'), attendanceController.getLessonSummary);
+
+// 4. Presensi Kegiatan (Activity Attendances - Ekskul / Acara Sekolah)
+router.get('/activity-attendances', authenticate, requirePermission('akademik.attendances.read'), attendanceController.listActivityAttendances);
+router.post('/activity-attendances/bulk', authenticate, requirePermission('akademik.attendances.create'), attendanceController.recordActivityAttendanceBulk);
+router.get('/activity-attendances/summary', authenticate, requirePermission('akademik.attendances.read'), attendanceController.getActivitySummary);
+
 module.exports = router;

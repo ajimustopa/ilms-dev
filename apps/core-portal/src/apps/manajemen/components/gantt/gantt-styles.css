@@ -1,0 +1,527 @@
+/**
+ * SVAR Gantt Custom Styling for Aldepos Portal
+ * 
+ * Menggunakan CSS Variables & theme structure resmi dari @svar-ui/react-gantt
+ * Disesuaikan penuh dengan Design Tokens Dual-Theme (Light & Dark)
+ */
+
+/* =========================================================================
+   1. Category-based Task Bar Colors (Kategori Kegiatan - Softened Fills)
+   ========================================================================= */
+
+/* 1. Kurikulum & Akademik (Indigo) */
+.wx-bar.wx-cat_kurikulum,
+.wx-bar.wx-task.wx-cat_kurikulum,
+.wx-bar[class*="cat_kurikulum"] {
+  --wx-gantt-task-color: #6366f1 !important;
+  --wx-gantt-task-fill-color: #4f46e5 !important;
+  --wx-gantt-task-border-color: rgba(99, 102, 241, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 2. Kesiswaan & Santri (Sky / Cyan) */
+.wx-bar.wx-cat_kesiswaan,
+.wx-bar.wx-task.wx-cat_kesiswaan,
+.wx-bar[class*="cat_kesiswaan"] {
+  --wx-gantt-task-color: #0284c7 !important;
+  --wx-gantt-task-fill-color: #0369a1 !important;
+  --wx-gantt-task-border-color: rgba(56, 189, 248, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 3. Sarana & Prasarana (Amber / Gold) */
+.wx-bar.wx-cat_sarpras,
+.wx-bar.wx-task.wx-cat_sarpras,
+.wx-bar[class*="cat_sarpras"] {
+  --wx-gantt-task-color: #d97706 !important;
+  --wx-gantt-task-fill-color: #b45309 !important;
+  --wx-gantt-task-border-color: rgba(245, 158, 11, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 4. SDM & Kepegawaian (Emerald / Green) */
+.wx-bar.wx-cat_sdm,
+.wx-bar.wx-task.wx-cat_sdm,
+.wx-bar[class*="cat_sdm"] {
+  --wx-gantt-task-color: #059669 !important;
+  --wx-gantt-task-fill-color: #047857 !important;
+  --wx-gantt-task-border-color: rgba(16, 185, 129, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 5. Keuangan & Anggaran (Teal / Mint) */
+.wx-bar.wx-cat_keuangan,
+.wx-bar.wx-task.wx-cat_keuangan,
+.wx-bar[class*="cat_keuangan"] {
+  --wx-gantt-task-color: #0d9488 !important;
+  --wx-gantt-task-fill-color: #0f766e !important;
+  --wx-gantt-task-border-color: rgba(45, 212, 191, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 6. Humas & Kemitraan (Rose / Red) */
+.wx-bar.wx-cat_humas,
+.wx-bar.wx-task.wx-cat_humas,
+.wx-bar[class*="cat_humas"] {
+  --wx-gantt-task-color: #e11d48 !important;
+  --wx-gantt-task-fill-color: #be123c !important;
+  --wx-gantt-task-border-color: rgba(244, 63, 94, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 7. Tata Kelola & RIPS (Purple / Violet) */
+.wx-bar.wx-cat_manajemen,
+.wx-bar.wx-task.wx-cat_manajemen,
+.wx-bar[class*="cat_manajemen"] {
+  --wx-gantt-task-color: #7c3aed !important;
+  --wx-gantt-task-fill-color: #6d28d9 !important;
+  --wx-gantt-task-border-color: rgba(167, 139, 250, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 8. IT & Proyek Khusus (Fuchsia / Pink) */
+.wx-bar.wx-cat_it,
+.wx-bar.wx-task.wx-cat_it,
+.wx-bar[class*="cat_it"] {
+  --wx-gantt-task-color: #c026d3 !important;
+  --wx-gantt-task-fill-color: #a21caf !important;
+  --wx-gantt-task-border-color: rgba(232, 121, 249, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* 9. Umum & Operasional (Slate) */
+.wx-bar.wx-cat_umum,
+.wx-bar.wx-task.wx-cat_umum,
+.wx-bar[class*="cat_umum"] {
+  --wx-gantt-task-color: #64748b !important;
+  --wx-gantt-task-fill-color: #475569 !important;
+  --wx-gantt-task-border-color: rgba(148, 163, 184, 0.4) !important;
+  --wx-gantt-task-font-color: #ffffff !important;
+}
+
+/* Status Fallbacks (Soft Theme-aligned) */
+.wx-bar.wx-in_progress,
+.wx-bar.wx-task.wx-in_progress {
+  --wx-gantt-task-color: var(--mj-sky) !important;
+  --wx-gantt-task-fill-color: var(--mj-sky-hover) !important;
+}
+
+.wx-bar.wx-completed,
+.wx-bar.wx-task.wx-completed {
+  --wx-gantt-task-color: var(--mj-done) !important;
+  --wx-gantt-task-fill-color: var(--mj-done-hover) !important;
+}
+
+.wx-bar.wx-planned,
+.wx-bar.wx-task.wx-planned {
+  --wx-gantt-task-color: var(--mj-primary) !important;
+  --wx-gantt-task-fill-color: var(--mj-primary-hover) !important;
+}
+
+.wx-bar.wx-cancelled,
+.wx-bar.wx-task.wx-cancelled {
+  --wx-gantt-task-color: var(--mj-risk) !important;
+  --wx-gantt-task-fill-color: var(--mj-risk-hover) !important;
+  opacity: 0.75;
+}
+
+/* =========================================================================
+   2. Milestone Diamond Shape (Native SVAR Milestone)
+   ========================================================================= */
+.wx-bar.wx-milestone,
+.wx-milestone {
+  --wx-gantt-milestone-color: #a855f7 !important;
+}
+
+.wx-bar.wx-milestone .wx-content {
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.35);
+}
+
+/* =========================================================================
+   3. Summary / Group Bar
+   ========================================================================= */
+.wx-bar.wx-summary,
+.wx-summary {
+  --wx-gantt-summary-color: var(--mj-primary) !important;
+  --wx-gantt-summary-fill-color: var(--mj-primary-hover) !important;
+}
+
+/* =========================================================================
+   4. Academic Year Semester Scale Styling
+   ========================================================================= */
+.scale-semester-ganjil {
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  background-color: var(--mj-primary-soft) !important;
+  color: var(--mj-primary-fg) !important;
+}
+
+.scale-semester-genap {
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  background-color: var(--mj-sky-soft) !important;
+  color: var(--mj-sky-fg) !important;
+}
+
+/* =========================================================================
+   5. Dark & Light Mode SVAR Gantt Overrides
+   ========================================================================= */
+
+/* Dark Mode Tokens */
+.aldepos-gantt-dark,
+[data-theme="dark"] .wx-gantt,
+[data-theme="dark"] .wx-theme-willow-dark,
+.wx-theme-willow-dark {
+  --wx-background: #101827;
+  --wx-background-alt: #162032;
+  --wx-border: 1px solid #25334a;
+  --wx-border-color: #25334a;
+  --wx-color-font: #f8fafc;
+  --wx-color-font-alt: #94a3b8;
+  --wx-gantt-header-background: #141d2f;
+  --wx-gantt-scale-background: #141d2f;
+  --wx-gantt-grid-cell-border: #25334a;
+  --wx-grid-cell-border: 1px solid #25334a;
+}
+
+/* Light Mode Tokens */
+.aldepos-gantt-light,
+[data-theme="light"] .wx-gantt,
+[data-theme="light"] .wx-theme-willow,
+.wx-theme-willow {
+  --wx-background: #ffffff;
+  --wx-background-alt: #f8fafc;
+  --wx-border: 1px solid #e2e8f0;
+  --wx-border-color: #e2e8f0;
+  --wx-color-font: #1e293b;
+  --wx-color-font-alt: #64748b;
+  --wx-gantt-header-background: #f8fafc;
+  --wx-gantt-scale-background: #f8fafc;
+  --wx-gantt-grid-cell-border: #e2e8f0;
+  --wx-grid-cell-border: 1px solid #e2e8f0;
+}
+
+/* Enforce Theme & Gantt Strict Height & Enable Internal Scroll */
+.wx-willow-theme,
+.wx-willow-dark-theme,
+.wx-material-theme {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  position: relative !important;
+}
+
+.wx-gantt {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 0% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+}
+
+/* Highly visible vertical & horizontal scrollbars */
+.wx-gantt::-webkit-scrollbar,
+.wx-chart::-webkit-scrollbar,
+.wx-table-container::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.wx-gantt::-webkit-scrollbar-track,
+.wx-chart::-webkit-scrollbar-track,
+.wx-table-container::-webkit-scrollbar-track {
+  background: var(--wx-background, #101827) !important;
+}
+
+.wx-gantt::-webkit-scrollbar-thumb,
+.wx-chart::-webkit-scrollbar-thumb,
+.wx-table-container::-webkit-scrollbar-thumb {
+  background: var(--wx-border-color, #334155) !important;
+  border-radius: 4px !important;
+}
+
+.wx-gantt::-webkit-scrollbar-thumb:hover,
+.wx-chart::-webkit-scrollbar-thumb:hover,
+.wx-table-container::-webkit-scrollbar-thumb:hover {
+  background: #6366f1 !important;
+}
+
+/* Grid & Header cell styling (Dual Theme Alignment) */
+.wx-header,
+.wx-scale,
+.wx-timeline-scale {
+  background-color: var(--wx-background-alt) !important;
+  border-color: var(--wx-border-color) !important;
+  color: var(--wx-color-font) !important;
+}
+
+[data-theme="light"] .wx-header,
+[data-theme="light"] .wx-scale,
+.aldepos-gantt-light .wx-header,
+.aldepos-gantt-light .wx-scale {
+  background-color: #f8fafc !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="dark"] .wx-header,
+[data-theme="dark"] .wx-scale,
+.aldepos-gantt-dark .wx-header,
+.aldepos-gantt-dark .wx-scale {
+  background-color: #0f172a !important;
+  border-bottom: 2px solid #334155 !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+.wx-cell,
+.wx-grid-cell,
+.wx-timeline-cell {
+  border-color: var(--wx-border-color) !important;
+}
+
+/* =========================================================================
+   5b. Month Boundary Divider Lines & Scale Header Separators
+   ========================================================================= */
+
+/* Top Scale Month Header Border */
+.scale-month-header {
+  border-left: 2px solid var(--wx-border-color, #25334a) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .scale-month-header,
+.aldepos-gantt-light .scale-month-header {
+  border-left: 2px solid #cbd5e1 !important;
+}
+
+[data-theme="dark"] .scale-month-header,
+.aldepos-gantt-dark .scale-month-header {
+  border-left: 2px solid #334155 !important;
+}
+
+/* Day Scale 1st of Month Cell Border */
+.scale-cell-month-start {
+  border-left: 2px solid #94a3b8 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .scale-cell-month-start {
+  border-left: 2px solid #94a3b8 !important;
+  background-color: rgba(79, 70, 229, 0.05) !important;
+}
+
+[data-theme="dark"] .scale-cell-month-start {
+  border-left: 2px solid #64748b !important;
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Weekend Cell Soft Opacity */
+.scale-cell-weekend {
+  opacity: 0.8;
+}
+
+/* Month Divider Lines in Timeline Area */
+.aldepos-month-divider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+[data-theme="light"] .aldepos-month-divider-line,
+.aldepos-gantt-light .aldepos-month-divider-line {
+  background-color: #94a3b8 !important;
+  box-shadow: 0 0 3px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="dark"] .aldepos-month-divider-line,
+.aldepos-gantt-dark .aldepos-month-divider-line {
+  background-color: #475569 !important;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Bar general styling */
+.wx-bar.wx-task,
+.wx-bar.wx-milestone,
+.wx-bar,
+.wx-task-bar,
+.wx-bar *,
+.wx-task-bar * {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease-out, filter 0.18s ease-out !important;
+}
+
+.wx-bar.wx-task:hover,
+.wx-bar.wx-milestone:hover,
+.wx-bar:hover,
+.wx-task-bar:hover {
+  cursor: pointer !important;
+  filter: brightness(1.06) !important;
+  transform: translateY(-1.5px) scale(1.005) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  z-index: 15 !important;
+}
+
+/* Grid & Table Row Cursor Pointer for Clickable Tasks */
+.wx-grid .wx-row,
+.wx-table .wx-row,
+.wx-tree-cell,
+.wx-cell {
+  cursor: pointer !important;
+}
+
+[data-theme="dark"] .wx-bar.wx-task,
+.aldepos-gantt-dark .wx-bar.wx-task {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .wx-bar.wx-task:hover,
+.aldepos-gantt-dark .wx-bar.wx-task:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 10px rgba(99, 102, 241, 0.25) !important;
+}
+
+.wx-bar .wx-progress {
+  border-radius: 7px 0 0 7px !important;
+}
+
+/* =========================================================================
+   6. 100% Flush-Left Tree Alignment with Interactive Folding (Toggle Icons)
+   ========================================================================= */
+.wx-toggle-placeholder,
+.wx-tree-spacer,
+.wx-tree-indent,
+.wx-spacer,
+.wx-indent {
+  display: none !important;
+  width: 0px !important;
+  min-width: 0px !important;
+  max-width: 0px !important;
+  margin: 0px !important;
+  padding: 0px !important;
+  flex: 0 0 0px !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.wx-toggle-icon,
+.wx-table-tree-toggle,
+.wx-tree-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  margin: 0 4px 0 2px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 25 !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.15s ease;
+}
+
+.wx-content,
+.wx-cell .wx-content {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.wx-text,
+.wx-cell .wx-text {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+  width: 100% !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.wx-table .wx-grid .wx-cell:first-child,
+.wx-table .wx-grid .wx-header .wx-cell:first-child,
+.wx-cell:first-child,
+.wx-cell[data-col-id="text"] {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+  overflow: visible !important;
+}
+
+/* =========================================================================
+   7. Drag & Drop Task Reordering Styling & High-Visibility Soft Glow
+   ========================================================================= */
+
+/* Light Mode Drag & Drop */
+[data-theme="light"] .wx-reorder-task,
+[data-theme="light"] .wx-drag-task,
+[data-theme="light"] .wx-drag-item,
+.aldepos-gantt-light .wx-drag-task {
+  background: rgba(2, 132, 199, 0.14) !important;
+  border: 2px dashed #0284c7 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.22) !important;
+  opacity: 0.95 !important;
+  z-index: 999 !important;
+  cursor: grabbing !important;
+}
+
+[data-theme="light"] .wx-drop-line,
+[data-theme="light"] .wx-target-line,
+.aldepos-gantt-light .wx-drop-line {
+  background-color: #0284c7 !important;
+  height: 3px !important;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* Dark Mode Drag & Drop */
+[data-theme="dark"] .wx-reorder-task,
+[data-theme="dark"] .wx-drag-task,
+[data-theme="dark"] .wx-drag-item,
+.aldepos-gantt-dark .wx-drag-task {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border: 2px dashed #38bdf8 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.32) !important;
+  opacity: 0.95 !important;
+  z-index: 999 !important;
+  cursor: grabbing !important;
+}
+
+[data-theme="dark"] .wx-drop-line,
+[data-theme="dark"] .wx-target-line,
+.aldepos-gantt-dark .wx-drop-line {
+  background-color: #38bdf8 !important;
+  height: 3px !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.45) !important;
+}
+
+.cursor-grab {
+  cursor: grab !important;
+}
+
+.cursor-grab:active,
+.cursor-grabbing {
+  cursor: grabbing !important;
+}
+
+/* Background synchronization for root wrapper */
+.aldepos-gantt-dark {
+  background-color: #101827 !important;
+}
+
+.aldepos-gantt-light {
+  background-color: #ffffff !important;
+}
+

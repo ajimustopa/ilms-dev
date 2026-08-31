@@ -1,17 +1,17 @@
 /**
  * Initial Database Seed for Keuangan Module
  * 
- * Data Dummy berdasarkan erd-keuangan.md Bagian 3.2:
- * - 2 Rekening Kas / Bank (Kas Tunai, Bank BCA)
- * - 6 Akun Chart of Accounts (Aset, Kas & Bank, Pendapatan, Pendapatan SPP, Beban, Beban Operasional)
+ * Data Dummy awal disesuaikan 100% dengan skema fisik migrasi Knex (db/migrations/keuangan/):
+ * - 2 Rekening Kas / Bank (Kas Tunai, Bank BSI Operasional)
+ * - 8 Akun Chart of Accounts (Aset, Kas & Bank, Pendapatan, Pendapatan SPP, Pendapatan Lain, Beban, Beban Operasional, Beban Gaji)
+ * - 4 Mapping Akun Transaksi Wajib (student_bill_payment, other_income, expense, payroll_disbursement)
  * - 2 Kelompok Biaya (Biaya Rutin Bulanan, Biaya Awal Tahun)
- * - 2 Jenis Biaya (SPP - bulanan, Uang Gedung / DSP - tahunan)
+ * - 2 Jenis Biaya (SPP - monthly, Uang Gedung / DSP - yearly)
  * - 1 Nominal Biaya Acuan (SPP Grade Level 1 Rp 350.000)
+ * - 2 Kategori Transaksi Khusus (ATK & Operasional Kantor, Donasi & Infaq)
+ * - 1 Program Kegiatan Anggaran
+ * - 1 Standar Biaya / Katalog Item
  * - 1 Tagihan Siswa Dummy (SPP Agustus 2026 Rp 350.000 - unpaid)
- * 
- * Catatan:
- * - academic_year_id, student_id, grade_level_id, employee_id memakai ID dummy (1)
- *   sesuai catatan di ERD untuk keperluan uji struktur modul Keuangan mandiri.
  * 
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
@@ -52,12 +52,12 @@ exports.seed = async function (knex) {
 
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
 
-  // 1. Seed cash_accounts
+  // 1. Seed cash_accounts (Kolom: id, school_unit_id, name, account_kind, bank_account_number, bank_name, is_active)
   await knex('cash_accounts').insert([
     {
       id: 1,
       school_unit_id: 1,
-      name: 'Kas Tunai SD Contoh 1',
+      name: 'Kas Utama Tunai',
       account_kind: 'cash',
       bank_account_number: null,
       bank_name: null,
@@ -66,15 +66,15 @@ exports.seed = async function (knex) {
     {
       id: 2,
       school_unit_id: 1,
-      name: 'Bank BCA SD Contoh 1',
+      name: 'Bank BSI Operasional',
       account_kind: 'bank',
-      bank_account_number: null,
-      bank_name: null,
+      bank_account_number: '7123456789',
+      bank_name: 'Bank Syariah Indonesia',
       is_active: true
     }
   ]);
 
-  // 2. Seed chart_of_accounts
+  // 2. Seed chart_of_accounts (Kolom: id, school_unit_id, account_code, account_name, account_group, parent_account_id, level, is_active)
   await knex('chart_of_accounts').insert([
     {
       id: 1,
@@ -119,6 +119,16 @@ exports.seed = async function (knex) {
     {
       id: 5,
       school_unit_id: 1,
+      account_code: '4-200',
+      account_name: 'Pendapatan Lain / Non-SPP',
+      account_group: 'revenue',
+      parent_account_id: 3,
+      level: 2,
+      is_active: true
+    },
+    {
+      id: 6,
+      school_unit_id: 1,
       account_code: '6-000',
       account_name: 'Beban',
       account_group: 'expense',
@@ -127,18 +137,65 @@ exports.seed = async function (knex) {
       is_active: true
     },
     {
-      id: 6,
+      id: 7,
       school_unit_id: 1,
       account_code: '6-100',
       account_name: 'Beban Operasional',
       account_group: 'expense',
-      parent_account_id: 5,
+      parent_account_id: 6,
+      level: 2,
+      is_active: true
+    },
+    {
+      id: 8,
+      school_unit_id: 1,
+      account_code: '6-200',
+      account_name: 'Beban Gaji & Honor Pegawai',
+      account_group: 'expense',
+      parent_account_id: 6,
       level: 2,
       is_active: true
     }
   ]);
 
-  // 3. Seed fee_groups
+  // 3. Seed transaction_account_mappings untuk 4 Transaksi Wajib
+  // (Kolom: id, school_unit_id, transaction_code, transaction_label, debit_account_id, credit_account_id)
+  await knex('transaction_account_mappings').insert([
+    {
+      id: 1,
+      school_unit_id: 1,
+      transaction_code: 'student_bill_payment',
+      transaction_label: 'Penerimaan Pembayaran SPP / Tagihan Siswa',
+      debit_account_id: 2, // Kas & Bank
+      credit_account_id: 4 // Pendapatan SPP
+    },
+    {
+      id: 2,
+      school_unit_id: 1,
+      transaction_code: 'other_income',
+      transaction_label: 'Penerimaan Pendapatan Lain / Non-SPP',
+      debit_account_id: 2, // Kas & Bank
+      credit_account_id: 5 // Pendapatan Lain / Non-SPP
+    },
+    {
+      id: 3,
+      school_unit_id: 1,
+      transaction_code: 'expense',
+      transaction_label: 'Pengeluaran Operasional / Non-Gaji',
+      debit_account_id: 7, // Beban Operasional
+      credit_account_id: 2 // Kas & Bank
+    },
+    {
+      id: 4,
+      school_unit_id: 1,
+      transaction_code: 'payroll_disbursement',
+      transaction_label: 'Pencairan Gaji & Honor Pegawai',
+      debit_account_id: 8, // Beban Gaji & Honor Pegawai
+      credit_account_id: 2 // Kas & Bank
+    }
+  ]);
+
+  // 4. Seed fee_groups (Kolom: id, school_unit_id, name)
   await knex('fee_groups').insert([
     {
       id: 1,
@@ -152,7 +209,7 @@ exports.seed = async function (knex) {
     }
   ]);
 
-  // 4. Seed fee_types
+  // 5. Seed fee_types (Kolom: id, school_unit_id, fee_group_id, name, billing_pattern, is_active)
   await knex('fee_types').insert([
     {
       id: 1,
@@ -172,7 +229,7 @@ exports.seed = async function (knex) {
     }
   ]);
 
-  // 5. Seed fee_reference_amounts
+  // 6. Seed fee_reference_amounts (Kolom: id, fee_type_id, school_unit_id, grade_level_id, reference_amount)
   await knex('fee_reference_amounts').insert([
     {
       id: 1,
@@ -183,7 +240,47 @@ exports.seed = async function (knex) {
     }
   ]);
 
-  // 6. Seed student_bills
+  // 7. Seed transaction_categories (Kolom: id, school_unit_id, category_kind, name, related_account_id)
+  await knex('transaction_categories').insert([
+    {
+      id: 1,
+      school_unit_id: 1,
+      category_kind: 'expense',
+      name: 'ATK & Operasional Kantor',
+      related_account_id: 7
+    },
+    {
+      id: 2,
+      school_unit_id: 1,
+      category_kind: 'special_income',
+      name: 'Donasi & Infaq Sekolah',
+      related_account_id: 5
+    }
+  ]);
+
+  // 8. Seed budget_programs (Kolom: id, school_unit_id, academic_year_id, name, rks_reference_id)
+  await knex('budget_programs').insert([
+    {
+      id: 1,
+      school_unit_id: 1,
+      academic_year_id: 1,
+      name: 'Pengembangan Sarana Pembelajaran',
+      rks_reference_id: null
+    }
+  ]);
+
+  // 9. Seed catalog_items (Kolom: id, school_unit_id, name, unit, reference_price)
+  await knex('catalog_items').insert([
+    {
+      id: 1,
+      school_unit_id: 1,
+      name: 'Kertas HVS A4 80gr',
+      unit: 'Rim',
+      reference_price: 55000.00
+    }
+  ]);
+
+  // 10. Seed student_bills (Kolom: id, school_unit_id, student_id, fee_type_id, period_month, period_year, amount, due_date, status)
   await knex('student_bills').insert([
     {
       id: 1,

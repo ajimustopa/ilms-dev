@@ -44,6 +44,9 @@ const akademikAttendanceRoutes = require('./modules/akademik/attendance/routes')
 const akademikStudentAffairsRoutes = require('./modules/akademik/student-affairs/routes');
 const akademikReportsRoutes = require('./modules/akademik/reports/routes');
 const akademikSecurityRoutes = require('./modules/akademik/security/routes');
+const akademikPsbRoutes = require('./modules/akademik/psb/routes');
+const akademikPsbPortalRoutes = require('./modules/akademik/psb/portal/routes');
+const akademikCalendarRoutes = require('./modules/akademik/calendar/routes');
 const akademikInternalRoutes = require('./modules/akademik/internal/routes');
 
 // Module Routes for Website Utama & PPDB Service
@@ -72,8 +75,8 @@ app.use(cors({
   origin: true, // Allow requests from any local/LAN IP origin dynamically
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Root Health Check
 app.get('/', (req, res) => {
@@ -218,7 +221,14 @@ akademikV1Router.use('/', akademikReportsRoutes);
 // 3.8 Keamanan
 akademikV1Router.use('/', akademikSecurityRoutes);
 
-// 3.9 Internal Endpoint (X-API-Key)
+// 3.9 PSB (Penerimaan Murid Baru)
+akademikV1Router.use('/', akademikPsbRoutes);
+akademikV1Router.use('/psb-portal', akademikPsbPortalRoutes);
+
+// 3.10 Kalender Pendidikan
+akademikV1Router.use('/', akademikCalendarRoutes);
+
+// 3.11 Internal Endpoint (X-API-Key)
 akademikV1Router.use('/', akademikInternalRoutes);
 
 // Mount Akademik Router ke /api/v1/akademik

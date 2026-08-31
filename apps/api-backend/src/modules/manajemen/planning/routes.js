@@ -6,7 +6,30 @@ const router = express.Router();
 const planningController = require('./controller');
 const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
 
-// RIPS (#190)
+// ==========================================
+// 0. EXECUTIVE DASHBOARD & MASTER REFERENCES (FITUR 14)
+// ==========================================
+router.get(
+  '/dashboard/executive',
+  verifyJwt,
+  planningController.getExecutiveDashboard
+);
+
+router.get(
+  '/planning-references',
+  verifyJwt,
+  planningController.getReferences
+);
+
+router.get(
+  '/planning/traceability/:type/:id',
+  verifyJwt,
+  planningController.getTraceabilityChain
+);
+
+// ==========================================
+// 1. RIPS / RENSTRA (#190)
+// ==========================================
 router.get(
   '/institution-development-plans',
   verifyJwt,
@@ -35,6 +58,13 @@ router.put(
   planningController.updateRips
 );
 
+router.delete(
+  '/institution-development-plans/:id',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  planningController.deleteRips
+);
+
 router.patch(
   '/institution-development-plans/:id/approve',
   verifyJwt,
@@ -49,7 +79,54 @@ router.patch(
   planningController.archiveRips
 );
 
-// RKS (#191)
+// ==========================================
+// 2. SASARAN STRATEGIS (Strategic Goals)
+// ==========================================
+router.get(
+  '/strategic-goals',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.view'),
+  planningController.listStrategicGoals
+);
+
+router.get(
+  '/strategic-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.view'),
+  planningController.getStrategicGoalById
+);
+
+router.post(
+  '/strategic-goals',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  planningController.createStrategicGoal
+);
+
+router.put(
+  '/strategic-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  planningController.updateStrategicGoal
+);
+
+router.post(
+  '/strategic-goals/reorder',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  planningController.reorderStrategicGoals
+);
+
+router.delete(
+  '/strategic-goals/:id',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  planningController.deleteStrategicGoal
+);
+
+// ==========================================
+// 3. RKS / RPS / RJJP / RJM / RKT (#191)
+// ==========================================
 router.get(
   '/school-work-plans',
   verifyJwt,
@@ -92,7 +169,16 @@ router.patch(
   planningController.approveRks
 );
 
-// Program Kerja Unit (#192)
+router.delete(
+  '/school-work-plans/:id',
+  verifyJwt,
+  requirePermission('manajemen.planning.rks.manage'),
+  planningController.deleteRks
+);
+
+// ==========================================
+// 4. PROGRAM KERJA TAHUNAN (#192)
+// ==========================================
 router.get(
   '/work-plan-programs',
   verifyJwt,
@@ -126,6 +212,13 @@ router.patch(
   verifyJwt,
   requirePermission('manajemen.planning.work_programs.manage_own'),
   planningController.updateProgramStatus
+);
+
+router.patch(
+  '/work-plan-programs/:id/priority',
+  verifyJwt,
+  requirePermission('manajemen.planning.work_programs.manage_own'),
+  planningController.setProgramPriority
 );
 
 router.delete(

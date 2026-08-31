@@ -60,6 +60,30 @@ class BillsController {
     } catch (err) { next(err); }
   };
 
+  sendBillReminder = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const result = await billsService.sendBillReminder(
+        schoolUnitId,
+        req.params.id,
+        req.body.channel || 'whatsapp',
+        req.user?.id
+      );
+      if (result.error === 'NOT_FOUND') {
+        return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      if (result.error === 'CONFLICT') {
+        return res.status(409).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      res.json({
+        success: true,
+        data: result.data,
+        message: result.data?.message || 'Pengingat tagihan berhasil dikirim',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
   runReminders = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);

@@ -85,9 +85,94 @@ class EmployeesController {
     }
   }
 
+  async updateMyProfile(req, res, next) {
+    try {
+      const user = req.user;
+      if (!user || user.ref_type !== 'staff' || !user.ref_id) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terhubung dengan data pegawai/guru.',
+          errors: null
+        });
+      }
+
+      // Filter hanya data identitas pribadi yang boleh diubah sendiri oleh guru/pegawai
+      const allowedPersonalKeys = [
+        'nik', 'phone_number', 'email', 'address',
+        'birth_place', 'birth_date', 'gender', 'religion',
+        'marital_status', 'photo_url', 'academic_title', 'mother_name'
+      ];
+
+      const cleanPayload = {};
+      for (const key of allowedPersonalKeys) {
+        if (req.body[key] !== undefined) {
+          cleanPayload[key] = req.body[key];
+        }
+      }
+
+      const result = await employeesService.updateEmployee(user.ref_id, cleanPayload, user);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Identitas pribadi Anda berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async update(req, res, next) {
     try {
-      const result = await employeesService.updateEmployee(req.params.id, req.body);
+      const user = req.user;
+      const targetId = req.params.id;
+
+      // Cek hak akses: admin yayasan / hrd vs self-service
+      let isPrivileged = false;
+      if (user) {
+        if (user.is_super_admin || user.account_type === 'super_admin' || user.account_type === 'admin') isPrivileged = true;
+        if (['super_admin', 'admin_yayasan', 'hrd'].includes(user.active_role)) isPrivileged = true;
+        const roles = Array.isArray(user.roles) ? user.roles : (user.user_school_roles || []);
+        if (roles.some(r => ['super_admin', 'admin_yayasan', 'hrd'].includes(typeof r === 'string' ? r : r.role_name || r.name))) {
+          isPrivileged = true;
+        }
+      }
+
+      if (!isPrivileged) {
+        // Self service: hanya boleh edit diri sendiri dan data identitas pribadi
+        if (!user || user.ref_type !== 'staff' || String(user.ref_id) !== String(targetId)) {
+          return res.status(403).json({
+            success: false,
+            data: null,
+            message: 'Akses ditolak. Anda hanya dapat mengubah data profil Anda sendiri.',
+            errors: null
+          });
+        }
+
+        const allowedPersonalKeys = [
+          'nik', 'phone_number', 'email', 'address',
+          'birth_place', 'birth_date', 'gender', 'religion',
+          'marital_status', 'photo_url', 'academic_title', 'mother_name'
+        ];
+
+        const cleanPayload = {};
+        for (const key of allowedPersonalKeys) {
+          if (req.body[key] !== undefined) {
+            cleanPayload[key] = req.body[key];
+          }
+        }
+
+        const result = await employeesService.updateEmployee(targetId, cleanPayload, user);
+        return res.status(200).json({
+          success: true,
+          data: result,
+          message: 'Data identitas pribadi berhasil diperbarui',
+          errors: null
+        });
+      }
+
+      const result = await employeesService.updateEmployee(targetId, req.body, user);
       res.status(200).json({
         success: true,
         data: result,

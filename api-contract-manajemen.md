@@ -267,6 +267,7 @@ Detail matriks hak akses lengkap ada di `roles-manajemen.md`.
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-08-28 | **Migrasi Fondasi Rombak Besar:** Drop tabel perencanaan & mutu lama (`institution_development_plans`, `school_work_plans`, `quality_indicators`, dll). Fondasi baru siap untuk endpoints RIPS, RKJP, RKJM, RKT, BSC, dan EVADIR baru serta penerbitan `document_publications`. |
 | 2026-08-18 | Dokumen dibuat, mengikuti pola `api-contract-coreservice.md`. Endpoint bertanda ⚠️ menunggu Keputusan Terbuka di `rancangan-manajemen.md` §5 — jangan diimplementasikan sebagai final sampai dikonfirmasi. |
 
 *(Tambahkan baris baru di atas setiap ada perubahan kontrak — jangan hapus riwayat lama.)*

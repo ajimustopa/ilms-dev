@@ -11,20 +11,51 @@ class TimetableService {
   // 1. Time Slots & Period Structure
   // ==========================================
   async listTimeSlots(query = {}) {
-    const { satuan_pendidikan_id, academic_year_id } = query;
+    const { satuan_pendidikan_id, academic_year_id, preset_id } = query;
     let baseQuery = db('timetable_time_slots');
 
-    if (satuan_pendidikan_id) baseQuery = baseQuery.where({ satuan_pendidikan_id });
-    if (academic_year_id) baseQuery = baseQuery.where({ academic_year_id });
+    if (satuan_pendidikan_id) {
+      baseQuery = baseQuery.where({ satuan_pendidikan_id });
+    }
+
+    if (academic_year_id) {
+      if (!satuan_pendidikan_id) {
+        // Mode Semua Unit: Ambil semua ID tahun ajaran dengan nama tahun ajaran yang sama
+        const refYear = await db('academic_years').where({ id: academic_year_id }).first();
+        if (refYear && refYear.name) {
+          const matchingYears = await db('academic_years').where({ name: refYear.name });
+          const matchingYearIds = matchingYears.map(y => y.id);
+          baseQuery = baseQuery.whereIn('academic_year_id', matchingYearIds);
+        } else {
+          baseQuery = baseQuery.where({ academic_year_id });
+        }
+      } else {
+        baseQuery = baseQuery.where({ academic_year_id });
+      }
+    }
+
+    if (preset_id) {
+      baseQuery = baseQuery.where({ preset_id });
+    }
 
     const list = await baseQuery.orderBy([
       { column: 'day_of_week', order: 'asc' },
+      { column: 'start_time', order: 'asc' },
       { column: 'period_index', order: 'asc' }
     ]);
 
-    // If empty, auto-generate standard school time slots (Senin..Sabtu, 8 JP/hari, Jam 07.30 - 14.30)
-    if (list.length === 0 && satuan_pendidikan_id && academic_year_id) {
-      return this.initializeDefaultTimeSlots(satuan_pendidikan_id, academic_year_id);
+    // Jika mode Semua Unit, satukan slot yang memiliki hari dan start_time yang sama agar grid matriks rapi
+    if (!satuan_pendidikan_id) {
+      const seen = new Set();
+      const unifiedList = [];
+      for (const slot of list) {
+        const key = `${slot.day_of_week}_${(slot.start_time || '').substring(0, 5)}_${slot.type}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unifiedList.push(slot);
+        }
+      }
+      return unifiedList;
     }
 
     return list;
@@ -77,6 +108,99 @@ class TimetableService {
     }
     const [newId] = await db('timetable_time_slots').insert({ ...data, created_at: db.fn.now(), updated_at: db.fn.now() });
     return db('timetable_time_slots').where({ id: newId }).first();
+  }
+
+  async copyTimeSlots(payload) {
+    const {
+      source_satuan_pendidikan_id,
+      source_academic_year_id,
+      source_preset_id,
+      target_satuan_pendidikan_id,
+      target_academic_year_id,
+      target_preset_id,
+      replace_existing = true
+    } = payload;
+
+    if (!source_academic_year_id || !target_academic_year_id) {
+      const error = new Error('Tahun ajaran sumber dan target wajib dipilih');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // 1. Ambil time slots dari sumber
+    let srcQuery = db('timetable_time_slots')
+      .where('academic_year_id', source_academic_year_id);
+    
+    if (source_satuan_pendidikan_id) {
+      srcQuery = srcQuery.where('satuan_pendidikan_id', source_satuan_pendidikan_id);
+    }
+
+    if (source_preset_id) {
+      srcQuery = srcQuery.where('preset_id', source_preset_id);
+    }
+
+    let sourceSlots = await srcQuery.orderBy([
+      { column: 'day_of_week', order: 'asc' },
+      { column: 'period_index', order: 'asc' }
+    ]);
+
+    // Fallback cerdas: jika tidak spesifik preset_id dan hasil kosong pada query awal, cari slot dari preset yang ada pada tahun & unit sumber
+    if (sourceSlots.length === 0 && !source_preset_id) {
+      let fallbackQuery = db('timetable_time_slots').where('academic_year_id', source_academic_year_id);
+      if (source_satuan_pendidikan_id) fallbackQuery = fallbackQuery.where('satuan_pendidikan_id', source_satuan_pendidikan_id);
+      sourceSlots = await fallbackQuery.orderBy([
+        { column: 'day_of_week', order: 'asc' },
+        { column: 'period_index', order: 'asc' }
+      ]);
+    }
+
+    if (sourceSlots.length === 0) {
+      const error = new Error('Tidak ada struktur rentang waktu yang ditemukan pada tahun ajaran / jadwal sumber yang dipilih.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // 2. Jika replace_existing = true, bersihkan struktur waktu target terlebih dahulu
+    if (replace_existing) {
+      let delQuery = db('timetable_time_slots')
+        .where('academic_year_id', target_academic_year_id);
+      
+      if (target_satuan_pendidikan_id) {
+        delQuery = delQuery.where('satuan_pendidikan_id', target_satuan_pendidikan_id);
+      }
+      if (target_preset_id) {
+        delQuery = delQuery.where('preset_id', target_preset_id);
+      } else {
+        delQuery = delQuery.whereNull('preset_id');
+      }
+      await delQuery.del();
+    }
+
+    // 3. Masukkan hasil salinan ke target
+    const inserts = sourceSlots.map(s => ({
+      satuan_pendidikan_id: target_satuan_pendidikan_id || s.satuan_pendidikan_id,
+      academic_year_id: target_academic_year_id,
+      preset_id: target_preset_id || null,
+      day_of_week: s.day_of_week,
+      period_index: s.period_index,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      type: s.type,
+      label: s.label,
+      color: s.color || null,
+      is_generator_usable: s.is_generator_usable,
+      is_visible: s.is_visible,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    }));
+
+    await db('timetable_time_slots').insert(inserts);
+
+    return {
+      success: true,
+      copied_count: inserts.length,
+      message: `Berhasil menyalin ${inserts.length} rentang waktu struktur harian!`
+    };
   }
 
   async deleteTimeSlot(id) {
@@ -178,17 +302,20 @@ class TimetableService {
         'timetable_lessons.*',
         'subjects.name as subject_name',
         'subjects.code as subject_code',
+        'subjects.is_elective as subject_is_elective',
         'extracurriculars.name as extra_name'
       );
 
     if (satuan_pendidikan_id) baseQuery = baseQuery.where('timetable_lessons.satuan_pendidikan_id', satuan_pendidikan_id);
     if (academic_year_id) baseQuery = baseQuery.where('timetable_lessons.academic_year_id', academic_year_id);
+    baseQuery = baseQuery.where('timetable_lessons.total_hours_per_week', '>', 0);
 
     const lessons = await baseQuery.orderBy('timetable_lessons.id', 'desc');
 
     // Parse JSON fields
     return lessons.map(l => ({
       ...l,
+      is_elective: Boolean(l.is_elective || l.subject_is_elective),
       target_class_ids: typeof l.target_class_ids === 'string' ? JSON.parse(l.target_class_ids) : l.target_class_ids,
       teacher_ids: typeof l.teacher_ids === 'string' ? JSON.parse(l.teacher_ids) : l.teacher_ids,
       constraints: typeof l.constraints === 'string' ? JSON.parse(l.constraints) : l.constraints
@@ -253,11 +380,20 @@ class TimetableService {
       });
 
     const dutyMap = {}; // `${class_group_id}_${subject_id}` -> [duty1, duty2, ...]
+    const globalSubjectDutyMap = {}; // `${subject_id}` -> [duty1, duty2, ...] (Penugasan global/tanpa rombel spesifik/mapel pilihan)
+
     duties.forEach(d => {
-      if (d.type === 'mapel' && d.class_group_id && d.subject_id) {
-        const key = `${d.class_group_id}_${d.subject_id}`;
-        if (!dutyMap[key]) dutyMap[key] = [];
-        dutyMap[key].push(d);
+      if (d.type === 'mapel' && d.subject_id) {
+        if (d.class_group_id) {
+          const key = `${d.class_group_id}_${d.subject_id}`;
+          if (!dutyMap[key]) dutyMap[key] = [];
+          dutyMap[key].push(d);
+        } else {
+          // Penugasan Global (misal: Mapel Pilihan yang ditugaskan ke guru untuk seluruh rombel sasaran)
+          const gKey = `${d.subject_id}`;
+          if (!globalSubjectDutyMap[gKey]) globalSubjectDutyMap[gKey] = [];
+          globalSubjectDutyMap[gKey].push(d);
+        }
       }
     });
 
@@ -270,13 +406,102 @@ class TimetableService {
       structMap[`${cs.grade_level_id}_${cs.subject_id}`] = cs;
     });
 
+    // 4b. Bersihkan lesson usang (stale lessons) di timetable_lessons yang subject_id-nya sudah tidak aktif/dihapus
+    const activeSubjectIds = subjects.map(s => s.id);
+    if (activeSubjectIds.length > 0) {
+      await db('timetable_lessons')
+        .where({ satuan_pendidikan_id, academic_year_id, type: 'mapel' })
+        .whereNotIn('subject_id', activeSubjectIds)
+        .del();
+    }
+
     let syncedCount = 0;
     let readyCount = 0;
     let unassignedCount = 0;
 
+    // 5. Group Rombel Gabungan duties
+    const jointDutiesMap = {}; // joint_group_id -> [duties]
+    const processedJointCgSubKeys = new Set(); // `${cgId}_${subId}`
+
+    duties.forEach(d => {
+      if (d.type === 'mapel' && (d.is_joined_class || d.joint_group_id) && d.joint_group_id) {
+        if (!jointDutiesMap[d.joint_group_id]) jointDutiesMap[d.joint_group_id] = [];
+        jointDutiesMap[d.joint_group_id].push(d);
+      }
+    });
+
+    for (const [jointGroupId, jDuties] of Object.entries(jointDutiesMap)) {
+      if (jDuties.length === 0) continue;
+      const firstDuty = jDuties[0];
+      const sub = subjectMap[firstDuty.subject_id];
+      if (!sub) continue;
+
+      const targetClassIds = Array.from(new Set(jDuties.map(d => d.class_group_id).filter(Boolean)));
+      if (targetClassIds.length <= 1) continue;
+
+      targetClassIds.forEach(cid => processedJointCgSubKeys.add(`${cid}_${sub.id}`));
+
+      const teacherIds = Array.from(new Set(jDuties.map(d => d.teacher_employee_id).filter(Boolean)));
+      const classNames = classGroups.filter(cg => targetClassIds.includes(cg.id)).map(cg => cg.name).join(', ');
+
+      const firstCg = classGroups.find(cg => cg.id === targetClassIds[0]);
+      const structKey = firstCg ? `${firstCg.grade_level_id}_${sub.id}` : null;
+      const struct = structKey ? structMap[structKey] : null;
+      const hoursPerWeek = struct?.hours_per_week !== undefined ? Number(struct.hours_per_week) : (firstDuty.allocated_hours || 2);
+      const sessionDuration = struct?.session_duration || (hoursPerWeek >= 2 ? 2 : 1);
+
+      const lessonName = `${sub.name} (Rombel Gabungan: ${classNames})`;
+
+      const existingJoint = await db('timetable_lessons').where({
+        satuan_pendidikan_id,
+        academic_year_id,
+        type: 'mapel',
+        subject_id: sub.id,
+        is_joined_class: true
+      })
+      .whereRaw(`JSON_CONTAINS(target_class_ids, '${JSON.stringify(targetClassIds)}')`)
+      .first();
+
+      if (!existingJoint) {
+        await db('timetable_lessons').insert({
+          satuan_pendidikan_id,
+          academic_year_id,
+          type: 'mapel',
+          subject_id: sub.id,
+          extracurricular_id: null,
+          name: lessonName,
+          total_hours_per_week: hoursPerWeek,
+          duration_per_session: sessionDuration,
+          target_class_ids: JSON.stringify(targetClassIds),
+          teacher_ids: JSON.stringify(teacherIds),
+          is_joined_class: true,
+          is_active: teacherIds.length > 0,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+      } else {
+        await db('timetable_lessons').where({ id: existingJoint.id }).update({
+          name: lessonName,
+          total_hours_per_week: hoursPerWeek,
+          duration_per_session: sessionDuration,
+          target_class_ids: JSON.stringify(targetClassIds),
+          teacher_ids: JSON.stringify(teacherIds),
+          is_joined_class: true,
+          is_active: teacherIds.length > 0,
+          updated_at: db.fn.now()
+        });
+      }
+      syncedCount++;
+      if (teacherIds.length > 0) readyCount++;
+      else unassignedCount++;
+    }
+
     // A. Sinkronisasi Pembelajaran Mata Pelajaran (Per Rombel x Mapel yang memiliki JP di Struktur Kurikulum)
     for (const cg of classGroups) {
       for (const sub of subjects) {
+        if (processedJointCgSubKeys.has(`${cg.id}_${sub.id}`)) {
+          continue; // Ditangani oleh Rombel Gabungan
+        }
         // Jika sub-mapel dengan mode JP inklud ke mapel induk, jangan buat timetable lesson terpisah
         if (sub.parent_subject_id && sub.jp_allocation_mode === 'included_in_parent') {
           continue;
@@ -284,12 +509,30 @@ class TimetableService {
 
         const structKey = `${cg.grade_level_id}_${sub.id}`;
         const struct = structMap[structKey];
-        const hoursPerWeek = struct?.hours_per_week !== undefined ? struct.hours_per_week : 0;
+        const isElective = sub.is_elective == 1 || sub.is_elective === true || sub.is_elective === '1';
 
-        if (hoursPerWeek <= 0) continue; // Tidak ada jam pelajaran di tingkat kelas ini
+        // Untuk mapel pilihan, jika di struktur kurikulum belum diatur JP-nya secara eksplisit, gunakan alokasi default 2 JP
+        let hoursPerWeek = struct?.hours_per_week !== undefined ? Number(struct.hours_per_week) : (isElective ? 2 : 0);
+
+        if (hoursPerWeek <= 0) {
+          // Hapus dari timetable_lessons jika sebelumnya terlanjur ada mapel dengan 0 JP
+          await db('timetable_lessons').where({
+            satuan_pendidikan_id,
+            academic_year_id,
+            type: 'mapel',
+            subject_id: sub.id
+          })
+          .whereRaw(`JSON_CONTAINS(target_class_ids, '${JSON.stringify([cg.id])}')`)
+          .del();
+          continue;
+        }
 
         const dutyKey = `${cg.id}_${sub.id}`;
-        const matchingDuties = dutyMap[dutyKey] || [];
+        // Prioritaskan penugasan spesifik rombel, jika tidak ada fallback ke penugasan global subject (misal mapel pilihan)
+        const matchingDuties = (dutyMap[dutyKey] && dutyMap[dutyKey].length > 0)
+          ? dutyMap[dutyKey]
+          : (globalSubjectDutyMap[String(sub.id)] || []);
+
         const targetClassIds = [cg.id];
 
         if (matchingDuties.length <= 1) {
@@ -513,25 +756,46 @@ class TimetableService {
   async runGenerator(payload, user = null) {
     const { satuan_pendidikan_id, academic_year_id, name, options = {} } = payload;
 
-    // 1. Gather all required datasets in memory
+    // 1. Dapatkan seluruh academic_year_id yang bersesuaian (misal nama tahun ajaran '2026/2027' pada unit 1 & unit 2)
+    const currentYear = await db('academic_years').where({ id: academic_year_id }).first();
+    let targetYearIds = [academic_year_id];
+    if (currentYear) {
+      const matchedYears = await db('academic_years').where({ name: currentYear.name });
+      targetYearIds = matchedYears.map(y => y.id);
+    }
+
+    // Gather all required datasets in memory (Termasuk seluruh unit SMP + SMA untuk single integrated grid)
     const [timeSlots, lessons, teacherAvails, classAvails, activities, classes, employees] = await Promise.all([
-      this.listTimeSlots({ satuan_pendidikan_id, academic_year_id }),
-      this.listLessons({ satuan_pendidikan_id, academic_year_id }),
-      this.getTeacherAvailabilities(academic_year_id),
-      this.getClassAvailabilities(academic_year_id),
-      this.listActivities({ satuan_pendidikan_id, academic_year_id }),
-      db('class_groups').where({ satuan_pendidikan_id }),
+      this.listTimeSlots({ academic_year_id }),
+      db('timetable_lessons').whereIn('academic_year_id', targetYearIds).where('total_hours_per_week', '>', 0),
+      db('timetable_teacher_availabilities').whereIn('academic_year_id', targetYearIds),
+      db('timetable_class_availabilities').whereIn('academic_year_id', targetYearIds),
+      db('timetable_activities').whereIn('academic_year_id', targetYearIds),
+      db('class_groups').whereIn('academic_year_id', targetYearIds),
       employeesService.listEmployees({ per_page: 500 }).catch(() => ({ data: [] }))
     ]);
 
+    const regularClassIds = new Set(classes.filter(c => !c.type || c.type === 'reguler').map(c => c.id));
+    const targetLessons = lessons.map(l => ({
+      ...l,
+      is_elective: Boolean(l.is_elective || (l.constraints && JSON.parse(typeof l.constraints === 'string' ? l.constraints : '{}')?.is_elective)),
+      target_class_ids: typeof l.target_class_ids === 'string' ? JSON.parse(l.target_class_ids) : l.target_class_ids,
+      teacher_ids: typeof l.teacher_ids === 'string' ? JSON.parse(l.teacher_ids) : l.teacher_ids,
+      constraints: typeof l.constraints === 'string' ? JSON.parse(l.constraints) : l.constraints
+    })).filter(l => {
+      if (l.type === 'ekskul' || l.extracurricular_id) return false;
+      const cids = Array.isArray(l.target_class_ids) ? l.target_class_ids : [];
+      return cids.some(cid => regularClassIds.has(Number(cid)));
+    });
+
     const teacherAvailMap = {};
     teacherAvails.forEach(a => {
-      teacherAvailMap[`${a.academic_year_id}_${a.teacher_employee_id}_${a.day_of_week}_${a.period_index}`] = a.status;
+      teacherAvailMap[`${a.teacher_employee_id}_${a.day_of_week}_${a.period_index}`] = a.status;
     });
 
     const classAvailMap = {};
     classAvails.forEach(a => {
-      classAvailMap[`${a.academic_year_id}_${a.class_group_id}_${a.day_of_week}_${a.period_index}`] = a.status;
+      classAvailMap[`${a.class_group_id}_${a.day_of_week}_${a.period_index}`] = a.status;
     });
 
     const teachersList = employees?.data?.items || (Array.isArray(employees?.data) ? employees.data : []);
@@ -541,7 +805,7 @@ class TimetableService {
       satuan_pendidikan_id,
       academic_year_id,
       timeSlots,
-      lessons,
+      lessons: targetLessons,
       teacherAvailabilities: teacherAvailMap,
       classAvailabilities: classAvailMap,
       activities,
@@ -696,16 +960,28 @@ class TimetableService {
     // 2. Sync to active `subject_schedules` table for full backward-compatibility with portals!
     const entries = await db('timetable_entries').where({ timetable_run_id: runId });
     
-    // Clear old schedules for this unit & academic year
-    await db('subject_schedules').where({
+    // Cari preset aktif
+    const activePreset = await db('subject_schedule_presets')
+      .where({ satuan_pendidikan_id: run.satuan_pendidikan_id, academic_year_id: run.academic_year_id, is_active: 1 })
+      .first();
+
+    const targetPresetId = activePreset?.id || null;
+
+    // Clear old schedules for this unit, academic year, and active preset
+    let clearQuery = db('subject_schedules').where({
       satuan_pendidikan_id: run.satuan_pendidikan_id,
       academic_year_id: run.academic_year_id
-    }).del();
+    });
+    if (targetPresetId) {
+      clearQuery = clearQuery.where({ preset_id: targetPresetId });
+    }
+    await clearQuery.del();
 
     for (const e of entries) {
       const [schId] = await db('subject_schedules').insert({
         satuan_pendidikan_id: run.satuan_pendidikan_id,
         academic_year_id: run.academic_year_id,
+        preset_id: targetPresetId,
         schedule_type: e.subject_id ? 'mapel' : 'ekskul',
         subject_id: e.subject_id || null,
         extracurricular_id: e.extracurricular_id || null,
@@ -725,8 +1001,7 @@ class TimetableService {
         if (cid) {
           await db('subject_schedule_class_groups').insert({
             schedule_id: schId,
-            class_group_id: cid,
-            created_at: db.fn.now()
+            class_group_id: cid
           });
         }
       }

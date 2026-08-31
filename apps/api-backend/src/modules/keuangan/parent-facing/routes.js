@@ -32,5 +32,11 @@ router.get(
   requirePermission('keuangan.parent.self_service'),
   controller.getSavings
 );
+router.post(
+  '/parent-facing/bills/:id/transfer-proof',
+  verifyJwt,
+  requirePermission('keuangan.parent.self_service'),
+  controller.submitTransferProof
+);
 
 module.exports = router;

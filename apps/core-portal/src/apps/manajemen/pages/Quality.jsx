@@ -1,438 +1,427 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import {
+  FileCheck2,
   Award,
+  BookOpen,
   Plus,
-  TrendingUp,
-  AlertTriangle,
-  FileCheck,
-  Loader2,
-  RefreshCw,
-  AlertCircle
+  Edit2,
+  Trash2,
+  ExternalLink,
+  ShieldCheck,
+  Calendar,
+  Layers,
+  FileText,
+  Search,
+  CheckCircle2,
+  Clock,
+  Download
 } from 'lucide-react';
 
 export default function Quality() {
-  const [activeTab, setActiveTab] = useState('kpi'); // 'kpi' | 'evadir' | 'accreditation' | 'risks'
-  const [loading, setLoading] = useState(false);
-  const [kpiList, setKpiList] = useState([]);
-  const [evadirList, setEvadirList] = useState([]);
-  const [accreditationList, setAccreditationList] = useState([]);
-  const [risksList, setRisksList] = useState([]);
+  const { user, schoolUnits, activeSchoolUnit } = useAuth();
+  const [selectedUnitId, setSelectedUnitId] = useState(
+    activeSchoolUnit?.id || (schoolUnits?.[0]?.id || 1)
+  );
 
-  // Modals state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('create_kpi');
+  const [loading, setLoading] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [evidences, setEvidences] = useState([]);
+
+  // Modals
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (activeSchoolUnit?.id) {
+      setSelectedUnitId(activeSchoolUnit.id);
+    }
+  }, [activeSchoolUnit]);
+
+  const fetchReports = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'kpi') {
-        const res = await api.get('/api/v1/manajemen/quality-indicators/dashboard');
-        setKpiList(res.data.data || []);
-      } else if (activeTab === 'evadir') {
-        const res = await api.get('/api/v1/manajemen/self-evaluations');
-        setEvadirList(res.data.data || []);
-      } else if (activeTab === 'accreditation') {
-        const res = await api.get('/api/v1/manajemen/accreditation-reports');
-        setAccreditationList(res.data.data || []);
-      } else if (activeTab === 'risks') {
-        const res = await api.get('/api/v1/manajemen/school-risks');
-        setRisksList(res.data.data || []);
+      const res = await api.get(`/manajemen/accreditation-reports?school_unit_id=${selectedUnitId}`);
+      if (res.data?.success) {
+        const list = res.data.data || [];
+        setReports(list);
+        if (list.length > 0) {
+          fetchEvidences(list[0].id);
+          setSelectedReport(list[0]);
+        } else {
+          setSelectedReport(null);
+          setEvidences([]);
+        }
       }
     } catch (err) {
-      console.error('Error fetching quality data:', err);
+      console.error('Error fetching accreditation reports:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const handleOpenCreate = () => {
-    setError(null);
-    if (activeTab === 'kpi') {
-      setModalType('create_kpi');
-      setFormData({
-        code: 'KPI-MUTU-01',
-        name: '',
-        category: 'akademik',
-        unit_of_measure: 'poin',
-        target_value: 85,
-        data_source_module: 'akademik',
-      });
-    } else if (activeTab === 'evadir') {
-      setModalType('create_evadir');
-      setFormData({
-        period_year: 2026,
-        standard_component: 'Standar Proses Pembelajaran',
-        score: 85,
-        notes: '',
-      });
-    } else if (activeTab === 'accreditation') {
-      setModalType('create_accreditation');
-      setFormData({
-        accreditation_year: 2026,
-        standard_code: 'STD-01-KOMPETENSI-LULUSAN',
-        description: '',
-      });
-    } else {
-      setModalType('create_risk');
-      setFormData({
-        title: '',
-        category: 'sarpras',
-        likelihood: 'medium',
-        impact: 'high',
-        status: 'identified',
-        mitigation_plan: '',
-      });
+  const fetchEvidences = async (reportId) => {
+    try {
+      const res = await api.get(`/manajemen/accreditation-reports/${reportId}/evidences`);
+      if (res.data?.success) {
+        setEvidences(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching evidences:', err);
     }
-    setModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    fetchReports();
+  }, [selectedUnitId]);
+
+  const handleCreateReport = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
-
     try {
-      if (modalType === 'create_kpi') {
-        await api.post('/api/v1/manajemen/quality-indicators', formData);
-      } else if (modalType === 'create_evadir') {
-        await api.post('/api/v1/manajemen/self-evaluations', formData);
-      } else if (modalType === 'create_accreditation') {
-        await api.post('/api/v1/manajemen/accreditation-reports', formData);
-      } else if (modalType === 'create_risk') {
-        await api.post('/api/v1/manajemen/school-risks', formData);
-      }
-      setModalOpen(false);
-      fetchData();
+      await api.post('/manajemen/accreditation-reports', {
+        ...formData,
+        school_unit_id: selectedUnitId,
+      });
+      setReportModalOpen(false);
+      setFormData({});
+      fetchReports();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Gagal menyimpan data');
+      alert(err.response?.data?.message || 'Gagal menyimpan laporan akreditasi');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateEvidence = async (e) => {
+    e.preventDefault();
+    if (!selectedReport) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/manajemen/accreditation-reports/${selectedReport.id}/evidences`, formData);
+      setEvidenceModalOpen(false);
+      setFormData({});
+      fetchEvidences(selectedReport.id);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menambahkan butir bukti akreditasi');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            <Award className="w-5 h-5 text-violet-600" />
-            <span>Penjaminan Mutu, Akreditasi & Risiko</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitoring KPI institusi, Evaluasi Diri Sekolah (Evadir), instrumen akreditasi, dan mitigasi risiko.
-          </p>
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+            <Award className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Akreditasi Lembaga</h1>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Manajemen instrumen akreditasi, penilaian butir standar, dan repositori bukti dukung (Evidence)
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold shadow-md shadow-violet-950/20 transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>
-            {activeTab === 'kpi' && 'Tambah Indikator KPI'}
-            {activeTab === 'evadir' && 'Input Skor Evadir'}
-            {activeTab === 'accreditation' && 'Tambah Standar Akreditasi'}
-            {activeTab === 'risks' && 'Catat Risiko Baru'}
-          </span>
-        </button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+            <select
+              value={selectedUnitId}
+              onChange={(e) => setSelectedUnitId(Number(e.target.value))}
+              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none font-medium"
+            >
+              {schoolUnits?.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name} ({unit.level})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => {
+              setFormData({
+                title: `Akreditasi ${selectedUnitId} 2026`,
+                accreditation_body: 'BAN-S/M',
+                period: '2026/2027',
+                status: 'draft',
+              });
+              setReportModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow"
+          >
+            <Plus className="w-4 h-4" />
+            Laporan Akreditasi Baru
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6 text-xs font-semibold overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('kpi')}
-          className={`pb-3 whitespace-nowrap transition relative ${
-            activeTab === 'kpi'
-              ? 'text-violet-600 border-b-2 border-violet-600 font-bold'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          1. Indikator Mutu / KPI
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('evadir')}
-          className={`pb-3 whitespace-nowrap transition relative ${
-            activeTab === 'evadir'
-              ? 'text-violet-600 border-b-2 border-violet-600 font-bold'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          2. Evadir (Evaluasi Diri Sekolah)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('accreditation')}
-          className={`pb-3 whitespace-nowrap transition relative ${
-            activeTab === 'accreditation'
-              ? 'text-violet-600 border-b-2 border-violet-600 font-bold'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          3. Laporan & Bukti Akreditasi
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('risks')}
-          className={`pb-3 whitespace-nowrap transition relative ${
-            activeTab === 'risks'
-              ? 'text-violet-600 border-b-2 border-violet-600 font-bold'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          4. Register Risiko Sekolah
-        </button>
-      </div>
+      {/* Reports & Evidence Canvas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Reports List */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <FileText className="w-4 h-4 text-indigo-400" />
+            Daftar Laporan Akreditasi ({reports.length})
+          </h3>
 
-      {/* Content */}
-      {loading ? (
-        <div className="h-64 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
-        </div>
-      ) : (
-        <>
-          {/* TAB 1: KPI */}
-          {activeTab === 'kpi' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {kpiList.map((kpi) => (
-                <div key={kpi.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="space-y-2.5">
+            {reports.length === 0 ? (
+              <p className="text-xs text-slate-500 py-6 text-center">Belum ada laporan akreditasi.</p>
+            ) : (
+              reports.map((rep) => (
+                <div
+                  key={rep.id}
+                  onClick={() => {
+                    setSelectedReport(rep);
+                    fetchEvidences(rep.id);
+                  }}
+                  className={`p-4 rounded-2xl border cursor-pointer transition space-y-1.5 ${
+                    selectedReport?.id === rep.id
+                      ? 'bg-indigo-600/10 border-indigo-500 shadow-md'
+                      : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 uppercase">
-                      {kpi.code}
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500 capitalize">
-                      Modul: {kpi.data_source_module || 'manual'}
+                    <span className="text-xs font-bold text-white">{rep.title}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300">
+                      {rep.accreditation_body || 'BAN-S/M'}
                     </span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-sm">{kpi.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1">Kategori: {kpi.category}</p>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Capaian Terkini:</span>
-                      <span className="font-black text-slate-800 text-base">
-                        {kpi.actual_value !== null ? kpi.actual_value : '-'} / {kpi.target_value} {kpi.unit_of_measure}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-slate-400 block text-[10px]">Persentase Target:</span>
-                      <span className="font-bold text-violet-600 text-sm">
-                        {kpi.achievement_percentage ? `${kpi.achievement_percentage}%` : '-'}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Periode: {rep.period || '-'}</span>
+                    <span className="capitalize text-emerald-400 font-semibold">{rep.status}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* TAB 2: EVADIR */}
-          {activeTab === 'evadir' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">Komponen Standar</th>
-                    <th className="py-3 px-4">Tahun Evaluasi</th>
-                    <th className="py-3 px-4">Skor Mandiri</th>
-                    <th className="py-3 px-4">Catatan Temuan</th>
-                    <th className="py-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {evadirList.map((ev) => (
-                    <tr key={ev.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">{ev.standard_component}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{ev.period_year}</td>
-                      <td className="py-3.5 px-4 font-bold text-violet-600">{ev.score || '-'}</td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">{ev.notes || '-'}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
-                          {ev.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* TAB 3: AKREDITASI */}
-          {activeTab === 'accreditation' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">Kode Standar</th>
-                    <th className="py-3 px-4">Tahun Akreditasi</th>
-                    <th className="py-3 px-4">Deskripsi / Instrumen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {accreditationList.map((acc) => (
-                    <tr key={acc.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-bold text-slate-800">{acc.standard_code}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{acc.accreditation_year}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{acc.description || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* TAB 4: RISIKO */}
-          {activeTab === 'risks' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">Risiko / Isu Sekolah</th>
-                    <th className="py-3 px-4">Kategori</th>
-                    <th className="py-3 px-4">Likelihood / Impact</th>
-                    <th className="py-3 px-4">Rencana Mitigasi</th>
-                    <th className="py-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {risksList.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">{r.title}</td>
-                      <td className="py-3.5 px-4 text-slate-600 uppercase text-[10px] font-bold">{r.category}</td>
-                      <td className="py-3.5 px-4 text-slate-600">
-                        <span className="capitalize">{r.likelihood}</span> / <span className="capitalize font-semibold text-rose-600">{r.impact}</span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">{r.mitigation_plan || '-'}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800">
-                          {r.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">
-              {modalType === 'create_kpi' && 'Tambah Indikator KPI Mutu'}
-              {modalType === 'create_evadir' && 'Input Skor Evadir'}
-              {modalType === 'create_accreditation' && 'Tambah Standar Akreditasi'}
-              {modalType === 'create_risk' && 'Catat Risiko Baru'}
-            </h3>
-
-            {error && (
-              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
+              ))
             )}
+          </div>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              {modalType === 'create_kpi' && (
-                <>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Kode Indikator</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.code || ''}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Nama Indikator</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name || ''}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Satuan Ukur</label>
-                      <input
-                        type="text"
-                        value={formData.unit_of_measure || ''}
-                        onChange={(e) => setFormData({ ...formData, unit_of_measure: e.target.value })}
-                        placeholder="%, poin, dsb."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Target Nilai</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.target_value || ''}
-                        onChange={(e) => setFormData({ ...formData, target_value: Number(e.target.value) })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+        {/* Right: Evidences Table */}
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-indigo-400" />
+                Butir Instrumen & Bukti Fisik ({selectedReport?.title || 'Pilih Laporan'})
+              </h3>
+              <p className="text-xs text-slate-400">Daftar evidence dan dokumen pendukung per butir akreditasi</p>
+            </div>
 
-              {modalType === 'create_risk' && (
-                <>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Judul Isu / Risiko</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.title || ''}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Rencana Mitigasi</label>
-                    <textarea
-                      rows="2"
-                      value={formData.mitigation_plan || ''}
-                      onChange={(e) => setFormData({ ...formData, mitigation_plan: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                    />
-                  </div>
-                </>
-              )}
+            {selectedReport && (
+              <button
+                onClick={() => {
+                  setFormData({
+                    standard_number: '1',
+                    standard_name: 'Standar Kelulusan',
+                    indicator_code: 'BUTIR-01',
+                    indicator_name: '',
+                    compliance_status: 'compliant',
+                  });
+                  setEvidenceModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah Butir Bukti
+              </button>
+            )}
+          </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                <tr>
+                  <th className="p-3">Standar & Butir</th>
+                  <th className="p-3">Uraian Indikator Bukti</th>
+                  <th className="p-3">Status Pemenuhan</th>
+                  <th className="p-3">Berkas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {evidences.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-500">
+                      Belum ada bukti dukung untuk laporan ini.
+                    </td>
+                  </tr>
+                ) : (
+                  evidences.map((ev) => (
+                    <tr key={ev.id} className="hover:bg-slate-800/30 transition">
+                      <td className="p-3">
+                        <span className="font-mono text-indigo-400 font-bold block">{ev.indicator_code || '-'}</span>
+                        <span className="text-slate-400 text-[11px]">{ev.standard_name || `Standar ${ev.standard_number}`}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="font-semibold text-white block">{ev.indicator_name}</span>
+                        {ev.notes && <p className="text-[11px] text-slate-400 mt-0.5">{ev.notes}</p>}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            ev.compliance_status === 'compliant'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}
+                        >
+                          {ev.compliance_status === 'compliant' ? 'Memenuhi' : 'Belum Lengkap'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        {ev.file_url ? (
+                          <a
+                            href={ev.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1 font-semibold"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" /> Buka Bukti
+                          </a>
+                        ) : (
+                          <span className="text-slate-600">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Laporan Akreditasi */}
+      {reportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white">Laporan Akreditasi Baru</h3>
+              <button onClick={() => setReportModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={handleCreateReport} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Judul Laporan</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title || ''}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Badan Akreditasi</label>
+                <input
+                  type="text"
+                  value={formData.accreditation_body || ''}
+                  onChange={(e) => setFormData({ ...formData, accreditation_body: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Periode</label>
+                <input
+                  type="text"
+                  value={formData.period || ''}
+                  onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold"
+                  onClick={() => setReportModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold shadow-md disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan'}
+                  {submitting ? 'Menyimpan...' : 'Simpan Laporan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Evidence */}
+      {evidenceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white">Tambah Butir Bukti Akreditasi</h3>
+              <button onClick={() => setEvidenceModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={handleCreateEvidence} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Kode Butir</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.indicator_code || ''}
+                    onChange={(e) => setFormData({ ...formData, indicator_code: e.target.value })}
+                    placeholder="BUTIR-01"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Nama Standar</label>
+                  <input
+                    type="text"
+                    value={formData.standard_name || ''}
+                    onChange={(e) => setFormData({ ...formData, standard_name: e.target.value })}
+                    placeholder="Standar Kelulusan"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Uraian Indikator Bukti</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.indicator_name || ''}
+                  onChange={(e) => setFormData({ ...formData, indicator_name: e.target.value })}
+                  placeholder="Kelengkapan dokumen kurikulum & silabus"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">URL File Dokumen Bukti</label>
+                <input
+                  type="text"
+                  value={formData.file_url || ''}
+                  onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEvidenceModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+                >
+                  {submitting ? 'Menyimpan...' : 'Simpan Bukti'}
                 </button>
               </div>
             </form>

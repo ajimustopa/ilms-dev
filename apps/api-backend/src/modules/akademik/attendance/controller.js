@@ -103,6 +103,96 @@ class AttendanceController {
       next(err);
     }
   }
+
+  // ==========================================
+  // Lesson Attendances (Per Jam Pelajaran)
+  // ==========================================
+  async listLessonAttendances(req, res, next) {
+    try {
+      const data = await attendanceService.listLessonAttendances(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar presensi per jam pelajaran berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async recordLessonAttendanceBulk(req, res, next) {
+    try {
+      const data = await attendanceService.recordLessonAttendanceBulk(req.body, req.user);
+      res.status(201).json({
+        success: true,
+        data,
+        message: data.message || 'Presensi jam pelajaran berhasil dicatat secara massal',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getLessonSummary(req, res, next) {
+    try {
+      const data = await attendanceService.getLessonAttendanceSummary(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Rekapitulasi presensi per jam pelajaran berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // ==========================================
+  // Activity Attendances (Kegiatan / Ekskul / Acara)
+  // ==========================================
+  async listActivityAttendances(req, res, next) {
+    try {
+      const data = await attendanceService.listActivityAttendances(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar presensi kegiatan berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async recordActivityAttendanceBulk(req, res, next) {
+    try {
+      const data = await attendanceService.recordActivityAttendanceBulk(req.body, req.user);
+      res.status(201).json({
+        success: true,
+        data,
+        message: data.message || 'Presensi kegiatan berhasil dicatat secara massal',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getActivitySummary(req, res, next) {
+    try {
+      const data = await attendanceService.getActivityAttendanceSummary(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Rekapitulasi presensi kegiatan berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AttendanceController();

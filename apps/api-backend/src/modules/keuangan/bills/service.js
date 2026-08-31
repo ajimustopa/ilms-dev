@@ -224,12 +224,17 @@ class BillsService {
       .where('student_bill_id', id)
       .orderBy('paid_at', 'asc');
 
+    const reminders = await db('bill_reminder_logs')
+      .where('student_bill_id', id)
+      .orderBy('sent_at', 'desc');
+
     const student = await crossModuleServices.getStudent(bill.student_id);
 
     return {
       ...bill,
       student_name: student?.full_name || `Siswa ID ${bill.student_id}`,
-      payments
+      payments,
+      reminders
     };
   }
 
@@ -259,7 +264,7 @@ class BillsService {
       schoolUnitId,
       userId,
       action: 'CANCEL_BILL',
-      entityType: 'student_bill',
+      entityType: 'student_bills',
       entityId: id,
       dataBefore: bill,
       dataAfter: updated
@@ -271,6 +276,72 @@ class BillsService {
   // ============================================================
   // 4. REMINDER TAGIHAN (Fitur #16)
   // ============================================================
+
+  async sendBillReminder(schoolUnitId, billId, channel = 'whatsapp', userId = null) {
+    const validChannels = ['whatsapp', 'email', 'sms'];
+    const chosenChannel = validChannels.includes(channel) ? channel : 'whatsapp';
+
+    const bill = await db('student_bills')
+      .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
+      .where({
+        'student_bills.id': billId,
+        'student_bills.school_unit_id': schoolUnitId
+      })
+      .select('student_bills.*', 'fee_types.name as fee_type_name')
+      .first();
+
+    if (!bill) {
+      return { error: 'NOT_FOUND', message: 'Tagihan tidak ditemukan' };
+    }
+
+    if (bill.status === 'paid') {
+      return { error: 'CONFLICT', message: 'Tagihan ini sudah lunas, tidak perlu dikirim pengingat' };
+    }
+
+    if (bill.status === 'cancelled') {
+      return { error: 'CONFLICT', message: 'Tagihan ini telah dibatalkan' };
+    }
+
+    const student = await crossModuleServices.getStudent(bill.student_id);
+    const sentAt = new Date();
+
+    // 1. Simpan baris baru ke bill_reminder_logs
+    const [logId] = await db('bill_reminder_logs').insert({
+      student_bill_id: bill.id,
+      channel: chosenChannel,
+      sent_at: sentAt
+    });
+
+    // 2. Logging STUB pengiriman pesan ke console aplikasi
+    const dueDateStr = bill.due_date ? (typeof bill.due_date === 'string' ? bill.due_date.slice(0, 10) : bill.due_date.toISOString().slice(0, 10)) : '-';
+    console.log(
+      `[STUB REMINDER] Tagihan #${bill.id} - Kirim ke wali siswa "${student?.full_name || 'ID ' + bill.student_id}" via ${chosenChannel.toUpperCase()}: ` +
+      `Assalamu'alaikum, mengingatkan tagihan ${bill.fee_type_name} (Periode: ${bill.period_month ? bill.period_month + '/' : ''}${bill.period_year}) ` +
+      `sebesar Rp ${parseFloat(bill.amount).toLocaleString('id-ID')} jatuh tempo pada ${dueDateStr}. Terima kasih.`
+    );
+
+    // 3. Audit log finansial
+    await logFinanceAudit({
+      schoolUnitId,
+      userId,
+      action: 'SEND_BILL_REMINDER',
+      entityType: 'bill_reminder_logs',
+      entityId: logId,
+      dataAfter: { student_bill_id: bill.id, channel: chosenChannel, sent_at: sentAt }
+    });
+
+    const createdLog = await db('bill_reminder_logs').where({ id: logId }).first();
+
+    return {
+      data: {
+        id: logId,
+        student_bill_id: bill.id,
+        channel: chosenChannel,
+        sent_at: createdLog?.sent_at || sentAt,
+        message: `Pengingat tagihan #${bill.id} berhasil dikirim via ${chosenChannel.toUpperCase()}`
+      }
+    };
+  }
 
   async runReminders(schoolUnitId, userId = null) {
     // Ambil tagihan unpaid yang mendekati / lewat jatuh tempo

@@ -24,6 +24,12 @@ router.post(
 
 // Reminder Tagihan (Fitur #16)
 router.post(
+  '/student-bills/:id/reminders',
+  verifyJwt,
+  requirePermission('keuangan.bills.view'),
+  controller.sendBillReminder
+);
+router.post(
   '/student-bills/reminders/run',
   verifyJwt,
   requirePermission('keuangan.bills.view'),

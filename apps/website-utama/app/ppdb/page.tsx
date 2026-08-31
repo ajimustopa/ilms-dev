@@ -25,17 +25,25 @@ export default function PpdbFormPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [submittedCode, setSubmittedCode] = useState<number | null>(null);
+  const [submittedAccountInfo, setSubmittedAccountInfo] = useState<{
+    tracking_code?: string;
+    registration_number?: string;
+    username?: string;
+    password?: string;
+  } | null>(null);
 
   // Form States
   const [formData, setFormData] = useState({
     school_unit_id: 1,
     school_year: '2027/2028',
     registration_path: 'reguler',
+    nisn: '',
     candidate_full_name: '',
     candidate_birth_place: '',
     candidate_birth_date: '',
     candidate_gender: 'L',
     candidate_address: '',
+    previous_school_name: '',
     father_name: '',
     mother_name: '',
     parent_contact: ''
@@ -168,6 +176,7 @@ export default function PpdbFormPage() {
       if (!res.ok) throw new Error(json.message || 'Gagal mengirim pendaftaran');
 
       setSubmittedCode(registrantId);
+      setSubmittedAccountInfo(json.data || null);
       setCurrentStep(5); // Success step
     } catch (err: any) {
       setErrorMsg(err.message || 'Terjadi kesalahan saat submit');
@@ -305,6 +314,30 @@ export default function PpdbFormPage() {
                   <option value="L">Laki-laki (Ikhwan)</option>
                   <option value="P">Perempuan (Akhwat)</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">NISN (Nomor Induk Siswa Nasional)</label>
+                <input
+                  type="text"
+                  value={formData.nisn}
+                  onChange={(e) => setFormData({ ...formData, nisn: e.target.value })}
+                  className="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="10 digit nomor NISN (opsional)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Asal Sekolah / Madrasah</label>
+                <input
+                  type="text"
+                  value={formData.previous_school_name}
+                  onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
+                  className="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="Contoh: SDIT Al-Hidayah Bogor"
+                />
               </div>
             </div>
 
@@ -554,28 +587,59 @@ export default function PpdbFormPage() {
           </div>
         )}
 
-        {/* STEP 5: Success & Tracking Code Display */}
+        {/* STEP 5: Success & Tracking Code & Account Credentials Display */}
         {currentStep === 5 && (
-          <div className="text-center py-8 space-y-6">
+          <div className="text-center py-6 space-y-6">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-extrabold text-slate-900">Pendaftaran Berhasil Dikirim!</h2>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Terima kasih telah mendaftar. Data formulir calon siswa telah kami terima dan masuk ke tahap verifikasi berkas oleh tim panitia PPDB.
+              <h2 className="text-2xl font-extrabold text-slate-900">Pendaftaran Berhasil Terkirim & Terintegrasi!</h2>
+              <p className="text-xs text-slate-500 max-w-lg mx-auto">
+                Terima kasih telah mendaftar. Data formulir calon santri telah tersinkronisasi ke sistem Akademik dan masuk ke tahap verifikasi berkas oleh panitia PPDB.
               </p>
             </div>
 
-            {/* Tracking Code Box */}
-            <div className="max-w-xs mx-auto p-5 bg-slate-900 text-white rounded-2xl shadow-xl space-y-2">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Nomor Registrasi / Tracking</span>
-              <p className="text-2xl font-mono font-extrabold text-emerald-300">#{submittedCode}</p>
-              <p className="text-[10px] text-slate-400">Simpan nomor ini untuk melacak perkembangan status penerimaan.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto text-left">
+              {/* Tracking Code Box */}
+              <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-xl space-y-2 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Nomor Registrasi / Tracking</span>
+                  <p className="text-2xl font-mono font-extrabold text-emerald-300 mt-1">
+                    {submittedAccountInfo?.registration_number || submittedAccountInfo?.tracking_code || `#${submittedCode}`}
+                  </p>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Gunakan nomor registrasi ini untuk melacak status verifikasi berkas & pengumuman jadwal seleksi.
+                </p>
+              </div>
+
+              {/* Candidate Portal Login Card */}
+              <div className="p-5 bg-emerald-950 text-white rounded-2xl border border-emerald-700/50 shadow-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-emerald-300 tracking-wider">Akun Portal Calon Murid</span>
+                  <span className="text-[9px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                    Tampil 1x Saja
+                  </span>
+                </div>
+                <div className="bg-emerald-900/60 p-3 rounded-xl border border-emerald-700/40 space-y-1.5 font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-300 text-[11px]">Username:</span>
+                    <span className="font-bold text-white">{submittedAccountInfo?.username || 'Menunggu verifikasi'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-emerald-300 text-[11px]">Password:</span>
+                    <span className="font-bold text-amber-300">{submittedAccountInfo?.password || '••••••••'}</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-emerald-200/80 leading-relaxed">
+                  ⚠️ <strong>Catatan:</strong> Simpan username dan password di atas untuk login ke Portal Calon Murid. Panitia PPDB juga akan mengirimkan ulang konfirmasi ke WhatsApp orang tua secara manual.
+                </p>
+              </div>
             </div>
 
-            <div className="pt-4 flex justify-center space-x-4">
+            <div className="pt-2 flex justify-center space-x-4">
               <button
                 onClick={() => router.push(`/ppdb/status?id=${submittedCode}`)}
                 className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-md transition-all"

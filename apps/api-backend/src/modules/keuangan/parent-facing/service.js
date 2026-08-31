@@ -52,13 +52,68 @@ class ParentFacingService {
       .where('student_bill_id', billId)
       .orderBy('paid_at', 'asc');
 
+    const proofs = await db('bill_payment_proofs')
+      .where('student_bill_id', billId)
+      .orderBy('created_at', 'desc');
+
     const student = await crossModuleServices.getStudent(studentId);
 
     return {
       ...bill,
       student_name: student?.full_name || `Siswa ID ${studentId}`,
-      payments
+      payments,
+      payment_proofs: proofs
     };
+  }
+
+  async submitTransferProof(schoolUnitId, studentId, billId, payload, userId = null) {
+    const { proof_file_url, amount, transfer_date, bank_name, sender_account_name, notes } = payload;
+
+    if (!proof_file_url || !amount || !transfer_date) {
+      const err = new Error('Field proof_file_url, amount, dan transfer_date wajib diisi');
+      err.statusCode = 422;
+      throw err;
+    }
+
+    const bill = await db('student_bills')
+      .where({
+        id: billId,
+        school_unit_id: schoolUnitId
+      })
+      .first();
+
+    if (!bill) {
+      const err = new Error('Tagihan tidak ditemukan atau bukan milik unit sekolah ini');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (bill.status === 'paid') {
+      const err = new Error('Tagihan ini sudah berstatus lunas');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    if (bill.status === 'cancelled') {
+      const err = new Error('Tagihan ini telah dibatalkan');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const [id] = await db('bill_payment_proofs').insert({
+      school_unit_id: schoolUnitId,
+      student_bill_id: bill.id,
+      submitted_by_ref_id: userId,
+      proof_file_url,
+      amount: parseFloat(amount),
+      transfer_date,
+      bank_name: bank_name || null,
+      sender_account_name: sender_account_name || null,
+      notes: notes || null,
+      status: 'pending'
+    });
+
+    return await db('bill_payment_proofs').where({ id }).first();
   }
 
   async listStudentPayments(schoolUnitId, studentId) {

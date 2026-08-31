@@ -24,6 +24,101 @@
   background: #94a3b8;
 }
 
+/* ==========================================================================
+   MODERN & SLEEK DROPDOWN / SELECT SYSTEM
+   ========================================================================== */
+
+/* Base Modern Select Across All Portals */
+select,
+.select-modern {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.25rem !important;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Light Theme Default Select */
+select:not([class*="bg-slate-8"]):not([class*="bg-slate-9"]):not([class*="bg-gray-8"]):not([class*="bg-gray-9"]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+select:not([class*="bg-slate-8"]):not([class*="bg-slate-9"]):not([class*="bg-gray-8"]):not([class*="bg-gray-9"]):hover {
+  border-color: #94a3b8;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%234f46e5'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+select:not([class*="bg-slate-8"]):not([class*="bg-slate-9"]):not([class*="bg-gray-8"]):not([class*="bg-gray-9"]):focus {
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236366f1'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+/* Dark / Slate Theme Select (Manajemen, Portal Dark Headers, Modals, dll) */
+select[class*="bg-slate-8"],
+select[class*="bg-slate-9"],
+select[class*="bg-gray-8"],
+select[class*="bg-gray-9"],
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2394a3b8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+select[class*="bg-slate-8"]:hover,
+select[class*="bg-slate-9"]:hover,
+select[class*="bg-gray-8"]:hover,
+select[class*="bg-gray-9"]:hover,
+.dark select:hover {
+  border-color: #64748b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23818cf8'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+select[class*="bg-slate-8"]:focus,
+select[class*="bg-slate-9"]:focus,
+select[class*="bg-gray-8"]:focus,
+select[class*="bg-gray-9"]:focus,
+.dark select:focus {
+  border-color: #6366f1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a5b4fc'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+/* Modern Options styling inside dropdown */
+select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+}
+
+select:not([class*="bg-slate-8"]):not([class*="bg-slate-9"]):not([class*="bg-gray-8"]):not([class*="bg-gray-9"]) option {
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+select option:checked {
+  background-color: #4f46e5;
+  color: #ffffff;
+}
+
+/* Disabled select */
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f1f5f9;
+}
+
+select[class*="bg-slate-8"]:disabled,
+select[class*="bg-slate-9"]:disabled {
+  background-color: #0f172a;
+  opacity: 0.5;
+}
+
 /* Sticky Table Headers across all portals & modals */
 .overflow-x-auto:has(> table),
 .table-container,
@@ -99,5 +194,3 @@ table thead.bg-white th,
 table thead th.bg-white {
   background-color: #ffffff;
 }
-
-

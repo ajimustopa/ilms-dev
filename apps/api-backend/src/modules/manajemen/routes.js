@@ -15,6 +15,12 @@ const qualityRoutes = require('./quality/routes');
 const performanceRoutes = require('./performance/routes');
 const supervisionRoutes = require('./supervision/routes');
 const projectsRoutes = require('./projects/routes');
+const evaluationRoutes = require('./evaluation/routes');
+const institutionProfileRoutes = require('./institution-profile/routes');
+const ripsRoutes = require('./rips/routes');
+const longTermPlanningRoutes = require('./long-term-planning/routes');
+const annualWorkPlanRoutes = require('./annual-work-plan/routes');
+const evadirRoutes = require('./evadir/routes');
 
 // Submodule routers
 router.use('/', planningRoutes);
@@ -22,5 +28,11 @@ router.use('/', qualityRoutes);
 router.use('/', performanceRoutes);
 router.use('/', supervisionRoutes);
 router.use('/', projectsRoutes);
+router.use('/', evaluationRoutes);
+router.use('/institution-profile', institutionProfileRoutes);
+router.use('/rips', ripsRoutes);
+router.use('/', longTermPlanningRoutes);
+router.use('/', annualWorkPlanRoutes);
+router.use('/', evadirRoutes);
 
 module.exports = router;

@@ -9,6 +9,7 @@ const { authenticate, requirePermission } = require('../../../middlewares/auth')
 // 1. Time Slots & Structure
 router.get('/time-slots', authenticate, timetableController.listTimeSlots);
 router.post('/time-slots', authenticate, requirePermission('akademik.class_groups.manage'), timetableController.saveTimeSlot);
+router.post('/time-slots/copy', authenticate, requirePermission('akademik.class_groups.manage'), timetableController.copyTimeSlots);
 router.delete('/time-slots/:id', authenticate, requirePermission('akademik.class_groups.manage'), timetableController.deleteTimeSlot);
 
 // 2. Teacher & Class Availabilities

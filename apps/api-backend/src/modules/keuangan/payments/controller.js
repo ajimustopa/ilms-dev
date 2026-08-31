@@ -76,20 +76,26 @@ class PaymentsController {
     } catch (err) { next(err); }
   };
 
+  // 4. Payment Gateway (Nonaktif Sementara untuk Fase Ini - Keputusan Bisnis: Manual Bukti Transfer)
   checkoutGateway = async (req, res, next) => {
     try {
-      const schoolUnitId = this.getSchoolUnitId(req);
-      const result = await paymentsService.checkoutGateway(schoolUnitId, req.body);
-      if (result.error) return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
-      res.status(201).json({ success: true, data: result.data, message: 'Sesi checkout pembayaran berhasil dibuat', errors: null });
+      return res.status(501).json({
+        success: false,
+        data: null,
+        message: 'Fitur payment gateway belum diaktifkan, gunakan alur bukti transfer manual',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 
   handleGatewayCallback = async (req, res, next) => {
     try {
-      const result = await paymentsService.handleGatewayCallback(req.body);
-      if (result.error) return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
-      res.json({ success: true, data: result.data, message: 'Callback gateway berhasil diproses', errors: null });
+      return res.status(501).json({
+        success: false,
+        data: null,
+        message: 'Fitur payment gateway belum diaktifkan, gunakan alur bukti transfer manual',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 
@@ -100,6 +106,7 @@ class PaymentsController {
     } catch (err) { next(err); }
   };
 
+  // 5. Rekonsiliasi Pembayaran (Fitur #21)
   listReconciliations = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -130,6 +137,71 @@ class PaymentsController {
     try {
       const data = await paymentsService.ingestReconciliationInternal(req.body);
       res.status(201).json({ success: true, data, message: 'Data transaksi eksternal berhasil di-ingest untuk rekonsiliasi', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  // 6. Bukti Transfer & Verifikasi (Pengganti Gateway)
+  listPaymentProofs = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.listPaymentProofs(schoolUnitId, req.query);
+      res.json({
+        success: true,
+        data,
+        message: 'Daftar antrean bukti transfer berhasil diambil',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  verifyPaymentProof = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const result = await paymentsService.verifyPaymentProof(
+        schoolUnitId,
+        req.params.id,
+        req.user?.id,
+        req.body.cash_account_id
+      );
+      if (result.error === 'NOT_FOUND') {
+        return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      if (result.error === 'CONFLICT') {
+        return res.status(409).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      res.json({
+        success: true,
+        data: result.data,
+        message: 'Bukti transfer berhasil diverifikasi dan pembayaran resmi telah dicatat',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  rejectPaymentProof = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const result = await paymentsService.rejectPaymentProof(
+        schoolUnitId,
+        req.params.id,
+        req.body.rejection_reason,
+        req.user?.id
+      );
+      if (result.error === 'VALIDATION') {
+        return res.status(422).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      if (result.error === 'NOT_FOUND') {
+        return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      if (result.error === 'CONFLICT') {
+        return res.status(409).json({ success: false, data: null, message: result.message, errors: null });
+      }
+      res.json({
+        success: true,
+        data: result.data,
+        message: 'Bukti transfer berhasil ditolak',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 }

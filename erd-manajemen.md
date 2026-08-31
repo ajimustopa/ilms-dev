@@ -32,32 +32,38 @@ sebelum migration Tahap 2 dijalankan ke database sungguhan:
 konsisten dengan `erd-coreservice.md`. Istilah asli Indonesia dari PRD dicatat sebagai referensi
 di kolom "Asal PRD" tiap tabel.
 
-## 1. Daftar Entitas (22 Tabel)
+## 1. Daftar Entitas Fondasi & Eksisting Pasca-Rombak
 
-| Kategori (rancangan-manajemen.md §4) | Tabel | `school_unit_id`? |
-|---|---|---|
-| Perencanaan | `institution_development_plans` (RIPS) | **Ya** |
-| Perencanaan | `school_work_plans` (RKS) | **Ya** |
-| Perencanaan | `work_plan_programs` (Program Kerja unit) | **Ya** |
-| Mutu | `quality_indicators` | Ya (nullable = yayasan-wide) |
-| Mutu | `quality_indicator_achievements` | **Ya** |
-| Mutu | `self_evaluations` (Evadir) | **Ya** |
-| Mutu | `accreditation_reports` | **Ya** |
-| Mutu | `accreditation_evidences` | Tidak langsung (ikut `accreditation_reports`) |
-| Mutu | `cross_app_dashboard_snapshots` | Ya (nullable = yayasan-wide) |
-| Mutu | `school_risks` | **Ya** |
-| Kinerja | `employee_performance_evaluations` | **Ya** |
-| Kinerja | `employee_performance_evaluation_criteria` | Tidak langsung (ikut evaluasi) |
-| Supervisi | `supervision_schedules` | **Ya** |
-| Supervisi | `supervision_results` | Tidak langsung (ikut jadwal) |
-| Manajemen Proyek | `projects` | **Ya** |
-| Manajemen Proyek | `project_members` | Tidak langsung (ikut proyek) |
-| Manajemen Proyek | `tasks` | **Ya** |
-| Manajemen Proyek | `task_comments` | Tidak langsung (ikut task, *append-only*) |
-| Manajemen Proyek | `approval_workflows` | Ya (nullable = berlaku semua satuan) |
-| Manajemen Proyek | `approval_steps` | Tidak langsung (ikut workflow) |
-| Manajemen Proyek | `approval_requests` | **Ya** |
-| Manajemen Proyek | `approval_actions` | Tidak langsung (ikut request, *append-only*) |
+### 1.1 Tabel Fondasi Bersama Baru (5 Tabel)
+| Kategori | Tabel | `school_unit_id`? | Keterangan |
+|---|---|---|---|
+| Master Domain RIPS | `rips_domains` | Tidak (Yayasan) | Bidang master custom RIPS (`id, name, order_index, timestamps`) |
+| Master Domain RIPS | `rips_subdomains` | Tidak (Yayasan) | Sub-bidang master custom (`id, domain_id FK, name, order_index, timestamps`) |
+| Master Balanced Scorecard | `bsc_aspects` | Tidak (Yayasan) | Aspek BSC (`Finansial`, `Pelanggan & Stakeholder`, `Proses Bisnis Internal`, `Pembelajaran & Pertumbuhan`) |
+| Master Kepanitiaan | `committee_position_types` | Tidak (Yayasan) | Jenis jabatan kepanitiaan (`Penanggung Jawab`, `Ketua`, `Wakil Ketua`, `Sekretaris`, `Bendahara`, `Koordinator`, `Anggota`) |
+| Penerbitan & Versioning | `document_publications` | Ya (Nullable = Yayasan) | Versioning generik penerbitan dokumen (`rips`, `rkjp`, `rkjm`, `rkt`, `evadir`) dengan snapshot JSON & SK |
+
+### 1.2 Tabel yang DIHAPUS (Legacy yang di-drop total)
+1. `institution_development_plans`
+2. `strategic_goals`
+3. `school_work_plans`
+4. `work_plan_programs`
+5. `work_plan_activities` (akan dibuat ulang dengan skema baru)
+6. `quality_indicators`
+7. `quality_indicator_achievements`
+8. `quality_goals`
+9. `self_evaluations` (digantikan EVADIR baru)
+
+### 1.3 Tabel Eksisting yang DIPERTAHANKAN
+- `evaluation_follow_ups` (RTL) — source_type: `evadir`, `kpi`, `program`, `activity`, `risk`, dll.
+- `accreditation_reports`, `accreditation_evidences`
+- `school_risks`
+- `employee_performance_evaluations`, `employee_performance_evaluation_criteria`
+- `supervision_schedules`, `supervision_results`
+- `planning_agendas`, `user_notifications`
+- `cross_app_dashboard_snapshots`
+- `approval_workflows`, `approval_steps`, `approval_requests`, `approval_actions`
+- `projects`, `project_members`, `tasks`, `task_comments`, `task_checklists`
 
 ## 2. Detail Tabel
 
@@ -768,6 +774,7 @@ VALUES (1, 1, 1);
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-08-28 | **Migrasi Fondasi Rombak Besar:** Drop 9 tabel perencanaan & indikator mutu lama. Pembentukan 5 tabel fondasi bersama (`rips_domains`, `rips_subdomains`, `bsc_aspects`, `committee_position_types`, `document_publications`). |
 | 2026-08-18 | Dokumen dibuat — 22 tabel, **status DRAF** menunggu 6 keputusan terbuka di Bagian 0 dikonfirmasi developer sebelum dianggap final untuk migration Tahap 2. |
 
 *(Tambahkan baris baru di atas setiap ada perubahan skema — jangan hapus riwayat lama.)*

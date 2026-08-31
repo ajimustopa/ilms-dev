@@ -29,7 +29,7 @@ export default function Performance() {
   const fetchEvaluations = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/v1/manajemen/employee-performance-evaluations');
+      const res = await api.get('/manajemen/employee-performance-evaluations');
       setEvaluations(res.data.data || []);
     } catch (err) {
       console.error('Error loading evaluations:', err);
@@ -44,7 +44,7 @@ export default function Performance() {
 
   const handleOpenDetail = async (id) => {
     try {
-      const res = await api.get(`/api/v1/manajemen/employee-performance-evaluations/${id}`);
+      const res = await api.get(`/manajemen/employee-performance-evaluations/${id}`);
       setSelectedEval(res.data.data);
       setDetailModal(true);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function Performance() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.post('/api/v1/manajemen/employee-performance-evaluations', formData);
+      await api.post('/manajemen/employee-performance-evaluations', formData);
       setCreateModal(false);
       fetchEvaluations();
     } catch (err) {
@@ -69,7 +69,7 @@ export default function Performance() {
 
   const handleSubmitEval = async (id) => {
     if (window.confirm('Hitung skor dan ajukan evaluasi ini?')) {
-      await api.patch(`/api/v1/manajemen/employee-performance-evaluations/${id}/submit`);
+      await api.patch(`/manajemen/employee-performance-evaluations/${id}/submit`);
       fetchEvaluations();
       if (selectedEval?.id === id) setDetailModal(false);
     }
@@ -77,7 +77,7 @@ export default function Performance() {
 
   const handleApproveEval = async (id) => {
     if (window.confirm('Setujui hasil evaluasi kinerja ini?')) {
-      await api.patch(`/api/v1/manajemen/employee-performance-evaluations/${id}/approve`);
+      await api.patch(`/manajemen/employee-performance-evaluations/${id}/approve`);
       fetchEvaluations();
       if (selectedEval?.id === id) setDetailModal(false);
     }

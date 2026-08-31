@@ -7,6 +7,7 @@ export const getAppLoginPath = (pathname = '') => {
   const path = typeof pathname === 'string' && pathname ? pathname : (typeof window !== 'undefined' ? window.location.pathname : '');
   
   if (path.startsWith('/akademik')) return '/akademik/login';
+  if (path.startsWith('/guru')) return '/guru/login';
   if (path.startsWith('/kepegawaian')) return '/kepegawaian/login';
   if (path.startsWith('/keuangan')) return '/keuangan/login';
   if (path.startsWith('/alquran')) return '/alquran/login';

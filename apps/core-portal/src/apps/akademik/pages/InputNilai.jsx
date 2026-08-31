@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import { useAuth } from '../../../shared/store/AuthContext';
@@ -22,6 +23,9 @@ import {
   X,
   FileSpreadsheet,
   Download,
+  Upload,
+  FileUp,
+  HelpCircle,
   Eye,
   SlidersHorizontal,
   ChevronDown,
@@ -37,6 +41,7 @@ import {
 
 export default function InputNilai() {
   const { activeSchoolUnit, user } = useAuth();
+  const fileInputRef = useRef(null);
 
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState('assessment_types'); 
@@ -57,6 +62,16 @@ export default function InputNilai() {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // ----------------------------------------------------
+  // SPREADSHEET IMPORT STATE
+  // ----------------------------------------------------
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importTargetType, setImportTargetType] = useState('session'); // 'session' | 'recap' | 'report'
+  const [importFileName, setImportFileName] = useState('');
+  const [importParsedRows, setImportParsedRows] = useState([]);
+  const [importStats, setImportStats] = useState({ totalRows: 0, matchedCount: 0, unmatchedCount: 0 });
+  const [importErrors, setImportErrors] = useState([]);
 
   // ----------------------------------------------------
   // TAB 1: JENIS PENGUJIAN & BOBOT RAPOR STATE
@@ -716,16 +731,611 @@ export default function InputNilai() {
     }
   };
 
-  // ----------------------------------------------------
-  // HANDLERS TAB 5: LEGER & PRATINJAU RAPOR
-  // ----------------------------------------------------
+  // 5. Cetak Leger & Preview Rapor Siswa (Tab 5)
+  const handlePrintLeger = () => {
+    window.print();
+  };
+
   const handleOpenStudentReportPreview = (student) => {
     setPreviewStudentReport(student);
     setReportModalOpen(true);
   };
 
-  const handlePrintLeger = () => {
-    window.print();
+  // ----------------------------------------------------
+  // SPREADSHEET TEMPLATES & IMPORT HANDLERS
+  // ----------------------------------------------------
+  
+  // 1. Download Template Sesi Penilaian
+  const handleDownloadSessionTemplate = () => {
+    if (!activeSessionDetail || !activeSessionDetail.session) return;
+    const session = activeSessionDetail.session;
+    const tps = session.learning_objectives || [];
+    const students = activeSessionDetail.students || [];
+
+    const aoa = [
+      ['TEMPLATE NILAI SESI PENILAIAN'],
+      ['Satuan Pendidikan', activeSchoolUnit?.name || 'Sekolah'],
+      ['Tahun Ajaran', academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || ''],
+      ['Semester', activeSemesterName],
+      ['Rombongan Belajar', activeClassName],
+      ['Mata Pelajaran', activeSubjectName],
+      ['Judul Sesi Penilaian', session.title],
+      ['Jenis Pengujian', session.assessment_type_name || ''],
+      ['Tanggal Pelaksanaan', session.assessment_date ? session.assessment_date.split('T')[0] : ''],
+      ['Skor Maksimal', session.max_score || 100],
+      ['Petunjuk Pengisian', 'Isi nilai siswa pada kolom nilai (0-100). Jangan mengubah nilai kolom ID_SISWA atau NIS.'],
+      []
+    ];
+
+    const tableHeader = ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA'];
+    if (tps.length > 0) {
+      tps.forEach(tp => {
+        tableHeader.push(`${tp.code} (0-100)`);
+      });
+    }
+    tableHeader.push('SKOR_TOTAL');
+    tableHeader.push('FEEDBACK_CATATAN');
+    aoa.push(tableHeader);
+
+    students.forEach((st, idx) => {
+      const studentData = sessionScoresMap[st.student_id] || { score: '', feedback: '', tp_scores: {} };
+      const row = [
+        idx + 1,
+        st.student_id,
+        st.nis || '',
+        st.student_name
+      ];
+      if (tps.length > 0) {
+        tps.forEach(tp => {
+          const val = studentData.tp_scores?.[tp.id];
+          row.push(val !== undefined && val !== '' && val !== null ? Number(val) : '');
+        });
+      }
+      row.push(studentData.score !== undefined && studentData.score !== '' && studentData.score !== null ? Number(studentData.score) : '');
+      row.push(studentData.feedback || '');
+      aoa.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const colWidths = [{ wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 32 }];
+    if (tps.length > 0) {
+      tps.forEach(() => colWidths.push({ wch: 16 }));
+    }
+    colWidths.push({ wch: 14 });
+    colWidths.push({ wch: 35 });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nilai_Sesi');
+
+    const cleanTitle = (session.title || 'Sesi').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanSubject = activeSubjectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Nilai_${cleanSubject}_${cleanClass}_${cleanTitle}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // 2. Download Template Matriks Nilai (Tab 3)
+  const handleDownloadRecapTemplate = () => {
+    if (!recapData || !recapData.students) return;
+    const tps = recapData.learning_objectives || [];
+    const types = recapData.assessment_types || [];
+    const students = recapData.students || [];
+
+    const aoa = [
+      ['TEMPLATE REKAP MATRIKS NILAI MATA PELAJARAN'],
+      ['Satuan Pendidikan', activeSchoolUnit?.name || 'Sekolah'],
+      ['Tahun Ajaran', academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || ''],
+      ['Semester', activeSemesterName],
+      ['Rombongan Belajar', activeClassName],
+      ['Mata Pelajaran', activeSubjectName],
+      ['Standar KKM', recapData.kkm || 75],
+      ['Petunjuk Pengisian', 'Isi nilai rata-rata TP dan Jenis Penilaian (0-100). Jangan mengubah kolom ID_SISWA atau NIS.'],
+      []
+    ];
+
+    const tableHeader = ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA'];
+    tps.forEach(tp => {
+      tableHeader.push(`TP_${tp.code}_[ID:${tp.id}]`);
+    });
+    types.forEach(type => {
+      tableHeader.push(`JENIS_${type.code}_[ID:${type.id}]`);
+    });
+    aoa.push(tableHeader);
+
+    students.forEach((st, idx) => {
+      const sId = st.student_id;
+      const m = recapData.matrix?.[sId] || {};
+      const row = [
+        idx + 1,
+        sId,
+        st.nis || '',
+        st.student_name
+      ];
+      tps.forEach(tp => {
+        const val = m.tp_averages?.[tp.id];
+        row.push(val !== undefined && val !== null ? Number(val) : '');
+      });
+      types.forEach(type => {
+        const val = m.type_averages?.[type.id];
+        row.push(val !== undefined && val !== null ? Number(val) : '');
+      });
+      aoa.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const colWidths = [{ wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 32 }];
+    tps.forEach(() => colWidths.push({ wch: 18 }));
+    types.forEach(() => colWidths.push({ wch: 18 }));
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Matriks_Nilai');
+
+    const cleanSubject = activeSubjectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Matriks_Nilai_${cleanSubject}_${cleanClass}_${activeSemesterName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // 3. Download Template Nilai Rapor & Deskripsi TP (Tab 4)
+  const handleDownloadReportTemplate = () => {
+    if (reportItems.length === 0) return;
+    const aoa = [
+      ['TEMPLATE NILAI AKHIR RAPOR & NARASI CAPAIAN TP'],
+      ['Satuan Pendidikan', activeSchoolUnit?.name || 'Sekolah'],
+      ['Tahun Ajaran', academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || ''],
+      ['Semester', activeSemesterName],
+      ['Rombongan Belajar', activeClassName],
+      ['Mata Pelajaran', activeSubjectName],
+      ['Petunjuk Pengisian', 'Isi Nilai Akhir Rapor (0-100) dan Deskripsi Capaian Kompetensi Rapor.'],
+      []
+    ];
+
+    const tableHeader = ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA', 'NILAI_AKHIR', 'PREDIKAT', 'DESKRIPSI_CAPAIAN_RAPOR'];
+    aoa.push(tableHeader);
+
+    reportItems.forEach((item, idx) => {
+      aoa.push([
+        idx + 1,
+        item.student_id,
+        item.nis || '',
+        item.student_name,
+        item.final_score !== '' && item.final_score !== null ? Number(item.final_score) : '',
+        item.predicate || '',
+        item.competency_description || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 30 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 65 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nilai_Rapor');
+
+    const cleanSubject = activeSubjectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Nilai_Rapor_${cleanSubject}_${cleanClass}_${activeSemesterName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // Trigger File Input Selector
+  const handleTriggerFileInput = (targetType) => {
+    setImportTargetType(targetType);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Process Uploaded Spreadsheet File
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFileName(file.name);
+    setImportErrors([]);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[firstSheetName];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        alert('File spreadsheet kosong atau tidak memiliki data yang valid.');
+        return;
+      }
+
+      // Cari baris header tabel yang tepat (menghindari baris metadata/petunjuk di atas)
+      let headerRowIndex = -1;
+      for (let i = 0; i < Math.min(30, rawRows.length); i++) {
+        const row = rawRows[i];
+        if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+        const rowCellsUpper = row.map(cell => String(cell || '').trim().toUpperCase());
+        const rowJoined = rowCellsUpper.join(' | ');
+
+        // Lewati baris judul file atau petunjuk
+        if (
+          rowJoined.startsWith('TEMPLATE') ||
+          rowJoined.includes('PETUNJUK PENGISIAN') ||
+          rowJoined.includes('SATUAN PENDIDIKAN') ||
+          rowJoined.includes('TAHUN AJARAN') ||
+          rowJoined.includes('ROMBONGAN BELAJAR')
+        ) {
+          continue;
+        }
+
+        const hasNama = rowCellsUpper.some(c => c.includes('NAMA') || c.includes('STUDENT'));
+        const hasIdOrNisOrNo = rowCellsUpper.some(c => c.includes('NIS') || c.includes('ID_SISWA') || c.includes('ID SISWA') || c === 'NO' || c === 'NO.');
+
+        if (hasNama && hasIdOrNisOrNo) {
+          headerRowIndex = i;
+          break;
+        }
+
+        if (rowCellsUpper.some(c => c === 'NAMA' || c === 'NAMA_SISWA' || c === 'NAMA SISWA' || c === 'NAMA LENGKAP')) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      // Fallback jika headerRowIndex tidak ditemukan: gunakan baris pertama yang memiliki > 2 kolom
+      if (headerRowIndex === -1) {
+        for (let i = 0; i < Math.min(15, rawRows.length); i++) {
+          if (rawRows[i] && rawRows[i].filter(Boolean).length >= 3) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        alert('Tidak dapat menemukan baris kolom tabel (ID_SISWA / NIS / NAMA_SISWA) pada spreadsheet.');
+        return;
+      }
+
+      const headers = rawRows[headerRowIndex].map(h => String(h || '').trim());
+      const dataRows = rawRows.slice(headerRowIndex + 1);
+
+      // Cari index kolom-kolom kunci
+      const idSiswaIdx = headers.findIndex(h => /ID_SISWA|STUDENT_ID|ID SISWA|ID_STUDENT|^ID$/i.test(h));
+      const nisIdx = headers.findIndex(h => /^NISN?$|NO INDUK|NOMOR INDUK/i.test(h));
+      const namaIdx = headers.findIndex(h => /NAMA|STUDENT_NAME|STUDENT/i.test(h));
+      const skorTotalIdx = headers.findIndex(h => /SKOR_TOTAL|SKOR TOTAL|NILAI_AKHIR|NILAI AKHIR|^SKOR$|^TOTAL$|^NILAI$/i.test(h));
+      const feedbackIdx = headers.findIndex(h => /FEEDBACK|CATATAN|KETERANGAN/i.test(h));
+      const deskripsiIdx = headers.findIndex(h => /DESKRIPSI|NARASI|CAPAIAN/i.test(h));
+
+      // Normalisasi helper untuk nama
+      const normalizeStr = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // Parsing sesuai Target Type
+      if (importTargetType === 'session') {
+        const targetStudents = activeSessionDetail?.students || [];
+        const sessionTps = activeSessionDetail?.session?.learning_objectives || [];
+
+        // Petakan index kolom TP
+        const tpColMap = {};
+        sessionTps.forEach(tp => {
+          const tpIdx = headers.findIndex(h => {
+            const hClean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const codeClean = tp.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return hClean.includes(codeClean) || hClean.includes(`id${tp.id}`);
+          });
+          if (tpIdx !== -1) tpColMap[tp.id] = tpIdx;
+        });
+
+        const parsed = [];
+        let matched = 0;
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          // Match student
+          let student = null;
+          if (rawId) {
+            student = targetStudents.find(s => String(s.student_id).trim() === rawId);
+          }
+          if (!student && rawNis) {
+            student = targetStudents.find(s => String(s.nis || '').trim() === rawNis);
+          }
+          if (!student && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            student = targetStudents.find(s => normalizeStr(s.student_name) === cleanInputName);
+            if (!student) {
+              student = targetStudents.find(s => normalizeStr(s.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(s.student_name)));
+            }
+          }
+
+          if (student) {
+            matched++;
+            const tpScores = {};
+            sessionTps.forEach(tp => {
+              const colIdx = tpColMap[tp.id];
+              if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== '') {
+                const num = parseFloat(row[colIdx]);
+                if (!isNaN(num)) tpScores[tp.id] = Math.min(100, Math.max(0, num));
+              }
+            });
+
+            let finalScore = null;
+            if (skorTotalIdx !== -1 && row[skorTotalIdx] !== undefined && row[skorTotalIdx] !== '') {
+              const num = parseFloat(row[skorTotalIdx]);
+              if (!isNaN(num)) finalScore = Math.min(100, Math.max(0, num));
+            } else if (Object.keys(tpScores).length > 0) {
+              const vals = Object.values(tpScores);
+              finalScore = parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1));
+            }
+
+            const feedback = feedbackIdx !== -1 && row[feedbackIdx] ? String(row[feedbackIdx]).trim() : '';
+
+            parsed.push({
+              student_id: student.student_id,
+              nis: student.nis,
+              student_name: student.student_name,
+              score: finalScore,
+              tp_scores: tpScores,
+              feedback,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              score: skorTotalIdx !== -1 && row[skorTotalIdx] !== '' ? row[skorTotalIdx] : null,
+              tp_scores: {},
+              feedback: '',
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
+      } else if (importTargetType === 'recap') {
+        const targetStudents = recapData?.students || [];
+        const tps = recapData?.learning_objectives || [];
+        const types = recapData?.assessment_types || [];
+
+        const tpColMap = {};
+        tps.forEach(tp => {
+          const idx = headers.findIndex(h => {
+            const hClean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const codeClean = tp.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return hClean.includes(`id${tp.id}`) || hClean.includes(`tp${codeClean}`) || hClean === codeClean;
+          });
+          if (idx !== -1) tpColMap[tp.id] = idx;
+        });
+
+        const typeColMap = {};
+        types.forEach(t => {
+          const idx = headers.findIndex(h => {
+            const hClean = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const codeClean = t.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return hClean.includes(`id${t.id}`) || hClean.includes(`jenis${codeClean}`) || hClean === codeClean;
+          });
+          if (idx !== -1) typeColMap[t.id] = idx;
+        });
+
+        const parsed = [];
+        let matched = 0;
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          let student = null;
+          if (rawId) student = targetStudents.find(s => String(s.student_id).trim() === rawId);
+          if (!student && rawNis) student = targetStudents.find(s => String(s.nis || '').trim() === rawNis);
+          if (!student && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            student = targetStudents.find(s => normalizeStr(s.student_name) === cleanInputName);
+            if (!student) {
+              student = targetStudents.find(s => normalizeStr(s.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(s.student_name)));
+            }
+          }
+
+          if (student) {
+            matched++;
+            const tpAvgs = {};
+            tps.forEach(tp => {
+              const colIdx = tpColMap[tp.id];
+              if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== '') {
+                const num = parseFloat(row[colIdx]);
+                if (!isNaN(num)) tpAvgs[tp.id] = Math.min(100, Math.max(0, num));
+              }
+            });
+
+            const typeAvgs = {};
+            types.forEach(t => {
+              const colIdx = typeColMap[t.id];
+              if (colIdx !== undefined && row[colIdx] !== undefined && row[colIdx] !== '') {
+                const num = parseFloat(row[colIdx]);
+                if (!isNaN(num)) typeAvgs[t.id] = Math.min(100, Math.max(0, num));
+              }
+            });
+
+            parsed.push({
+              student_id: student.student_id,
+              nis: student.nis,
+              student_name: student.student_name,
+              tp_averages: tpAvgs,
+              type_averages: typeAvgs,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              tp_averages: {},
+              type_averages: {},
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
+      } else if (importTargetType === 'report') {
+        const parsed = [];
+        let matched = 0;
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          let item = null;
+          if (rawId) item = reportItems.find(r => String(r.student_id).trim() === rawId);
+          if (!item && rawNis) item = reportItems.find(r => String(r.nis || '').trim() === rawNis);
+          if (!item && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            item = reportItems.find(r => normalizeStr(r.student_name) === cleanInputName);
+            if (!item) {
+              item = reportItems.find(r => normalizeStr(r.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(r.student_name)));
+            }
+          }
+
+          if (item) {
+            matched++;
+            let finalVal = item.final_score;
+            if (skorTotalIdx !== -1 && row[skorTotalIdx] !== undefined && row[skorTotalIdx] !== '') {
+              const num = parseFloat(row[skorTotalIdx]);
+              if (!isNaN(num)) finalVal = Math.min(100, Math.max(0, num));
+            }
+
+            const narrative = deskripsiIdx !== -1 && row[deskripsiIdx] ? String(row[deskripsiIdx]).trim() : item.competency_description;
+
+            parsed.push({
+              student_id: item.student_id,
+              nis: item.nis,
+              student_name: item.student_name,
+              final_score: finalVal,
+              competency_description: narrative,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              final_score: null,
+              competency_description: '',
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Error parsing spreadsheet:', err);
+      alert('Terjadi kesalahan saat membaca file spreadsheet: ' + err.message);
+    }
+  };
+
+  // Apply Imported Data into Forms/State
+  const handleApplyImport = () => {
+    const matchedRows = importParsedRows.filter(r => r.status === 'matched');
+    if (matchedRows.length === 0) {
+      alert('Tidak ada data siswa yang cocok untuk diterapkan.');
+      return;
+    }
+
+    if (importTargetType === 'session') {
+      setSessionScoresMap(prev => {
+        const updated = { ...prev };
+        matchedRows.forEach(row => {
+          const curr = updated[row.student_id] || { score: '', feedback: '', tp_scores: {} };
+          updated[row.student_id] = {
+            score: row.score !== null ? row.score : curr.score,
+            feedback: row.feedback || curr.feedback,
+            tp_scores: { ...(curr.tp_scores || {}), ...(row.tp_scores || {}) }
+          };
+        });
+        return updated;
+      });
+      setSuccessMsg(`Berhasil mengimpor nilai untuk ${matchedRows.length} siswa pada sesi penilaian!`);
+    } else if (importTargetType === 'recap') {
+      setRecapMatrixEdit(prev => {
+        const updated = { ...prev };
+        matchedRows.forEach(row => {
+          const curr = updated[row.student_id] || { tp_averages: {}, type_averages: {} };
+          updated[row.student_id] = {
+            tp_averages: { ...(curr.tp_averages || {}), ...(row.tp_averages || {}) },
+            type_averages: { ...(curr.type_averages || {}), ...(row.type_averages || {}) }
+          };
+        });
+        return updated;
+      });
+      setSuccessMsg(`Berhasil mengimpor matriks nilai untuk ${matchedRows.length} siswa!`);
+    } else if (importTargetType === 'report') {
+      setReportItems(prev => {
+        return prev.map(item => {
+          const match = matchedRows.find(m => String(m.student_id) === String(item.student_id));
+          if (!match) return item;
+
+          const finalScore = match.final_score !== null ? match.final_score : item.final_score;
+          const num = parseFloat(finalScore) || 0;
+          let predicate = 'C';
+          if (num >= 90) predicate = 'A';
+          else if (num >= 80) predicate = 'B';
+          else if (num >= 70) predicate = 'C';
+          else predicate = 'D';
+
+          return {
+            ...item,
+            final_score: finalScore,
+            predicate,
+            competency_description: match.competency_description || item.competency_description
+          };
+        });
+      });
+      setSuccessMsg(`Berhasil mengimpor nilai rapor & narasi untuk ${matchedRows.length} siswa!`);
+    }
+
+    setImportModalOpen(false);
+    setTimeout(() => setSuccessMsg(''), 4000);
   };
 
   // Active Subject & Class Labels
@@ -1162,16 +1772,35 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {activeTab === 'recap_matrix' && (
         <div className="space-y-4">
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs flex-wrap gap-2">
-            <div className="flex items-center gap-2">
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between text-xs gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-slate-700">Matriks Nilai Rombel:</span>
               <span className="px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded font-bold">{activeClassName}</span>
               <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold">{activeSubjectName}</span>
               <span className="text-slate-400">• Standar KKM: <b>{recapData?.kkm || 75}</b></span>
             </div>
-            <span className="text-slate-500 italic text-[11px]">
-              * Nilai dihitung dari rata-rata sesi pelaksanaan ujian. Anda juga dapat mengedit nilai secara manual jika diperlukan.
-            </span>
+            
+            {/* Action Buttons: Template & Import */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadRecapTemplate}
+                className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                title="Unduh format spreadsheet Excel (.xlsx) untuk rekap nilai TP dan Jenis Ujian rombel ini"
+              >
+                <Download className="w-3.5 h-3.5 text-teal-600" />
+                <span>Unduh Template Excel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTriggerFileInput('recap')}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                title="Unggah spreadsheet nilai untuk mengisi matriks secara otomatis"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Import Nilai Spreadsheet</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
@@ -1316,6 +1945,24 @@ export default function InputNilai() {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadReportTemplate}
+                className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                title="Unduh format spreadsheet Excel (.xlsx) nilai rapor & deskripsi capaian"
+              >
+                <Download className="w-3.5 h-3.5 text-teal-600" />
+                <span>Unduh Template Excel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTriggerFileInput('report')}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                title="Unggah spreadsheet untuk update nilai rapor & deskripsi sekaligus"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Import Spreadsheet</span>
+              </button>
               <button
                 onClick={handleGenerateAllNarratives}
                 className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
@@ -1787,8 +2434,8 @@ export default function InputNilai() {
       {/* Modal 3: Input Nilai Siswa per Sesi */}
       {sessionScoreModalOpen && activeSessionDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Input Nilai: {activeSessionDetail.session?.title}
@@ -1797,9 +2444,30 @@ export default function InputNilai() {
                   Jenis: <strong className="text-indigo-700">{activeSessionDetail.session?.assessment_type_name}</strong> • Mapel: <strong className="text-teal-700">{activeSubjectName}</strong> • Rombel: <strong className="text-slate-800">{activeClassName}</strong>
                 </p>
               </div>
-              <button onClick={() => setSessionScoreModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleDownloadSessionTemplate}
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                  title="Unduh template spreadsheet Excel (.xlsx) dengan daftar siswa rombel ini"
+                >
+                  <Download className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Unduh Template</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTriggerFileInput('session')}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                  title="Import nilai siswa dari file Excel / CSV"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Import Excel</span>
+                </button>
+                <button onClick={() => setSessionScoreModalOpen(false)} className="text-slate-400 hover:text-slate-600 ml-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSaveSessionScores} className="flex-1 overflow-hidden flex flex-col space-y-3">
@@ -1839,7 +2507,8 @@ export default function InputNilai() {
                               <input
                                 type="number"
                                 min="0"
-                                max="100"
+                                max={activeSessionDetail.session?.max_score || 100}
+                                step="any"
                                 value={studentData.tp_scores?.[tp.id] !== undefined ? studentData.tp_scores[tp.id] : ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -1849,7 +2518,7 @@ export default function InputNilai() {
                                     
                                     // Auto-calculate skor rata-rata sesi jika ada multiple TP
                                     const validVals = Object.values(updatedTp).filter(v => v !== '' && !isNaN(v)).map(Number);
-                                    const autoAvg = validVals.length > 0 ? (validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(1) : currSt.score;
+                                    const autoAvg = validVals.length > 0 ? parseFloat((validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2)) : currSt.score;
 
                                     return {
                                       ...prev,
@@ -1872,7 +2541,8 @@ export default function InputNilai() {
                             <input
                               type="number"
                               min="0"
-                              max="100"
+                              max={activeSessionDetail.session?.max_score || 100}
+                              step="any"
                               value={studentData.score !== undefined ? studentData.score : ''}
                               onChange={(e) => {
                                 const val = e.target.value;
@@ -1992,6 +2662,138 @@ export default function InputNilai() {
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* MODAL 5: PRATINJAU & KONFIRMASI IMPORT SPREADSHEET */}
+      {/* ======================================================== */}
+      {importModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Pratinjau Hasil Import Spreadsheet
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    File: <strong className="text-slate-800">{importFileName}</strong> • Target: <strong className="text-teal-700 uppercase">{importTargetType === 'session' ? 'Sesi Penilaian' : importTargetType === 'recap' ? 'Matriks Nilai' : 'Nilai Rapor'}</strong>
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setImportModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Statistik Ringkasan */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Baris File</span>
+                <span className="text-base font-black text-slate-800">{importStats.totalRows}</span>
+              </div>
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                <span className="text-[10px] uppercase font-bold text-emerald-700 block">Siswa Cocok</span>
+                <span className="text-base font-black text-emerald-800">{importStats.matchedCount} Siswa</span>
+              </div>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                <span className="text-[10px] uppercase font-bold text-amber-700 block">Tidak Cocok</span>
+                <span className="text-base font-black text-amber-800">{importStats.unmatchedCount} Baris</span>
+              </div>
+            </div>
+
+            {/* Tabel Pratinjau Baris Siswa */}
+            <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl max-h-72">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
+                  <tr>
+                    <th className="py-2 px-3 w-10 text-center">No</th>
+                    <th className="py-2 px-3 w-24">NIS</th>
+                    <th className="py-2 px-3">Nama Siswa</th>
+                    <th className="py-2 px-3 text-center w-28">Nilai / Skor</th>
+                    <th className="py-2 px-3 text-center w-28">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {importParsedRows.map((r, idx) => (
+                    <tr key={idx} className={r.status === 'matched' ? 'hover:bg-slate-50/70' : 'bg-rose-50/40 text-rose-800'}>
+                      <td className="py-2 px-3 text-center font-bold text-slate-500">{idx + 1}</td>
+                      <td className="py-2 px-3 font-mono text-[11px]">{r.nis || '-'}</td>
+                      <td className="py-2 px-3 font-bold text-slate-900">
+                        {r.student_name}
+                      </td>
+                      <td className="py-2 px-3 text-center font-black">
+                        {r.score !== null && r.score !== undefined ? (
+                          <span className="px-2 py-0.5 bg-teal-50 text-teal-900 border border-teal-200 rounded font-black">
+                            {r.score}
+                          </span>
+                        ) : r.final_score !== null && r.final_score !== undefined ? (
+                          <span className="px-2 py-0.5 bg-teal-50 text-teal-900 border border-teal-200 rounded font-black">
+                            {r.final_score}
+                          </span>
+                        ) : r.tp_averages && Object.keys(r.tp_averages).length > 0 ? (
+                          <span className="text-[11px] text-teal-800">
+                            {Object.keys(r.tp_averages).length} TP Terisi
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        {r.status === 'matched' ? (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                            Cocok
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px]">
+                            Tidak Ditemukan
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <p className="text-slate-500 text-[11px]">
+                * Klik <b>"Terapkan Nilai ke Form"</b> untuk memasukkan nilai ke dalam halaman. Anda tetap dapat mereview dan mengedit sebelum menyimpan ke server.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImportModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyImport}
+                  disabled={importStats.matchedCount === 0}
+                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Terapkan {importStats.matchedCount} Nilai</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input for Spreadsheet Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelected}
+        accept=".xlsx, .xls, .csv"
+        className="hidden"
+      />
     </div>
   );
 }

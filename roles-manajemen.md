@@ -114,6 +114,7 @@ Service, tidak diduplikasi mekanismenya di sini. Contoh skenario khas untuk Mana
 
 | Tanggal | Versi | Catatan Perubahan |
 |---|---|---|
+| 2026-08-28 | v1.1.0 | **Migrasi Fondasi Rombak Besar:** Penyesuaian arsitektur perencanaan, BSC, dan kepanitiaan. Role tetap terhubung ke Core Service RBAC. |
 | 2026-08-18 | v1.0.0 | Penyusunan awal matriks role & permission modul Manajemen — 8 role tambahan dipetakan ke 13 fitur, standar kode izin `manajemen.*`. |
 
 *(Tambahkan baris baru di atas setiap ada perubahan — jangan hapus riwayat lama.)*

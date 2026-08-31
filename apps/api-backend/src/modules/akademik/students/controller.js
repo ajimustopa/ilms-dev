@@ -197,11 +197,84 @@ class StudentsController {
 
   async promoteStudents(req, res, next) {
     try {
-      const result = await studentsService.promoteStudents(req.body);
+      const result = await studentsService.promoteStudents(req.body, req.user);
       res.status(200).json({
         success: true,
         data: result,
         message: result.message,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async graduateStudents(req, res, next) {
+    try {
+      const result = await studentsService.graduateStudents(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: result.message,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getGraduationCertificateData(req, res, next) {
+    try {
+      const result = await studentsService.getGraduationCertificateData(req.params.id);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Data kelulusan dan nilai sertifikat berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getStudentClassHistory(req, res, next) {
+    try {
+      const result = await studentsService.getStudentClassHistory(req.params.id);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Riwayat kronologis rombel siswa berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async quickAddLegacy(req, res, next) {
+    try {
+      const result = await studentsService.quickAddLegacyStudent(req.body, req.user);
+      res.status(201).json({
+        success: true,
+        data: result.student,
+        warning: result.warning,
+        message: result.warning
+          ? `Data siswa berhasil disimpan dengan catatan: ${result.warning}`
+          : 'Data siswa riwayat / alumni berhasil ditambahkan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async searchQuick(req, res, next) {
+    try {
+      const result = await studentsService.searchQuick(req.query);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Hasil pencarian cepat siswa berhasil dimuat',
         errors: null
       });
     } catch (err) {

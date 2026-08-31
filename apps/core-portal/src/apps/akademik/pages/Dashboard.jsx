@@ -22,6 +22,8 @@ export default function AkademikDashboard() {
   const [attendances, setAttendances] = useState({ hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 });
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [openPsbProcess, setOpenPsbProcess] = useState(null);
+  const [psbStats, setPsbStats] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -33,17 +35,27 @@ export default function AkademikDashboard() {
       const params = {};
       if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
 
-      const [sumRes, attRes, leaveRes, calRes] = await Promise.all([
+      const [sumRes, attRes, leaveRes, calRes, psbRes] = await Promise.all([
         api.get('/akademik/reports/academic-summary', { params }).catch(() => ({ data: { data: {} } })),
         api.get('/akademik/attendances/summary', { params }).catch(() => ({ data: { data: {} } })),
         api.get('/akademik/leave-requests?approval_status=menunggu', { params }).catch(() => ({ data: { data: [] } })),
         api.get('/akademik/calendar-events', { params }).catch(() => ({ data: { data: [] } })),
+        api.get('/akademik/psb-processes').catch(() => ({ data: { data: [] } })),
       ]);
 
       setSummary(sumRes.data?.data || {});
       setAttendances(attRes.data?.data || { hadir: 0, izin: 0, sakit: 0, alpa: 0, total: 0 });
       setPendingLeaves(leaveRes.data?.data || []);
       setCalendarEvents(calRes.data?.data?.slice(0, 4) || []);
+
+      const psbList = psbRes.data?.data || [];
+      const activePsb = psbList.find((p) => p.status === 'open') || psbList[0] || null;
+      setOpenPsbProcess(activePsb);
+
+      if (activePsb) {
+        const statsRes = await api.get(`/akademik/psb-processes/${activePsb.id}/stats`).catch(() => null);
+        setPsbStats(statsRes?.data?.data || null);
+      }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
@@ -151,6 +163,83 @@ export default function AkademikDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Widget Ringkas Realisasi PSB (Penerimaan Murid Baru) */}
+      {openPsbProcess && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
+                  {openPsbProcess.status === 'open' ? 'Pendaftaran Dibuka' : 'Periode PSB'}
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">Tahun Ajaran {openPsbProcess.target_academic_year}</span>
+              </div>
+              <h2 className="text-base font-extrabold text-slate-900 mt-1">
+                Realisasi Penerimaan Murid Baru: {openPsbProcess.name}
+              </h2>
+            </div>
+            <Link
+              to="/akademik/psb/pendataan"
+              className="text-xs text-teal-600 hover:text-teal-700 font-bold flex items-center gap-1 self-start sm:self-auto"
+            >
+              <span>Kelola PSB</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Target vs Realisasi */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+              <span className="text-[11px] font-semibold text-slate-500">Capaian Target Total</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-teal-700">{psbStats?.total_registrants || 0}</span>
+                <span className="text-xs text-slate-400">/ {psbStats?.total_target || 100} Target</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-teal-600 rounded-full"
+                  style={{ width: `${Math.min(100, Math.round(((psbStats?.total_registrants || 0) / (psbStats?.total_target || 100)) * 100))}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Breakdown Gender */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+              <span className="text-[11px] font-semibold text-slate-500">Breakdown Gender</span>
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="font-semibold text-blue-700">Laki-laki (Ikhwan):</span>
+                <span className="font-bold text-slate-800">{psbStats?.by_gender?.male || 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-pink-700">Perempuan (Akhwat):</span>
+                <span className="font-bold text-slate-800">{psbStats?.by_gender?.female || 0}</span>
+              </div>
+            </div>
+
+            {/* Status Tahapan */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1 sm:col-span-2">
+              <span className="text-[11px] font-semibold text-slate-500">Status Tahapan Calon Santri</span>
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 block">Terdaftar / Tes</span>
+                  <span className="font-bold text-blue-600 text-xs">
+                    {(psbStats?.by_status?.registered || 0) + (psbStats?.by_status?.testing || 0)}
+                  </span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 block">Lulus Seleksi</span>
+                  <span className="font-bold text-teal-600 text-xs">{psbStats?.by_status?.test_passed || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 block">Ditempatkan</span>
+                  <span className="font-bold text-emerald-600 text-xs">{psbStats?.by_status?.placed || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid 2 Kolom: Rekap Presensi & Agenda Kalender */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

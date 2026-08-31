@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
@@ -27,12 +27,16 @@ import {
   ListPlus,
   FileText,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Check,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Clock
+  Clock,
+  Zap,
+  Layers,
+  FolderPlus
 } from 'lucide-react';
 
 import { useAuth } from '../../../shared/store/AuthContext';
@@ -86,7 +90,7 @@ export default function Kurikulum() {
   // Modals state
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', grade_level_id: '', kkm: 75, is_active: true, reason: '' });
+  const [subjectForm, setSubjectForm] = useState({ name: '', code: '', grade_level_id: '', kkm: 75, parent_subject_id: '', jp_allocation_mode: 'standalone', is_elective: false, elective_group_name: '', is_active: true, reason: '' });
 
   // Modal Toggle Status & Riwayat Status Mapel
   const [subjectToggleModalOpen, setSubjectToggleModalOpen] = useState(false);
@@ -109,6 +113,7 @@ export default function Kurikulum() {
     subject_id: '',
     extracurricular_id: '',
     class_group_ids: [],
+    is_joined_class: false,
     teacher_employee_id: '',
     allocated_hours: 2,
     role_description: 'Guru Pengampu',
@@ -131,12 +136,122 @@ export default function Kurikulum() {
     teacher_employee_id_2: '',
     allocated_hours_2: 2,
     role_description_2: 'Guru Pengampu 2',
+    elective_teachers: [{ teacher_employee_id: '', role_description: 'Guru Pengampu' }],
+    is_joined_class: false,
+    class_group_ids: [],
     sk_number: '',
     reason: '',
     notes: ''
   });
 
-  // State Searchable Dropdown untuk Penugasan Guru
+  const handleAddElectiveTeacher = () => {
+    setQuickAssignForm(prev => ({
+      ...prev,
+      elective_teachers: [...prev.elective_teachers, { teacher_employee_id: '', role_description: 'Guru Pengampu' }]
+    }));
+  };
+
+  const handleRemoveElectiveTeacher = (index) => {
+    setQuickAssignForm(prev => ({
+      ...prev,
+      elective_teachers: prev.elective_teachers.filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleElectiveTeacherChange = (index, field, val) => {
+    setQuickAssignForm(prev => {
+      const updated = [...prev.elective_teachers];
+      updated[index] = { ...updated[index], [field]: val };
+      return { ...prev, elective_teachers: updated };
+    });
+  };
+
+    // Sub-tab khusus Tab 6 Pembagian Tugas Mengajar & Ekskul
+  const [teachingSubTab, setTeachingSubTab] = useState('by_learning'); // 'by_learning' | 'by_teacher'
+
+  // State Modal Tambah Pembelajaran Langsung Dari Halaman Guru (Sub-Tab 2)
+  const [teacherAssignModalOpen, setTeacherAssignModalOpen] = useState(false);
+  const [selectedTeacherForAssign, setSelectedTeacherForAssign] = useState(null);
+  const [teacherAssignForm, setTeacherAssignForm] = useState({
+    type: 'mapel',
+    subject_id: '',
+    extracurricular_id: '',
+    class_group_id: '',
+    allocated_hours: 2,
+    role_description: 'Guru Pengampu',
+    sk_number: '',
+    notes: '',
+    reason: 'Penetapan tugas mengajar per guru'
+  });
+
+  const handleOpenTeacherAssignModal = (teacher) => {
+    setSelectedTeacherForAssign(teacher);
+    const firstSub = subjectsList[0];
+    const isEl = firstSub ? (firstSub.is_elective == 1 || firstSub.is_elective === true || firstSub.is_elective === '1') : false;
+    const targetRombel = isEl
+      ? classGroups.find(cg => cg.type === 'pilihan' || String(cg.subject_id) === String(firstSub?.id))
+      : classGroups.find(cg => !cg.type || cg.type === 'reguler');
+
+    setTeacherAssignForm({
+      type: 'mapel',
+      subject_id: firstSub?.id || '',
+      extracurricular_id: extrasList[0]?.id || '',
+      class_group_id: targetRombel?.id || '',
+      allocated_hours: 2,
+      role_description: 'Guru Pengampu',
+      sk_number: '',
+      notes: '',
+      reason: 'Penetapan tugas mengajar per guru'
+    });
+    setTeacherAssignModalOpen(true);
+  };
+
+  const handleSaveTeacherAssign = async (e) => {
+    e.preventDefault();
+    if (!selectedTeacherForAssign) return;
+    if (teacherAssignForm.type === 'mapel' && (!teacherAssignForm.subject_id || !teacherAssignForm.class_group_id)) {
+      alert('Pilih Mata Pelajaran dan Rombongan Belajar!');
+      return;
+    }
+    if (teacherAssignForm.type === 'ekskul' && !teacherAssignForm.extracurricular_id) {
+      alert('Pilih Ekstrakurikuler!');
+      return;
+    }
+    if (!teacherAssignForm.reason || !teacherAssignForm.reason.trim()) {
+      alert('Alasan penetapan wajib diisi!');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        satuan_pendidikan_id: activeSchoolUnit?.id,
+        academic_year_id: Number(selectedAcademicYearId),
+        type: teacherAssignForm.type,
+        subject_id: teacherAssignForm.type === 'mapel' ? Number(teacherAssignForm.subject_id) : null,
+        extracurricular_id: teacherAssignForm.type === 'ekskul' ? Number(teacherAssignForm.extracurricular_id) : null,
+        class_group_id: teacherAssignForm.type === 'mapel' ? Number(teacherAssignForm.class_group_id) : null,
+        teacher_employee_id: Number(selectedTeacherForAssign.id),
+        allocated_hours: parseInt(teacherAssignForm.allocated_hours, 10) || 2,
+        role_description: teacherAssignForm.role_description || 'Guru Pengampu',
+        sk_number: teacherAssignForm.sk_number ? teacherAssignForm.sk_number.trim() : null,
+        notes: teacherAssignForm.notes ? teacherAssignForm.notes.trim() : null,
+        reason: teacherAssignForm.reason.trim()
+      };
+
+      await api.post('/akademik/teaching-duties', payload);
+      setSuccessMsg(`Tugas mengajar berhasil ditambahkan untuk ${selectedTeacherForAssign.full_name || 'Guru'}`);
+      setTeacherAssignModalOpen(false);
+      fetchTabData();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyimpan tugas mengajar guru');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+// State Searchable Dropdown untuk Penugasan Guru
   const [teacherSearch, setTeacherSearch] = useState('');
   const [teacherDropdownOpen, setTeacherDropdownOpen] = useState(false);
   const [subjectSearch, setSubjectSearch] = useState('');
@@ -379,8 +494,6 @@ export default function Kurikulum() {
         setCurrStructMatrixMap(structMap);
       } else if (activeTab === 'learning_objectives') {
         if (selectedAcademicYearId) params.academic_year_id = selectedAcademicYearId;
-        if (tpGradeFilter) params.grade_level_id = tpGradeFilter;
-        if (tpSubjectFilter) params.subject_id = tpSubjectFilter;
         const res = await api.get('/akademik/learning-objectives', { params });
         setDataList(res.data?.data || []);
       }
@@ -522,6 +635,8 @@ export default function Kurikulum() {
       kkm: 75,
       parent_subject_id: '',
       jp_allocation_mode: 'standalone',
+      is_elective: false,
+      elective_group_name: '',
       is_active: true,
       reason: ''
     });
@@ -538,6 +653,8 @@ export default function Kurikulum() {
       kkm: s.kkm !== null && s.kkm !== undefined ? s.kkm : 75,
       parent_subject_id: s.parent_subject_id || '',
       jp_allocation_mode: s.jp_allocation_mode || (s.parent_subject_id ? 'included_in_parent' : 'standalone'),
+      is_elective: s.is_elective == 1 || s.is_elective === true || s.is_elective === '1',
+      elective_group_name: s.elective_group_name || '',
       is_active: s.is_active !== undefined ? Boolean(s.is_active) : true,
       reason: ''
     });
@@ -562,6 +679,8 @@ export default function Kurikulum() {
         kkm: subjectForm.kkm !== '' ? parseFloat(subjectForm.kkm) : null,
         parent_subject_id: subjectForm.parent_subject_id ? parseInt(subjectForm.parent_subject_id, 10) : null,
         jp_allocation_mode: subjectForm.parent_subject_id ? (subjectForm.jp_allocation_mode || 'included_in_parent') : 'standalone',
+        is_elective: subjectForm.is_elective ? true : false,
+        elective_group_name: subjectForm.is_elective && subjectForm.elective_group_name ? subjectForm.elective_group_name.trim() : null,
         is_active: subjectForm.is_active !== undefined ? subjectForm.is_active : true,
         reason: subjectForm.reason?.trim() || undefined
       };
@@ -721,12 +840,20 @@ export default function Kurikulum() {
     const teacher1 = duties[0];
     const teacher2 = duties[1];
 
-    const splitJp1 = teacher1?.allocated_hours !== undefined && teacher1?.allocated_hours !== null
-      ? teacher1.allocated_hours
-      : Math.ceil(curriculumJp / 2);
-    const splitJp2 = teacher2?.allocated_hours !== undefined && teacher2?.allocated_hours !== null
-      ? teacher2.allocated_hours
-      : Math.max(1, curriculumJp - splitJp1);
+    const isElective = pair.type === 'mapel' && (pair.subject?.is_elective == 1 || pair.subject?.is_elective === true || pair.subject?.is_elective === '1');
+    const splitJp1 = isElective
+      ? curriculumJp
+      : (teacher1?.allocated_hours !== undefined && teacher1?.allocated_hours !== null ? teacher1.allocated_hours : Math.ceil(curriculumJp / 2));
+    const splitJp2 = isElective
+      ? curriculumJp
+      : (teacher2?.allocated_hours !== undefined && teacher2?.allocated_hours !== null ? teacher2.allocated_hours : Math.max(1, curriculumJp - splitJp1));
+
+    const initialElectiveTeachers = (duties && duties.length > 0)
+      ? duties.map(d => ({ teacher_employee_id: String(d.teacher_employee_id), role_description: d.role_description || 'Guru Pengampu' }))
+      : [{ teacher_employee_id: '', role_description: 'Guru Pengampu' }];
+
+    const isJoined = pair.isJoinedClass || (duties && duties.some(d => d.is_joined_class == 1 || d.is_joined_class === true));
+    const jointCgIds = pair.jointClassIds || [pair.class_group?.id].filter(Boolean);
 
     setQuickAssignForm({
       assign_mode: isMulti ? 'split' : 'single',
@@ -741,6 +868,11 @@ export default function Kurikulum() {
       teacher_employee_id_2: teacher2 ? String(teacher2.teacher_employee_id) : '',
       allocated_hours_2: splitJp2,
       role_description_2: teacher2?.role_description || 'Guru Pengampu 2',
+      // Multi-guru mode untuk Mapel Pilihan
+      elective_teachers: initialElectiveTeachers,
+      // Mode Rombel Gabungan
+      is_joined_class: isJoined,
+      class_group_ids: jointCgIds,
       sk_number: teacher1?.sk_number || '',
       reason: duties.length > 0 ? 'Penyesuaian / pembagian tugas mengajar' : 'Penetapan tugas guru pengampu',
       notes: teacher1?.notes || ''
@@ -753,7 +885,15 @@ export default function Kurikulum() {
 
   const handleSaveQuickAssign = async (e) => {
     e.preventDefault();
-    if (quickAssignForm.assign_mode === 'single') {
+    const isElective = quickAssignPair.type === 'mapel' && (quickAssignPair.subject?.is_elective == 1 || quickAssignPair.subject?.is_elective === true || quickAssignPair.subject?.is_elective === '1');
+
+    if (isElective) {
+      const validTeachers = quickAssignForm.elective_teachers.filter(t => t.teacher_employee_id);
+      if (validTeachers.length === 0) {
+        setErrorMsg('Pilih minimal 1 guru pengampu untuk mapel pilihan ini');
+        return;
+      }
+    } else if (quickAssignForm.assign_mode === 'single') {
       if (!quickAssignForm.teacher_employee_id) {
         setErrorMsg('Pilih guru / pengampu yang ditugaskan');
         return;
@@ -782,12 +922,28 @@ export default function Kurikulum() {
         subject_id: isMapel ? quickAssignPair.subject.id : null,
         extracurricular_id: !isMapel ? quickAssignPair.extra.id : null,
         class_group_id: quickAssignPair.class_group ? quickAssignPair.class_group.id : null,
+        class_group_ids: (quickAssignForm.is_joined_class && quickAssignForm.class_group_ids.length > 1) ? quickAssignForm.class_group_ids : undefined,
+        is_joined_class: quickAssignForm.is_joined_class && quickAssignForm.class_group_ids.length > 1,
         sk_number: quickAssignForm.sk_number ? quickAssignForm.sk_number.trim() : null,
         reason: quickAssignForm.reason.trim(),
         notes: quickAssignForm.notes ? quickAssignForm.notes.trim() : null
       };
 
-      if (quickAssignForm.assign_mode === 'single') {
+      const isElective = quickAssignPair.type === 'mapel' && (quickAssignPair.subject?.is_elective == 1 || quickAssignPair.subject?.is_elective === true || quickAssignPair.subject?.is_elective === '1');
+
+      if (isElective) {
+        const validTeachers = quickAssignForm.elective_teachers.filter(t => t.teacher_employee_id);
+        if (validTeachers.length === 0) {
+          setErrorMsg('Pilih minimal 1 guru pengampu untuk mapel pilihan ini');
+          setSaving(false);
+          return;
+        }
+        payload.teachers = validTeachers.map(t => ({
+          teacher_employee_id: Number(t.teacher_employee_id),
+          allocated_hours: curriculumJp,
+          role_description: t.role_description || 'Guru Pengampu'
+        }));
+      } else if (quickAssignForm.assign_mode === 'single') {
         payload.teacher_employee_id = Number(quickAssignForm.teacher_employee_id);
         payload.allocated_hours = parseInt(quickAssignForm.allocated_hours, 10) || curriculumJp;
         payload.role_description = quickAssignForm.role_description;
@@ -877,6 +1033,7 @@ export default function Kurikulum() {
         subject_id: dutyForm.type === 'mapel' ? dutyForm.subject_id : null,
         extracurricular_id: dutyForm.type === 'ekskul' ? dutyForm.extracurricular_id : null,
         class_group_ids: dutyForm.class_group_ids,
+        is_joined_class: dutyForm.class_group_ids.length > 1 ? Boolean(dutyForm.is_joined_class) : false,
         teacher_employee_id: dutyForm.teacher_employee_id,
         allocated_hours: parseInt(dutyForm.allocated_hours, 10) || 2,
         role_description: dutyForm.role_description,
@@ -940,30 +1097,223 @@ export default function Kurikulum() {
     }
   };
 
-  // --- TUJUAN PEMBELAJARAN (TP) ---
-  const handleOpenAddTp = () => {
+  // --- TUJUAN PEMBELAJARAN (TP) - STATE & GROUPING ---
+  const [expandedTpGroups, setExpandedTpGroups] = useState({});
+  const [tpGroupContext, setTpGroupContext] = useState(null); // { subject, gradeLevel } saat tambah TP dari grup
+  const [reorderingTpId, setReorderingTpId] = useState(null);
+
+  const toggleTpGroup = (key) => {
+    setExpandedTpGroups(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const expandAllTpGroups = (keys) => {
+    const next = {};
+    keys.forEach(k => { next[k] = true; });
+    setExpandedTpGroups(next);
+  };
+
+  const collapseAllTpGroups = () => {
+    setExpandedTpGroups({});
+  };
+
+  // Grouping & Memoization TP per Mapel + Tingkat Kelas
+  const tpGroupedData = useMemo(() => {
+    if (activeTab !== 'learning_objectives') {
+      return { groups: [], summary: { totalGroups: 0, filledGroups: 0, emptyGroups: 0, byGrade: [] } };
+    }
+
+    const tps = dataList || [];
+    const searchLower = (search || '').trim().toLowerCase();
+
+    // 1. Filter mata pelajaran
+    let targetSubjects = subjectsList || [];
+    if (tpSubjectFilter) {
+      targetSubjects = targetSubjects.filter(s => String(s.id) === String(tpSubjectFilter));
+    }
+
+    // 2. Filter tingkat kelas
+    let targetGrades = gradeLevels || [];
+    if (tpGradeFilter) {
+      targetGrades = targetGrades.filter(g => String(g.id) === String(tpGradeFilter));
+    }
+
+    const groups = [];
+    let filledCount = 0;
+    let emptyCount = 0;
+    const gradeProgress = {}; // { [glId]: { id, name, total, filled } }
+
+    targetGrades.forEach(gl => {
+      gradeProgress[gl.id] = { id: gl.id, name: gl.name, total: 0, filled: 0 };
+    });
+
+    targetSubjects.forEach(subject => {
+      // Jika subject memiliki grade_level_id spesifik, batasi ke grade level tersebut
+      const applicableGrades = subject.grade_level_id
+        ? targetGrades.filter(g => String(g.id) === String(subject.grade_level_id))
+        : targetGrades;
+
+      applicableGrades.forEach(gl => {
+        const groupKey = `${subject.id}_${gl.id}`;
+        
+        // Ambil TP yang sesuai dengan subject & grade level ini
+        const matchedTps = tps.filter(tp => 
+          String(tp.subject_id) === String(subject.id) && 
+          String(tp.grade_level_id) === String(gl.id)
+        );
+
+        // Filter pencarian jika ada kata kunci
+        let displayTps = matchedTps;
+        let isMatchSearch = true;
+        if (searchLower) {
+          displayTps = matchedTps.filter(tp => 
+            (tp.code && tp.code.toLowerCase().includes(searchLower)) ||
+            (tp.description && tp.description.toLowerCase().includes(searchLower)) ||
+            (subject.name && subject.name.toLowerCase().includes(searchLower)) ||
+            (subject.code && subject.code.toLowerCase().includes(searchLower))
+          );
+          isMatchSearch = displayTps.length > 0 || 
+                          (subject.name && subject.name.toLowerCase().includes(searchLower)) || 
+                          (subject.code && subject.code.toLowerCase().includes(searchLower));
+        }
+
+        if (!isMatchSearch && searchLower) {
+          return; // Lewati jika tidak cocok dengan kata kunci pencarian
+        }
+
+        // Pisahkan per semester
+        const ganjilTps = displayTps.filter(tp => {
+          const semName = (tp.semester_name || '').toLowerCase();
+          return semName.includes('ganjil') || semName.includes('1') || tp.semester_id === 1;
+        }).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+        const genapTps = displayTps.filter(tp => {
+          const semName = (tp.semester_name || '').toLowerCase();
+          return semName.includes('genap') || semName.includes('2') || tp.semester_id === 2;
+        }).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+        const allSemTps = displayTps.filter(tp => {
+          return !ganjilTps.some(g => g.id === tp.id) && !genapTps.some(g => g.id === tp.id);
+        }).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+        const totalTpCount = matchedTps.length;
+        const isFilled = totalTpCount > 0;
+
+        if (isFilled) filledCount++;
+        else emptyCount++;
+
+        if (gradeProgress[gl.id]) {
+          gradeProgress[gl.id].total += 1;
+          if (isFilled) gradeProgress[gl.id].filled += 1;
+        }
+
+        groups.push({
+          key: groupKey,
+          subject,
+          gradeLevel: gl,
+          totalCount: totalTpCount,
+          ganjilCount: ganjilTps.length,
+          genapCount: genapTps.length,
+          allSemCount: allSemTps.length,
+          ganjilTps,
+          genapTps,
+          allSemTps,
+          allDisplayTps: displayTps,
+          isFilled,
+          hasSearchMatch: searchLower ? displayTps.length > 0 : false
+        });
+      });
+    });
+
+    return {
+      groups,
+      summary: {
+        totalGroups: groups.length,
+        filledGroups: filledCount,
+        emptyGroups: emptyCount,
+        byGrade: Object.values(gradeProgress)
+      }
+    };
+  }, [activeTab, dataList, subjectsList, gradeLevels, search, tpGradeFilter, tpSubjectFilter]);
+
+  // Otomatis expand grup jika ada kata kunci pencarian yang cocok
+  useEffect(() => {
+    if (activeTab === 'learning_objectives' && search.trim().length > 0) {
+      const matchKeys = {};
+      tpGroupedData.groups.forEach(g => {
+        if (g.hasSearchMatch || g.subject.name.toLowerCase().includes(search.toLowerCase())) {
+          matchKeys[g.key] = true;
+        }
+      });
+      setExpandedTpGroups(prev => ({ ...prev, ...matchKeys }));
+    }
+  }, [search, activeTab, tpGroupedData]);
+
+  // Buka Modal Tambah TP dari dalam Grup (Otomatis terisi & Read-only)
+  const handleOpenAddTpForGroup = (subject, gradeLevel) => {
     setEditingTp(null);
+    setTpGroupContext({ subject, gradeLevel });
     setTpInputMode('single');
+
+    const currentGroupTps = (dataList || []).filter(tp => 
+      String(tp.subject_id) === String(subject.id) && 
+      String(tp.grade_level_id) === String(gradeLevel.id)
+    );
+    const nextOrder = currentGroupTps.length + 1;
+
     setTpForm({
-      grade_level_id: tpGradeFilter || (gradeLevels[0]?.id || ''),
-      subject_id: tpSubjectFilter || (subjectsList[0]?.id || ''),
+      grade_level_id: gradeLevel.id,
+      subject_id: subject.id,
       semester_id: semestersList[0]?.id || '',
-      code: `TP ${dataList.length + 1}`,
+      code: `TP ${nextOrder}`,
       description: '',
-      order_index: dataList.length + 1
+      order_index: nextOrder
     });
     setBulkTpText('');
     setBulkTpRows([
-      { code: 'TP 1', description: '', order_index: 1, semester_id: semestersList[0]?.id || '' },
-      { code: 'TP 2', description: '', order_index: 2, semester_id: semestersList[0]?.id || '' },
-      { code: 'TP 3', description: '', order_index: 3, semester_id: semestersList[0]?.id || '' }
+      { code: `TP ${nextOrder}`, description: '', order_index: nextOrder, semester_id: semestersList[0]?.id || '' },
+      { code: `TP ${nextOrder + 1}`, description: '', order_index: nextOrder + 1, semester_id: semestersList[0]?.id || '' },
+      { code: `TP ${nextOrder + 2}`, description: '', order_index: nextOrder + 2, semester_id: semestersList[0]?.id || '' }
     ]);
     setErrorMsg('');
     setTpModalOpen(true);
   };
 
+  const handleOpenAddTp = () => {
+    const firstSub = subjectsList[0];
+    const firstGrade = gradeLevels[0];
+    if (firstSub && firstGrade) {
+      handleOpenAddTpForGroup(firstSub, firstGrade);
+    } else {
+      setEditingTp(null);
+      setTpGroupContext(null);
+      setTpInputMode('single');
+      setTpForm({
+        grade_level_id: tpGradeFilter || (gradeLevels[0]?.id || ''),
+        subject_id: tpSubjectFilter || (subjectsList[0]?.id || ''),
+        semester_id: semestersList[0]?.id || '',
+        code: `TP ${dataList.length + 1}`,
+        description: '',
+        order_index: dataList.length + 1
+      });
+      setBulkTpText('');
+      setBulkTpRows([
+        { code: 'TP 1', description: '', order_index: 1, semester_id: semestersList[0]?.id || '' },
+        { code: 'TP 2', description: '', order_index: 2, semester_id: semestersList[0]?.id || '' },
+        { code: 'TP 3', description: '', order_index: 3, semester_id: semestersList[0]?.id || '' }
+      ]);
+      setErrorMsg('');
+      setTpModalOpen(true);
+    }
+  };
+
   const handleOpenEditTp = (tp) => {
     setEditingTp(tp);
+    const sub = subjectsList.find(s => String(s.id) === String(tp.subject_id));
+    const gl = gradeLevels.find(g => String(g.id) === String(tp.grade_level_id));
+    setTpGroupContext(sub && gl ? { subject: sub, gradeLevel: gl } : null);
     setTpInputMode('single');
     setTpForm({
       grade_level_id: tp.grade_level_id || '',
@@ -975,6 +1325,42 @@ export default function Kurikulum() {
     });
     setErrorMsg('');
     setTpModalOpen(true);
+  };
+
+  // Reorder TP Instan (Naik / Turun) per semester dalam kelompok
+  const handleReorderTp = async (tpToMove, direction, listInSemester) => {
+    const currentIndex = listInSemester.findIndex(t => t.id === tpToMove.id);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= listInSemester.length) return;
+
+    const otherTp = listInSemester[targetIndex];
+
+    const orderA = tpToMove.order_index || (currentIndex + 1);
+    const orderB = otherTp.order_index || (targetIndex + 1);
+    const newOrderA = orderB === orderA ? (direction === 'up' ? orderA - 1 : orderA + 1) : orderB;
+    const newOrderB = orderA;
+
+    // Optimistic UI update
+    setDataList(prev => prev.map(item => {
+      if (item.id === tpToMove.id) return { ...item, order_index: newOrderA };
+      if (item.id === otherTp.id) return { ...item, order_index: newOrderB };
+      return item;
+    }));
+
+    setReorderingTpId(tpToMove.id);
+    try {
+      await Promise.all([
+        api.put(`/akademik/learning-objectives/${tpToMove.id}`, { order_index: newOrderA }),
+        api.put(`/akademik/learning-objectives/${otherTp.id}`, { order_index: newOrderB })
+      ]);
+    } catch (err) {
+      console.error('Failed to reorder TP:', err);
+      fetchTabData();
+    } finally {
+      setReorderingTpId(null);
+    }
   };
 
   const handleAddBulkTpRow = () => {
@@ -1027,7 +1413,6 @@ export default function Kurikulum() {
         await api.put(`/akademik/learning-objectives/${editingTp.id}`, payload);
         setSuccessMsg('Tujuan Pembelajaran berhasil diperbarui!');
       } else if (tpInputMode === 'bulk_text') {
-        // Parse bulk text per baris
         const lines = bulkTpText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) {
           setErrorMsg('Masukkan minimal 1 baris Tujuan Pembelajaran');
@@ -1036,7 +1421,6 @@ export default function Kurikulum() {
         }
 
         const items = lines.map((line, idx) => {
-          // Cek jika format ada separator titik dua/titik/titik koma (cth: "TP 1: Memahami...")
           let code = `TP ${idx + 1}`;
           let desc = line;
 
@@ -1090,7 +1474,6 @@ export default function Kurikulum() {
 
         setSuccessMsg(`Berhasil menambahkan ${items.length} Tujuan Pembelajaran secara massal!`);
       } else {
-        // Single mode
         if (!tpForm.code.trim() || !tpForm.description.trim()) {
           setErrorMsg('Kode TP dan deskripsi tujuan pembelajaran wajib diisi');
           setSaving(false);
@@ -1121,7 +1504,6 @@ export default function Kurikulum() {
       setSaving(false);
     }
   };
-
 
   const handleDeleteTp = async (tpId) => {
     if (!window.confirm('Yakin ingin menghapus Tujuan Pembelajaran (TP) ini?')) return;
@@ -1435,16 +1817,14 @@ export default function Kurikulum() {
 
               <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
                 <span className="text-[11px] font-semibold text-slate-500">Mapel:</span>
-                <select
+                <SearchableSelect
+                  options={[{ value: '', label: 'Semua Mapel' }, ...subjectsList.map(s => ({ value: s.id, label: s.name, sublabel: s.code }))]}
                   value={tpSubjectFilter}
-                  onChange={(e) => setTpSubjectFilter(e.target.value)}
-                  className="text-xs bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer max-w-[140px] truncate"
-                >
-                  <option value="">Semua Mapel</option>
-                  {subjectsList.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setTpSubjectFilter(val)}
+                  placeholder="Semua Mapel"
+                  searchPlaceholder="Cari mapel..."
+                  className="w-44 text-xs font-bold text-slate-800"
+                />
               </div>
             </>
           )}
@@ -1470,18 +1850,18 @@ export default function Kurikulum() {
       </div>
 
       {/* Table Data Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5">
-{loading ? (
-          <div className="py-12 text-center text-slate-400">
-            <Loader2 className="w-7 h-7 animate-spin mx-auto mb-2 text-teal-600" />
-            <p className="text-xs">Memuat data kurikulum...</p>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="py-16 text-center text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-teal-600" />
+            <p className="text-xs font-semibold">Memuat data kurikulum...</p>
           </div>
         ) : (activeTab !== 'kkm_matrix' && activeTab !== 'curriculum_structures' && activeTab !== 'teaching_duties' && filteredData.length === 0) ? (
-          <div className="py-12 text-center text-slate-400 text-xs">
+          <div className="py-16 text-center text-slate-400 text-xs font-medium">
             Belum ada data untuk kategori ini. Klik tombol Tambah di pojok kanan atas.
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[calc(100vh-240px)] overflow-y-auto scrollbar-thin">
             {/* 1. TAB MATA PELAJARAN */}
             {activeTab === 'subjects' && (
               <table className="w-full text-left text-xs">
@@ -1688,6 +2068,11 @@ export default function Kurikulum() {
                                 </button>
                               )}
                               <span>{s.name}</span>
+                              {s.is_elective && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1 shadow-2xs">
+                                  ⚡ Mapel Pilihan: {s.elective_group_name || 'Blok Paralel'}
+                                </span>
+                              )}
                               {isSubSubject && (
                                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${
                                   s.jp_allocation_mode === 'included_in_parent'
@@ -1995,14 +2380,34 @@ export default function Kurikulum() {
                           return true;
                         });
 
-                        // Pisahkan mapel utama (parent) dan sub-mapel
-                        const parentSubjects = filtered.filter(s => !s.parent_subject_id);
-                        const subSubjects = filtered.filter(s => Boolean(s.parent_subject_id));
+                        // 1. Pisahkan mapel yang tergabung dalam Blok Mapel Pilihan (elective_group_name)
+                        const electiveGroupsMap = {};
+                        const nonGroupedSubjects = [];
+
+                        filtered.forEach(sub => {
+                          const isElective = sub.is_elective == 1 || sub.is_elective === true || sub.is_elective === '1';
+                          const groupName = sub.elective_group_name?.trim();
+
+                          if (isElective && groupName) {
+                            if (!electiveGroupsMap[groupName]) {
+                              electiveGroupsMap[groupName] = [];
+                            }
+                            electiveGroupsMap[groupName].push(sub);
+                          } else {
+                            nonGroupedSubjects.push(sub);
+                          }
+                        });
+
+                        // 2. Pisahkan mapel utama (parent) dan sub-mapel non-blok
+                        const parentSubjects = nonGroupedSubjects.filter(s => !s.parent_subject_id);
+                        const subSubjects = nonGroupedSubjects.filter(s => Boolean(s.parent_subject_id));
 
                         parentSubjects.sort((a, b) => {
                           const field = sortField.curriculum_structures;
                           let valA = a[field] ?? '';
                           let valB = b[field] ?? '';
+                          if (typeof valA === 'string') valA = valA.toLowerCase();
+                          if (typeof valB === 'string') valB = valB.toLowerCase();
                           if (typeof valA === 'string') valA = valA.toLowerCase();
                           if (typeof valB === 'string') valB = valB.toLowerCase();
                           if (valA < valB) return sortDirection.curriculum_structures === 'asc' ? -1 : 1;
@@ -2014,6 +2419,7 @@ export default function Kurikulum() {
                         let rowNumber = 1;
                         const renderedRows = [];
 
+                        // A. Render Mapel Reguler & Hierarki Parent-Child
                         parentSubjects.forEach((parent) => {
                           const children = subSubjects.filter(sub => String(sub.parent_subject_id) === String(parent.id));
                           const hasChildren = children.length > 0;
@@ -2177,7 +2583,145 @@ export default function Kurikulum() {
                           }
                         });
 
-                        // Tambahkan hanya orphan sub-subjects (jika parent-nya benar-benar tidak ada di parentSubjects)
+                        // B. Render Blok Mapel Pilihan (Digabung Menjadi 1 Baris Blok Induk)
+                        Object.keys(electiveGroupsMap).forEach((groupName) => {
+                          const groupMembers = electiveGroupsMap[groupName];
+                          const groupKey = `block_${groupName.replace(/\s+/g, '_')}`;
+                          const isExpanded = expandedParents[groupKey] !== false; // default true
+
+                          // Cari alokasi JP blok (ambil dari member pertama atau alokasi rata-rata)
+                          let totalBlockJp = 0;
+
+                          renderedRows.push(
+                            <tr key={groupKey} className="hover:bg-purple-50/40 transition bg-purple-50/20 group border-t-2 border-purple-200">
+                              <td className="py-3 px-4 text-center font-bold text-purple-700">{rowNumber++}</td>
+                              <td className="py-3 px-4 font-mono font-bold text-purple-800">
+                                <span className="px-2 py-0.5 bg-purple-100 border border-purple-300 rounded text-[10px]">
+                                  BLOK
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-bold text-slate-800">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleParentExpand(groupKey)}
+                                    className="p-1 rounded-md bg-purple-100 hover:bg-purple-200 text-purple-800 transition flex items-center gap-1 shadow-2xs border border-purple-300"
+                                    title={isExpanded ? 'Sembunyikan opsi mapel pilihan' : 'Tampilkan opsi mapel pilihan'}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-3.5 h-3.5 text-purple-800 shrink-0" />
+                                    ) : (
+                                      <ChevronRight className="w-3.5 h-3.5 text-purple-800 shrink-0" />
+                                    )}
+                                    <span className="text-[10px] font-bold text-purple-900 px-1">
+                                      {groupMembers.length} Mapel Pilihan
+                                    </span>
+                                  </button>
+                                  <span className="text-purple-950 font-black text-sm">{groupName}</span>
+                                  <span className="px-2 py-0.5 bg-purple-600 text-white rounded-full text-[9px] font-extrabold shadow-2xs">
+                                    Blok Pilihan
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Input Cell for Each Grade Level (Blok Pilihan) */}
+                              {gradeLevels.map((gl) => {
+                                // Ambil nilai JP dari member yang ada
+                                const memberValues = groupMembers.map(m => {
+                                  const cell = currStructMatrixMap[`${m.id}_${gl.id}`];
+                                  return cell?.hours_per_week !== undefined ? cell.hours_per_week : null;
+                                }).filter(v => v !== null);
+
+                                const blockJpVal = memberValues.length > 0 ? memberValues[0] : '';
+                                if (typeof blockJpVal === 'number') totalBlockJp += blockJpVal;
+
+                                return (
+                                  <td key={gl.id} className="py-2 px-3 text-center bg-purple-100/30 border-x border-purple-200/60">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="20"
+                                        value={blockJpVal}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          // Terapkan alokasi JP ini ke seluruh mapel di dalam blok tersebut secara serentak
+                                          groupMembers.forEach(m => {
+                                            handleCurrStructMatrixChange(m.id, gl.id, val);
+                                          });
+                                        }}
+                                        placeholder="0"
+                                        className={`w-16 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-purple-500 focus:outline-none transition ${
+                                          blockJpVal > 0
+                                            ? 'bg-purple-600 text-white border-purple-700 shadow-2xs'
+                                            : 'bg-white text-slate-400 border-purple-200 hover:border-purple-300'
+                                        }`}
+                                      />
+                                      <span className="text-[10px] font-bold text-purple-700">JP</span>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+
+                              <td className="py-3 px-4 text-center font-extrabold text-purple-900 bg-purple-100/60">
+                                {totalBlockJp > 0 ? (
+                                  <span className="px-2.5 py-1 bg-purple-200 text-purple-950 rounded-full font-black text-xs border border-purple-300">
+                                    {totalBlockJp} JP
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+
+                          // Jika di-expand, tampilkan rincian mapel pilihan yang tergabung di dalam blok
+                          if (isExpanded) {
+                            groupMembers.forEach((sub) => {
+                              renderedRows.push(
+                                <tr
+                                  key={`block_sub_${sub.id}`}
+                                  className="transition border-l-4 border-l-purple-500 bg-purple-50/10 hover:bg-purple-50/30"
+                                >
+                                  <td className="py-2.5 px-4 text-center font-mono text-[11px] text-purple-400">↳</td>
+                                  <td className="py-2.5 px-4 font-mono font-bold text-purple-700 text-[11px] pl-6">
+                                    {sub.code || '-'}
+                                  </td>
+                                  <td className="py-2.5 px-4 font-medium text-slate-800 pl-8">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-purple-600 font-mono text-sm leading-none shrink-0">↳</span>
+                                      <span className="font-bold text-slate-800">{sub.name}</span>
+                                      <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                                        Pilihan Paralel (Rombel Pilihan)
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  {/* Info JP Inklusif Blok */}
+                                  {gradeLevels.map((gl) => {
+                                    const cellKey = `${sub.id}_${gl.id}`;
+                                    const cellData = currStructMatrixMap[cellKey];
+                                    const subJp = cellData?.hours_per_week !== undefined ? cellData.hours_per_week : 0;
+
+                                    return (
+                                      <td key={gl.id} className="py-2 px-3 text-center bg-purple-50/20 border-x border-purple-100/50">
+                                        <span className="text-[10px] font-extrabold text-purple-800 px-2 py-0.5 bg-purple-100/70 rounded-md border border-purple-200">
+                                          {subJp > 0 ? `${subJp} JP (Blok)` : '0 JP'}
+                                        </span>
+                                      </td>
+                                    );
+                                  })}
+
+                                  <td className="py-2.5 px-4 text-center font-bold text-purple-800 bg-purple-50/30">
+                                    <span className="text-[10px] text-purple-700 font-bold italic">Ikut Jam Blok</span>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          }
+                        });
+
+                        // C. Tambahkan orphan sub-subjects jika ada
                         const parentIdsSet = new Set(parentSubjects.map(p => String(p.id)));
                         const orphanSubs = subSubjects.filter(sub => !parentIdsSet.has(String(sub.parent_subject_id)));
                         orphanSubs.forEach(sub => {
@@ -2241,10 +2785,27 @@ export default function Kurikulum() {
                           </td>
                           {gradeLevels.map((gl) => {
                             let sumGradeJp = 0;
+                            const countedBlockGroups = new Set();
+
                             subjectsList.forEach(sub => {
-                              const cell = currStructMatrixMap[`${sub.id}_${gl.id}`];
-                              if (cell && typeof cell.hours_per_week === 'number') {
-                                sumGradeJp += cell.hours_per_week;
+                              const isElective = sub.is_elective == 1 || sub.is_elective === true || sub.is_elective === '1';
+                              const groupName = sub.elective_group_name?.trim();
+
+                              // Jika mapel berada dalam blok pilihan, hitung hanya 1 kali per kelompok blok
+                              if (isElective && groupName) {
+                                if (!countedBlockGroups.has(groupName)) {
+                                  countedBlockGroups.add(groupName);
+                                  const cell = currStructMatrixMap[`${sub.id}_${gl.id}`];
+                                  if (cell && typeof cell.hours_per_week === 'number') {
+                                    sumGradeJp += cell.hours_per_week;
+                                  }
+                                }
+                              } else if (!sub.parent_subject_id || sub.jp_allocation_mode !== 'included_in_parent') {
+                                // Mapel reguler mandiri atau sub-mapel JP mandiri
+                                const cell = currStructMatrixMap[`${sub.id}_${gl.id}`];
+                                if (cell && typeof cell.hours_per_week === 'number') {
+                                  sumGradeJp += cell.hours_per_week;
+                                }
                               }
                             });
                             return (
@@ -2265,221 +2826,525 @@ export default function Kurikulum() {
                   </table>
             )}
 
-            {/* 4. TAB TUJUAN PEMBELAJARAN (TP) */}
+            {/* 4. TAB TUJUAN PEMBELAJARAN (TP) - REDESAIN GROUPED ACCORDION */}
             {activeTab === 'learning_objectives' && (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-2xs select-none">
-                  <tr>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'order_index')}
-                      className="py-3 px-4 w-20 cursor-pointer hover:bg-slate-100 transition"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Urutan</span>
-                        {sortField.learning_objectives === 'order_index' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
+              <div className="p-4 sm:p-6 space-y-5 bg-slate-50/50 min-h-[500px]">
+                {/* A. Summary Bar & Progress Metrics */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-teal-600" />
+                        <h3 className="text-sm font-bold text-slate-800">
+                          Rekap Kelengkapan Tujuan Pembelajaran (TP)
+                        </h3>
                       </div>
-                    </th>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'code')}
-                      className="py-3 px-4 w-24 cursor-pointer hover:bg-slate-100 transition"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Kode TP</span>
-                        {sortField.learning_objectives === 'code' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
+                      <p className="text-xs text-slate-500">
+                        TP diorganisasikan per kombinasi Mata Pelajaran & Tingkat Kelas untuk acuan capaian rapor.
+                      </p>
+                    </div>
+
+                    {/* Quick Metric Badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center gap-2 shadow-2xs">
+                        <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                        <div className="text-xs">
+                          <span className="font-bold text-teal-900">{tpGroupedData.summary.filledGroups}</span>
+                          <span className="text-teal-700 text-[11px] ml-1">Mapel Terisi TP</span>
+                        </div>
                       </div>
-                    </th>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'subject_name')}
-                      className="py-3 px-4 w-44 cursor-pointer hover:bg-slate-100 transition"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Mata Pelajaran</span>
-                        {sortField.learning_objectives === 'subject_name' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
+
+                      <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 shadow-2xs ${
+                        tpGroupedData.summary.emptyGroups > 0
+                          ? 'bg-amber-50 border-amber-200 text-amber-900'
+                          : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}>
+                        <AlertCircle className={`w-4 h-4 shrink-0 ${tpGroupedData.summary.emptyGroups > 0 ? 'text-amber-600' : 'text-slate-400'}`} />
+                        <div className="text-xs">
+                          <span className="font-bold">{tpGroupedData.summary.emptyGroups}</span>
+                          <span className="text-[11px] ml-1">Belum Ada TP</span>
+                        </div>
                       </div>
-                    </th>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'grade_level_name')}
-                      className="py-3 px-4 w-32 cursor-pointer hover:bg-slate-100 transition"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Tingkat Kelas</span>
-                        {sortField.learning_objectives === 'grade_level_name' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
+
+                      <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center gap-2 text-xs font-semibold">
+                        <span>Total: <b>{tpGroupedData.summary.totalGroups}</b> Kombinasi</span>
                       </div>
-                    </th>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'description')}
-                      className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition"
+                    </div>
+                  </div>
+
+                  {/* Progress per Tingkat Kelas Chips */}
+                  {tpGroupedData.summary.byGrade.length > 0 && (
+                    <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs">
+                      <span className="text-[11px] font-semibold text-slate-500 mr-1 flex items-center gap-1">
+                        <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Progres per Tingkat:</span>
+                      </span>
+                      {tpGroupedData.summary.byGrade.map(bg => {
+                        const isComplete = bg.total > 0 && bg.filled === bg.total;
+                        return (
+                          <span
+                            key={bg.id}
+                            className={`px-2.5 py-1 rounded-lg font-bold text-[11px] border flex items-center gap-1.5 transition ${
+                              isComplete
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : bg.filled > 0
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            <span>{bg.name}:</span>
+                            <span className="font-black">{bg.filled}/{bg.total}</span>
+                            <span className="text-[9px] font-medium opacity-80">Mapel</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* B. Controls: Expand/Collapse All & Search Status */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => expandAllTpGroups(tpGroupedData.groups.map(g => g.key))}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span>Deskripsi Tujuan Pembelajaran</span>
-                        {sortField.learning_objectives === 'description' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      onClick={() => handleTabSort('learning_objectives', 'semester_name')}
-                      className="py-3 px-4 w-28 cursor-pointer hover:bg-slate-100 transition"
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Buka Semua Grup</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={collapseAllTpGroups}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 text-xs font-bold shadow-2xs transition flex items-center gap-1.5"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span>Semester</span>
-                        {sortField.learning_objectives === 'semester_name' ? (
-                          sortDirection.learning_objectives === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-40" />
-                        )}
-                      </div>
-                    </th>
-                    <th className="py-3 px-4 text-right w-24">Aksi</th>
-                  </tr>
-                  {/* Header Filter Row */}
-                  <tr className="bg-slate-100/70 border-t border-slate-200 font-normal">
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="No..."
-                        value={columnFilters.learning_objectives.order_index}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'order_index', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal text-center"
-                      />
-                    </th>
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="Kode..."
-                        value={columnFilters.learning_objectives.code}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'code', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
-                      />
-                    </th>
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="Filter mapel..."
-                        value={columnFilters.learning_objectives.subject_name}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'subject_name', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
-                      />
-                    </th>
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="Filter tingkat..."
-                        value={columnFilters.learning_objectives.grade_level_name}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'grade_level_name', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
-                      />
-                    </th>
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="Filter deskripsi..."
-                        value={columnFilters.learning_objectives.description}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'description', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
-                      />
-                    </th>
-                    <th className="py-1 px-2">
-                      <input
-                        type="text"
-                        placeholder="Semester..."
-                        value={columnFilters.learning_objectives.semester_name}
-                        onChange={(e) => handleColumnFilterChange('learning_objectives', 'semester_name', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
-                      />
-                    </th>
-                    <th className="py-1 px-2 text-right">
-                      {Object.values(columnFilters.learning_objectives).some(Boolean) && (
-                        <button
-                          onClick={() => setColumnFilters(prev => ({ ...prev, learning_objectives: { order_index: '', code: '', subject_name: '', grade_level_name: '', description: '', semester_name: '' } }))}
-                          className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                      <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Tutup Semua</span>
+                    </button>
+                  </div>
+
+                  {search.trim().length > 0 && (
+                    <div className="text-xs text-teal-800 font-bold bg-teal-50 px-3 py-1 rounded-lg border border-teal-200">
+                      Menampilkan hasil pencarian untuk "{search}" ({tpGroupedData.groups.length} grup cocok)
+                    </div>
+                  )}
+                </div>
+
+                {/* C. List of Grouped Accordion Cards */}
+                {tpGroupedData.groups.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400 space-y-2">
+                    <BookOpen className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
+                    <p className="text-sm font-bold text-slate-700">Tidak ada kelompok mata pelajaran yang sesuai filter</p>
+                    <p className="text-xs text-slate-400">Pastikan mata pelajaran dan tingkat kelas sudah terdaftar atau sesuaikan kata kunci pencarian.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {tpGroupedData.groups.map((group) => {
+                      const isExpanded = expandedTpGroups[group.key] || false;
+                      const hasTp = group.totalCount > 0;
+
+                      return (
+                        <div
+                          key={group.key}
+                          className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-2xs ${
+                            isExpanded ? 'border-teal-300 ring-2 ring-teal-500/10' : 'border-slate-200/90 hover:border-slate-300'
+                          }`}
                         >
-                          Reset
-                        </button>
-                      )}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredData
-                    .filter(tp => {
-                      const f = columnFilters.learning_objectives;
-                      if (f.order_index && !String(tp.order_index).includes(f.order_index)) return false;
-                      if (f.code && !tp.code?.toLowerCase().includes(f.code.toLowerCase())) return false;
-                      if (f.subject_name && !tp.subject_name?.toLowerCase().includes(f.subject_name.toLowerCase())) return false;
-                      if (f.grade_level_name && !tp.grade_level_name?.toLowerCase().includes(f.grade_level_name.toLowerCase())) return false;
-                      if (f.description && !tp.description?.toLowerCase().includes(f.description.toLowerCase())) return false;
-                      if (f.semester_name && !tp.semester_name?.toLowerCase().includes(f.semester_name.toLowerCase())) return false;
-                      return true;
-                    })
-                    .sort((a, b) => {
-                      const field = sortField.learning_objectives;
-                      let valA = a[field] ?? '';
-                      let valB = b[field] ?? '';
-                      if (typeof valA === 'string') valA = valA.toLowerCase();
-                      if (typeof valB === 'string') valB = valB.toLowerCase();
-                      if (valA < valB) return sortDirection.learning_objectives === 'asc' ? -1 : 1;
-                      if (valA > valB) return sortDirection.learning_objectives === 'asc' ? 1 : -1;
-                      return 0;
-                    })
-                    .map((tp) => (
-                    <tr key={tp.id} className="hover:bg-slate-50/70 transition">
-                      <td className="py-3 px-4 font-mono text-slate-500">{tp.order_index}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg font-bold text-[11px]">
-                          {tp.code}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-800">{tp.subject_name}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md font-semibold text-[11px]">
-                          {tp.grade_level_name}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700 leading-relaxed font-medium">
-                        {tp.description}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500 uppercase text-[11px]">
-                        {tp.semester_name || 'Semua Semester'}
-                      </td>
-                      <td className="py-3 px-4 text-right space-x-1">
-                        <button
-                          onClick={() => handleOpenEditTp(tp)}
-                          title="Edit Tujuan Pembelajaran"
-                          className="p-1 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTp(tp.id)}
-                          title="Hapus Tujuan Pembelajaran"
-                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          {/* Card Header */}
+                          <div
+                            onClick={() => toggleTpGroup(group.key)}
+                            className={`p-4 sm:px-5 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3.5 transition select-none ${
+                              isExpanded ? 'bg-slate-50/80 border-b border-slate-200/80' : 'hover:bg-slate-50/50'
+                            }`}
+                          >
+                            {/* Left: Mapel Info & Badges */}
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
+                                hasTp ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
+                              }`}>
+                                <BookOpen className="w-4 h-4" />
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                                    {group.subject.name}
+                                  </h4>
+                                  {group.subject.code && (
+                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono font-bold text-[10px] border border-slate-200">
+                                      {group.subject.code}
+                                    </span>
+                                  )}
+                                  <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[11px] border border-indigo-200/60">
+                                    {group.gradeLevel.name}
+                                  </span>
+                                  {group.subject.is_elective ? (
+                                    <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                      Mapel Pilihan
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium">
+                                  {hasTp ? `${group.totalCount} Tujuan Pembelajaran Terdaftar` : 'Belum ada Tujuan Pembelajaran yang ditambahkan'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Right: Semester Count Badges & Actions */}
+                            <div className="flex items-center gap-2 flex-wrap self-end md:self-center" onClick={(e) => e.stopPropagation()}>
+                              {/* Ganjil Badge */}
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${
+                                group.ganjilCount > 0
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200'
+                              }`}>
+                                <span className="text-[10px] font-normal text-slate-500">Ganjil:</span>
+                                <span>{group.ganjilCount} TP</span>
+                              </span>
+
+                              {/* Genap Badge */}
+                              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${
+                                group.genapCount > 0
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200'
+                              }`}>
+                                <span className="text-[10px] font-normal text-slate-500">Genap:</span>
+                                <span>{group.genapCount} TP</span>
+                              </span>
+
+                              {/* Semua Semester (jika ada) */}
+                              {group.allSemCount > 0 && (
+                                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+                                  <span className="text-[10px] font-normal text-blue-600">Semua Sem:</span>
+                                  <span>{group.allSemCount} TP</span>
+                                </span>
+                              )}
+
+                              {/* Tombol Tambah TP di Grup Ini */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddTpForGroup(group.subject, group.gradeLevel)}
+                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 ml-1"
+                                title={`Tambah TP untuk ${group.subject.name} ${group.gradeLevel.name}`}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Tambah TP</span>
+                              </button>
+
+                              {/* Chevron Toggle Button */}
+                              <button
+                                type="button"
+                                onClick={() => toggleTpGroup(group.key)}
+                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition ml-1"
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Card Body (Expanded Details) */}
+                          {isExpanded && (
+                            <div className="p-4 sm:p-5 space-y-6 bg-white">
+                              {!hasTp ? (
+                                <div className="py-8 px-4 text-center bg-slate-50/70 border border-dashed border-slate-200 rounded-xl space-y-2">
+                                  <AlertCircle className="w-7 h-7 mx-auto text-amber-500" />
+                                  <p className="text-xs font-bold text-slate-700">
+                                    Belum ada Tujuan Pembelajaran untuk {group.subject.name} ({group.gradeLevel.name})
+                                  </p>
+                                  <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                                    Tambahkan TP untuk semester ganjil atau genap agar dapat digunakan saat input nilai dan penyusunan deskripsi rapor.
+                                  </p>
+                                  <div className="pt-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenAddTpForGroup(group.subject, group.gradeLevel)}
+                                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                      <span>Buat TP Pertama untuk Mapel Ini</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {/* 1. SEKSI SEMESTER GANJIL */}
+                                  <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                                        <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                                          Semester Ganjil
+                                        </h5>
+                                        <span className="px-2 py-0.5 bg-teal-50 text-teal-800 text-[10px] font-bold rounded-md border border-teal-200">
+                                          {group.ganjilTps.length} TP
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {group.ganjilTps.length === 0 ? (
+                                      <div className="py-3 px-4 bg-slate-50/50 rounded-xl text-slate-400 text-xs italic">
+                                        Belum ada TP untuk Semester Ganjil.
+                                      </div>
+                                    ) : (
+                                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                                        <table className="w-full text-left text-xs">
+                                          <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                            <tr>
+                                              <th className="py-2.5 px-3 w-28 text-center">Urutan</th>
+                                              <th className="py-2.5 px-3 w-28">Kode TP</th>
+                                              <th className="py-2.5 px-4">Deskripsi Capaian Pembelajaran</th>
+                                              <th className="py-2.5 px-3 text-right w-24">Aksi</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100">
+                                            {group.ganjilTps.map((tp, index) => (
+                                              <tr key={tp.id} className="hover:bg-slate-50/60 transition">
+                                                <td className="py-2 px-3 text-center">
+                                                  <div className="flex items-center justify-center gap-1 font-mono font-bold text-slate-700">
+                                                    <span className="w-5 text-center text-xs">{tp.order_index || (index + 1)}</span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === 0 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'up', group.ganjilTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke atas"
+                                                      >
+                                                        <ArrowUp className="w-3 h-3" />
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === group.ganjilTps.length - 1 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'down', group.ganjilTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke bawah"
+                                                      >
+                                                        <ArrowDown className="w-3 h-3" />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                </td>
+                                                <td className="py-2 px-3">
+                                                  <span className="px-2.5 py-1 bg-teal-50 text-teal-800 border border-teal-200/80 rounded-lg font-bold text-xs">
+                                                    {tp.code}
+                                                  </span>
+                                                </td>
+                                                <td className="py-2 px-4 text-slate-800 font-medium leading-relaxed">
+                                                  {tp.description}
+                                                </td>
+                                                <td className="py-2 px-3 text-right space-x-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEditTp(tp)}
+                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    title="Edit TP"
+                                                  >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteTp(tp.id)}
+                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    title="Hapus TP"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* 2. SEKSI SEMESTER GENAP */}
+                                  <div className="space-y-2.5 pt-2">
+                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                                        <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                                          Semester Genap
+                                        </h5>
+                                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-800 text-[10px] font-bold rounded-md border border-indigo-200">
+                                          {group.genapTps.length} TP
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {group.genapTps.length === 0 ? (
+                                      <div className="py-3 px-4 bg-slate-50/50 rounded-xl text-slate-400 text-xs italic">
+                                        Belum ada TP untuk Semester Genap.
+                                      </div>
+                                    ) : (
+                                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                                        <table className="w-full text-left text-xs">
+                                          <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                            <tr>
+                                              <th className="py-2.5 px-3 w-28 text-center">Urutan</th>
+                                              <th className="py-2.5 px-3 w-28">Kode TP</th>
+                                              <th className="py-2.5 px-4">Deskripsi Capaian Pembelajaran</th>
+                                              <th className="py-2.5 px-3 text-right w-24">Aksi</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100">
+                                            {group.genapTps.map((tp, index) => (
+                                              <tr key={tp.id} className="hover:bg-slate-50/60 transition">
+                                                <td className="py-2 px-3 text-center">
+                                                  <div className="flex items-center justify-center gap-1 font-mono font-bold text-slate-700">
+                                                    <span className="w-5 text-center text-xs">{tp.order_index || (index + 1)}</span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === 0 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'up', group.genapTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke atas"
+                                                      >
+                                                        <ArrowUp className="w-3 h-3" />
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === group.genapTps.length - 1 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'down', group.genapTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke bawah"
+                                                      >
+                                                        <ArrowDown className="w-3 h-3" />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                </td>
+                                                <td className="py-2 px-3">
+                                                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200/80 rounded-lg font-bold text-xs">
+                                                    {tp.code}
+                                                  </span>
+                                                </td>
+                                                <td className="py-2 px-4 text-slate-800 font-medium leading-relaxed">
+                                                  {tp.description}
+                                                </td>
+                                                <td className="py-2 px-3 text-right space-x-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEditTp(tp)}
+                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    title="Edit TP"
+                                                  >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteTp(tp.id)}
+                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    title="Hapus TP"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* 3. SEKSI SEMUA SEMESTER (Jika Ada) */}
+                                  {group.allSemTps.length > 0 && (
+                                    <div className="space-y-2.5 pt-2">
+                                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                          <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                                            Berlaku Semua Semester
+                                          </h5>
+                                          <span className="px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-bold rounded-md border border-blue-200">
+                                            {group.allSemTps.length} TP
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                                        <table className="w-full text-left text-xs">
+                                          <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                            <tr>
+                                              <th className="py-2.5 px-3 w-28 text-center">Urutan</th>
+                                              <th className="py-2.5 px-3 w-28">Kode TP</th>
+                                              <th className="py-2.5 px-4">Deskripsi Capaian Pembelajaran</th>
+                                              <th className="py-2.5 px-3 text-right w-24">Aksi</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100">
+                                            {group.allSemTps.map((tp, index) => (
+                                              <tr key={tp.id} className="hover:bg-slate-50/60 transition">
+                                                <td className="py-2 px-3 text-center">
+                                                  <div className="flex items-center justify-center gap-1 font-mono font-bold text-slate-700">
+                                                    <span className="w-5 text-center text-xs">{tp.order_index || (index + 1)}</span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === 0 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'up', group.allSemTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke atas"
+                                                      >
+                                                        <ArrowUp className="w-3 h-3" />
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        disabled={index === group.allSemTps.length - 1 || reorderingTpId === tp.id}
+                                                        onClick={() => handleReorderTp(tp, 'down', group.allSemTps)}
+                                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-500 disabled:opacity-20 transition"
+                                                        title="Pindah urutan ke bawah"
+                                                      >
+                                                        <ArrowDown className="w-3 h-3" />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                </td>
+                                                <td className="py-2 px-3">
+                                                  <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg font-bold text-xs">
+                                                    {tp.code}
+                                                  </span>
+                                                </td>
+                                                <td className="py-2 px-4 text-slate-800 font-medium leading-relaxed">
+                                                  {tp.description}
+                                                </td>
+                                                <td className="py-2 px-3 text-right space-x-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleOpenEditTp(tp)}
+                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    title="Edit TP"
+                                                  >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteTp(tp.id)}
+                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    title="Hapus TP"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* 4. TAB EKSTRAKURIKULER */}
@@ -2585,8 +3450,46 @@ export default function Kurikulum() {
               </table>
             )}
 
-            {/* 5. TAB PEMBAGIAN TUGAS MENGAJAR & EKSKUL */}
-            {activeTab === 'teaching_duties' && (() => {
+            {/* 6. TAB PEMBAGIAN TUGAS MENGAJAR & EKSKUL */}
+            {activeTab === 'teaching_duties' && (
+              <div className="space-y-4 p-4">
+                {/* SUB-TAB NAVIGATOR TAB 6 */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 shadow-inner">
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setTeachingSubTab('by_learning')}
+                      className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                        teachingSubTab === 'by_learning'
+                          ? 'bg-white text-teal-700 shadow-md border border-slate-200/70'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                    >
+                      <BookOpen className="w-4 h-4 text-teal-600" />
+                      <span>1. Berdasarkan Pembelajaran (Mapel ➔ Guru)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTeachingSubTab('by_teacher')}
+                      className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                        teachingSubTab === 'by_teacher'
+                          ? 'bg-white text-indigo-700 shadow-md border border-slate-200/70'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                    >
+                      <Users className="w-4 h-4 text-indigo-600" />
+                      <span>2. Berdasarkan Guru (Guru ➔ Pembelajaran)</span>
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-semibold px-3 hidden md:block">
+                    {teachingSubTab === 'by_learning'
+                      ? '📌 Matriks penetapan guru per mata pelajaran & rombel'
+                      : '📌 Rekapitulasi beban jam mengajar per guru'}
+                  </div>
+                </div>
+
+                {/* --- SUB-TAB 1: BERDASARKAN PEMBELAJARAN (MAPEL ➔ GURU) --- */}
+                {teachingSubTab === 'by_learning' && (() => {
               // Bangun matriks otomatis: Semua kombinasi Mapel x Rombel Reguler pada TA & Satuan Pendidikan ini
               const regulerClassGroups = classGroups.filter(cg => !cg.type || cg.type === 'reguler');
               const learningPairs = [];
@@ -2594,8 +3497,12 @@ export default function Kurikulum() {
               // Map assignments dari dataList (bisa 1 atau multi-guru per Mapel x Rombel)
               const assignmentMap = {};
               (Array.isArray(dataList) ? dataList : []).forEach(d => {
-                if (d.type === 'mapel' && d.subject_id && d.class_group_id) {
-                  const key = `mapel_${d.subject_id}_${d.class_group_id}`;
+                if (d.type === 'mapel' && d.subject_id) {
+                  const key = `mapel_${d.subject_id}_${d.class_group_id || 'null'}`;
+                  if (!assignmentMap[key]) assignmentMap[key] = [];
+                  assignmentMap[key].push(d);
+                } else if (d.type === 'ekskul' && d.extracurricular_id) {
+                  const key = `ekskul_${d.extracurricular_id}_${d.class_group_id || 'null'}`;
                   if (!assignmentMap[key]) assignmentMap[key] = [];
                   assignmentMap[key].push(d);
                 }
@@ -2609,99 +3516,197 @@ export default function Kurikulum() {
                 const childSubs = subSubjects.filter(s => String(s.parent_subject_id) === String(parentSub.id));
                 const hasChildren = childSubs.length > 0;
                 const isExpanded = expandedParents[parentSub.id] !== false;
+                const isParentElective = parentSub.is_elective == 1 || parentSub.is_elective === true || parentSub.is_elective === '1';
 
-                regulerClassGroups.forEach(cg => {
-                  // Jika mapel memiliki peruntukan tingkat spesifik, hanya pasangkan dengan rombel pada tingkat tersebut
-                  if (parentSub.grade_level_id && cg.grade_level_id && String(parentSub.grade_level_id) !== String(cg.grade_level_id)) {
-                    return;
-                  }
+                if (isParentElective) {
+                  const specificPilihanCgs = classGroups.filter(cg => cg.type === 'pilihan' && String(cg.subject_id) === String(parentSub.id));
+                  const effectivePilihanCgs = specificPilihanCgs.length > 0
+                    ? specificPilihanCgs
+                    : [{ id: null, name: 'Belum Ada Rombel Pilihan', _isMissingRombel: true }];
 
-                  const matchedDuties = assignmentMap[`mapel_${parentSub.id}_${cg.id}`] || [];
-                  const structKey = `${parentSub.id}_${cg.grade_level_id}`;
-                  const curriculumJp = currStructMatrixMap[structKey]?.hours_per_week !== undefined
-                    ? currStructMatrixMap[structKey].hours_per_week
-                    : 0;
+                  effectivePilihanCgs.forEach(cg => {
+                    const byCg = cg.id ? (assignmentMap[`mapel_${parentSub.id}_${cg.id}`] || []) : [];
+                    const byNull = assignmentMap[`mapel_${parentSub.id}_null`] || [];
+                    const matchedDuties = [...byCg, ...byNull.filter(n => !byCg.some(c => c.id === n.id))];
+                    const teacherNames = matchedDuties.map(d => d.teacher_name).filter(Boolean).join(', ');
+                    const skNumbers = matchedDuties.map(d => d.sk_number).filter(Boolean).join(', ');
+                    const roleDescriptions = matchedDuties.map(d => d.role_description).filter(Boolean).join(', ');
+
+                    learningPairs.push({
+                      type: 'mapel',
+                      subject: parentSub,
+                      class_group: cg._isMissingRombel ? null : cg,
+                      isMissingRombel: cg._isMissingRombel,
+                      duty: matchedDuties[0] || null,
+                      duties: matchedDuties,
+                      curriculumJp: 2,
+                      is_assigned: matchedDuties.length > 0,
+                      subject_name: parentSub.name,
+                      class_name: cg.name,
+                      teacher_name: teacherNames,
+                      role_description: roleDescriptions,
+                      sk_number: skNumbers,
+                      hasChildren: hasChildren,
+                      isExpanded: isExpanded,
+                      childrenCount: childSubs.length,
+                      isSubSubject: false
+                    });
+                  });
+                } else {
+                  regulerClassGroups.forEach(cg => {
+                    if (parentSub.grade_level_id && cg.grade_level_id && String(parentSub.grade_level_id) !== String(cg.grade_level_id)) {
+                      return;
+                    }
+
+                    const matchedDuties = assignmentMap[`mapel_${parentSub.id}_${cg.id}`] || [];
+                    const structKey = `${parentSub.id}_${cg.grade_level_id}`;
+                    const curriculumJp = currStructMatrixMap[structKey]?.hours_per_week !== undefined
+                      ? currStructMatrixMap[structKey].hours_per_week
+                      : 0;
+
+                    const teacherNames = matchedDuties.map(d => d.teacher_name).filter(Boolean).join(', ');
+                    const skNumbers = matchedDuties.map(d => d.sk_number).filter(Boolean).join(', ');
+                    const roleDescriptions = matchedDuties.map(d => d.role_description).filter(Boolean).join(', ');
+
+                    const jointDuty = matchedDuties.find(d => d.is_joined_class == 1 || d.is_joined_class === true || d.joint_group_id);
+                    let isJoinedClass = Boolean(jointDuty);
+                    let jointClassNames = [];
+                    let jointClassIds = [cg.id];
+
+                    if (isJoinedClass && jointDuty.joint_group_id) {
+                      const allJointDuties = (Array.isArray(dataList) ? dataList : []).filter(d => d.joint_group_id === jointDuty.joint_group_id);
+                      jointClassIds = Array.from(new Set(allJointDuties.map(d => d.class_group_id).filter(Boolean)));
+                      jointClassNames = classGroups.filter(c => jointClassIds.includes(c.id)).map(c => c.name);
+                    }
+
+                    learningPairs.push({
+                      type: 'mapel',
+                      subject: parentSub,
+                      class_group: cg,
+                      isMissingRombel: false,
+                      duty: matchedDuties[0] || null,
+                      duties: matchedDuties,
+                      curriculumJp: curriculumJp,
+                      is_assigned: matchedDuties.length > 0,
+                      subject_name: parentSub.name,
+                      class_name: cg.name,
+                      teacher_name: teacherNames,
+                      role_description: roleDescriptions,
+                      sk_number: skNumbers,
+                      hasChildren: hasChildren,
+                      isExpanded: isExpanded,
+                      childrenCount: childSubs.length,
+                      isSubSubject: false,
+                      isJoinedClass,
+                      jointClassNames,
+                      jointClassIds
+                    });
+                  });
+                }
+
+                if (hasChildren && isExpanded) {
+                  childSubs.forEach(childSub => {
+                    const isChildElective = childSub.is_elective == 1 || childSub.is_elective === true || childSub.is_elective === '1';
+                    if (isChildElective) {
+                      const specificPilihanCgs = classGroups.filter(cg => cg.type === 'pilihan' && String(cg.subject_id) === String(childSub.id));
+                      const effectiveChildCgs = specificPilihanCgs.length > 0
+                        ? specificPilihanCgs
+                        : [{ id: null, name: 'Belum Ada Rombel Pilihan', _isMissingRombel: true }];
+
+                      effectiveChildCgs.forEach(subCg => {
+                        const childDuties = subCg.id ? (assignmentMap[`mapel_${childSub.id}_${subCg.id}`] || []) : [];
+                        learningPairs.push({
+                          type: 'mapel',
+                          subject: childSub,
+                          class_group: subCg._isMissingRombel ? null : subCg,
+                          isMissingRombel: subCg._isMissingRombel,
+                          duty: childDuties[0] || null,
+                          duties: childDuties,
+                          curriculumJp: 2,
+                          is_assigned: childDuties.length > 0,
+                          subject_name: childSub.name,
+                          class_name: subCg.name,
+                          teacher_name: childDuties.map(d => d.teacher_name).filter(Boolean).join(', '),
+                          role_description: childDuties.map(d => d.role_description).filter(Boolean).join(', '),
+                          sk_number: childDuties.map(d => d.sk_number).filter(Boolean).join(', '),
+                          hasChildren: false,
+                          isExpanded: false,
+                          childrenCount: 0,
+                          isSubSubject: true,
+                          parentSubjectName: parentSub.name
+                        });
+                      });
+                    } else {
+                      regulerClassGroups.forEach(subCg => {
+                        if (childSub.grade_level_id && subCg.grade_level_id && String(childSub.grade_level_id) !== String(subCg.grade_level_id)) {
+                          return;
+                        }
+                        const childDuties = assignmentMap[`mapel_${childSub.id}_${subCg.id}`] || [];
+                        const childStructKey = `${childSub.id}_${subCg.grade_level_id}`;
+                        const childCurriculumJp = currStructMatrixMap[childStructKey]?.hours_per_week !== undefined
+                          ? currStructMatrixMap[childStructKey].hours_per_week
+                          : 0;
+
+                        learningPairs.push({
+                          type: 'mapel',
+                          subject: childSub,
+                          class_group: subCg,
+                          isMissingRombel: false,
+                          duty: childDuties[0] || null,
+                          duties: childDuties,
+                          curriculumJp: childCurriculumJp,
+                          is_assigned: childDuties.length > 0,
+                          subject_name: childSub.name,
+                          class_name: subCg.name,
+                          teacher_name: childDuties.map(d => d.teacher_name).filter(Boolean).join(', '),
+                          role_description: childDuties.map(d => d.role_description).filter(Boolean).join(', '),
+                          sk_number: childDuties.map(d => d.sk_number).filter(Boolean).join(', '),
+                          hasChildren: false,
+                          isExpanded: false,
+                          childrenCount: 0,
+                          isSubSubject: true,
+                          parentSubjectName: parentSub.name
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+
+              extrasList.forEach(ex => {
+                const specificEkskulCgs = classGroups.filter(cg =>
+                  (cg.type === 'ekskul' || cg.type === 'ekstrakurikuler') &&
+                  String(cg.extracurricular_id || cg.subject_id) === String(ex.id)
+                );
+                const effectiveEkskulCgs = specificEkskulCgs.length > 0
+                  ? specificEkskulCgs
+                  : [{ id: null, name: 'Semua Rombel / Global', _isGlobal: true }];
+
+                effectiveEkskulCgs.forEach(cg => {
+                  const byCg = cg.id ? (assignmentMap[`ekskul_${ex.id}_${cg.id}`] || []) : [];
+                  const byNull = assignmentMap[`ekskul_${ex.id}_null`] || [];
+                  const matchedDuties = [...byCg, ...byNull.filter(n => !byCg.some(c => c.id === n.id))];
 
                   const teacherNames = matchedDuties.map(d => d.teacher_name).filter(Boolean).join(', ');
                   const skNumbers = matchedDuties.map(d => d.sk_number).filter(Boolean).join(', ');
                   const roleDescriptions = matchedDuties.map(d => d.role_description).filter(Boolean).join(', ');
 
                   learningPairs.push({
-                    type: 'mapel',
-                    subject: parentSub,
-                    class_group: cg,
+                    type: 'ekskul',
+                    extra: ex,
+                    subject: null,
+                    class_group: cg._isGlobal ? null : cg,
+                    isGlobalEkskul: Boolean(cg._isGlobal),
                     duty: matchedDuties[0] || null,
                     duties: matchedDuties,
-                    curriculumJp: curriculumJp,
+                    curriculumJp: 2,
                     is_assigned: matchedDuties.length > 0,
-                    subject_name: parentSub.name,
-                    class_name: cg.name,
+                    subject_name: ex.name,
+                    class_name: cg._isGlobal ? 'Semua Rombel / Global' : cg.name,
                     teacher_name: teacherNames,
                     role_description: roleDescriptions,
-                    sk_number: skNumbers,
-                    hasChildren: hasChildren,
-                    isExpanded: isExpanded,
-                    childrenCount: childSubs.length,
-                    isSubSubject: false
+                    sk_number: skNumbers
                   });
-
-                  // Jika sub-mapel ada dan sedang di-expand (terbuka), tambahkan baris sub-mapel untuk rombel ini
-                  if (hasChildren && isExpanded) {
-                    childSubs.forEach(childSub => {
-                      if (childSub.grade_level_id && cg.grade_level_id && String(childSub.grade_level_id) !== String(cg.grade_level_id)) {
-                        return;
-                      }
-                      const childDuties = assignmentMap[`mapel_${childSub.id}_${cg.id}`] || [];
-                      const childStructKey = `${childSub.id}_${cg.grade_level_id}`;
-                      const childCurriculumJp = currStructMatrixMap[childStructKey]?.hours_per_week !== undefined
-                        ? currStructMatrixMap[childStructKey].hours_per_week
-                        : 0;
-
-                      learningPairs.push({
-                        type: 'mapel',
-                        subject: childSub,
-                        class_group: cg,
-                        duty: childDuties[0] || null,
-                        duties: childDuties,
-                        curriculumJp: childCurriculumJp,
-                        is_assigned: childDuties.length > 0,
-                        subject_name: childSub.name,
-                        class_name: cg.name,
-                        teacher_name: childDuties.map(d => d.teacher_name).filter(Boolean).join(', '),
-                        role_description: childDuties.map(d => d.role_description).filter(Boolean).join(', '),
-                        sk_number: childDuties.map(d => d.sk_number).filter(Boolean).join(', '),
-                        hasChildren: false,
-                        isExpanded: false,
-                        childrenCount: 0,
-                        isSubSubject: true,
-                        parentSubjectName: parentSub.name
-                      });
-                    });
-                  }
-                });
-              });
-
-              // Tambahkan juga ekskul yang ada
-              extrasList.forEach(ex => {
-                const matchedDuties = (Array.isArray(dataList) ? dataList : []).filter(d => d.type === 'ekskul' && String(d.extracurricular_id) === String(ex.id));
-                const teacherNames = matchedDuties.map(d => d.teacher_name).filter(Boolean).join(', ');
-                const skNumbers = matchedDuties.map(d => d.sk_number).filter(Boolean).join(', ');
-                const roleDescriptions = matchedDuties.map(d => d.role_description).filter(Boolean).join(', ');
-
-                learningPairs.push({
-                  type: 'ekskul',
-                  extra: ex,
-                  subject: null,
-                  class_group: null,
-                  duty: matchedDuties[0] || null,
-                  duties: matchedDuties,
-                  curriculumJp: 2,
-                  is_assigned: matchedDuties.length > 0,
-                  subject_name: ex.name,
-                  class_name: 'Semua Rombel',
-                  teacher_name: teacherNames,
-                  role_description: roleDescriptions,
-                  sk_number: skNumbers
                 });
               });
 
@@ -2978,10 +3983,29 @@ export default function Kurikulum() {
                                 )}
                               </td>
                               <td className="py-3 px-4">
-                                {pair.class_group ? (
-                                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg font-bold text-[11px]">
-                                    {pair.class_group.name} {pair.class_group.grade_level_name ? `(Tk. ${pair.class_group.grade_level_name})` : ''}
+                                {pair.isMissingRombel ? (
+                                  <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-lg font-bold text-[11px] flex items-center gap-1 inline-flex">
+                                    ⚠️ Belum Ada Rombel Pilihan
                                   </span>
+                                ) : pair.class_group ? (
+                                  pair.isJoinedClass ? (
+                                    <div className="flex flex-col gap-1">
+                                      <span className="px-2.5 py-1 rounded-lg font-black text-[11px] inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/15 text-amber-950 border-2 border-amber-400/90 shadow-2xs">
+                                        <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500 shrink-0" />
+                                        <span>⚡ Rombel Gabungan: {pair.jointClassNames && pair.jointClassNames.length > 0 ? pair.jointClassNames.join(' + ') : pair.class_group?.name}</span>
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className={`px-2.5 py-1 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 ${
+                                      pair.class_group.type === 'pilihan'
+                                        ? 'bg-amber-50 text-amber-900 border border-amber-300'
+                                        : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                    }`}>
+                                      {pair.class_group.type === 'pilihan' && <Zap className="w-3 h-3 text-amber-600 shrink-0" />}
+                                      <span>{pair.class_group.type === 'pilihan' ? `Rombel Pilihan ${pair.class_group.name}` : pair.class_group.name}</span>
+                                      {pair.class_group.grade_level_name ? `(Tk. ${pair.class_group.grade_level_name})` : ''}
+                                    </span>
+                                  )
                                 ) : (
                                   <span className="text-slate-400 italic text-[11px]">Semua Rombel / Global</span>
                                 )}
@@ -3079,9 +4103,229 @@ export default function Kurikulum() {
                 </div>
               );
             })()}
+
+            {/* --- SUB-TAB 2: BERDASARKAN GURU (GURU ➔ PEMBELAJARAN) --- */}
+            {teachingSubTab === 'by_teacher' && (() => {
+              const filteredTeachers = (Array.isArray(employees) ? employees : []).filter(emp => {
+                if (!search || !search.trim()) return true;
+                const q = search.trim().toLowerCase();
+                const nameMatches = emp.full_name ? emp.full_name.toLowerCase().includes(q) : false;
+                const nipMatches = emp.nip ? emp.nip.toLowerCase().includes(q) : false;
+                const nipyMatches = emp.nipy ? emp.nipy.toLowerCase().includes(q) : false;
+
+                const dutiesForEmp = (Array.isArray(dataList) ? dataList : []).filter(d => String(d.teacher_employee_id) === String(emp.id));
+                const subjectMatches = dutiesForEmp.some(d =>
+                  (d.subject_name && d.subject_name.toLowerCase().includes(q)) ||
+                  (d.extracurricular_name && d.extracurricular_name.toLowerCase().includes(q)) ||
+                  (d.class_name && d.class_name.toLowerCase().includes(q))
+                );
+
+                return nameMatches || nipMatches || nipyMatches || subjectMatches;
+              });
+
+              const totalTeachersCount = employees.length;
+              const assignedTeachersCount = employees.filter(emp =>
+                (Array.isArray(dataList) ? dataList : []).some(d => String(d.teacher_employee_id) === String(emp.id))
+              ).length;
+
+              const totalAssignedJp = calculateTeacherTotalJp(dataList);
+
+              return (
+                <div className="space-y-4">
+                  {/* REKAP KARTU RINGKASAN */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl p-4 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold opacity-90">Total Guru Terdaftar</span>
+                        <Users className="w-5 h-5 opacity-80" />
+                      </div>
+                      <div className="text-2xl font-black mt-2">{totalTeachersCount} Guru</div>
+                      <p className="text-[10px] opacity-80 mt-1">Master Data Kepegawaian</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-2xl p-4 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold opacity-90">Guru Terisi Tugas</span>
+                        <UserCheck className="w-5 h-5 opacity-80" />
+                      </div>
+                      <div className="text-2xl font-black mt-2">{assignedTeachersCount} / {totalTeachersCount} Guru</div>
+                      <p className="text-[10px] opacity-80 mt-1">
+                        {totalTeachersCount > 0 ? `${Math.round((assignedTeachersCount / totalTeachersCount) * 100)}% Terisi` : '0%'}
+                      </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-2xl p-4 shadow-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold opacity-90">Total Beban Jam</span>
+                        <Clock className="w-5 h-5 opacity-80" />
+                      </div>
+                      <div className="text-2xl font-black mt-2">{totalAssignedJp} JP / Pekan</div>
+                      <p className="text-[10px] opacity-80 mt-1">Total Alokasi Mengajar & Ekskul</p>
+                    </div>
+                  </div>
+
+                  {/* DAFTAR GURU & PEMBELAJARAN YANG DIENGAPU */}
+                  {filteredTeachers.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
+                      <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <h4 className="text-sm font-bold text-slate-700">Tidak Ada Guru Ditemukan</h4>
+                      <p className="text-xs text-slate-500 mt-1">Coba ubah kata kunci pencarian atau pastikan master data pegawai sudah terisi.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredTeachers.map(teacher => {
+                        const rawTeacherDuties = (Array.isArray(dataList) ? dataList : []).filter(d => String(d.teacher_employee_id) === String(teacher.id));
+                        const teacherTotalJp = calculateTeacherTotalJp(rawTeacherDuties);
+
+                        // Deduplikasi duty list untuk tampilan tabel Sub-Tab 2 agar Rombel Gabungan tampil sebagai 1 baris
+                        const processedJointIds = new Set();
+                        const teacherDuties = [];
+
+                        rawTeacherDuties.forEach(d => {
+                          if (d.is_joined_class && d.joint_group_id) {
+                            if (!processedJointIds.has(d.joint_group_id)) {
+                              processedJointIds.add(d.joint_group_id);
+                              const groupDuties = rawTeacherDuties.filter(g => g.joint_group_id === d.joint_group_id);
+                              const groupCgNames = groupDuties.map(g => g.class_group_name || 'Rombel').join(' + ');
+                              teacherDuties.push({
+                                ...d,
+                                class_group_name: `⚡ Rombel Gabungan: ${groupCgNames}`,
+                                is_group_row: true
+                              });
+                            }
+                          } else {
+                            teacherDuties.push(d);
+                          }
+                        });
+
+                        return (
+                          <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden hover:shadow-md transition">
+                            <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                                  {teacher.full_name ? teacher.full_name.charAt(0).toUpperCase() : 'G'}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-slate-800 text-sm">{teacher.full_name}</h3>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                      {teacher.job_title || teacher.employment_status || 'Guru'}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    NIP/NIPY: <span className="font-mono">{teacher.nip || teacher.nipy || '-'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                                  <span className="text-xs font-semibold text-slate-600">Total Beban:</span>
+                                  <span className="text-xs font-black px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-lg">
+                                    {teacherTotalJp} JP
+                                  </span>
+                                  <span className="text-xs text-slate-400">({teacherDuties.length} Pembelajaran)</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenTeacherAssignModal(teacher)}
+                                  className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>Tentukan Pembelajaran</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="p-4">
+                              {teacherDuties.length === 0 ? (
+                                <div className="text-center py-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                  <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-1 opacity-70" />
+                                  <p className="text-xs text-slate-500 font-medium">Belum ada mata pelajaran atau ekskul yang ditugaskan ke guru ini.</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenTeacherAssignModal(teacher)}
+                                    className="mt-2 text-xs text-teal-700 hover:text-teal-800 font-bold underline"
+                                  >
+                                    + Klik di sini untuk menentukan pembelajaran guru ini
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                      <tr className="border-b border-slate-200 text-slate-500 font-bold bg-slate-50/40">
+                                        <th className="py-2.5 px-3">Tipe</th>
+                                        <th className="py-2.5 px-3">Mata Pelajaran / Ekskul</th>
+                                        <th className="py-2.5 px-3">Rombongan Belajar</th>
+                                        <th className="py-2.5 px-3 text-center">Alokasi JP</th>
+                                        <th className="py-2.5 px-3">Peran / Keterangan</th>
+                                        <th className="py-2.5 px-3">No. SK Penugasan</th>
+                                        <th className="py-2.5 px-3 text-right">Aksi</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {teacherDuties.map(duty => (
+                                        <tr key={duty.id} className="hover:bg-slate-50/80 transition">
+                                          <td className="py-2.5 px-3">
+                                            {duty.type === 'mapel' ? (
+                                              <span className="px-2 py-0.5 text-[10px] font-bold bg-teal-100 text-teal-800 rounded">
+                                                MAPEL
+                                              </span>
+                                            ) : (
+                                              <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">
+                                                EKSKUL
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2.5 px-3 font-bold text-slate-800">
+                                            {duty.type === 'mapel' ? duty.subject_name : duty.extracurricular_name}
+                                            {duty.subject_code && <span className="text-[10px] text-slate-400 ml-1 font-mono">({duty.subject_code})</span>}
+                                          </td>
+                                          <td className="py-2.5 px-3 font-semibold text-slate-700">
+                                            {duty.class_name || (duty.type === 'ekskul' ? 'Semua Rombel (Global)' : '-')}
+                                          </td>
+                                          <td className="py-2.5 px-3 text-center">
+                                            <span className="px-2 py-0.5 font-black bg-teal-50 text-teal-800 border border-teal-200 rounded text-xs">
+                                              {duty.allocated_hours || 2} JP
+                                            </span>
+                                          </td>
+                                          <td className="py-2.5 px-3 text-slate-600">
+                                            {duty.role_description || 'Guru Pengampu'}
+                                          </td>
+                                          <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
+                                            {duty.sk_number || '-'}
+                                          </td>
+                                          <td className="py-2.5 px-3 text-right">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleOpenDeleteDuty(duty)}
+                                              className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded font-semibold text-[11px] transition"
+                                            >
+                                              Hapus
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
+    )}
+  </div>
 
       {/* --- MODAL TAMBAH / EDIT MATA PELAJARAN --- */}
       {subjectModalOpen && (
@@ -3224,6 +4468,82 @@ export default function Kurikulum() {
                   onChange={(e) => setSubjectForm({ ...subjectForm, kkm: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
                 />
+              </div>
+
+              {/* Opsi Mapel Pilihan / Paralel Serentak (Blok Scheduling) */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200/90 rounded-xl space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={subjectForm.is_elective}
+                    onChange={(e) => setSubjectForm({ ...subjectForm, is_elective: e.target.checked })}
+                    className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 mt-0.5"
+                  />
+                  <div>
+                    <span className="text-[11px] font-bold text-amber-950 block">
+                      ⚡ Mapel Pilihan / Paralel Serentak (Blok Scheduling)
+                    </span>
+                    <span className="text-[10px] text-amber-800 leading-tight block">
+                      Aktifkan jika siswa memilih salah satu dari beberapa mapel pilihan dalam satu slot jam pelajaran yang sama secara bersamaan (misal: Bahasa Arab / Bahasa Inggris Pilihan).
+                    </span>
+                  </div>
+                </label>
+
+                {subjectForm.is_elective && (
+                  <div className="pt-2 border-t border-amber-200 space-y-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                        Nama Kelompok Blok Pilihan *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required={subjectForm.is_elective}
+                          list="existing-elective-groups-list"
+                          value={subjectForm.elective_group_name}
+                          onChange={(e) => setSubjectForm({ ...subjectForm, elective_group_name: e.target.value })}
+                          placeholder="Pilih kelompok yang ada atau ketik nama kelompok baru..."
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-amber-950"
+                        />
+                        <datalist id="existing-elective-groups-list">
+                          {Array.from(new Set(subjectsList.map(s => s.elective_group_name).filter(Boolean))).map(name => (
+                            <option key={name} value={name} />
+                          ))}
+                        </datalist>
+                      </div>
+                      <p className="text-[10px] text-amber-700 mt-0.5">
+                        Pilih dari opsi otomatis yang tersedia atau ketik nama kelompok baru. Mapel dengan nama kelompok yang sama akan otomatis serentak di jadwal.
+                      </p>
+                    </div>
+
+                    {/* Quick Chip Selector for Existing Elective Groups */}
+                    {(() => {
+                      const groups = Array.from(new Set(subjectsList.map(s => s.elective_group_name).filter(Boolean)));
+                      if (groups.length === 0) return null;
+                      return (
+                        <div>
+                          <span className="text-[10px] font-bold text-amber-900 block mb-1">Pilih dari Kelompok Blok yang Sudah Ada:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {groups.map(grp => (
+                              <button
+                                key={grp}
+                                type="button"
+                                onClick={() => setSubjectForm({ ...subjectForm, elective_group_name: grp })}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 border ${
+                                  subjectForm.elective_group_name === grp
+                                    ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                                    : 'bg-white text-amber-900 border-amber-300 hover:bg-amber-100'
+                                }`}
+                              >
+                                <span>⚡ {grp}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div className="pt-1">
@@ -3516,37 +4836,58 @@ export default function Kurikulum() {
             )}
 
             <form onSubmit={handleSaveTp} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Tingkat Kelas *</label>
-                  <select
-                    required
-                    value={tpForm.grade_level_id}
-                    onChange={(e) => setTpForm({ ...tpForm, grade_level_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="">-- Pilih Tingkat --</option>
-                    {gradeLevels.map(gl => (
-                      <option key={gl.id} value={gl.id}>{gl.name}</option>
-                    ))}
-                  </select>
-                </div>
+              {/* Context Header: Tingkat Kelas & Mata Pelajaran */}
+              {tpGroupContext ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-teal-50/50 p-3.5 rounded-xl border border-teal-100 shadow-2xs">
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Tingkat Kelas (Terkunci)</span>
+                    </span>
+                    <div className="px-3 py-1.5 bg-white border border-teal-200 rounded-lg font-bold text-slate-800 text-xs shadow-2xs">
+                      {tpGroupContext.gradeLevel?.name || gradeLevels.find(g => String(g.id) === String(tpForm.grade_level_id))?.name || 'Tingkat Terpilih'}
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mata Pelajaran *</label>
-                  <select
-                    required
-                    value={tpForm.subject_id}
-                    onChange={(e) => setTpForm({ ...tpForm, subject_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="">-- Pilih Mapel --</option>
-                    {subjectsList.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.code || '-'})</option>
-                    ))}
-                  </select>
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Mata Pelajaran (Terkunci)</span>
+                    </span>
+                    <div className="px-3 py-1.5 bg-white border border-teal-200 rounded-lg font-bold text-slate-800 text-xs truncate shadow-2xs">
+                      {tpGroupContext.subject?.name || subjectsList.find(s => String(s.id) === String(tpForm.subject_id))?.name || 'Mata Pelajaran'}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Tingkat Kelas *</label>
+                    <select
+                      required
+                      value={tpForm.grade_level_id}
+                      onChange={(e) => setTpForm({ ...tpForm, grade_level_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="">-- Pilih Tingkat --</option>
+                      {gradeLevels.map(gl => (
+                        <option key={gl.id} value={gl.id}>{gl.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mata Pelajaran *</label>
+                    <SearchableSelect
+                      options={subjectsList.map(s => ({ value: s.id, label: s.name, sublabel: s.code ? `Kode: ${s.code}` : undefined }))}
+                      value={tpForm.subject_id}
+                      onChange={(val) => setTpForm({ ...tpForm, subject_id: val })}
+                      placeholder="-- Pilih Mapel --"
+                      searchPlaceholder="Ketik nama / kode mapel..."
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* 1. SINGLE MODE / EDIT MODE */}
               {(editingTp || tpInputMode === 'single') && (
@@ -3913,7 +5254,14 @@ export default function Kurikulum() {
                                 }`}
                               >
                                 <div>
-                                  <div className="font-semibold">{s.name}</div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold">{s.name}</span>
+                                    {(s.is_elective == 1 || s.is_elective === true || s.is_elective === '1') && (
+                                      <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] rounded font-bold border border-amber-300">
+                                        ⚡ Mapel Pilihan
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="text-[10px] text-slate-400">Kode: {s.code || '-'} • {s.grade_level_name || 'Semua Tingkat'}</div>
                                 </div>
                                 {isSelected && <Check className="w-4 h-4 text-teal-600 shrink-0" />}
@@ -4011,8 +5359,12 @@ export default function Kurikulum() {
                     if (dutyForm.type === 'ekskul') {
                       return cg.type === 'ekstrakurikuler';
                     } else {
-                      // Mapel: hanya rombel reguler / kelas (bukan ekskul)
-                      return cg.type !== 'ekstrakurikuler';
+                      const selSub = subjectsList.find(s => String(s.id) === String(dutyForm.subject_id));
+                      const isEl = selSub?.is_elective == 1 || selSub?.is_elective === true;
+                      if (isEl) {
+                        return cg.type === 'pilihan' || String(cg.subject_id) === String(dutyForm.subject_id);
+                      }
+                      return !cg.type || cg.type === 'reguler';
                     }
                   });
 
@@ -4064,6 +5416,23 @@ export default function Kurikulum() {
                           </button>
                         )}
                       </div>
+
+                      {dutyForm.class_group_ids.length > 1 && (
+                        <label className="flex items-center gap-2 p-2.5 bg-amber-50/80 border border-amber-200 rounded-xl cursor-pointer select-none text-xs text-amber-950 font-bold transition hover:bg-amber-100">
+                          <input
+                            type="checkbox"
+                            checked={dutyForm.is_joined_class}
+                            onChange={(e) => setDutyForm({ ...dutyForm, is_joined_class: e.target.checked })}
+                            className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
+                          />
+                          <div>
+                            <span>⚡ Mode Rombel Gabungan (Joint Class)</span>
+                            <p className="text-[10px] font-normal text-amber-800 leading-tight mt-0.5">
+                              Rombel-rombel yang dipilih diajarkan bersamaan pada 1 slot jam jadwal yang sama (contoh: PJOK X-A + X-B).
+                            </p>
+                          </div>
+                        </label>
+                      )}
 
                       {candidateClassGroups.length === 0 ? (
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs">
@@ -4406,7 +5775,7 @@ export default function Kurikulum() {
                       </span>
                     ) : (
                       <span>
-                        Ekskul: <strong className="text-amber-700">{quickAssignPair.extra?.name}</strong> (Global / Seluruh Rombel)
+                        Ekskul: <strong className="text-amber-700">{quickAssignPair.extra?.name}</strong> • Rombel: <strong className="text-amber-900">{quickAssignPair.class_group?.name || 'Rombel Ekskul Global (Umum)'}</strong>
                       </span>
                     )}
                   </p>
@@ -4418,6 +5787,90 @@ export default function Kurikulum() {
             </div>
 
             {/* STANDAR JP STRUKTUR KURIKULUM CARD */}
+            {/* PENANDA INFORMASI MAPEL PILIHAN */}
+            {quickAssignPair.subject && (quickAssignPair.subject.is_elective == 1 || quickAssignPair.subject.is_elective === true || quickAssignPair.subject.is_elective === '1') && (
+              <div className="p-3 bg-gradient-to-r from-amber-500/15 to-orange-500/10 border-2 border-amber-400/80 rounded-2xl text-amber-950 text-xs space-y-1 shadow-2xs">
+                <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs uppercase tracking-wide">
+                  <Zap className="w-4 h-4 text-amber-600 fill-amber-500 shrink-0" />
+                  <span>⚡ MATA PELAJARAN PILIHAN / PARALEL SERENTAK</span>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+                  Mapel ini dapat diampu oleh <b>beberapa guru sekaligus</b>. Masing-masing guru pengampu dihitung <b>Beban Ajar Penuh ({quickAssignPair.curriculumJp || 2} JP)</b> tanpa pembagian/pemotongan JP.
+                </p>
+              </div>
+            )}
+
+            {/* SEKSI PENGATURAN ROMBEL GABUNGAN (UNTUK MAPEL REGULER SEPERTI PJOK) */}
+            {quickAssignPair.type === 'mapel' && (!quickAssignPair.subject || (quickAssignPair.subject.is_elective != 1 && quickAssignPair.subject.is_elective !== true && quickAssignPair.subject.is_elective !== '1')) && (
+              <div className="p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300 rounded-2xl space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-amber-950 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={quickAssignForm.is_joined_class}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setQuickAssignForm(prev => ({
+                        ...prev,
+                        is_joined_class: checked,
+                        class_group_ids: checked
+                          ? (prev.class_group_ids.length > 0 ? prev.class_group_ids : [quickAssignPair.class_group?.id].filter(Boolean))
+                          : [quickAssignPair.class_group?.id].filter(Boolean)
+                      }));
+                    }}
+                    className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-600 fill-amber-500 shrink-0" />
+                    <span>⚡ Mode Rombel Gabungan (Joint Class)</span>
+                  </div>
+                </label>
+
+                {quickAssignForm.is_joined_class && (
+                  <div className="space-y-1.5 pt-2 border-t border-amber-200/80">
+                    <span className="text-[11px] font-bold text-amber-900 block">
+                      Pilih Rombel Pasangan yang Diajarkan Bersamaan dalam 1 Slot Jadwal:
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-white border border-amber-200 rounded-xl">
+                      {(Array.isArray(classGroups) ? classGroups : [])
+                        .filter(cg => (!cg.type || cg.type === 'reguler'))
+                        .map(cg => {
+                          const isCurrent = String(cg.id) === String(quickAssignPair.class_group?.id);
+                          const isChecked = quickAssignForm.class_group_ids.includes(cg.id) || isCurrent;
+                          return (
+                            <label
+                              key={cg.id}
+                              className={`p-1.5 rounded-lg border text-left text-xs font-semibold select-none flex items-center justify-between cursor-pointer transition ${
+                                isCurrent
+                                  ? 'bg-amber-100/80 border-amber-300 text-amber-950 font-bold'
+                                  : isChecked
+                                  ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span className="truncate">{cg.name} {cg.grade_level_name ? `(${cg.grade_level_name})` : ''}</span>
+                              <input
+                                type="checkbox"
+                                disabled={isCurrent}
+                                checked={isChecked}
+                                onChange={() => {
+                                  const cId = cg.id;
+                                  setQuickAssignForm(prev => {
+                                    const exists = prev.class_group_ids.includes(cId);
+                                    const updated = exists ? prev.class_group_ids.filter(id => id !== cId) : [...prev.class_group_ids, cId];
+                                    return { ...prev, class_group_ids: updated };
+                                  });
+                                }}
+                                className="rounded text-amber-600 focus:ring-0 w-3.5 h-3.5 ml-1"
+                              />
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="p-3 bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-xl text-xs flex items-center justify-between gap-2">
               <div>
                 <span className="text-[10px] uppercase font-black text-teal-800 tracking-wider block">Standar Beban Struktur Kurikulum:</span>
@@ -4433,49 +5886,119 @@ export default function Kurikulum() {
               </span>
             </div>
 
-            {/* PILIHAN MODE PENUGASAN: 1 GURU vs 2 GURU */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Model Penugasan Pengampu:</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setQuickAssignForm({
-                    ...quickAssignForm,
-                    assign_mode: 'single',
-                    allocated_hours: quickAssignPair.curriculumJp || 2
-                  })}
-                  className={`py-2 px-3 rounded-xl font-black text-xs border transition flex items-center justify-center gap-1.5 ${
-                    quickAssignForm.assign_mode === 'single'
-                      ? 'bg-teal-600 text-white border-teal-700 shadow-sm ring-2 ring-teal-400'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>1 Guru Tunggal (Penuh)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickAssignForm({
-                    ...quickAssignForm,
-                    assign_mode: 'split',
-                    allocated_hours_1: quickAssignForm.allocated_hours_1 || Math.ceil((quickAssignPair.curriculumJp || 4) / 2),
-                    allocated_hours_2: quickAssignForm.allocated_hours_2 || Math.max(1, (quickAssignPair.curriculumJp || 4) - Math.ceil((quickAssignPair.curriculumJp || 4) / 2))
-                  })}
-                  className={`py-2 px-3 rounded-xl font-black text-xs border transition flex items-center justify-center gap-1.5 ${
-                    quickAssignForm.assign_mode === 'split'
-                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-400'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>2 Guru (Pembagian JP)</span>
-                </button>
-              </div>
-            </div>
+            {/* PILIHAN MODE PENUGASAN (Hanya untuk Mapel Reguler) */}
+            {(() => {
+              const isElective = quickAssignPair.subject && (quickAssignPair.subject.is_elective == 1 || quickAssignPair.subject.is_elective === true || quickAssignPair.subject.is_elective === '1');
+              if (isElective) return null;
+              return (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Model Penugasan Pengampu:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuickAssignForm({
+                        ...quickAssignForm,
+                        assign_mode: 'single',
+                        allocated_hours: quickAssignPair.curriculumJp || 2
+                      })}
+                      className={`py-2 px-3 rounded-xl font-black text-xs border transition flex items-center justify-center gap-1.5 ${
+                        quickAssignForm.assign_mode === 'single'
+                          ? 'bg-teal-600 text-white border-teal-700 shadow-sm ring-2 ring-teal-400'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>1 Guru Tunggal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickAssignForm({
+                        ...quickAssignForm,
+                        assign_mode: 'split',
+                        allocated_hours_1: quickAssignForm.allocated_hours_1 || Math.ceil((quickAssignPair.curriculumJp || 4) / 2),
+                        allocated_hours_2: quickAssignForm.allocated_hours_2 || Math.max(1, (quickAssignPair.curriculumJp || 4) - Math.ceil((quickAssignPair.curriculumJp || 4) / 2))
+                      })}
+                      className={`py-2 px-3 rounded-xl font-black text-xs border transition flex items-center justify-center gap-1.5 ${
+                        quickAssignForm.assign_mode === 'split'
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-400'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>2 Guru (Pembagian JP)</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
 
-            <form onSubmit={handleSaveQuickAssign} className="space-y-4 text-xs">
-              {/* MODE 1: GURU TUNGGAL */}
-              {quickAssignForm.assign_mode === 'single' && (
+              <form onSubmit={handleSaveQuickAssign} className="space-y-4 text-xs">
+              {/* RENDERING KHUSUS MAPEL PILIHAN: LANGSUNG INPUT DAFTAR GURU PENGAMPU TANPA PEMBAGIAN JP */}
+              {quickAssignPair.subject && (quickAssignPair.subject.is_elective == 1 || quickAssignPair.subject.is_elective === true || quickAssignPair.subject.is_elective === '1') ? (
+                <div className="space-y-3 p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-950 text-xs flex items-center gap-1">
+                      <Users className="w-4 h-4 text-amber-700" />
+                      <span>Daftar Guru Pengampu Mapel Pilihan</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAddElectiveTeacher}
+                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Guru Pengampu</span>
+                    </button>
+                  </div>
+
+                  {quickAssignForm.elective_teachers.map((item, index) => (
+                    <div key={index} className="p-3 bg-white border border-amber-200/90 rounded-xl space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-amber-900">Guru Pengampu #{index + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded font-bold text-[10px]">
+                            {quickAssignPair.curriculumJp || 2} JP Penuh (Otomatis)
+                          </span>
+                          {quickAssignForm.elective_teachers.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveElectiveTeacher(index)}
+                              className="text-red-500 hover:text-red-700 p-1 transition"
+                              title="Hapus guru dari daftar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <SearchableSelect
+                        options={(Array.isArray(employees) ? employees : []).map(emp => ({
+                          value: String(emp.id),
+                          label: emp.full_name,
+                          sublabel: `NIP/Kode: ${emp.nip || emp.employee_code || '-'}`
+                        }))}
+                        value={String(item.teacher_employee_id || '')}
+                        onChange={(val) => handleElectiveTeacherChange(index, 'teacher_employee_id', val)}
+                        placeholder={`-- Pilih Guru Pengampu #${index + 1} --`}
+                        searchPlaceholder="Ketik nama guru pengampu..."
+                        emptyText="Guru tidak ditemukan"
+                      />
+
+                      <input
+                        type="text"
+                        value={item.role_description}
+                        onChange={(e) => handleElectiveTeacherChange(index, 'role_description', e.target.value)}
+                        placeholder="Peran (Contoh: Guru Pengampu Mapel Pilihan)"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-slate-800 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <React.Fragment>
+                  {/* MODE 1: GURU TUNGGAL (MAPEL REGULER) */}
+                  {quickAssignForm.assign_mode === 'single' && (
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1">
@@ -4544,13 +6067,14 @@ export default function Kurikulum() {
                 </div>
               )}
 
-              {/* MODE 2: DUA GURU (TEAM TEACHING / PEMBAGIAN JP) */}
+              {/* MODE 2: DUA GURU (TEAM TEACHING / PEMBAGIAN JP / MULTI GURU) */}
               {quickAssignForm.assign_mode === 'split' && (() => {
+                const isElective = quickAssignPair.type === 'mapel' && (quickAssignPair.subject?.is_elective == 1 || quickAssignPair.subject?.is_elective === true || quickAssignPair.subject?.is_elective === '1');
                 const jp1 = parseInt(quickAssignForm.allocated_hours_1, 10) || 0;
                 const jp2 = parseInt(quickAssignForm.allocated_hours_2, 10) || 0;
                 const totalSplit = jp1 + jp2;
                 const targetJp = quickAssignPair.curriculumJp || 0;
-                const isExact = totalSplit === targetJp;
+                const isExact = isElective ? true : (totalSplit === targetJp);
 
                 return (
                   <div className="space-y-3">
@@ -4671,6 +6195,8 @@ export default function Kurikulum() {
                   </div>
                 );
               })()}
+                </React.Fragment>
+              )}
 
               {/* SK, ALASAN, CATATAN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4725,6 +6251,243 @@ export default function Kurikulum() {
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Penugasan Guru</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL TENTUKAN PEMBELAJARAN UNTUK GURU (SUB-TAB 2) --- */}
+      {teacherAssignModalOpen && selectedTeacherForAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-md">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Tentukan Pembelajaran Guru</h3>
+                  <p className="text-xs text-slate-500">Guru: <strong className="text-teal-700">{selectedTeacherForAssign.full_name}</strong> ({selectedTeacherForAssign.nip || selectedTeacherForAssign.nipy || 'Tanpa NIP'})</p>
+                </div>
+              </div>
+              <button onClick={() => setTeacherAssignModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTeacherAssign} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Tipe Pembelajaran *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTeacherAssignForm({ ...teacherAssignForm, type: 'mapel' })}
+                    className={`py-2 rounded-xl font-bold border transition ${
+                      teacherAssignForm.type === 'mapel'
+                        ? 'bg-teal-50 border-teal-500 text-teal-800'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Mata Pelajaran
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherAssignForm({ ...teacherAssignForm, type: 'ekskul' })}
+                    className={`py-2 rounded-xl font-bold border transition ${
+                      teacherAssignForm.type === 'ekskul'
+                        ? 'bg-amber-50 border-amber-500 text-amber-800'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Ekstrakurikuler
+                  </button>
+                </div>
+              </div>
+
+              {teacherAssignForm.type === 'mapel' ? (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Mata Pelajaran *</label>
+                    <SearchableSelect
+                      options={subjectsList.map(s => {
+                        const isEl = s.is_elective == 1 || s.is_elective === true || s.is_elective === '1';
+                        return {
+                          value: s.id,
+                          label: s.name,
+                          sublabel: isEl
+                            ? `⚡ Mapel Pilihan (${s.elective_group_name || 'Blok Paralel'})`
+                            : (s.code ? `Kode: ${s.code}` : undefined)
+                        };
+                      })}
+                      value={teacherAssignForm.subject_id}
+                      onChange={(val) => {
+                        const selSub = subjectsList.find(s => String(s.id) === String(val));
+                        const isEl = selSub ? (selSub.is_elective == 1 || selSub.is_elective === true || selSub.is_elective === '1') : false;
+                        const elRombels = classGroups.filter(cg => cg.type === 'pilihan' || String(cg.subject_id) === String(val));
+                        const regRombels = classGroups.filter(cg => !cg.type || cg.type === 'reguler');
+                        const defaultRombelId = isEl ? (elRombels[0]?.id || '') : (regRombels[0]?.id || '');
+                        setTeacherAssignForm({
+                          ...teacherAssignForm,
+                          subject_id: val,
+                          class_group_id: defaultRombelId
+                        });
+                      }}
+                      placeholder="-- Pilih Mata Pelajaran --"
+                      searchPlaceholder="Ketik nama / kode mapel..."
+                    />
+                  </div>
+
+                  {(() => {
+                    const selSub = subjectsList.find(s => String(s.id) === String(teacherAssignForm.subject_id));
+                    const isEl = selSub ? (selSub.is_elective == 1 || selSub.is_elective === true || selSub.is_elective === '1') : false;
+                    const elRombels = classGroups.filter(cg => cg.type === 'pilihan' || String(cg.subject_id) === String(teacherAssignForm.subject_id));
+                    const regRombels = classGroups.filter(cg => !cg.type || cg.type === 'reguler');
+                    return (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          {isEl ? 'Rombongan Belajar Mapel Pilihan (Lintas Kelas) *' : 'Rombongan Belajar Reguler (Rombel) *'}
+                        </label>
+                        <SearchableSelect
+                          options={isEl
+                            ? elRombels.map(cg => ({
+                                value: cg.id,
+                                label: `Rombel Pilihan ${cg.name}`,
+                                sublabel: cg.subject_name ? `Mapel: ${cg.subject_name}` : 'Mapel Pilihan (Lintas Kelas)'
+                              }))
+                            : regRombels.map(cg => ({
+                                value: cg.id,
+                                label: `Rombel ${cg.name}`,
+                                sublabel: cg.grade_level_name ? `Kelas ${cg.grade_level_name}` : undefined
+                              }))
+                          }
+                          value={teacherAssignForm.class_group_id}
+                          onChange={(val) => setTeacherAssignForm({ ...teacherAssignForm, class_group_id: val })}
+                          placeholder={isEl ? (elRombels.length > 0 ? "-- Pilih Rombel Mapel Pilihan --" : "-- Belum Ada Rombel Pilihan --") : "-- Pilih Rombel Reguler --"}
+                          searchPlaceholder={isEl ? "Cari rombel mapel pilihan..." : "Ketik nama / tingkat rombel reguler..."}
+                        />
+                        {isEl && elRombels.length === 0 && (
+                          <p className="text-[10px] text-amber-700 mt-1.5 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-start gap-1.5">
+                            <span className="shrink-0 mt-0.5">💡</span>
+                            <span>Mapel <b>{selSub?.name}</b> bertipe Mapel Pilihan (Lintas Kelas). Belum ada Rombel Pilihan yang dibuat untuk mapel ini. Silakan buat <b>Rombel Mapel Pilihan</b> di menu <u>Manajemen Rombel</u>.</span>
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Ekstrakurikuler *</label>
+                    <SearchableSelect
+                      options={extrasList.map(ex => ({ value: ex.id, label: ex.name, sublabel: ex.schedule }))}
+                      value={teacherAssignForm.extracurricular_id}
+                      onChange={(val) => setTeacherAssignForm({ ...teacherAssignForm, extracurricular_id: val })}
+                      placeholder="-- Pilih Ekstrakurikuler --"
+                      searchPlaceholder="Ketik nama ekskul..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Rombongan Belajar Ekskul / Khusus (Opsional)
+                    </label>
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: 'Semua Rombel (Global / Seluruh Siswa)' },
+                        ...classGroups
+                          .filter(cg => cg.type === 'ekskul' || cg.type === 'ekstrakurikuler')
+                          .map(cg => ({
+                            value: cg.id,
+                            label: `Rombel Ekskul ${cg.name}`,
+                            sublabel: cg.grade_level_name ? `Kelas ${cg.grade_level_name}` : 'Kelompok Ekskul'
+                          })),
+                        ...classGroups
+                          .filter(cg => !cg.type || cg.type === 'reguler')
+                          .map(cg => ({
+                            value: cg.id,
+                            label: `Rombel Reguler ${cg.name}`,
+                            sublabel: cg.grade_level_name ? `Kelas ${cg.grade_level_name}` : 'Reguler'
+                          }))
+                      ]}
+                      value={teacherAssignForm.class_group_id || ''}
+                      onChange={(val) => setTeacherAssignForm({ ...teacherAssignForm, class_group_id: val })}
+                      placeholder="Semua Rombel (Global)"
+                      searchPlaceholder="Cari rombel ekskul atau reguler..."
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Biarkan &quot;Semua Rombel&quot; jika kegiatan ekskul berlaku global untuk seluruh rombel.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Alokasi Jam Mengajar (JP) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={40}
+                    required
+                    value={teacherAssignForm.allocated_hours}
+                    onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, allocated_hours: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-black text-center text-teal-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Peran / Status Pengampu</label>
+                  <input
+                    type="text"
+                    value={teacherAssignForm.role_description}
+                    onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, role_description: e.target.value })}
+                    placeholder="Contoh: Guru Pengampu Utam / Wali Kelas"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Nomor SK Penugasan (Opsional)</label>
+                <input
+                  type="text"
+                  value={teacherAssignForm.sk_number}
+                  onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, sk_number: e.target.value })}
+                  placeholder="Contoh: SK/2026/08/001"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Alasan / Catatan Penetapan *</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={teacherAssignForm.reason}
+                  onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, reason: e.target.value })}
+                  placeholder="Contoh: Penugasan mengajar jam reguler per guru..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setTeacherAssignModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Simpan Pembelajaran Guru</span>
                 </button>
               </div>
             </form>

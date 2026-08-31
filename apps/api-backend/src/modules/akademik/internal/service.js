@@ -120,6 +120,97 @@ class InternalService {
       message: 'Hasil ujian CBE berhasil disimpan ke data nilai akademik'
     };
   }
+
+  async listAcademicYears(query = {}) {
+    let q = db('academic_years');
+    if (query.satuan_pendidikan_id) {
+      q = q.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.is_active !== undefined && query.is_active !== '') {
+      const isActive = query.is_active === 'true' || query.is_active === true || query.is_active === '1' || query.is_active === 1;
+      q = q.where('is_active', isActive);
+    }
+    const list = await q.select('id', 'name', 'start_date', 'end_date', 'is_active').orderBy('id', 'desc');
+    return {
+      academic_years: list.map(y => ({
+        id: y.id,
+        name: y.name,
+        start_date: y.start_date ? (typeof y.start_date === 'string' ? y.start_date.slice(0, 10) : y.start_date.toISOString().slice(0, 10)) : null,
+        end_date: y.end_date ? (typeof y.end_date === 'string' ? y.end_date.slice(0, 10) : y.end_date.toISOString().slice(0, 10)) : null,
+        is_active: Boolean(y.is_active)
+      }))
+    };
+  }
+
+  async listCohorts(query = {}) {
+    let q = db('cohorts');
+    if (query.satuan_pendidikan_id) {
+      q = q.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.year) {
+      q = q.where('year', query.year);
+    }
+    const list = await q.select('id', 'name', 'year').orderBy('year', 'desc');
+    return {
+      cohorts: list.map(c => ({
+        id: c.id,
+        name: c.name,
+        year: c.year
+      }))
+    };
+  }
+
+  async listGradeLevels(query = {}) {
+    let q = db('grade_levels');
+    if (query.satuan_pendidikan_id) {
+      q = q.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    const list = await q.select('id', 'name', 'order as level_order').orderBy('order', 'asc');
+    return {
+      grade_levels: list.map(g => ({
+        id: g.id,
+        name: g.name,
+        level_order: g.level_order
+      }))
+    };
+  }
+
+  async listClassGroups(query = {}) {
+    let q = db('class_groups')
+      .leftJoin('student_class_enrollments', function() {
+        this.on('class_groups.id', '=', 'student_class_enrollments.class_group_id')
+          .andOn('student_class_enrollments.status', '=', db.raw('?', ['aktif']));
+      })
+      .groupBy('class_groups.id', 'class_groups.name', 'class_groups.grade_level_id', 'class_groups.academic_year_id')
+      .select(
+        'class_groups.id',
+        'class_groups.name',
+        'class_groups.grade_level_id',
+        'class_groups.academic_year_id',
+        db.raw('COUNT(student_class_enrollments.id) as student_count')
+      );
+
+    if (query.satuan_pendidikan_id) {
+      q = q.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.academic_year_id) {
+      q = q.where('class_groups.academic_year_id', query.academic_year_id);
+    }
+    if (query.grade_level_id) {
+      q = q.where('class_groups.grade_level_id', query.grade_level_id);
+    }
+
+    const list = await q.orderBy('class_groups.name', 'asc');
+    return {
+      class_groups: list.map(c => ({
+        id: c.id,
+        name: c.name,
+        grade_level_id: c.grade_level_id,
+        academic_year_id: c.academic_year_id,
+        student_count: parseInt(c.student_count, 10) || 0
+      }))
+    };
+  }
 }
 
 module.exports = new InternalService();

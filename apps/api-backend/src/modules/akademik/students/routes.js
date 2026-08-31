@@ -8,7 +8,9 @@ const router = express.Router();
 const studentsController = require('./controller');
 const { authenticate, requirePermission } = require('../../../middlewares/auth');
 
-// 1. Data Induk Siswa CRUD
+// 1. Data Induk Siswa CRUD & Quick Operations
+router.get('/students/search-quick', authenticate, requirePermission('akademik.students.read'), studentsController.searchQuick);
+router.post('/students/quick-add-legacy', authenticate, requirePermission('akademik.students.create'), studentsController.quickAddLegacy);
 router.get('/students', authenticate, requirePermission('akademik.students.read'), studentsController.listStudents);
 router.post('/students', authenticate, requirePermission('akademik.students.create'), studentsController.createStudent);
 router.get('/students/:id', authenticate, requirePermission('akademik.students.read'), studentsController.getStudentById);
@@ -35,5 +37,12 @@ router.post('/student-mutations', authenticate, requirePermission('akademik.stud
 
 // 7. Kenaikan Kelas & Roll-over Tahun Ajaran (Data Periodik)
 router.post('/students/promote', authenticate, requirePermission('akademik.students.update'), studentsController.promoteStudents);
+
+// 8. Workflow Kelulusan (Alumni) & SKL Data
+router.post('/students/graduate', authenticate, requirePermission('akademik.students.update'), studentsController.graduateStudents);
+router.get('/students/:id/graduation-certificate-data', authenticate, requirePermission('akademik.students.read'), studentsController.getGraduationCertificateData);
+
+// 9. Riwayat Kronologis Rombel (student_class_history)
+router.get('/students/:id/class-history', authenticate, requirePermission('akademik.students.read'), studentsController.getStudentClassHistory);
 
 module.exports = router;

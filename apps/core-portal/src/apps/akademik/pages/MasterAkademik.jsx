@@ -58,7 +58,7 @@ export default function MasterAkademik() {
   // 4. Data Tingkat Kelas (Grade Levels)
   const [gradeLevels, setGradeLevels] = useState([]);
   const [showGradeModal, setShowGradeModal] = useState(false);
-  const [gradeForm, setGradeForm] = useState({ id: null, name: '', order: 1 });
+  const [gradeForm, setGradeForm] = useState({ id: null, name: '', order: 1, is_active: true });
 
   // Inisialisasi unit yang aktif
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function MasterAkademik() {
         api.get('/akademik/academic-years', { params }),
         api.get('/akademik/semesters', { params }),
         api.get('/akademik/cohorts', { params }),
-        api.get('/akademik/grade-levels', { params })
+        api.get('/akademik/grade-levels', { params: { ...params, include_inactive: true } })
       ]);
 
       const years = yRes.data?.data || [];
@@ -270,6 +270,19 @@ export default function MasterAkademik() {
       } catch (err) {
         alert(err.response?.data?.message || 'Gagal menghapus tingkat kelas');
       }
+    }
+  };
+
+  const handleToggleGradeActive = async (grade) => {
+    const newStatus = !grade.is_active;
+    try {
+      await api.put(`/akademik/grade-levels/${grade.id}`, {
+        is_active: newStatus
+      });
+      showNotification(`Tingkat kelas ${grade.name} berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
+      fetchAllMaster(currentUnitId);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memperbarui status tingkat kelas');
     }
   };
 
@@ -678,11 +691,11 @@ export default function MasterAkademik() {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Daftar Tingkat / Jenjang Kelas ({selectedUnitObj?.name})</h3>
-                  <p className="text-xs text-slate-500">Jenjang kelas pada satuan pendidikan ini (mis. Kelas 7, 8, 9 atau X, XI, XII).</p>
+                  <p className="text-xs text-slate-500">Jenjang kelas pada satuan pendidikan ini. Tingkat kelas yang nonaktif tidak akan muncul di pemilihan rombel, kurikulum, dan rapor.</p>
                 </div>
                 <button
                   onClick={() => {
-                    setGradeForm({ id: null, name: '', order: gradeLevels.length + 1 });
+                    setGradeForm({ id: null, name: '', order: gradeLevels.length + 1, is_active: true });
                     setShowGradeModal(true);
                   }}
                   className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs"
@@ -696,42 +709,67 @@ export default function MasterAkademik() {
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 text-slate-700 border-y border-slate-100 sticky top-0 z-10 shadow-2xs">
                     <tr>
-                      <th className="py-3 px-4 font-bold">Urutan</th>
+                      <th className="py-3 px-4 font-bold w-16">Urutan</th>
                       <th className="py-3 px-4 font-bold">Nama Tingkat Kelas</th>
-                      <th className="py-3 px-4 font-bold text-right">Aksi</th>
+                      <th className="py-3 px-4 font-bold text-center w-36">Status</th>
+                      <th className="py-3 px-4 font-bold text-right w-28">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {gradeLevels.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="py-8 text-center text-slate-400">
+                        <td colSpan={4} className="py-8 text-center text-slate-400">
                           Belum ada tingkat kelas pada satuan pendidikan ini.
                         </td>
                       </tr>
                     ) : (
-                      gradeLevels.map((g) => (
-                        <tr key={g.id} className="hover:bg-slate-50/60">
-                          <td className="py-3 px-4 font-bold text-slate-800">{g.order}</td>
-                          <td className="py-3 px-4 font-bold text-teal-700">{g.name}</td>
-                          <td className="py-3 px-4 text-right space-x-1.5">
-                            <button
-                              onClick={() => {
-                                setGradeForm({ id: g.id, name: g.name, order: g.order });
-                                setShowGradeModal(true);
-                              }}
-                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteGrade(g.id)}
-                              className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      gradeLevels.map((g) => {
+                        const isActive = g.is_active !== false && g.is_active !== 0 && g.is_active !== '0';
+                        return (
+                          <tr key={g.id} className={`hover:bg-slate-50/60 transition ${!isActive ? 'bg-slate-50/50 opacity-70' : ''}`}>
+                            <td className="py-3 px-4 font-bold text-slate-800">{g.order}</td>
+                            <td className="py-3 px-4 font-bold text-slate-800">
+                              <span className={isActive ? 'text-teal-700 font-extrabold' : 'text-slate-500 line-through'}>
+                                {g.name}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGradeActive(g)}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition shadow-2xs inline-flex items-center gap-1.5 ${
+                                  isActive
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                                }`}
+                                title={isActive ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                <span>{isActive ? 'Aktif' : 'Nonaktif'}</span>
+                              </button>
+                            </td>
+                            <td className="py-3 px-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => {
+                                  setGradeForm({ id: g.id, name: g.name, order: g.order, is_active: isActive });
+                                  setShowGradeModal(true);
+                                }}
+                                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                title="Edit Tingkat Kelas"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteGrade(g.id)}
+                                className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                title="Hapus Tingkat Kelas"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1009,6 +1047,24 @@ export default function MasterAkademik() {
                   onChange={(e) => setGradeForm({ ...gradeForm, order: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="grade_is_active"
+                  checked={gradeForm.is_active}
+                  onChange={(e) => setGradeForm({ ...gradeForm, is_active: e.target.checked })}
+                  className="w-4 h-4 text-teal-600 rounded"
+                />
+                <div>
+                  <label htmlFor="grade_is_active" className="font-bold text-slate-800 text-xs block cursor-pointer">
+                    Status Tingkat Kelas Aktif
+                  </label>
+                  <span className="text-[10px] text-slate-500 block">
+                    Tingkat kelas nonaktif tidak akan muncul pada form pembuatan rombel, kurikulum, dan rapor.
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

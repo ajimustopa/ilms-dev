@@ -80,17 +80,41 @@ class ExpensesService {
 
       const created = await trx('expenses').where({ id: actualId }).first();
 
+      // Cek apakah melebihi pagu anggaran RAPBS (Fitur #24)
+      let budgetWarning = null;
+      if (data.budget_plan_expense_item_id) {
+        const item = await trx('budget_plan_expense_items')
+          .where({ id: data.budget_plan_expense_item_id })
+          .first();
+        if (item) {
+          const realized = await trx('expenses')
+            .where({ budget_plan_expense_item_id: item.id })
+            .whereNull('deleted_at')
+            .sum('total_amount as sum')
+            .first();
+          const currentTotal = parseFloat(realized?.sum || 0);
+          const budgetPagu = parseFloat(item.planned_amount || item.total_price || 0);
+          if (currentTotal > budgetPagu) {
+            budgetWarning = `Peringatan: Total realisasi (Rp ${currentTotal.toLocaleString('id-ID')}) melebihi pagu anggaran RAPBS (Rp ${budgetPagu.toLocaleString('id-ID')}) sebesar Rp ${(currentTotal - budgetPagu).toLocaleString('id-ID')}`;
+          }
+        }
+      }
+
       await logFinanceAudit({
         schoolUnitId,
         userId,
         action: 'CREATE_EXPENSE',
         entityType: 'expense',
         entityId: actualId,
-        dataAfter: created,
+        dataAfter: { ...created, budget_warning: budgetWarning },
         trx
       });
 
-      return created;
+      return {
+        ...created,
+        budget_warning: budgetWarning,
+        is_over_budget: Boolean(budgetWarning)
+      };
     });
   }
 

@@ -1,0 +1,1032 @@
+/* ==========================================================================
+   MANAJEMEN STRATEGIS DESIGN SYSTEM & TOKENS
+   Dual Theme: Light (Soft Canvas & High Contrast) & Dark (Elevated Deep Slate)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Light Theme Tokens (Soft Off-White Canvas & High Contrast Slate Text)
+   -------------------------------------------------------------------------- */
+[data-theme="light"] {
+  /* Surfaces & Backgrounds */
+  --mj-bg-canvas: #f4f6fa;
+  --mj-bg-sidebar: #ffffff;
+  --mj-bg-header: rgba(255, 255, 255, 0.95);
+  --mj-bg-card: #ffffff;
+  --mj-bg-card-subtle: #f8fafc;
+  --mj-bg-card-hover: #f1f5f9;
+  --mj-bg-elevated: #ffffff;
+  --mj-bg-input: #f1f5f9;
+  --mj-bg-input-focus: #ffffff;
+  --mj-bg-hover: rgba(241, 245, 249, 0.9);
+  --mj-bg-active: rgba(226, 232, 240, 0.8);
+  --mj-bg-modal-overlay: rgba(15, 23, 42, 0.40);
+
+  /* Borders & Dividers */
+  --mj-border-subtle: rgba(226, 232, 240, 0.9);
+  --mj-border-default: #e2e8f0;
+  --mj-border-strong: #cbd5e1;
+  --mj-border-focus: #6366f1;
+
+  /* Typography / Text (High Contrast) */
+  --mj-text-primary: #0f172a;     /* Slate 900 - high contrast dark (19:1) */
+  --mj-text-secondary: #1e293b;   /* Slate 800 - clear & readable (14:1) */
+  --mj-text-muted: #334155;       /* Slate 700 (9:1) */
+  --mj-text-subtle: #475569;      /* Slate 600 (7:1, exceeds WCAG AA 4.5:1) */
+  --mj-text-inverse: #ffffff;
+
+  /* Accent Brand - Indigo / Violet */
+  --mj-primary: #4f46e5;
+  --mj-primary-hover: #4338ca;
+  --mj-primary-soft: rgba(79, 70, 229, 0.1);
+  --mj-primary-soft-hover: rgba(79, 70, 229, 0.16);
+  --mj-primary-border: rgba(79, 70, 229, 0.28);
+  --mj-primary-fg: #3730a3;       /* Indigo 800 for high contrast text on soft bg */
+
+  /* Accent Sky - Blue Markers & Drag Handles */
+  --mj-sky: #0284c7;
+  --mj-sky-hover: #0369a1;
+  --mj-sky-soft: rgba(2, 132, 199, 0.1);
+  --mj-sky-soft-hover: rgba(2, 132, 199, 0.16);
+  --mj-sky-border: rgba(2, 132, 199, 0.28);
+  --mj-sky-fg: #075985;           /* Sky 800 */
+
+  /* Status Done - Emerald */
+  --mj-done: #059669;
+  --mj-done-hover: #047857;
+  --mj-done-soft: rgba(5, 150, 105, 0.1);
+  --mj-done-soft-hover: rgba(5, 150, 105, 0.18);
+  --mj-done-border: rgba(5, 150, 105, 0.28);
+  --mj-done-fg: #065f46;          /* Emerald 800 */
+
+  /* Status In-Progress - Amber */
+  --mj-progress: #d97706;
+  --mj-progress-hover: #b45309;
+  --mj-progress-soft: rgba(217, 119, 6, 0.12);
+  --mj-progress-soft-hover: rgba(217, 119, 6, 0.18);
+  --mj-progress-border: rgba(217, 119, 6, 0.3);
+  --mj-progress-fg: #92400e;      /* Amber 800 */
+
+  /* Status Risk / Overdue - Rose */
+  --mj-risk: #e11d48;
+  --mj-risk-hover: #be123c;
+  --mj-risk-soft: rgba(225, 29, 72, 0.1);
+  --mj-risk-soft-hover: rgba(225, 29, 72, 0.18);
+  --mj-risk-border: rgba(225, 29, 72, 0.28);
+  --mj-risk-fg: #9f1239;          /* Rose 800 */
+
+  /* Category Tag: Violet (Sosialisasi / Workshop) */
+  --mj-violet-soft: rgba(124, 58, 237, 0.10);
+  --mj-violet-soft-hover: rgba(124, 58, 237, 0.16);
+  --mj-violet-border: rgba(124, 58, 237, 0.28);
+  --mj-violet-fg: #6d28d9;        /* Violet 700 - high contrast AA+ */
+
+  /* Category Tag: Cyan / Teal (Dokumen & Administrasi) */
+  --mj-cyan-soft: rgba(13, 148, 136, 0.10);
+  --mj-cyan-soft-hover: rgba(13, 148, 136, 0.16);
+  --mj-cyan-border: rgba(13, 148, 136, 0.28);
+  --mj-cyan-fg: #0f766e;          /* Teal 700 - high contrast AA+ */
+
+  /* Category Tag: Slate / Neutral (Planned / Lainnya) */
+  --mj-slate-soft: rgba(100, 116, 139, 0.10);
+  --mj-slate-soft-hover: rgba(100, 116, 139, 0.16);
+  --mj-slate-border: rgba(100, 116, 139, 0.28);
+  --mj-slate-fg: #334155;          /* Slate 700 */
+
+  /* Gradients */
+  --mj-gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --mj-gradient-primary-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.09) 0%, rgba(124, 58, 237, 0.09) 100%);
+  --mj-gradient-surface: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --mj-gradient-card-header: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.7) 100%);
+  --mj-gradient-subtle: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  --mj-gradient-accent-sky: linear-gradient(135deg, rgba(2, 132, 199, 0.09) 0%, rgba(56, 189, 248, 0.14) 100%);
+  --mj-gradient-banner: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #eef2ff 100%);
+
+  /* Shadows & Glows */
+  --mj-shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --mj-shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --mj-shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --mj-shadow-card-hover: 0 10px 18px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --mj-shadow-glow-primary: 0 4px 16px 0 rgba(79, 70, 229, 0.22);
+  --mj-shadow-dropdown: 0 12px 28px -4px rgba(15, 23, 42, 0.1), 0 6px 12px -6px rgba(15, 23, 42, 0.05);
+
+  /* Scrollbar */
+  --mj-scrollbar-track: #f1f5f9;
+  --mj-scrollbar-thumb: #cbd5e1;
+  --mj-scrollbar-thumb-hover: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   2. Dark Theme Tokens (Warm Elevated Slate)
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  /* Surfaces & Backgrounds */
+  --mj-bg-canvas: #0b101d;
+  --mj-bg-sidebar: #0f172a;
+  --mj-bg-header: rgba(15, 23, 42, 0.92);
+  --mj-bg-card: #151f32;
+  --mj-bg-card-subtle: #111a2c;
+  --mj-bg-card-hover: #19253c;
+  --mj-bg-elevated: #1a263d;
+  --mj-bg-input: #0b1120;
+  --mj-bg-input-focus: #131c2e;
+  --mj-bg-hover: rgba(255, 255, 255, 0.06);
+  --mj-bg-active: rgba(255, 255, 255, 0.1);
+  --mj-bg-modal-overlay: rgba(2, 6, 23, 0.65);
+
+  /* Borders & Dividers */
+  --mj-border-subtle: rgba(255, 255, 255, 0.06);
+  --mj-border-default: #1e2c44;
+  --mj-border-strong: #2a3c5a;
+  --mj-border-focus: #818cf8;
+
+  /* Typography / Text */
+  --mj-text-primary: #f8fafc;
+  --mj-text-secondary: #cbd5e1;
+  --mj-text-muted: #94a3b8;
+  --mj-text-subtle: #64748b;
+  --mj-text-inverse: #0f172a;
+
+  /* Accent Brand - Indigo / Violet */
+  --mj-primary: #6366f1;
+  --mj-primary-hover: #4f46e5;
+  --mj-primary-soft: rgba(99, 102, 241, 0.16);
+  --mj-primary-soft-hover: rgba(99, 102, 241, 0.24);
+  --mj-primary-border: rgba(99, 102, 241, 0.35);
+  --mj-primary-fg: #a5b4fc;
+
+  /* Accent Sky */
+  --mj-sky: #38bdf8;
+  --mj-sky-hover: #0ea5e9;
+  --mj-sky-soft: rgba(56, 189, 248, 0.16);
+  --mj-sky-soft-hover: rgba(56, 189, 248, 0.24);
+  --mj-sky-border: rgba(56, 189, 248, 0.35);
+  --mj-sky-fg: #7dd3fc;
+
+  /* Status Done */
+  --mj-done: #10b981;
+  --mj-done-hover: #059669;
+  --mj-done-soft: rgba(16, 185, 129, 0.16);
+  --mj-done-soft-hover: rgba(16, 185, 129, 0.24);
+  --mj-done-border: rgba(16, 185, 129, 0.35);
+  --mj-done-fg: #6ee7b7;
+
+  /* Status In-Progress */
+  --mj-progress: #f59e0b;
+  --mj-progress-hover: #d97706;
+  --mj-progress-soft: rgba(245, 158, 11, 0.16);
+  --mj-progress-soft-hover: rgba(245, 158, 11, 0.24);
+  --mj-progress-border: rgba(245, 158, 11, 0.35);
+  --mj-progress-fg: #fcd34d;
+
+  /* Status Risk / Overdue */
+  --mj-risk: #f43f5e;
+  --mj-risk-hover: #e11d48;
+  --mj-risk-soft: rgba(244, 63, 94, 0.16);
+  --mj-risk-soft-hover: rgba(244, 63, 94, 0.24);
+  --mj-risk-border: rgba(244, 63, 94, 0.35);
+  --mj-risk-fg: #fda4af;
+
+  /* Category Tag: Violet (Sosialisasi / Workshop) */
+  --mj-violet-soft: rgba(139, 92, 246, 0.18);
+  --mj-violet-soft-hover: rgba(139, 92, 246, 0.26);
+  --mj-violet-border: rgba(139, 92, 246, 0.35);
+  --mj-violet-fg: #c4b5fd;
+
+  /* Category Tag: Cyan / Teal (Dokumen & Administrasi) */
+  --mj-cyan-soft: rgba(20, 184, 166, 0.18);
+  --mj-cyan-soft-hover: rgba(20, 184, 166, 0.26);
+  --mj-cyan-border: rgba(20, 184, 166, 0.35);
+  --mj-cyan-fg: #5eead4;
+
+  /* Category Tag: Slate / Neutral (Planned / Lainnya) */
+  --mj-slate-soft: rgba(51, 65, 85, 0.5);
+  --mj-slate-soft-hover: rgba(51, 65, 85, 0.7);
+  --mj-slate-border: rgba(71, 85, 105, 0.6);
+  --mj-slate-fg: #cbd5e1;
+
+  /* Gradients */
+  --mj-gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --mj-gradient-primary-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.18) 0%, rgba(124, 58, 237, 0.18) 100%);
+  --mj-gradient-surface: linear-gradient(180deg, #151f32 0%, #0f172a 100%);
+  --mj-gradient-card-header: linear-gradient(180deg, rgba(21, 31, 50, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
+  --mj-gradient-subtle: linear-gradient(135deg, #151f32 0%, #111a2c 100%);
+  --mj-gradient-accent-sky: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(56, 189, 248, 0.2) 100%);
+  --mj-gradient-banner: linear-gradient(135deg, #0f172a 0%, #151f32 50%, #1e1b4b 100%);
+
+  /* Shadows & Glows */
+  --mj-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --mj-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --mj-shadow-card: 0 4px 12px 0 rgba(0, 0, 0, 0.25);
+  --mj-shadow-card-hover: 0 12px 24px -4px rgba(0, 0, 0, 0.45);
+  --mj-shadow-glow-primary: 0 4px 20px 0 rgba(99, 102, 241, 0.3);
+  --mj-shadow-dropdown: 0 16px 36px -4px rgba(0, 0, 0, 0.55);
+
+  /* Scrollbar */
+  --mj-scrollbar-track: #0b1120;
+  --mj-scrollbar-thumb: #1e2c44;
+  --mj-scrollbar-thumb-hover: #2a3c5a;
+}
+
+/* --------------------------------------------------------------------------
+   3. Sidebar Navigation Item Rules (Crystal Clear Contrast)
+   -------------------------------------------------------------------------- */
+
+.mj-nav-item {
+  color: var(--mj-text-secondary) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  transition: all 180ms ease !important;
+}
+
+.mj-nav-item:hover {
+  background-color: var(--mj-bg-hover) !important;
+  color: var(--mj-text-primary) !important;
+}
+
+.mj-nav-item svg {
+  color: var(--mj-text-muted) !important;
+  transition: color 180ms ease !important;
+}
+
+.mj-nav-item:hover svg {
+  color: var(--mj-primary) !important;
+}
+
+/* Active Nav Item in Light Mode */
+[data-theme="light"] .mj-nav-item-active {
+  background: var(--mj-primary-soft) !important;
+  color: var(--mj-primary-fg) !important;
+  border: 1px solid var(--mj-primary-border) !important;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.1) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .mj-nav-item-active svg {
+  color: var(--mj-primary) !important;
+}
+
+/* Active Nav Item in Dark Mode */
+[data-theme="dark"] .mj-nav-item-active {
+  background: var(--mj-gradient-primary) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.38) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="dark"] .mj-nav-item-active svg {
+  color: #ffffff !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. Component Utilities & Tokens
+   -------------------------------------------------------------------------- */
+.mj-canvas {
+  background-color: var(--mj-bg-canvas);
+  color: var(--mj-text-primary);
+}
+
+.mj-card {
+  background-color: var(--mj-bg-card);
+  border: 1px solid var(--mj-border-default);
+  box-shadow: var(--mj-shadow-card);
+  transition: all 0.2s ease;
+}
+
+.mj-summary-card {
+  background-color: var(--mj-bg-card);
+  border: 1px solid var(--mj-border-default);
+  box-shadow: var(--mj-shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mj-input {
+  background-color: var(--mj-bg-input);
+  border: 1px solid var(--mj-border-default);
+  color: var(--mj-text-primary);
+}
+
+.mj-input:focus {
+  background-color: var(--mj-bg-input-focus);
+  border-color: var(--mj-border-focus);
+}
+
+/* Badges & Chips */
+.mj-badge-primary {
+  background-color: var(--mj-primary-soft);
+  color: var(--mj-primary-fg);
+  border: 1px solid var(--mj-primary-border);
+}
+
+.mj-badge-sky {
+  background-color: var(--mj-sky-soft);
+  color: var(--mj-sky-fg);
+  border: 1px solid var(--mj-sky-border);
+}
+
+.mj-badge-done {
+  background-color: var(--mj-done-soft);
+  color: var(--mj-done-fg);
+  border: 1px solid var(--mj-done-border);
+}
+
+.mj-badge-progress {
+  background-color: var(--mj-progress-soft);
+  color: var(--mj-progress-fg);
+  border: 1px solid var(--mj-progress-border);
+}
+
+.mj-badge-risk {
+  background-color: var(--mj-risk-soft);
+  color: var(--mj-risk-fg);
+  border: 1px solid var(--mj-risk-border);
+}
+
+/* Buttons */
+.mj-btn-primary {
+  background: var(--mj-gradient-primary);
+  color: #ffffff !important;
+  box-shadow: var(--mj-shadow-glow-primary);
+  transition: all 0.2s ease;
+}
+
+.mj-btn-primary:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+
+.mj-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   5. Seamless Global Transition for Theme Switching
+   -------------------------------------------------------------------------- */
+[data-manajemen-root],
+[data-manajemen-root] div,
+[data-manajemen-root] section,
+[data-manajemen-root] article,
+[data-manajemen-root] aside,
+[data-manajemen-root] header,
+[data-manajemen-root] main,
+[data-manajemen-root] nav,
+[data-manajemen-root] table,
+[data-manajemen-root] th,
+[data-manajemen-root] td,
+[data-manajemen-root] button,
+[data-manajemen-root] a,
+[data-manajemen-root] input,
+[data-manajemen-root] select,
+[data-manajemen-root] textarea {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   6. Automatic Cascading Rules for Tailwind Slate Classes (Light & Dark)
+   -------------------------------------------------------------------------- */
+
+/* Light Mode Overrides */
+[data-theme="light"] [data-manajemen-root] .bg-slate-950:not([class*="bg-gradient-"]),
+[data-theme="light"] .mj-canvas .bg-slate-950:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-canvas) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .bg-slate-900:not([class*="bg-gradient-"]),
+[data-theme="light"] .mj-canvas .bg-slate-900:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-card) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .bg-slate-850:not([class*="bg-gradient-"]),
+[data-theme="light"] .mj-canvas .bg-slate-850:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-card-subtle) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .bg-slate-800:not([class*="bg-gradient-"]),
+[data-theme="light"] .mj-canvas .bg-slate-800:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-card-subtle) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .bg-slate-800\/90:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-800\/80:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-800\/70:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-800\/50:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-900\/90:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-900\/80:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-950\/60:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-950\/70:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-950\/80:not(.fixed):not([class*="backdrop"]),
+[data-theme="light"] [data-manajemen-root] .bg-slate-950\/40:not(.fixed):not([class*="backdrop"]) {
+  background-color: var(--mj-bg-hover) !important;
+}
+
+/* Light Mode Borders */
+[data-theme="light"] [data-manajemen-root] [class*="border-slate-800"],
+[data-theme="light"] [data-manajemen-root] [class*="border-slate-700"],
+[data-theme="light"] .mj-canvas [class*="border-slate-800"],
+[data-theme="light"] .mj-canvas [class*="border-slate-700"] {
+  border-color: var(--mj-border-default) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .border-slate-600 {
+  border-color: var(--mj-border-strong) !important;
+}
+
+/* Light Mode Typography Overrides - Protect solid badges, buttons, active items */
+[data-theme="light"] [data-manajemen-root] .text-white:not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-sky"]):not([class*="bg-blue"]):not([class*="bg-amber"]):not([class*="mj-btn-primary"]):not([class*="mj-nav-item-active"]):not([class*="from-indigo"]):not([class*="from-violet"]),
+[data-theme="light"] [data-manajemen-root] .text-slate-100,
+[data-theme="light"] [data-manajemen-root] .text-slate-200 {
+  color: var(--mj-text-primary) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .text-slate-300,
+[data-theme="light"] [data-manajemen-root] .text-slate-400 {
+  color: var(--mj-text-secondary) !important;
+}
+
+[data-theme="light"] [data-manajemen-root] .text-slate-500 {
+  color: var(--mj-text-muted) !important;
+}
+
+/* Modal and Overlay Backdrop (Rich Frosted Glass Blur for Both Light & Dark / Fullscreen) */
+.mj-modal-backdrop,
+.fixed[class*="backdrop-blur"],
+[data-theme="light"] [data-manajemen-root] .mj-modal-backdrop,
+[data-theme="light"] [data-manajemen-root] .fixed[class*="backdrop-blur"],
+[data-theme="light"] .fixed[class*="bg-slate-950\/"],
+[data-theme="light"] .fixed[class*="bg-slate-900\/"],
+[data-theme="light"] .fixed[class*="bg-black\/"],
+[data-theme="dark"] [data-manajemen-root] .mj-modal-backdrop,
+[data-theme="dark"] [data-manajemen-root] .fixed[class*="backdrop-blur"],
+[data-theme="dark"] .fixed[class*="bg-slate-950\/"],
+[data-theme="dark"] .fixed[class*="bg-slate-900\/"],
+[data-theme="dark"] .fixed[class*="bg-black\/"] {
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Banner Gradients in Light Mode */
+[data-theme="light"] [data-manajemen-root] [class*="bg-gradient-to-r"][class*="from-slate-900"] {
+  background-image: var(--mj-gradient-banner) !important;
+  border-color: var(--mj-border-default) !important;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] [data-manajemen-root] .bg-slate-950:not([class*="bg-gradient-"]),
+[data-theme="dark"] .mj-canvas .bg-slate-950:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-canvas) !important;
+}
+
+[data-theme="dark"] [data-manajemen-root] .bg-slate-900:not([class*="bg-gradient-"]),
+[data-theme="dark"] .mj-canvas .bg-slate-900:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-card) !important;
+}
+
+[data-theme="dark"] [data-manajemen-root] .bg-slate-850:not([class*="bg-gradient-"]),
+[data-theme="dark"] .mj-canvas .bg-slate-850:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-card-subtle) !important;
+}
+
+[data-theme="dark"] [data-manajemen-root] .bg-slate-800:not([class*="bg-gradient-"]),
+[data-theme="dark"] .mj-canvas .bg-slate-800:not([class*="bg-gradient-"]) {
+  background-color: var(--mj-bg-elevated) !important;
+}
+
+[data-theme="dark"] [data-manajemen-root] [class*="border-slate-800"],
+[data-theme="dark"] .mj-canvas [class*="border-slate-800"] {
+  border-color: var(--mj-border-default) !important;
+}
+
+[data-theme="dark"] [data-manajemen-root] [class*="border-slate-700"],
+[data-theme="dark"] .mj-canvas [class*="border-slate-700"] {
+  border-color: var(--mj-border-strong) !important;
+}
+
+/* Modal Backdrop in Dark Mode (Single-Layer Soft Frosted Glass) */
+[data-theme="dark"] [data-manajemen-root] .fixed[class*="bg-slate-950"],
+[data-theme="dark"] [data-manajemen-root] .fixed[class*="bg-slate-900"],
+[data-theme="dark"] [data-manajemen-root] .fixed[class*="bg-black"],
+[data-theme="dark"] .fixed[class*="bg-slate-950\/"],
+[data-theme="dark"] .fixed[class*="bg-slate-900\/"],
+[data-theme="dark"] .fixed[class*="bg-black\/"] {
+  background-color: var(--mj-bg-modal-overlay) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. Standardized Soft Badges & Category Tags (High Contrast AA)
+   -------------------------------------------------------------------------- */
+
+.mj-badge-primary,
+.mj-badge-indigo {
+  background-color: var(--mj-primary-soft) !important;
+  color: var(--mj-primary-fg) !important;
+  border: 1px solid var(--mj-primary-border) !important;
+}
+
+.mj-badge-sky,
+.mj-badge-blue {
+  background-color: var(--mj-sky-soft) !important;
+  color: var(--mj-sky-fg) !important;
+  border: 1px solid var(--mj-sky-border) !important;
+}
+
+.mj-badge-done,
+.mj-badge-emerald,
+.mj-badge-green {
+  background-color: var(--mj-done-soft) !important;
+  color: var(--mj-done-fg) !important;
+  border: 1px solid var(--mj-done-border) !important;
+}
+
+.mj-badge-progress,
+.mj-badge-amber,
+.mj-badge-yellow {
+  background-color: var(--mj-progress-soft) !important;
+  color: var(--mj-progress-fg) !important;
+  border: 1px solid var(--mj-progress-border) !important;
+}
+
+.mj-badge-risk,
+.mj-badge-rose,
+.mj-badge-red {
+  background-color: var(--mj-risk-soft) !important;
+  color: var(--mj-risk-fg) !important;
+  border: 1px solid var(--mj-risk-border) !important;
+}
+
+.mj-badge-violet,
+.mj-badge-purple {
+  background-color: var(--mj-violet-soft) !important;
+  color: var(--mj-violet-fg) !important;
+  border: 1px solid var(--mj-violet-border) !important;
+}
+
+.mj-badge-cyan,
+.mj-badge-teal {
+  background-color: var(--mj-cyan-soft) !important;
+  color: var(--mj-cyan-fg) !important;
+  border: 1px solid var(--mj-cyan-border) !important;
+}
+
+.mj-badge-slate,
+.mj-badge-neutral {
+  background-color: var(--mj-slate-soft) !important;
+  color: var(--mj-slate-fg) !important;
+  border: 1px solid var(--mj-slate-border) !important;
+}
+
+/* Backward-compatible Tailwind Cascade Overrides for Legacy Badge Classes */
+[class*="bg-violet-500/10"],
+[class*="bg-violet-500/20"],
+[class*="bg-violet-600/10"],
+[class*="bg-purple-500/10"],
+[class*="bg-purple-500/20"] {
+  background-color: var(--mj-violet-soft) !important;
+  color: var(--mj-violet-fg) !important;
+  border-color: var(--mj-violet-border) !important;
+}
+
+[class*="bg-cyan-500/10"],
+[class*="bg-cyan-500/20"],
+[class*="bg-teal-500/10"],
+[class*="bg-teal-500/20"] {
+  background-color: var(--mj-cyan-soft) !important;
+  color: var(--mj-cyan-fg) !important;
+  border-color: var(--mj-cyan-border) !important;
+}
+
+[class*="bg-blue-500/10"],
+[class*="bg-blue-500/20"],
+[class*="bg-sky-500/10"],
+[class*="bg-sky-500/20"] {
+  background-color: var(--mj-sky-soft) !important;
+  color: var(--mj-sky-fg) !important;
+  border-color: var(--mj-sky-border) !important;
+}
+
+[class*="bg-indigo-500/10"],
+[class*="bg-indigo-500/20"],
+[class*="bg-indigo-600/10"] {
+  background-color: var(--mj-primary-soft) !important;
+  color: var(--mj-primary-fg) !important;
+  border-color: var(--mj-primary-border) !important;
+}
+
+[class*="bg-emerald-500/10"],
+[class*="bg-emerald-500/20"],
+[class*="bg-emerald-600/10"],
+[class*="bg-green-500/10"],
+[class*="bg-green-500/20"] {
+  background-color: var(--mj-done-soft) !important;
+  color: var(--mj-done-fg) !important;
+  border-color: var(--mj-done-border) !important;
+}
+
+[class*="bg-amber-500/10"],
+[class*="bg-amber-500/20"],
+[class*="bg-amber-600/10"],
+[class*="bg-yellow-500/10"],
+[class*="bg-yellow-500/20"] {
+  background-color: var(--mj-progress-soft) !important;
+  color: var(--mj-progress-fg) !important;
+  border-color: var(--mj-progress-border) !important;
+}
+
+[class*="bg-rose-500/10"],
+[class*="bg-rose-500/20"],
+[class*="bg-rose-600/10"],
+[class*="bg-red-500/10"],
+[class*="bg-red-500/20"] {
+  background-color: var(--mj-risk-soft) !important;
+  color: var(--mj-risk-fg) !important;
+  border-color: var(--mj-risk-border) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Comprehensive Modal, Dialog, Form Input & Dropdown Theming (Light & Dark)
+   -------------------------------------------------------------------------- */
+
+/* Light Mode Modal Card & Inner Panels */
+[data-theme="light"] .fixed .bg-slate-900,
+[data-theme="light"] .fixed .bg-slate-950,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-900,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-950 {
+  background-color: var(--mj-bg-card) !important;
+  color: var(--mj-text-primary) !important;
+}
+
+[data-theme="light"] .fixed .bg-slate-950\/60,
+[data-theme="light"] .fixed .bg-slate-950\/70,
+[data-theme="light"] .fixed .bg-slate-950\/80,
+[data-theme="light"] .fixed .bg-slate-950\/40,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-950\/60,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-950\/70,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-950\/80,
+[data-theme="light"] [data-manajemen-root] .fixed .bg-slate-950\/40 {
+  background-color: var(--mj-bg-card-subtle) !important;
+}
+
+/* Light Mode Modal Form Inputs, Dropdowns, Textareas */
+[data-theme="light"] .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+[data-theme="light"] .fixed textarea,
+[data-theme="light"] .fixed select,
+[data-theme="light"] [data-manajemen-root] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+[data-theme="light"] [data-manajemen-root] textarea,
+[data-theme="light"] [data-manajemen-root] select {
+  background-color: var(--mj-bg-input) !important;
+  border-color: var(--mj-border-default) !important;
+  color: var(--mj-text-primary) !important;
+}
+
+[data-theme="light"] .fixed input:focus,
+[data-theme="light"] .fixed textarea:focus,
+[data-theme="light"] .fixed select:focus,
+[data-theme="light"] [data-manajemen-root] input:focus,
+[data-theme="light"] [data-manajemen-root] textarea:focus,
+[data-theme="light"] [data-manajemen-root] select:focus {
+  background-color: var(--mj-bg-input-focus) !important;
+  border-color: var(--mj-primary) !important;
+  box-shadow: 0 0 0 2px var(--mj-primary-soft) !important;
+}
+
+/* Light Mode Input Placeholders - High contrast readable slate */
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder,
+[data-theme="light"] .placeholder-slate-500::placeholder,
+[data-theme="light"] [data-manajemen-root] input::placeholder,
+[data-theme="light"] [data-manajemen-root] textarea::placeholder,
+[data-theme="light"] [data-manajemen-root] .placeholder-slate-500 {
+  color: var(--mj-text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* Light Mode Labels & Form Headers */
+[data-theme="light"] .fixed label,
+[data-theme="light"] .fixed .text-slate-300,
+[data-theme="light"] .fixed .text-slate-400,
+[data-theme="light"] [data-manajemen-root] .fixed label,
+[data-theme="light"] [data-manajemen-root] .fixed .text-slate-300,
+[data-theme="light"] [data-manajemen-root] .fixed .text-slate-400 {
+  color: var(--mj-text-secondary) !important;
+}
+
+[data-theme="light"] .fixed .text-slate-500,
+[data-theme="light"] [data-manajemen-root] .fixed .text-slate-500 {
+  color: var(--mj-text-muted) !important;
+}
+
+[data-theme="light"] .fixed h3.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]),
+[data-theme="light"] .fixed h2.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]),
+[data-theme="light"] .fixed .font-bold.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]),
+[data-theme="light"] [data-manajemen-root] .fixed h3.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]),
+[data-theme="light"] [data-manajemen-root] .fixed h2.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]),
+[data-theme="light"] [data-manajemen-root] .fixed .font-bold.text-white:not(button):not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]) {
+  color: var(--mj-text-primary) !important;
+}
+
+/* ==========================================================================
+   BUTTON & TAB CONTRAST RULES (LIGHT MODE)
+   1. Background Biru / Gelap Solid -> Teks & Icon PUTIH (#ffffff)
+   2. Background Terang / Soft / Putih -> Teks & Icon BIRU GELAP (#1e1b4b)
+   ========================================================================== */
+
+/* 1. Background Biru / Gelap Solid -> Teks PUTIH */
+[data-theme="light"] button[class*="bg-indigo-6"],
+[data-theme="light"] button[class*="bg-indigo-7"],
+[data-theme="light"] button[class*="bg-indigo-8"],
+[data-theme="light"] button[class*="bg-indigo-9"],
+[data-theme="light"] button[class*="bg-violet-6"],
+[data-theme="light"] button[class*="bg-violet-7"],
+[data-theme="light"] button[class*="bg-violet-8"],
+[data-theme="light"] button[class*="bg-blue-6"],
+[data-theme="light"] button[class*="bg-blue-7"],
+[data-theme="light"] button[class*="bg-slate-7"],
+[data-theme="light"] button[class*="bg-slate-8"],
+[data-theme="light"] button[class*="bg-slate-9"],
+[data-theme="light"] button[class*="bg-emerald-6"],
+[data-theme="light"] button[class*="bg-emerald-7"],
+[data-theme="light"] button[class*="bg-rose-6"],
+[data-theme="light"] button[class*="bg-rose-7"],
+[data-theme="light"] button[class*="bg-amber-6"],
+[data-theme="light"] button[class*="mj-btn-primary"],
+[data-theme="light"] .mj-btn-primary,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-indigo-6"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-indigo-7"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-violet-6"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-violet-7"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-7"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-8"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-9"],
+[data-theme="light"] [data-manajemen-root] button[class*="mj-btn-primary"] {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] button[class*="bg-indigo-6"] *,
+[data-theme="light"] button[class*="bg-indigo-7"] *,
+[data-theme="light"] button[class*="bg-violet-6"] *,
+[data-theme="light"] button[class*="bg-violet-7"] *,
+[data-theme="light"] button[class*="bg-slate-7"] *,
+[data-theme="light"] button[class*="bg-slate-8"] *,
+[data-theme="light"] button[class*="bg-slate-9"] *,
+[data-theme="light"] button[class*="mj-btn-primary"] *,
+[data-theme="light"] .mj-btn-primary *,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-indigo-6"] *,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-violet-6"] *,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-7"] *,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-8"] *,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-9"] *,
+[data-theme="light"] [data-manajemen-root] button[class*="mj-btn-primary"] * {
+  color: #ffffff !important;
+}
+
+/* 2. Background Terang / Soft / Putih -> Teks BIRU GELAP (#1e1b4b) */
+[data-theme="light"] button[class*="bg-slate-100"],
+[data-theme="light"] button[class*="bg-slate-50"],
+[data-theme="light"] button[class*="bg-white"],
+[data-theme="light"] button[class*="bg-indigo-50"],
+[data-theme="light"] button[class*="bg-rose-50"],
+[data-theme="light"] button[class*="bg-amber-50"],
+[data-theme="light"] button[class*="bg-emerald-50"],
+[data-theme="light"] button[class*="bg-slate-200"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-100"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-50"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-white"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-indigo-50"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-rose-50"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-amber-50"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-emerald-50"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-200"],
+[data-theme="light"] [data-manajemen-root] .fixed button[class*="bg-slate-100"],
+[data-theme="light"] [data-manajemen-root] .fixed button[class*="bg-slate-50"],
+[data-theme="light"] [data-manajemen-root] .fixed button[class*="bg-white"] {
+  color: #1e1b4b !important;
+}
+
+[data-theme="light"] button[class*="bg-slate-100"] span,
+[data-theme="light"] button[class*="bg-slate-50"] span,
+[data-theme="light"] button[class*="bg-white"] span,
+[data-theme="light"] button[class*="bg-indigo-50"] span,
+[data-theme="light"] button[class*="bg-rose-50"] span,
+[data-theme="light"] button[class*="bg-amber-50"] span,
+[data-theme="light"] button[class*="bg-emerald-50"] span,
+[data-theme="light"] button[class*="bg-slate-200"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-100"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-50"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-white"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-indigo-50"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-rose-50"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-amber-50"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-emerald-50"] span,
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-200"] span {
+  color: #1e1b4b !important;
+}
+
+/* Light Mode Borders in Modals */
+[data-theme="light"] .fixed [class*="border-slate-800"],
+[data-theme="light"] .fixed [class*="border-slate-700"],
+[data-theme="light"] [data-manajemen-root] .fixed [class*="border-slate-800"],
+[data-theme="light"] [data-manajemen-root] .fixed [class*="border-slate-700"] {
+  border-color: var(--mj-border-default) !important;
+}
+
+/* Modal Inactive Toggle Buttons & Segmented Controls in Light Mode */
+[data-theme="light"] .fixed button[class*="text-slate-400"]:not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-slate-7"]):not([class*="bg-slate-8"]):not([class*="bg-slate-9"]),
+[data-theme="light"] [data-manajemen-root] .fixed button[class*="text-slate-400"]:not([class*="bg-indigo"]):not([class*="bg-violet"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-slate-7"]):not([class*="bg-slate-8"]):not([class*="bg-slate-9"]) {
+  color: #1e1b4b !important;
+}
+
+[data-theme="light"] .fixed button[class*="text-slate-400"]:hover:not([class*="bg-indigo"]):not([class*="bg-violet"]),
+[data-theme="light"] [data-manajemen-root] .fixed button[class*="text-slate-400"]:hover:not([class*="bg-indigo"]):not([class*="bg-violet"]) {
+  background-color: var(--mj-bg-hover) !important;
+  color: #1e1b4b !important;
+}
+
+/* SearchableSelect Dropdown Menu Theming */
+[data-theme="light"] .fixed [class*="bg-slate-900"][class*="rounded-2xl"][class*="shadow-2xl"],
+[data-theme="light"] [data-manajemen-root] [class*="bg-slate-900"][class*="rounded-2xl"][class*="shadow-2xl"],
+[data-theme="light"] [class*="bg-slate-900"][class*="rounded-2xl"][class*="shadow-2xl"] {
+  background-color: var(--mj-bg-card) !important;
+  border-color: var(--mj-border-default) !important;
+  box-shadow: var(--mj-shadow-dropdown) !important;
+}
+
+[data-theme="light"] .fixed button[class*="hover:bg-slate-800\/50"],
+[data-theme="light"] [data-manajemen-root] button[class*="hover:bg-slate-800\/50"] {
+  color: var(--mj-text-primary) !important;
+}
+
+[data-theme="light"] .fixed button[class*="hover:bg-slate-800\/50"]:hover,
+[data-theme="light"] [data-manajemen-root] button[class*="hover:bg-slate-800\/50"]:hover {
+  background-color: var(--mj-bg-hover) !important;
+}
+
+[data-theme="light"] .fixed button[class*="bg-slate-800\/80"],
+[data-theme="light"] [data-manajemen-root] button[class*="bg-slate-800\/80"] {
+  background-color: var(--mj-primary-soft) !important;
+  color: var(--mj-primary) !important;
+}
+
+/* Dark Mode Modal & Input Tokens */
+[data-theme="dark"] .fixed .bg-slate-900,
+[data-theme="dark"] [data-manajemen-root] .fixed .bg-slate-900 {
+  background-color: var(--mj-bg-card) !important;
+}
+
+[data-theme="dark"] .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+[data-theme="dark"] .fixed textarea,
+[data-theme="dark"] .fixed select,
+[data-theme="dark"] [data-manajemen-root] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]),
+[data-theme="dark"] [data-manajemen-root] textarea,
+[data-theme="dark"] [data-manajemen-root] select {
+  background-color: var(--mj-bg-input) !important;
+  border-color: var(--mj-border-default) !important;
+  color: var(--mj-text-primary) !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. Scoped Scrollbar within Manajemen Module
+   -------------------------------------------------------------------------- */
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar-track,
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar {
+  background: var(--mj-scrollbar-track);
+}
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--mj-scrollbar-thumb);
+  border-radius: 4px;
+}
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--mj-scrollbar-thumb-hover);
+}
+
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-track,
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar {
+  background: var(--mj-scrollbar-track);
+}
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--mj-scrollbar-thumb);
+  border-radius: 4px;
+}
+[data-theme="dark"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--mj-scrollbar-thumb-hover);
+}
+
+/* --------------------------------------------------------------------------
+   9. Micro-Animations & Snappy Interaction Enhancements (150-250ms)
+   -------------------------------------------------------------------------- */
+
+@keyframes mj-fade-in-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mj-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mj-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mj-pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+@keyframes mj-rotate-icon {
+  from {
+    transform: rotate(-20deg) scale(0.85);
+  }
+  to {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+/* Snappy Animation Utility Classes */
+.mj-animate-fade-in {
+  animation: mj-fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.mj-animate-scale-up {
+  animation: mj-scale-up 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Override existing modal backdrop with pure opacity fade-in (NO transform) */
+.animate-fadeIn {
+  animation: mj-fade-in-overlay 180ms ease-out both !important;
+}
+
+.animate-scaleUp {
+  animation: mj-scale-up 200ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+/* Staggered Entrance Delays for Lists & Dashboard Cards */
+.mj-stagger-1 { animation-delay: 35ms; }
+.mj-stagger-2 { animation-delay: 70ms; }
+.mj-stagger-3 { animation-delay: 105ms; }
+.mj-stagger-4 { animation-delay: 140ms; }
+.mj-stagger-5 { animation-delay: 175ms; }
+.mj-stagger-6 { animation-delay: 210ms; }
+
+/* Micro-Elevation on Hover for Cards */
+.mj-card-hover,
+.mj-summary-card,
+[data-manajemen-root] .grid > a[class*="rounded-2xl"],
+[data-manajemen-root] .grid > div[class*="rounded-2xl"]:not([class*="fixed"]) {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+}
+
+.mj-card-hover:hover,
+.mj-summary-card:hover,
+[data-manajemen-root] .grid > a[class*="rounded-2xl"]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mj-shadow-card-hover);
+}
+
+/* Soft Row Hover for Tables and Lists */
+.mj-row-hover,
+[data-manajemen-root] table tbody tr {
+  transition: background-color 150ms ease-out;
+}
+
+[data-manajemen-root] table tbody tr:hover {
+  background-color: var(--mj-bg-hover);
+}
+
+/* Soft Pulse on In-Progress Badges */
+.mj-badge-progress,
+[data-manajemen-root] [class*="bg-amber-500/10"],
+[data-manajemen-root] [class*="bg-amber-500/20"] {
+  animation: mj-pulse-soft 2.2s ease-in-out infinite;
+}
+
+/* Progress Bar Smooth Transitions */
+.mj-progress-bar,
+[data-manajemen-root] [class*="h-full"][class*="rounded-full"][style*="width"] {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}

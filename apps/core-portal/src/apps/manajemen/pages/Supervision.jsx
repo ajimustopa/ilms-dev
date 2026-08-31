@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import DatePickerField from '../components/shared/DatePickerField';
 import {
   ClipboardCheck,
   Plus,
@@ -35,7 +36,7 @@ export default function Supervision() {
   const fetchSchedules = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/v1/manajemen/supervision-schedules');
+      const res = await api.get('/manajemen/supervision-schedules');
       setSchedules(res.data.data || []);
     } catch (err) {
       console.error('Error fetching supervision schedules:', err);
@@ -53,7 +54,7 @@ export default function Supervision() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.post('/api/v1/manajemen/supervision-schedules', formData);
+      await api.post('/manajemen/supervision-schedules', formData);
       setModalOpen(false);
       fetchSchedules();
     } catch (err) {
@@ -65,7 +66,7 @@ export default function Supervision() {
 
   const handleOpenAddResult = async (item) => {
     try {
-      const res = await api.get(`/api/v1/manajemen/supervision-schedules/${item.id}`);
+      const res = await api.get(`/manajemen/supervision-schedules/${item.id}`);
       setSelectedSchedule(res.data.data);
       setResultModal(true);
     } catch (err) {
@@ -77,8 +78,8 @@ export default function Supervision() {
     e.preventDefault();
     if (!selectedSchedule) return;
     try {
-      await api.post(`/api/v1/manajemen/supervision-schedules/${selectedSchedule.id}/results`, resultForm);
-      await api.patch(`/api/v1/manajemen/supervision-schedules/${selectedSchedule.id}/status`, { status: 'done' });
+      await api.post(`/manajemen/supervision-schedules/${selectedSchedule.id}/results`, resultForm);
+      await api.patch(`/manajemen/supervision-schedules/${selectedSchedule.id}/status`, { status: 'done' });
       setResultModal(false);
       fetchSchedules();
     } catch (err) {
@@ -200,13 +201,11 @@ export default function Supervision() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Tanggal Rencana</label>
-                <input
-                  type="date"
-                  required
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Tanggal Rencana</label>
+                <DatePickerField
                   value={formData.scheduled_date}
-                  onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  onChange={(iso) => setFormData({ ...formData, scheduled_date: iso })}
+                  required={true}
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">

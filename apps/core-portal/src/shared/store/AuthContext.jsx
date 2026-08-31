@@ -106,13 +106,27 @@ export function AuthProvider({ children }) {
     fetchMeAndUnits();
   }, [accessToken]);
 
-  const login = async (username, password, schoolUnitId = null) => {
+  const login = async (usernameOrPayload, password, schoolUnitId = null) => {
     setIsLoading(true);
     try {
+      let finalUsername = '';
+      let finalPassword = '';
+      let finalSchoolUnitId = null;
+
+      if (typeof usernameOrPayload === 'object' && usernameOrPayload !== null) {
+        finalUsername = usernameOrPayload.username || '';
+        finalPassword = usernameOrPayload.password || '';
+        finalSchoolUnitId = usernameOrPayload.school_unit_id ?? usernameOrPayload.schoolUnitId ?? null;
+      } else {
+        finalUsername = usernameOrPayload || '';
+        finalPassword = password || '';
+        finalSchoolUnitId = schoolUnitId || null;
+      }
+
       const response = await api.post('/core/auth/login', {
-        username: username.trim(),
-        password,
-        school_unit_id: schoolUnitId,
+        username: typeof finalUsername === 'string' ? finalUsername.trim() : finalUsername,
+        password: finalPassword,
+        school_unit_id: finalSchoolUnitId,
       });
 
       if (response.data?.success && response.data.data) {

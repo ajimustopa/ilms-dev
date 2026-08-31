@@ -339,6 +339,7 @@ class StudentsService {
       address: student_address?.full_address || student_address?.street_address || null,
       photo_url: photo_url || null,
       status: status || 'aktif',
+      data_entry_mode: data_entry_mode || 'lengkap',
       dapodik_status: dapodik_status || 'belum_masuk_dapodik',
       dapodik_notes: dapodik_notes || null,
       enrolled_at: enrolled_at || new Date().toISOString().split('T')[0],
@@ -460,45 +461,101 @@ class StudentsService {
   // ==========================================
   // Kenaikan Kelas / Roll-over Tahun Ajaran (Periodik)
   // ==========================================
-  async promoteStudents(payload) {
-    const { satuan_pendidikan_id, target_academic_year_id, target_class_group_id, student_ids } = payload;
-    if (!satuan_pendidikan_id || !target_academic_year_id || !target_class_group_id || !student_ids || !student_ids.length) {
-      const error = new Error('Field satuan_pendidikan_id, target_academic_year_id, target_class_group_id, dan student_ids wajib diisi');
+  async promoteStudents(payload, user = null) {
+    const {
+      satuan_pendidikan_id,
+      target_academic_year_id,
+      target_class_group_id,
+      student_ids,
+      students, // Optional array of { student_id, target_class_group_id, decision }
+      decision // Global fallback decision (mis. "Naik Kelas", "Tinggal Kelas")
+    } = payload;
+
+    const recordedBy = user?.full_name || user?.username || 'Admin Akademik';
+
+    // Normalize student list
+    let candidateList = [];
+    if (Array.isArray(students) && students.length > 0) {
+      candidateList = students;
+    } else if (Array.isArray(student_ids) && student_ids.length > 0) {
+      candidateList = student_ids.map((id) => ({
+        student_id: Number(id),
+        target_class_group_id: Number(target_class_group_id),
+        decision: decision || 'Naik Kelas'
+      }));
+    } else {
+      const error = new Error('Field student_ids atau students (array) wajib diisi');
       error.statusCode = 422;
       throw error;
     }
 
     const processed = [];
-    for (const studentId of student_ids) {
+    for (const item of candidateList) {
+      const sId = item.student_id;
+      const targetClassId = item.target_class_group_id || target_class_group_id;
+      const studentDecision = item.decision || decision || 'Naik Kelas';
+
+      if (!targetClassId) continue;
+
+      const targetClass = await db('class_groups').where({ id: targetClassId }).first();
+      const targetYearId = target_academic_year_id || targetClass?.academic_year_id || 1;
+      const gradeLevelId = targetClass?.grade_level_id || 1;
+      const unitId = satuan_pendidikan_id || targetClass?.satuan_pendidikan_id || 1;
+
+      // 1. Nonaktifkan status enrollment lama siswa
+      const prevEnrollmentStatus = String(studentDecision).toLowerCase().includes('tinggal') ? 'tinggal_kelas' : 'naik_kelas';
+      await db('student_class_enrollments')
+        .where({ student_id: sId, status: 'aktif' })
+        .update({ status: prevEnrollmentStatus, updated_at: db.fn.now() });
+
+      // 2. Buat atau update enrollment di rombel tujuan tahun ajaran baru
       const existing = await db('student_class_enrollments')
-        .where({ student_id: studentId, academic_year_id: target_academic_year_id })
+        .where({ student_id: sId, academic_year_id: targetYearId })
         .first();
 
       if (existing) {
         await db('student_class_enrollments')
           .where({ id: existing.id })
           .update({
-            class_group_id: target_class_group_id,
+            class_group_id: targetClassId,
             status: 'aktif',
             updated_at: db.fn.now()
           });
         processed.push(existing.id);
       } else {
         const [newId] = await db('student_class_enrollments').insert({
-          satuan_pendidikan_id,
-          student_id: studentId,
-          class_group_id: target_class_group_id,
-          academic_year_id: target_academic_year_id,
+          satuan_pendidikan_id: unitId,
+          student_id: sId,
+          class_group_id: targetClassId,
+          academic_year_id: targetYearId,
           status: 'aktif',
           created_at: db.fn.now(),
           updated_at: db.fn.now()
         });
         processed.push(newId);
       }
+
+      // 3. Catat riwayat historis ke student_class_history (Append-Only)
+      await db('student_class_history').insert({
+        student_id: sId,
+        academic_year_id: targetYearId,
+        class_group_id: targetClassId,
+        grade_level_id: gradeLevelId,
+        enrollment_type: 'promotion',
+        decision: studentDecision,
+        recorded_at: db.fn.now(),
+        recorded_by: recordedBy
+      });
+
+      // Update student status jika sebelumnya bukan aktif
+      await db('students').where({ id: sId }).update({
+        status: 'aktif',
+        updated_at: db.fn.now()
+      });
     }
 
     return {
-      message: `Berhasil memproses kenaikan kelas / penempatan ${processed.length} siswa ke tahun ajaran tujuan`,
+      message: `Berhasil memproses kenaikan / penempatan ${processed.length} siswa`,
       count: processed.length
     };
   }
@@ -539,6 +596,7 @@ class StudentsService {
       'address',
       'photo_url',
       'status',
+      'data_entry_mode',
       'dapodik_status',
       'dapodik_notes',
       'enrolled_at'
@@ -1012,8 +1070,8 @@ class StudentsService {
 
     let newStatus = student.status;
     if (mutation_type === 'lulus') newStatus = 'lulus';
-    else if (mutation_type === 'pindah_keluar') newStatus = 'pindah';
-    else if (mutation_type === 'keluar') newStatus = 'keluar';
+    else if (mutation_type === 'pindah_keluar' || mutation_type === 'transferred') newStatus = 'pindah';
+    else if (mutation_type === 'keluar' || mutation_type === 'dropped_out') newStatus = 'keluar';
     else if (mutation_type === 'masuk' || mutation_type === 'pindah_masuk') newStatus = 'aktif';
 
     await db('students').where({ id: student_id }).update({
@@ -1021,7 +1079,341 @@ class StudentsService {
       updated_at: db.fn.now()
     });
 
+    // Jika mutasi keluar / lulus, nonaktifkan enrollment di rombel aktif (riwayat student_class_history tetap utuh)
+    if (['lulus', 'pindah_keluar', 'keluar', 'transferred', 'dropped_out'].includes(mutation_type)) {
+      await db('student_class_enrollments')
+        .where({ student_id })
+        .update({
+          status: mutation_type === 'lulus' ? 'lulus' : 'pindah',
+          updated_at: db.fn.now()
+        });
+    }
+
     return db('student_mutations').where({ id: mutationId }).first();
+  }
+
+  // ==========================================
+  // 9. Workflow Kelulusan Siswa (Alumni)
+  // ==========================================
+  async graduateStudents(payload, user = null) {
+    const {
+      student_ids,
+      academic_year_id,
+      graduation_date,
+      decree_number,
+      notes,
+      satuan_pendidikan_id
+    } = payload;
+
+    if (!Array.isArray(student_ids) || student_ids.length === 0 || !graduation_date) {
+      const error = new Error('Field student_ids (array) dan graduation_date wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const recordedBy = user?.full_name || user?.username || 'Admin Akademik';
+    const gradDate = graduation_date.split('T')[0];
+
+    const graduated = [];
+    for (const studentId of student_ids) {
+      const student = await db('students').where({ id: studentId }).first();
+      if (!student) continue;
+
+      const unitId = satuan_pendidikan_id || student.satuan_pendidikan_id || 1;
+
+      // 1. Update status siswa menjadi 'lulus'
+      await db('students').where({ id: studentId }).update({
+        status: 'lulus',
+        updated_at: db.fn.now()
+      });
+
+      // 2. Buat catatan mutasi kelulusan di student_mutations
+      await db('student_mutations').insert({
+        satuan_pendidikan_id: unitId,
+        student_id: studentId,
+        mutation_type: 'lulus',
+        mutation_date: gradDate,
+        exit_letter_number: decree_number || null,
+        notes: notes || `Dinyatakan lulus pada tahun ajaran ${academic_year_id || '-'} sesuai SK ${decree_number || '-'}`,
+        created_at: db.fn.now(),
+        updated_at: db.fn.now()
+      });
+
+      // 3. Selesaikan status enrollment rombel aktif
+      await db('student_class_enrollments')
+        .where({ student_id: studentId, status: 'aktif' })
+        .update({
+          status: 'lulus',
+          updated_at: db.fn.now()
+        });
+
+      graduated.push(studentId);
+    }
+
+    return {
+      message: `Berhasil memproses kelulusan ${graduated.length} santri menjadi alumni`,
+      count: graduated.length,
+      graduation_date: gradDate,
+      decree_number
+    };
+  }
+
+  // Data cetak SKL / Ijazah Kelulusan
+  async getGraduationCertificateData(studentId) {
+    const student = await db('students')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
+      .select('students.*', 'cohorts.name as cohort_name')
+      .where('students.id', studentId)
+      .first();
+
+    if (!student) {
+      const error = new Error('Siswa tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Ambil mutasi kelulusan
+    const graduationMutation = await db('student_mutations')
+      .where({ student_id: studentId, mutation_type: 'lulus' })
+      .orderBy('id', 'desc')
+      .first();
+
+    // Ambil rapor semester akhir
+    const reportCard = await db('report_cards')
+      .where({ student_id: studentId })
+      .orderBy('id', 'desc')
+      .first();
+
+    // Ambil rekap nilai rapor
+    const scores = await db('student_scores')
+      .join('subjects', 'student_scores.subject_id', 'subjects.id')
+      .where({ 'student_scores.student_id': studentId })
+      .select(
+        'student_scores.*',
+        'subjects.name as subject_name',
+        'subjects.code as subject_code'
+      );
+
+    // Ambil wali santri
+    const guardians = await db('student_guardians')
+      .join('guardians', 'student_guardians.guardian_id', 'guardians.id')
+      .where({ 'student_guardians.student_id': studentId })
+      .select('guardians.*', 'student_guardians.relationship');
+
+    return {
+      student,
+      graduation_info: graduationMutation || {
+        mutation_date: new Date().toISOString().split('T')[0],
+        exit_letter_number: 'SKL/2026/001'
+      },
+      last_report_card: reportCard || null,
+      scores: scores || [],
+      guardians: guardians || []
+    };
+  }
+
+  // ==========================================
+  // 10. Riwayat Kronologis Rombel Siswa (student_class_history)
+  // ==========================================
+  async getStudentClassHistory(studentId) {
+    const history = await db('student_class_history')
+      .leftJoin('academic_years', 'student_class_history.academic_year_id', 'academic_years.id')
+      .leftJoin('class_groups', 'student_class_history.class_group_id', 'class_groups.id')
+      .leftJoin('grade_levels', 'student_class_history.grade_level_id', 'grade_levels.id')
+      .select(
+        'student_class_history.*',
+        'academic_years.name as academic_year_name',
+        'class_groups.name as class_group_name',
+        'grade_levels.name as grade_level_name'
+      )
+      .where('student_class_history.student_id', studentId)
+      .orderBy('student_class_history.recorded_at', 'asc');
+
+    return history;
+  }
+
+  // ==========================================
+  // 11. Tambah Cepat Siswa Riwayat / Alumni (Quick Add Legacy)
+  // ==========================================
+  async quickAddLegacyStudent(payload, user = null) {
+    const {
+      full_name,
+      nis,
+      nisn,
+      gender,
+      birth_date,
+      cohort_id,
+      graduation_year,
+      status = 'lulus',
+      entry_academic_year_id,
+      class_group_id,
+      satuan_pendidikan_id
+    } = payload;
+
+    if (!full_name || !full_name.trim()) {
+      const error = new Error('Field full_name wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const unitId = satuan_pendidikan_id || 1;
+    const recordedBy = user?.full_name || user?.username || 'Admin Import';
+
+    // 1. Cek duplikasi (warning, bukan hard block)
+    let warning = null;
+    if (nisn && nisn.trim()) {
+      const matchNisn = await db('students').where('nisn', nisn.trim()).first();
+      if (matchNisn) {
+        warning = `Perhatian: Ditemukan siswa dengan NISN sama: "${matchNisn.full_name}" (ID: ${matchNisn.id}, Status: ${matchNisn.status})`;
+      }
+    }
+
+    if (!warning && birth_date) {
+      const bDate = birth_date.split('T')[0];
+      const matchNameBirth = await db('students')
+        .where('satuan_pendidikan_id', unitId)
+        .whereRaw('LOWER(full_name) = ?', [full_name.trim().toLowerCase()])
+        .where('birth_date', bDate)
+        .first();
+
+      if (matchNameBirth) {
+        warning = `Perhatian: Ditemukan siswa dengan nama & tanggal lahir sama: "${matchNameBirth.full_name}" (ID: ${matchNameBirth.id})`;
+      }
+    }
+
+    // 2. Auto-detect / create cohort jika graduation_year diisi
+    let finalCohortId = cohort_id ? Number(cohort_id) : null;
+    if (!finalCohortId && graduation_year) {
+      const yearStr = String(graduation_year).trim();
+      let cohort = await db('cohorts')
+        .where('satuan_pendidikan_id', unitId)
+        .where('year', yearStr)
+        .first();
+
+      if (!cohort) {
+        const [cId] = await db('cohorts').insert({
+          satuan_pendidikan_id: unitId,
+          year: yearStr,
+          name: `Angkatan ${yearStr}`,
+          description: `Auto-generated cohort kelulusan ${yearStr}`,
+          is_active: 1,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+        finalCohortId = cId;
+      } else {
+        finalCohortId = cohort.id;
+      }
+    }
+
+    // 3. Normalisasi status siswa & enrollment
+    const validStatuses = ['calon', 'aktif', 'lulus', 'pindah', 'keluar'];
+    const finalStudentStatus = validStatuses.includes(status) ? status : (status === 'transferred' ? 'pindah' : status === 'dropped_out' ? 'keluar' : 'lulus');
+
+    const generatedNis = nis && String(nis).trim()
+      ? String(nis).trim()
+      : (nisn && String(nisn).trim() ? `LEG-${String(nisn).trim()}` : `LEG-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`);
+
+    // 4. Insert ke students (mode ringkas_riwayat)
+    const [studentId] = await db('students').insert({
+      satuan_pendidikan_id: unitId,
+      cohort_id: finalCohortId,
+      cohort_name: graduation_year ? `Angkatan ${graduation_year}` : null,
+      full_name: full_name.trim(),
+      nis: generatedNis,
+      nisn: nisn ? String(nisn).trim() : null,
+      gender: gender === 'P' ? 'P' : 'L',
+      birth_date: birth_date ? birth_date.split('T')[0] : null,
+      status: finalStudentStatus,
+      data_entry_mode: 'ringkas_riwayat',
+      enrolled_at: new Date().toISOString().split('T')[0],
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    });
+
+    // 5. Hubungkan ke rombel jika class_group_id disertakan
+    if (class_group_id) {
+      const classGroup = await db('class_groups').where('id', class_group_id).first();
+      if (classGroup) {
+        const targetYearId = classGroup.academic_year_id || entry_academic_year_id || 1;
+        const enrollmentStatus = finalStudentStatus === 'lulus' ? 'lulus' : finalStudentStatus === 'pindah' ? 'pindah' : 'aktif';
+
+        await db('student_class_enrollments').insert({
+          satuan_pendidikan_id: unitId,
+          student_id: studentId,
+          class_group_id: class_group_id,
+          academic_year_id: targetYearId,
+          status: enrollmentStatus,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+
+        await db('student_class_history').insert({
+          student_id: studentId,
+          academic_year_id: targetYearId,
+          class_group_id: class_group_id,
+          grade_level_id: classGroup.grade_level_id || 1,
+          enrollment_type: 'manual',
+          decision: `Data Riwayat Rombel / Alumni (${finalStudentStatus})`,
+          recorded_at: db.fn.now(),
+          recorded_by: recordedBy
+        });
+      }
+    }
+
+    const createdStudent = await db('students')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
+      .select('students.*', 'cohorts.name as cohort_name')
+      .where('students.id', studentId)
+      .first();
+
+    return {
+      student: createdStudent,
+      warning,
+      is_duplicate_warning: !!warning
+    };
+  }
+
+  // ==========================================
+  // 12. Pencarian Cepat Siswa (Quick Search for Matching / Import)
+  // ==========================================
+  async searchQuick(query = {}) {
+    const { q, satuan_pendidikan_id, limit = 20 } = query;
+    let baseQuery = db('students')
+      .leftJoin('student_class_enrollments as sce', function () {
+        this.on('students.id', '=', 'sce.student_id')
+          .andOn('sce.status', '=', db.raw('?', ['aktif']));
+      })
+      .leftJoin('class_groups', 'sce.class_group_id', 'class_groups.id')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
+      .select(
+        'students.id',
+        'students.satuan_pendidikan_id',
+        'students.full_name',
+        'students.nis',
+        'students.nisn',
+        'students.gender',
+        'students.birth_date',
+        'students.status',
+        'students.data_entry_mode',
+        'cohorts.name as cohort_name',
+        'class_groups.name as current_class_name'
+      );
+
+    if (satuan_pendidikan_id) {
+      baseQuery = baseQuery.where('students.satuan_pendidikan_id', satuan_pendidikan_id);
+    }
+
+    if (q && q.trim()) {
+      const term = `%${q.trim()}%`;
+      baseQuery = baseQuery.where(function () {
+        this.where('students.full_name', 'like', term)
+          .orWhere('students.nis', 'like', term)
+          .orWhere('students.nisn', 'like', term);
+      });
+    }
+
+    return baseQuery.orderBy('students.id', 'desc').limit(Number(limit));
   }
 }
 

@@ -203,6 +203,7 @@ Khusus Manajemen: environment variable diawali `MANAJEMEN_` (mis. `MANAJEMEN_DB_
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-08-28 | **Rombak Besar Arsitektur Modul Manajemen:** Konsolidasi skema perencanaan & mutu. Tabel legacy (`institution_development_plans`, `strategic_goals`, `school_work_plans`, `work_plan_programs`, `work_plan_activities`, `quality_indicators`, `quality_indicator_achievements`, `quality_goals`, `self_evaluations`) di-drop. 5 Tabel Fondasi Baru dibentuk: `rips_domains`, `rips_subdomains`, `bsc_aspects`, `committee_position_types`, dan `document_publications` (generik untuk versioning RIPS/RKJP/RKJM/RKT/EVADIR). Tabel operasional dipertahankan (`evaluation_follow_ups`, `accreditation_*`, `school_risks`, `employee_performance_*`, `supervision_*`, `projects`, `tasks`, `approval_*`). |
 | 2026-08-18 | Dokumen dibuat. Nama modul dikonfirmasi developer: **"Manajemen"** (bukan "Pengelolaan"), jumlah fitur dikonfirmasi **13** (bukan 14). Tahap: belum mulai coding, baru mulai Tahap 1 (rancangan awal, ERD & kontrak API menyusul). |
 
 *(Tambahkan baris baru di atas setiap ada keputusan penting/perubahan cakupan — jangan hapus

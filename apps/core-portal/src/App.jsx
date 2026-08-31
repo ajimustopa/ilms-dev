@@ -8,7 +8,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <RouterProvider router={router} />
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </ToastProvider>
     </AuthProvider>
   );

@@ -87,4 +87,24 @@ router.post(
   controller.ingestReconciliationInternal
 );
 
+// 6. Bukti Transfer Manual & Verifikasi (Pengganti Payment Gateway)
+router.get(
+  '/bill-payment-proofs',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.listPaymentProofs
+);
+router.patch(
+  '/bill-payment-proofs/:id/verify',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.verifyPaymentProof
+);
+router.patch(
+  '/bill-payment-proofs/:id/reject',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.rejectPaymentProof
+);
+
 module.exports = router;

@@ -1,6 +1,7 @@
 /**
  * Report Cards Controller Implementation
- * Modul Akademik - Fitur 4: Rapor Siswa
+ * Modul Akademik - Fitur: Rapor Siswa, Materialisasi Nilai Akhir Mapel,
+ * Input Manual Riwayat Lampau & Impor Excel
  */
 const reportCardsService = require('./service');
 
@@ -39,7 +40,60 @@ class ReportCardsController {
       res.status(200).json({
         success: true,
         data,
-        message: 'Rapor berhasil digenerate',
+        message: 'Rapor berhasil digenerate dan dimaterialisasi',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createLegacyEntry(req, res, next) {
+    try {
+      const data = await reportCardsService.createLegacyEntry(req.body, req.user);
+      res.status(201).json({
+        success: true,
+        data,
+        message: data.message || 'Nilai rapor berhasil disimpan secara manual',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getImportTemplate(req, res, next) {
+    try {
+      const buffer = await reportCardsService.getImportTemplate(req.query);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="template_import_rapor.xlsx"');
+      res.status(200).send(buffer);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async importReportCards(req, res, next) {
+    try {
+      const data = await reportCardsService.importReportCards(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: `Impor nilai rapor selesai: ${data.success_count} baris sukses (${data.created_students_count} siswa baru dibuat, ${data.matched_students_count} siswa cocok), ${data.errors.length} gagal`,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getStudentReportCardHistory(req, res, next) {
+    try {
+      const data = await reportCardsService.getStudentReportCardHistory(req.params.id);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Riwayat rapor siswa lintas semester berhasil diambil',
         errors: null
       });
     } catch (err) {

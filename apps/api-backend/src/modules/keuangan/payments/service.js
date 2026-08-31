@@ -30,8 +30,8 @@ class PaymentsService {
     return `${prefix}${String(counter).padStart(4, '0')}`;
   }
 
-  async recordBillPayment(schoolUnitId, data, userId = null) {
-    return db.transaction(async (trx) => {
+  async recordBillPayment(schoolUnitId, data, userId = null, existingTrx = null) {
+    const exec = async (trx) => {
       const bill = await trx('student_bills')
         .where({ id: data.student_bill_id, school_unit_id: schoolUnitId })
         .first();
@@ -113,13 +113,17 @@ class PaymentsService {
           id: actualPaymentId,
           student_bill_id: bill.id,
           amount: paymentAmount,
-          payment_method: data.payment_method,
+          status_after: billStatusAfter,
           receipt_number: receiptNumber,
-          bill_status_after: billStatusAfter,
-          payment_record: paymentRecord
+          paid_at: paidAt
         }
       };
-    });
+    };
+
+    if (existingTrx) {
+      return exec(existingTrx);
+    }
+    return db.transaction(exec);
   }
 
   // ============================================================
@@ -375,6 +379,133 @@ class PaymentsService {
     });
 
     return db('payment_reconciliations').where({ id }).first();
+  }
+
+  // ============================================================
+  // 6. BUKTI TRANSFER MANUAL & VERIFIKASI (Fitur Pengganti Payment Gateway)
+  // ============================================================
+
+  async listPaymentProofs(schoolUnitId, filters = {}) {
+    let q = db('bill_payment_proofs')
+      .join('student_bills', 'bill_payment_proofs.student_bill_id', 'student_bills.id')
+      .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
+      .select(
+        'bill_payment_proofs.*',
+        'student_bills.student_id',
+        'student_bills.period_month',
+        'student_bills.period_year',
+        'student_bills.amount as bill_amount',
+        'student_bills.status as bill_status',
+        'fee_types.name as fee_type_name'
+      );
+
+    if (schoolUnitId) {
+      q = q.where('bill_payment_proofs.school_unit_id', schoolUnitId);
+    }
+    if (filters.status) {
+      q = q.where('bill_payment_proofs.status', filters.status);
+    }
+
+    const proofs = await q.orderBy('bill_payment_proofs.created_at', 'asc');
+
+    // In-process resolution of student data
+    return Promise.all(proofs.map(async p => {
+      const student = await crossModuleServices.getStudent(p.student_id);
+      return {
+        ...p,
+        student_name: student?.full_name || `Siswa ID ${p.student_id}`,
+        student_nis: student?.nis || '-',
+        student_class: student?.class_name || '-'
+      };
+    }));
+  }
+
+  async verifyPaymentProof(schoolUnitId, proofId, userId, cashAccountId = null) {
+    return db.transaction(async (trx) => {
+      const proof = await trx('bill_payment_proofs')
+        .where({ id: proofId, school_unit_id: schoolUnitId })
+        .first();
+
+      if (!proof) {
+        return { error: 'NOT_FOUND', message: 'Bukti transfer tidak ditemukan' };
+      }
+
+      if (proof.status !== 'pending') {
+        return { error: 'CONFLICT', message: `Bukti transfer ini sudah berstatus ${proof.status}` };
+      }
+
+      // Tentukan rekening kas/bank tujuan
+      let targetCashAccountId = cashAccountId;
+      if (!targetCashAccountId) {
+        const bankAcc = await trx('cash_accounts')
+          .where({ school_unit_id: schoolUnitId, account_kind: 'bank', is_active: true })
+          .first();
+        targetCashAccountId = bankAcc ? bankAcc.id : 1;
+      }
+
+      // Catat pembayaran resmi via recordBillPayment
+      const paymentResult = await this.recordBillPayment(schoolUnitId, {
+        student_bill_id: proof.student_bill_id,
+        cash_account_id: targetCashAccountId,
+        amount: proof.amount,
+        payment_method: 'bank_transfer',
+        paid_at: proof.transfer_date ? new Date(proof.transfer_date).toISOString() : new Date().toISOString(),
+        notes: `Verifikasi Bukti Transfer #${proof.id} (Bank: ${proof.bank_name || '-'}, Pengirim: ${proof.sender_account_name || '-'})`
+      }, userId, trx);
+
+      if (paymentResult.error) {
+        return paymentResult;
+      }
+
+      const verifiedAt = trx.fn.now();
+      await trx('bill_payment_proofs')
+        .where({ id: proof.id })
+        .update({
+          status: 'verified',
+          verified_by: userId,
+          verified_at: verifiedAt,
+          bill_payment_id: paymentResult.data.id
+        });
+
+      const updatedProof = await trx('bill_payment_proofs').where({ id: proof.id }).first();
+
+      return {
+        data: {
+          proof: updatedProof,
+          payment: paymentResult.data
+        }
+      };
+    });
+  }
+
+  async rejectPaymentProof(schoolUnitId, proofId, rejectionReason, userId) {
+    if (!rejectionReason || !rejectionReason.trim()) {
+      return { error: 'VALIDATION', message: 'Alasan penolakan (rejection_reason) wajib diisi' };
+    }
+
+    const proof = await db('bill_payment_proofs')
+      .where({ id: proofId, school_unit_id: schoolUnitId })
+      .first();
+
+    if (!proof) {
+      return { error: 'NOT_FOUND', message: 'Bukti transfer tidak ditemukan' };
+    }
+
+    if (proof.status !== 'pending') {
+      return { error: 'CONFLICT', message: `Bukti transfer ini sudah berstatus ${proof.status}` };
+    }
+
+    await db('bill_payment_proofs')
+      .where({ id: proof.id })
+      .update({
+        status: 'rejected',
+        rejection_reason: rejectionReason.trim(),
+        verified_by: userId,
+        verified_at: db.fn.now()
+      });
+
+    const updatedProof = await db('bill_payment_proofs').where({ id: proof.id }).first();
+    return { data: updatedProof };
   }
 }
 

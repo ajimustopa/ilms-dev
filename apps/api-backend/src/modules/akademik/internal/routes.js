@@ -11,6 +11,10 @@ router.get('/internal/students/:id', requireApiKey, internalController.getStuden
 router.get('/internal/students', requireApiKey, internalController.listActiveStudents);
 router.get('/internal/students/:id/guardians', requireApiKey, internalController.getStudentGuardians);
 router.get('/internal/class-groups/:id', requireApiKey, internalController.getClassGroupDetail);
+router.get('/internal/class-groups', requireApiKey, internalController.listClassGroups);
+router.get('/internal/academic-years', requireApiKey, internalController.listAcademicYears);
+router.get('/internal/cohorts', requireApiKey, internalController.listCohorts);
+router.get('/internal/grade-levels', requireApiKey, internalController.listGradeLevels);
 router.post('/internal/scores/exam-result', requireApiKey, internalController.receiveExamResult);
 
 module.exports = router;
