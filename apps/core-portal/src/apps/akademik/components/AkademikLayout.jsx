@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
 import {
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function AkademikLayout() {
+  const location = useLocation();
   const { user, activeSchoolUnit, schoolUnits, changeActiveSchoolUnit, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localUnits, setLocalUnits] = useState([]);
@@ -166,29 +167,9 @@ export default function AkademikLayout() {
     },
     // PSB (Penerimaan Murid Baru)
     {
-      label: 'PSB: Proses & Kuota',
-      path: '/akademik/psb/proses',
-      icon: CalendarDays,
-    },
-    {
-      label: 'PSB: Kelompok Gelombang',
-      path: '/akademik/psb/kelompok',
-      icon: Users,
-    },
-    {
-      label: 'PSB: Pendataan Calon Murid',
-      path: '/akademik/psb/pendataan',
+      label: 'Penerimaan Murid Baru (PSB)',
+      path: '/akademik/psb',
       icon: UserPlus,
-    },
-    {
-      label: 'PSB: Tes Seleksi Masuk',
-      path: '/akademik/psb/testing',
-      icon: FileCheck2,
-    },
-    {
-      label: 'PSB: Penempatan Rombel',
-      path: '/akademik/psb/penempatan',
-      icon: GraduationCap,
     },
     // Riwayat & Arsip
     {
@@ -273,6 +254,9 @@ export default function AkademikLayout() {
           )}
           {navItems.map((item) => {
             const Icon = item.icon;
+            const isMatch = item.path === '/akademik/psb'
+              ? location.pathname.startsWith('/akademik/psb')
+              : location.pathname === item.path;
             return (
               <NavLink
                 key={item.path}
@@ -280,8 +264,8 @@ export default function AkademikLayout() {
                 title={isCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} py-2.5 text-xs font-semibold rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-teal-600 text-white shadow-md'
+                    (isActive || isMatch)
+                      ? 'bg-teal-600 text-white shadow-md font-bold'
                       : 'text-slate-400 hover:bg-slate-800/90 hover:text-white'
                   }`
                 }

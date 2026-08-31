@@ -363,30 +363,38 @@ export const router = createBrowserRouter([
             path: 'kalender',
             element: lazyLoad(() => import('./apps/akademik/pages/KalenderAkademik')),
           },
-          // PSB (Penerimaan Murid Baru)
+          // PSB (Penerimaan Murid Baru) - Unified Hub & Subtabs
+          {
+            path: 'psb',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSB')),
+          },
           {
             path: 'psb/proses',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBProcess')),
+            element: <Navigate to="/akademik/psb?tab=proses" replace />,
           },
           {
             path: 'psb/kelompok',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBGroups')),
+            element: <Navigate to="/akademik/psb?tab=kelompok" replace />,
           },
           {
             path: 'psb/pendataan',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrants')),
+            element: <Navigate to="/akademik/psb?tab=pendataan" replace />,
           },
           {
             path: 'psb/pendataan/:id',
             element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrantDetail')),
           },
           {
+            path: 'psb/detail/:id',
+            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrantDetail')),
+          },
+          {
             path: 'psb/testing',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBTests')),
+            element: <Navigate to="/akademik/psb?tab=testing" replace />,
           },
           {
             path: 'psb/penempatan',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBPlacement')),
+            element: <Navigate to="/akademik/psb?tab=penempatan" replace />,
           },
           {
             path: 'riwayat-data',

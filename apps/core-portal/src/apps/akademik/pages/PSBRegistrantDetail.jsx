@@ -87,7 +87,7 @@ export default function PSBRegistrantDetail() {
       <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
         <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
         <p className="text-sm font-bold text-slate-800">Data calon murid tidak ditemukan</p>
-        <Link to="/akademik/psb/pendataan" className="text-xs text-teal-600 font-bold hover:underline">
+        <Link to="/akademik/psb?tab=pendataan" className="text-xs text-teal-600 font-bold hover:underline">
           ← Kembali ke Daftar Pendaftar
         </Link>
       </div>
@@ -108,7 +108,7 @@ export default function PSBRegistrantDetail() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            to="/akademik/psb/pendataan"
+            to="/akademik/psb?tab=pendataan"
             className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
           >
             <ArrowLeft className="w-4 h-4" />

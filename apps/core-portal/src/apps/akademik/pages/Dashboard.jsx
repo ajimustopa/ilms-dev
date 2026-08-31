@@ -180,7 +180,7 @@ export default function AkademikDashboard() {
               </h2>
             </div>
             <Link
-              to="/akademik/psb/pendataan"
+              to="/akademik/psb"
               className="text-xs text-teal-600 hover:text-teal-700 font-bold flex items-center gap-1 self-start sm:self-auto"
             >
               <span>Kelola PSB</span>
