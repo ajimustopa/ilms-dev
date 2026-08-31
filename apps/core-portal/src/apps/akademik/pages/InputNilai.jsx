@@ -344,10 +344,12 @@ export default function InputNilai() {
   const [loadingAttitude, setLoadingAttitude] = useState(false);
   const [savingAttitude, setSavingAttitude] = useState(false);
 
-  // Sub-Tab 3: Nilai Ekstrakurikuler Wajib Pramuka
-  const [scoutScoresList, setScoutScoresList] = useState([]); // [{ student_id, student_name, nis, predicate: 'Baik', description: '' }]
-  const [loadingScout, setLoadingScout] = useState(false);
-  const [savingScout, setSavingScout] = useState(false);
+  // Sub-Tab 3: Nilai Ekstrakurikuler (Pilihan Dropdown Ekskul)
+  const [extracurriculars, setExtracurriculars] = useState([]);
+  const [selectedExtraId, setSelectedExtraId] = useState('');
+  const [extraScoresList, setExtraScoresList] = useState([]); // [{ student_id, student_name, nis, predicate: 'Baik', description: '' }]
+  const [loadingExtra, setLoadingExtra] = useState(false);
+  const [savingExtra, setSavingExtra] = useState(false);
 
   // Sub-Tab 4: Catatan Wali Kelas
   const [homeroomNotesList, setHomeroomNotesList] = useState([]); // [{ student_id, student_name, nis, homeroom_note: '' }]
@@ -372,6 +374,7 @@ export default function InputNilai() {
       fetchClasses();
       fetchSubjects();
       fetchAttitudeDimensions();
+      fetchExtracurriculars();
     }
   }, [selectedAcademicYearId]);
 
@@ -380,6 +383,12 @@ export default function InputNilai() {
       fetchLearningObjectives();
     }
   }, [selectedSubjectId, selectedSemesterId, selectedClassId]);
+
+  useEffect(() => {
+    if (activeTab === 'report_processor' && reportSubTab === 'extracurricular' && selectedClassId && selectedSemesterId && selectedExtraId) {
+      fetchExtraScores();
+    }
+  }, [activeTab, reportSubTab, selectedClassId, selectedSemesterId, selectedExtraId]);
 
   // Tab change reactive fetching
   useEffect(() => {
@@ -399,8 +408,12 @@ export default function InputNilai() {
           fetchReportProcessorData();
         } else if (reportSubTab === 'attitude') {
           fetchAttitudeScoresMatrix();
-        } else if (reportSubTab === 'scout') {
-          fetchScoutScores();
+        } else if (reportSubTab === 'extracurricular') {
+          if (selectedExtraId) {
+            fetchExtraScores();
+          } else {
+            fetchExtracurriculars();
+          }
         } else if (reportSubTab === 'homeroom_notes') {
           fetchHomeroomNotes();
         }
@@ -845,82 +858,137 @@ export default function InputNilai() {
   };
 
   // ----------------------------------------------------
-  // SUB-TAB 3: NILAI PRAMUKA HANDLERS
+  // SUB-TAB 3: NILAI EKSTRAKURIKULER HANDLERS
   // ----------------------------------------------------
-  const buildDefaultScoutNarrative = (name, pred) => {
+  const fetchExtracurriculars = async () => {
+    try {
+      const res = await api.get('/akademik/extracurriculars', {
+        params: { satuan_pendidikan_id: activeSchoolUnit?.id || 1 }
+      });
+      const extras = res.data?.data || [];
+      setExtracurriculars(extras);
+      if (extras.length > 0 && (!selectedExtraId || !extras.find(e => String(e.id) === String(selectedExtraId)))) {
+        setSelectedExtraId(String(extras[0].id));
+      }
+      return extras;
+    } catch (err) {
+      console.error('Error fetching extracurriculars:', err);
+      return [];
+    }
+  };
+
+  const buildDefaultExtraNarrative = (extraName, pred) => {
     if (pred === 'Amat Baik') {
-      return `Sangat aktif, disiplin, dan menunjukkan jiwa kepemimpinan serta keteladanan yang tinggi dalam setiap kegiatan kepramukaan.`;
+      return `Sangat aktif, bersemangat, dan menunjukkan perkembangan keterampilan yang luar biasa dalam kegiatan ekstrakurikuler ${extraName}.`;
     }
     if (pred === 'Baik') {
-      return `Aktif, tertib, dan mampu bekerja sama dengan baik dalam melaksanakan tugas-tugas latihan kepramukaan.`;
+      return `Aktif, tertib, dan mampu mengikuti seluruh program latihan ekstrakurikuler ${extraName} dengan baik.`;
     }
-    return `Cukup mampu mengikuti kegiatan kepramukaan dan perlu peningkatan keaktifan serta kedisiplinan regu.`;
+    if (pred === 'Cukup') {
+      return `Cukup mampu mengikuti kegiatan ekstrakurikuler ${extraName} dan perlu peningkatan kehadiran serta keaktifan berlatih.`;
+    }
+    return `Kurang aktif dan perlu pembinaan lebih lanjut dalam kegiatan ekstrakurikuler ${extraName}.`;
   };
 
-  const fetchScoutScores = async () => {
+  const fetchExtraScores = async () => {
     if (!selectedClassId || !selectedSemesterId) return;
     try {
-      setLoadingScout(true);
-      const res = await api.get('/akademik/scout-scores', {
-        params: {
-          class_group_id: selectedClassId,
-          semester_id: selectedSemesterId
-        }
-      });
-      const data = res.data?.data;
-      if (data) {
-        const items = (data.students || []).map(st => {
-          const sc = data.scores_map?.[st.student_id];
-          const pred = sc?.predicate || 'Baik';
-          return {
-            student_id: st.student_id,
-            student_name: st.student_name,
-            nis: st.nis,
-            predicate: pred,
-            description: sc?.description || buildDefaultScoutNarrative(st.student_name, pred)
-          };
-        });
-        setScoutScoresList(items);
+      setLoadingExtra(true);
+
+      // Ambil nilai ekskul yang tersimpan
+      let existingScores = [];
+      if (selectedExtraId) {
+        const scoreRes = await api.get('/akademik/extracurricular-scores', {
+          params: {
+            extracurricular_id: selectedExtraId,
+            semester_id: selectedSemesterId
+          }
+        }).catch(() => null);
+        existingScores = scoreRes?.data?.data || [];
       }
+
+      const scoreMap = {};
+      existingScores.forEach(sc => {
+        scoreMap[sc.student_id] = sc;
+      });
+
+      // Ambil siswa rombel kelas terpilih
+      let studentsList = [];
+      if (attitudeItems.length > 0) {
+        studentsList = attitudeItems.map(st => ({ student_id: st.student_id, student_name: st.student_name, nis: st.nis }));
+      } else if (reportItems.length > 0) {
+        studentsList = reportItems.map(st => ({ student_id: st.student_id, student_name: st.student_name, nis: st.nis }));
+      } else {
+        const matrixRes = await api.get('/akademik/attitude-scores/matrix', {
+          params: { class_group_id: selectedClassId, semester_id: selectedSemesterId }
+        }).catch(() => null);
+        studentsList = matrixRes?.data?.data?.students || [];
+      }
+
+      const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId));
+      const extraName = activeExtra?.name || 'Ekstrakurikuler';
+
+      const items = studentsList.map(st => {
+        const sc = scoreMap[st.student_id];
+        const pred = sc?.predicate || 'Baik';
+        return {
+          student_id: st.student_id,
+          student_name: st.student_name,
+          nis: st.nis,
+          predicate: pred,
+          description: sc?.description || buildDefaultExtraNarrative(extraName, pred)
+        };
+      });
+
+      setExtraScoresList(items);
     } catch (err) {
-      console.error('Error fetching scout scores:', err);
+      console.error('Error fetching extracurricular scores:', err);
     } finally {
-      setLoadingScout(false);
+      setLoadingExtra(false);
     }
   };
 
-  const handleAutoGenerateScoutDescriptions = () => {
-    const updated = scoutScoresList.map(item => ({
+  const handleAutoGenerateExtraDescriptions = () => {
+    const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId));
+    const extraName = activeExtra?.name || 'Ekstrakurikuler';
+    const updated = extraScoresList.map(item => ({
       ...item,
-      description: buildDefaultScoutNarrative(item.student_name, item.predicate)
+      description: buildDefaultExtraNarrative(extraName, item.predicate)
     }));
-    setScoutScoresList(updated);
-    setSuccessMsg('Narasi kegiatan pramuka berhasil di-generate otomatis sesuai predikat!');
+    setExtraScoresList(updated);
+    setSuccessMsg(`Narasi kegiatan ekstrakurikuler "${extraName}" berhasil di-generate otomatis sesuai predikat!`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleSaveScoutScores = async () => {
-    if (scoutScoresList.length === 0 || !selectedClassId || !selectedSemesterId) return;
+  const handleSaveExtraScores = async () => {
+    if (extraScoresList.length === 0 || !selectedClassId || !selectedSemesterId || !selectedExtraId) {
+      setErrorMsg('Pilih ekstrakurikuler dan pastikan data siswa tersedia');
+      return;
+    }
     try {
-      setSavingScout(true);
+      setSavingExtra(true);
       setErrorMsg('');
-      await api.post('/akademik/scout-scores/bulk', {
+      await api.post('/akademik/extracurricular-scores/bulk', {
+        extracurricular_id: Number(selectedExtraId),
         class_group_id: Number(selectedClassId),
         semester_id: Number(selectedSemesterId),
         academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : null,
-        items: scoutScoresList.map(it => ({
+        satuan_pendidikan_id: activeSchoolUnit?.id || 1,
+        items: extraScoresList.map(it => ({
           student_id: it.student_id,
           predicate: it.predicate,
+          score: it.predicate === 'Amat Baik' ? 95 : it.predicate === 'Baik' ? 85 : it.predicate === 'Cukup' ? 75 : 60,
           description: it.description
         }))
       });
-      setSuccessMsg('Nilai ekstrakurikuler wajib Pramuka berhasil disimpan!');
-      fetchScoutScores();
+      const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId));
+      setSuccessMsg(`Nilai ekstrakurikuler "${activeExtra?.name || ''}" berhasil disimpan!`);
+      fetchExtraScores();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan nilai pramuka');
+      setErrorMsg(err.response?.data?.message || 'Gagal menyimpan nilai ekstrakurikuler');
     } finally {
-      setSavingScout(false);
+      setSavingExtra(false);
     }
   };
 
@@ -2054,6 +2122,15 @@ export default function InputNilai() {
     }));
   }, [subjects]);
 
+  const extracurricularOptions = useMemo(() => {
+    return extracurriculars.map(e => ({
+      value: String(e.id),
+      label: e.name,
+      badge: e.category || 'Ekskul',
+      sublabel: e.coach_name ? `Pembina: ${e.coach_name}` : null
+    }));
+  }, [extracurriculars]);
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-5">
       {/* Header Halaman */}
@@ -2701,15 +2778,22 @@ export default function InputNilai() {
 
             <button
               type="button"
-              onClick={() => setReportSubTab('scout')}
+              onClick={() => setReportSubTab('extracurricular')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                reportSubTab === 'scout'
+                reportSubTab === 'extracurricular'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
               }`}
             >
               <Compass className="w-4 h-4" />
-              <span>3. Nilai Pramuka (Wajib)</span>
+              <span>3. Nilai Ekstrakurikuler</span>
+              {extracurriculars.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  reportSubTab === 'extracurricular' ? 'bg-white text-indigo-900' : 'bg-indigo-100 text-indigo-900'
+                }`}>
+                  {extracurriculars.length} Ekskul
+                </span>
+              )}
             </button>
 
             <button
@@ -3126,26 +3210,26 @@ export default function InputNilai() {
           )}
 
           {/* ---------------------------------------------------- */}
-          {/* 4.3 SUB-TAB 3: NILAI PRAMUKA (WAJIB) */}
+          {/* 4.3 SUB-TAB 3: NILAI EKSTRAKURIKULER */}
           {/* ---------------------------------------------------- */}
-          {reportSubTab === 'scout' && (
+          {reportSubTab === 'extracurricular' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-indigo-50 via-blue-50 to-teal-50 border border-indigo-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 via-blue-50 to-teal-50 border border-indigo-200 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs shadow-xs">
                 <div>
                   <span className="font-black text-indigo-950 text-sm block flex items-center gap-2">
                     <Compass className="w-4 h-4 text-indigo-600" />
-                    <span>Penilaian Ekstrakurikuler Wajib Kepramukaan</span>
+                    <span>Penilaian Ekstrakurikuler Siswa untuk Buku Rapor</span>
                   </span>
                   <p className="text-[11px] text-indigo-800 mt-0.5">
-                    Rombel: <strong>{activeClassName}</strong> • Semester: <strong>{activeSemesterName}</strong> • Predikat (Amat Baik, Baik, Cukup) beserta deskripsi capaian kegiatan pramuka.
+                    Rombel: <strong>{activeClassName}</strong> • Semester: <strong>{activeSemesterName}</strong> • Pilih ekstrakurikuler di bawah ini untuk menilai siswa.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={handleAutoGenerateScoutDescriptions}
-                    disabled={scoutScoresList.length === 0}
+                    onClick={handleAutoGenerateExtraDescriptions}
+                    disabled={extraScoresList.length === 0 || !selectedExtraId}
                     className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
@@ -3154,17 +3238,59 @@ export default function InputNilai() {
 
                   <button
                     type="button"
-                    onClick={handleSaveScoutScores}
-                    disabled={savingScout || scoutScoresList.length === 0}
+                    onClick={handleSaveExtraScores}
+                    disabled={savingExtra || extraScoresList.length === 0 || !selectedExtraId}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
                   >
-                    {savingScout ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    <span>Simpan Nilai Pramuka</span>
+                    {savingExtra ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Simpan Nilai Ekstrakurikuler</span>
                   </button>
                 </div>
               </div>
 
-              {/* Table Scout Scores */}
+              {/* Selector Ekstrakurikuler Dropdown */}
+              <div className="p-3.5 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                    Pilih Ekstrakurikuler:
+                  </span>
+                  <CustomFilterSelect
+                    icon={Compass}
+                    label="Ekstrakurikuler"
+                    value={selectedExtraId}
+                    onChange={(val) => {
+                      setSelectedExtraId(val);
+                    }}
+                    options={extracurricularOptions}
+                    placeholder="Pilih Ekstrakurikuler"
+                    searchable={true}
+                    colorScheme="indigo"
+                    minWidth="min-w-[260px] flex-1 max-w-md"
+                  />
+                </div>
+
+                {(() => {
+                  const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId));
+                  if (!activeExtra) return null;
+                  return (
+                    <div className="flex items-center gap-2 text-xs text-indigo-900 bg-indigo-50/80 px-3 py-1.5 rounded-xl border border-indigo-100 shrink-0">
+                      <span className="font-bold">{activeExtra.name}</span>
+                      {activeExtra.category && (
+                        <span className="px-2 py-0.5 bg-indigo-200/70 text-indigo-950 rounded-md text-[10px] font-bold">
+                          {activeExtra.category}
+                        </span>
+                      )}
+                      {activeExtra.coach_name && (
+                        <span className="text-slate-500 text-[11px]">
+                          (Pembina: {activeExtra.coach_name})
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Table Extra Scores */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
@@ -3173,64 +3299,68 @@ export default function InputNilai() {
                       <th className="py-3 px-4 w-24">NIS</th>
                       <th className="py-3 px-4 w-48">Nama Siswa</th>
                       <th className="py-3 px-4 w-36 text-center bg-indigo-50 font-black text-indigo-900">
-                        Predikat Pramuka *
+                        Predikat Ekskul *
                       </th>
                       <th className="py-3 px-4 min-w-[360px]">
-                        Deskripsi Capaian Kepramukaan
+                        Deskripsi Capaian Ekstrakurikuler ({extracurriculars.find(e => String(e.id) === String(selectedExtraId))?.name || 'Ekskul'})
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {loadingScout ? (
+                    {loadingExtra ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-slate-400">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                          <span>Memuat nilai pramuka siswa...</span>
+                          <span>Memuat nilai ekstrakurikuler siswa...</span>
                         </td>
                       </tr>
-                    ) : scoutScoresList.length === 0 ? (
+                    ) : extraScoresList.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
-                          Belum ada data siswa untuk diolah.
+                          {extracurriculars.length === 0
+                            ? 'Belum ada data master ekstrakurikuler pada unit ini.'
+                            : 'Belum ada data siswa untuk diolah.'}
                         </td>
                       </tr>
                     ) : (
-                      scoutScoresList.map((item, idx) => (
+                      extraScoresList.map((item, idx) => (
                         <tr key={item.student_id} className="hover:bg-slate-50/70 transition">
                           <td className="py-3 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
                           <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{item.nis || '-'}</td>
                           <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
 
-                          {/* Predikat Pramuka */}
+                          {/* Predikat Ekstrakurikuler */}
                           <td className="py-3 px-4 text-center bg-indigo-50/30">
                             <select
                               value={item.predicate}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                const updated = [...scoutScoresList];
+                                const updated = [...extraScoresList];
                                 updated[idx].predicate = val;
-                                updated[idx].description = buildDefaultScoutNarrative(item.student_name, val);
-                                setScoutScoresList(updated);
+                                const activeExtra = extracurriculars.find(ex => String(ex.id) === String(selectedExtraId));
+                                updated[idx].description = buildDefaultExtraNarrative(activeExtra?.name || 'Ekstrakurikuler', val);
+                                setExtraScoresList(updated);
                               }}
                               className="px-3 py-1.5 text-xs font-black rounded-lg border border-indigo-200 bg-white text-indigo-950 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                             >
                               <option value="Amat Baik">Amat Baik</option>
                               <option value="Baik">Baik</option>
                               <option value="Cukup">Cukup</option>
+                              <option value="Kurang">Kurang</option>
                             </select>
                           </td>
 
-                          {/* Deskripsi Kepramukaan */}
+                          {/* Deskripsi Capaian Ekstrakurikuler */}
                           <td className="py-3 px-4">
                             <textarea
                               rows={2}
                               value={item.description}
                               onChange={(e) => {
-                                const updated = [...scoutScoresList];
+                                const updated = [...extraScoresList];
                                 updated[idx].description = e.target.value;
-                                setScoutScoresList(updated);
+                                setExtraScoresList(updated);
                               }}
-                              placeholder="Deskripsi keaktifan dan capaian kegiatan pramuka..."
+                              placeholder={`Deskripsi capaian dan keaktifan kegiatan ${extracurriculars.find(e => String(e.id) === String(selectedExtraId))?.name || 'ekstrakurikuler'}...`}
                               className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed text-slate-800"
                             />
                           </td>
