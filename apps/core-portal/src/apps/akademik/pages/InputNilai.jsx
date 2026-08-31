@@ -41,8 +41,191 @@ import {
   Clock,
   ToggleLeft,
   ToggleRight,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
+
+function CustomFilterSelect({
+  icon: Icon,
+  label,
+  value,
+  onChange,
+  options = [],
+  placeholder = 'Pilih...',
+  searchable = false,
+  colorScheme = 'slate',
+  minWidth = 'min-w-[160px]'
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => String(opt.value) === String(value));
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.toLowerCase();
+    return options.filter(
+      (opt) =>
+        opt.label?.toLowerCase().includes(q) ||
+        opt.sublabel?.toLowerCase().includes(q) ||
+        opt.badge?.toLowerCase().includes(q)
+    );
+  }, [options, search]);
+
+  const colorStyles = {
+    slate: {
+      button: 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400',
+      iconBox: 'bg-slate-100 text-slate-600',
+      activeItem: 'bg-slate-100 text-slate-950 font-bold',
+      tag: 'bg-slate-100 text-slate-600 border-slate-200'
+    },
+    indigo: {
+      button: 'bg-white hover:bg-indigo-50/40 border-indigo-200 text-indigo-950 focus:border-indigo-400 shadow-xs',
+      iconBox: 'bg-indigo-50 text-indigo-700',
+      activeItem: 'bg-indigo-50 text-indigo-950 font-bold',
+      tag: 'bg-indigo-100 text-indigo-800 border-indigo-200'
+    },
+    teal: {
+      button: 'bg-white hover:bg-teal-50/40 border-teal-200 text-teal-950 focus:border-teal-400 shadow-xs',
+      iconBox: 'bg-teal-50 text-teal-700',
+      activeItem: 'bg-teal-50 text-teal-950 font-bold',
+      tag: 'bg-teal-100 text-teal-800 border-teal-200'
+    },
+    amber: {
+      button: 'bg-white hover:bg-amber-50/40 border-amber-300 text-amber-950 focus:border-amber-400 shadow-xs',
+      iconBox: 'bg-amber-50 text-amber-800',
+      activeItem: 'bg-amber-50 text-amber-950 font-bold',
+      tag: 'bg-amber-100 text-amber-900 border-amber-200'
+    }
+  }[colorScheme] || colorStyles.slate;
+
+  return (
+    <div className={`relative ${minWidth}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setSearch('');
+        }}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs transition-all duration-150 ${
+          colorStyles.button
+        } ${isOpen ? 'ring-2 ring-teal-500/20 shadow-md border-teal-500' : ''}`}
+      >
+        <div className="flex items-center gap-2 min-w-0 text-left">
+          {Icon && (
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorStyles.iconBox}`}>
+              <Icon className="w-3.5 h-3.5" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
+              {label}
+            </div>
+            <div className="font-black text-slate-800 text-xs truncate flex items-center gap-1.5 mt-0.5">
+              <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
+              {selectedOption?.badge && (
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-teal-100 text-teal-800 shrink-0">
+                  {selectedOption.badge}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-teal-600' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[240px] w-full max-w-[340px] bg-white rounded-2xl border border-slate-200 shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+          {searchable && options.length > 4 && (
+            <div className="p-1">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={`Cari ${label.toLowerCase()}...`}
+                  autoFocus
+                  className="w-full bg-transparent text-xs text-slate-800 focus:outline-none placeholder:text-slate-400 font-medium"
+                />
+                {search && (
+                  <button type="button" onClick={() => setSearch('')} className="text-slate-400 hover:text-slate-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
+            {filteredOptions.length === 0 ? (
+              <div className="py-4 text-center text-slate-400 text-xs font-medium">
+                Tidak ada pilihan yang cocok
+              </div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const isSelected = String(opt.value) === String(value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-left text-xs transition ${
+                      isSelected
+                        ? colorStyles.activeItem
+                        : 'hover:bg-slate-50 text-slate-700 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold truncate">{opt.label}</span>
+                        {opt.badge && (
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold border ${
+                            opt.badge === 'Aktif'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                            {opt.badge}
+                          </span>
+                        )}
+                      </div>
+                      {opt.sublabel && (
+                        <span className="text-[10px] text-slate-400 block truncate mt-0.5">{opt.sublabel}</span>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <div className="w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function InputNilai() {
   const { activeSchoolUnit, user } = useAuth();
@@ -1480,6 +1663,42 @@ export default function InputNilai() {
   const activeSubjectName = subjects.find(s => String(s.id) === String(selectedSubjectId))?.name || 'Pilih Mapel';
   const activeSemesterName = semesters.find(s => String(s.id) === String(selectedSemesterId))?.name || 'Semester';
 
+  const academicYearOptions = useMemo(() => {
+    return academicYears.map(y => ({
+      value: String(y.id),
+      label: y.name,
+      badge: y.is_active ? 'Aktif' : null,
+      sublabel: y.start_date && y.end_date ? `${y.start_date.split('T')[0]} s/d ${y.end_date.split('T')[0]}` : null
+    }));
+  }, [academicYears]);
+
+  const semesterOptions = useMemo(() => {
+    return semesters.map(s => ({
+      value: String(s.id),
+      label: s.name,
+      badge: s.is_active ? 'Aktif' : null,
+      sublabel: s.academic_year_name || null
+    }));
+  }, [semesters]);
+
+  const classOptions = useMemo(() => {
+    return classes.map(c => ({
+      value: String(c.id),
+      label: c.name,
+      sublabel: c.homeroom_teacher_name ? `Wali: ${c.homeroom_teacher_name}` : (c.grade_level_name || null),
+      badge: c.grade_level_name || null
+    }));
+  }, [classes]);
+
+  const subjectOptions = useMemo(() => {
+    return subjects.map(s => ({
+      value: String(s.id),
+      label: s.name,
+      badge: s.code || null,
+      sublabel: s.category ? `Kategori: ${s.category}` : null
+    }));
+  }, [subjects]);
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-5">
       {/* Header Halaman */}
@@ -1635,73 +1854,67 @@ export default function InputNilai() {
 
       {/* Filter Toolbar (Kecuali Tab 1 yang merupakan Master Config) */}
       {activeTab !== 'assessment_types' && (
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* Tahun Ajaran */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-              <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-              <span className="text-[11px] font-bold text-slate-500">TA:</span>
-              <select
-                value={selectedAcademicYearId}
-                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                className="text-xs bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-              >
-                {academicYears.map(y => (
-                  <option key={y.id} value={y.id}>{y.name} {y.is_active ? '(Aktif)' : ''}</option>
-                ))}
-              </select>
-            </div>
+            <CustomFilterSelect
+              icon={Calendar}
+              label="Tahun Ajaran"
+              value={selectedAcademicYearId}
+              onChange={setSelectedAcademicYearId}
+              options={academicYearOptions}
+              placeholder="Pilih TA"
+              colorScheme="slate"
+              minWidth="min-w-[170px]"
+            />
 
             {/* Semester */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-              <span className="text-[11px] font-bold text-slate-500">Semester:</span>
-              <select
-                value={selectedSemesterId}
-                onChange={(e) => setSelectedSemesterId(e.target.value)}
-                className="text-xs bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-              >
-                {semesters.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} {s.is_active ? '(Aktif)' : ''}</option>
-                ))}
-              </select>
-            </div>
+            <CustomFilterSelect
+              icon={Layers}
+              label="Semester"
+              value={selectedSemesterId}
+              onChange={setSelectedSemesterId}
+              options={semesterOptions}
+              placeholder="Pilih Semester"
+              colorScheme="slate"
+              minWidth="min-w-[170px]"
+            />
 
             {/* Rombel / Kelas */}
-            <div className="flex items-center gap-1.5 bg-indigo-50/70 border border-indigo-200 px-3 py-1.5 rounded-xl">
-              <Users className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-              <span className="text-[11px] font-bold text-indigo-900">Rombel:</span>
-              <select
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="text-xs bg-transparent font-bold text-indigo-950 focus:outline-none cursor-pointer"
-              >
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            <CustomFilterSelect
+              icon={Users}
+              label="Rombel / Kelas"
+              value={selectedClassId}
+              onChange={setSelectedClassId}
+              options={classOptions}
+              placeholder="Pilih Rombel"
+              searchable={true}
+              colorScheme="indigo"
+              minWidth="min-w-[190px]"
+            />
 
-            {/* Mata Pelajaran (Kecuali Tab 5 Leger yang mencakup semua mapel) */}
+            {/* Mata Pelajaran (Kecuali Tab 5 Leger) */}
             {activeTab !== 'ledger_print' && (
-              <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-200 px-3 py-1.5 rounded-xl">
-                <BookOpen className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-                <span className="text-[11px] font-bold text-teal-900">Mapel:</span>
-                <select
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="text-xs bg-transparent font-bold text-teal-950 focus:outline-none cursor-pointer"
-                >
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code || '-'})</option>
-                  ))}
-                </select>
-              </div>
+              <CustomFilterSelect
+                icon={BookOpen}
+                label="Mata Pelajaran"
+                value={selectedSubjectId}
+                onChange={setSelectedSubjectId}
+                options={subjectOptions}
+                placeholder="Pilih Mapel"
+                searchable={true}
+                colorScheme="teal"
+                minWidth="min-w-[240px]"
+              />
             )}
           </div>
 
-          <div className="text-right">
-            <span className="text-[11px] text-slate-500 font-medium block">
-              Konfigurasi Aktif: <strong>{activeClassName}</strong> • <strong>{activeSemesterName}</strong>
+          <div className="text-right hidden lg:block">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Konfigurasi Aktif
+            </span>
+            <span className="text-xs font-black text-slate-800">
+              {activeClassName} • {activeSemesterName}
             </span>
           </div>
         </div>
