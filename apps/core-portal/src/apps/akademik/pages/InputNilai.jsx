@@ -1670,6 +1670,140 @@ export default function InputNilai() {
     XLSX.writeFile(wb, filename);
   };
 
+  // Unduh Format Spreadsheet Nilai Sikap
+  const handleDownloadAttitudeTemplate = () => {
+    const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId)) || attitudeDimensions[0];
+    if (!activeDim) {
+      alert('Dimensi sikap belum tersedia.');
+      return;
+    }
+
+    const aoa = [
+      ['TEMPLATE IMPORT NILAI SIKAP & KARAKTER (PROFIL PELAJAR PANCASILA)'],
+      [`Tahun Ajaran: ${academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || '-'} | Rombel: ${activeClassName} | Semester: ${activeSemesterName}`],
+      [`Dimensi Sikap: [${activeDim.code || 'DIM'}] ${activeDim.name}`],
+      ['PETUNJUK: Jangan ubah kolom ID_SISWA, NIS, atau NAMA_SISWA. Isikan deskripsi capaian sikap siswa pada kolom DESKRIPSI_SIKAP.'],
+      [],
+      ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA', 'KODE_DIMENSI', 'NAMA_DIMENSI', 'DESKRIPSI_SIKAP']
+    ];
+
+    attitudeItems.forEach((item, idx) => {
+      const desc = item.scores?.[activeDim.id]?.description || '';
+      aoa.push([
+        idx + 1,
+        item.student_id,
+        item.nis || '',
+        item.student_name,
+        activeDim.code || '',
+        activeDim.name || '',
+        desc
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 30 },
+      { wch: 16 },
+      { wch: 35 },
+      { wch: 65 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nilai_Sikap');
+    const cleanDim = (activeDim.name || 'Dimensi').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Nilai_Sikap_${cleanDim}_${cleanClass}_${activeSemesterName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // Unduh Format Spreadsheet Nilai Ekstrakurikuler
+  const handleDownloadExtraTemplate = () => {
+    const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId)) || extracurriculars[0];
+    if (!activeExtra) {
+      alert('Pilih ekstrakurikuler terlebih dahulu.');
+      return;
+    }
+
+    const aoa = [
+      ['TEMPLATE IMPORT NILAI EKSTRAKURIKULER'],
+      [`Tahun Ajaran: ${academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || '-'} | Rombel: ${activeClassName} | Semester: ${activeSemesterName}`],
+      [`Kegiatan Ekstrakurikuler: ${activeExtra.name} ${activeExtra.coach_name ? `(Pembina: ${activeExtra.coach_name})` : ''}`],
+      ['PETUNJUK: Pilihan PREDIKAT: Amat Baik / Baik / Cukup / Kurang. Kolom DESKRIPSI_CAPAIAN berisi narasi keaktifan.'],
+      [],
+      ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA', 'NAMA_EKSTRAKURIKULER', 'PREDIKAT', 'DESKRIPSI_CAPAIAN']
+    ];
+
+    extraScoresList.forEach((item, idx) => {
+      aoa.push([
+        idx + 1,
+        item.student_id,
+        item.nis || '',
+        item.student_name,
+        activeExtra.name || '',
+        item.predicate || 'Baik',
+        item.description || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 30 },
+      { wch: 25 },
+      { wch: 14 },
+      { wch: 65 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nilai_Ekskul');
+    const cleanExtra = (activeExtra.name || 'Ekskul').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Nilai_Ekskul_${cleanExtra}_${cleanClass}_${activeSemesterName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  // Unduh Format Spreadsheet Catatan Wali Kelas
+  const handleDownloadHomeroomTemplate = () => {
+    const aoa = [
+      ['TEMPLATE IMPORT CATATAN WALI KELAS UNTUK BUKU RAPOR'],
+      [`Tahun Ajaran: ${academicYears.find(y => String(y.id) === String(selectedAcademicYearId))?.name || '-'} | Rombel: ${activeClassName} | Semester: ${activeSemesterName}`],
+      [`Wali Kelas: ${classes.find(c => String(c.id) === String(selectedClassId))?.homeroom_teacher_name || '-'}`],
+      ['PETUNJUK: Jangan ubah kolom ID_SISWA, NIS, atau NAMA_SISWA. Isikan motivasi/catatan pada kolom CATATAN_WALI_KELAS.'],
+      [],
+      ['NO', 'ID_SISWA', 'NIS', 'NAMA_SISWA', 'CATATAN_WALI_KELAS']
+    ];
+
+    homeroomNotesList.forEach((item, idx) => {
+      aoa.push([
+        idx + 1,
+        item.student_id,
+        item.nis || '',
+        item.student_name,
+        item.homeroom_note || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 30 },
+      { wch: 75 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Catatan_Wali_Kelas');
+    const cleanClass = activeClassName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Template_Catatan_Wali_Kelas_${cleanClass}_${activeSemesterName.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
   // Trigger File Input Selector
   const handleTriggerFileInput = (targetType) => {
     setImportTargetType(targetType);
@@ -1714,7 +1848,10 @@ export default function InputNilai() {
           rowJoined.includes('PETUNJUK PENGISIAN') ||
           rowJoined.includes('SATUAN PENDIDIKAN') ||
           rowJoined.includes('TAHUN AJARAN') ||
-          rowJoined.includes('ROMBONGAN BELAJAR')
+          rowJoined.includes('ROMBONGAN BELAJAR') ||
+          rowJoined.includes('KEGIATAN EKSTRAKURIKULER') ||
+          rowJoined.includes('DIMENSI SIKAP') ||
+          rowJoined.includes('WALI KELAS')
         ) {
           continue;
         }
@@ -1758,6 +1895,8 @@ export default function InputNilai() {
       const skorTotalIdx = headers.findIndex(h => /SKOR_TOTAL|SKOR TOTAL|NILAI_AKHIR|NILAI AKHIR|^SKOR$|^TOTAL$|^NILAI$/i.test(h));
       const feedbackIdx = headers.findIndex(h => /FEEDBACK|CATATAN|KETERANGAN/i.test(h));
       const deskripsiIdx = headers.findIndex(h => /DESKRIPSI|NARASI|CAPAIAN/i.test(h));
+      const predikatIdx = headers.findIndex(h => /PREDIKAT|PREDICATE|^NILAI$/i.test(h));
+      const catatanIdx = headers.findIndex(h => /CATATAN|WALI|NOTE|MOTIVASI|PESAN/i.test(h));
 
       // Normalisasi helper untuk nama
       const normalizeStr = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -2010,6 +2149,170 @@ export default function InputNilai() {
           unmatchedCount: parsed.length - matched
         });
         setImportModalOpen(true);
+      } else if (importTargetType === 'attitude') {
+        const parsed = [];
+        let matched = 0;
+        const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId)) || attitudeDimensions[0];
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          let item = null;
+          if (rawId) item = attitudeItems.find(r => String(r.student_id).trim() === rawId);
+          if (!item && rawNis) item = attitudeItems.find(r => String(r.nis || '').trim() === rawNis);
+          if (!item && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            item = attitudeItems.find(r => normalizeStr(r.student_name) === cleanInputName);
+            if (!item) {
+              item = attitudeItems.find(r => normalizeStr(r.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(r.student_name)));
+            }
+          }
+
+          if (item) {
+            matched++;
+            const desc = deskripsiIdx !== -1 && row[deskripsiIdx] ? String(row[deskripsiIdx]).trim() : '';
+            parsed.push({
+              student_id: item.student_id,
+              nis: item.nis,
+              student_name: item.student_name,
+              description: desc,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              description: '',
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
+      } else if (importTargetType === 'extracurricular') {
+        const parsed = [];
+        let matched = 0;
+        const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId)) || extracurriculars[0];
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          let item = null;
+          if (rawId) item = extraScoresList.find(r => String(r.student_id).trim() === rawId);
+          if (!item && rawNis) item = extraScoresList.find(r => String(r.nis || '').trim() === rawNis);
+          if (!item && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            item = extraScoresList.find(r => normalizeStr(r.student_name) === cleanInputName);
+            if (!item) {
+              item = extraScoresList.find(r => normalizeStr(r.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(r.student_name)));
+            }
+          }
+
+          if (item) {
+            matched++;
+            let pred = predikatIdx !== -1 && row[predikatIdx] ? String(row[predikatIdx]).trim() : item.predicate;
+            if (pred && ['A', 'SB', 'SANGAT BAIK', 'AMAT BAIK'].includes(pred.toUpperCase())) pred = 'Amat Baik';
+            else if (pred && ['B', 'BAIK'].includes(pred.toUpperCase())) pred = 'Baik';
+            else if (pred && ['C', 'CUKUP'].includes(pred.toUpperCase())) pred = 'Cukup';
+            else if (pred && ['D', 'K', 'KURANG'].includes(pred.toUpperCase())) pred = 'Kurang';
+
+            const desc = deskripsiIdx !== -1 && row[deskripsiIdx] ? String(row[deskripsiIdx]).trim() : (item.description || buildDefaultExtraNarrative(activeExtra?.name || 'Ekstrakurikuler', pred));
+
+            parsed.push({
+              student_id: item.student_id,
+              nis: item.nis,
+              student_name: item.student_name,
+              predicate: pred || 'Baik',
+              description: desc,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              predicate: 'Baik',
+              description: '',
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
+      } else if (importTargetType === 'homeroom_notes') {
+        const parsed = [];
+        let matched = 0;
+
+        dataRows.forEach(row => {
+          if (!row || row.filter(Boolean).length === 0) return;
+          const rawId = idSiswaIdx !== -1 && row[idSiswaIdx] !== '' ? String(row[idSiswaIdx]).trim() : null;
+          const rawNis = nisIdx !== -1 ? String(row[nisIdx] || '').trim() : '';
+          const rawNama = namaIdx !== -1 ? String(row[namaIdx] || '').trim() : '';
+
+          if (!rawId && !rawNis && !rawNama) return;
+
+          let item = null;
+          if (rawId) item = homeroomNotesList.find(r => String(r.student_id).trim() === rawId);
+          if (!item && rawNis) item = homeroomNotesList.find(r => String(r.nis || '').trim() === rawNis);
+          if (!item && rawNama) {
+            const cleanInputName = normalizeStr(rawNama);
+            item = homeroomNotesList.find(r => normalizeStr(r.student_name) === cleanInputName);
+            if (!item) {
+              item = homeroomNotesList.find(r => normalizeStr(r.student_name).includes(cleanInputName) || cleanInputName.includes(normalizeStr(r.student_name)));
+            }
+          }
+
+          if (item) {
+            matched++;
+            const note = catatanIdx !== -1 && row[catatanIdx] ? String(row[catatanIdx]).trim() : (deskripsiIdx !== -1 && row[deskripsiIdx] ? String(row[deskripsiIdx]).trim() : '');
+            parsed.push({
+              student_id: item.student_id,
+              nis: item.nis,
+              student_name: item.student_name,
+              homeroom_note: note,
+              status: 'matched'
+            });
+          } else {
+            parsed.push({
+              student_id: null,
+              nis: rawNis,
+              student_name: rawNama || 'Tidak Ditemukan',
+              homeroom_note: '',
+              status: 'unmatched'
+            });
+          }
+        });
+
+        setImportParsedRows(parsed);
+        setImportStats({
+          totalRows: parsed.length,
+          matchedCount: matched,
+          unmatchedCount: parsed.length - matched
+        });
+        setImportModalOpen(true);
       }
     } catch (err) {
       console.error('Error parsing spreadsheet:', err);
@@ -2075,6 +2378,52 @@ export default function InputNilai() {
         });
       });
       setSuccessMsg(`Berhasil mengimpor nilai rapor & narasi untuk ${matchedRows.length} siswa!`);
+    } else if (importTargetType === 'attitude') {
+      const activeDim = attitudeDimensions.find(d => String(d.id) === String(activeDimensionId)) || attitudeDimensions[0];
+      setAttitudeItems(prev => {
+        return prev.map(item => {
+          const match = matchedRows.find(m => String(m.student_id) === String(item.student_id));
+          if (!match || !activeDim) return item;
+          return {
+            ...item,
+            scores: {
+              ...(item.scores || {}),
+              [activeDim.id]: {
+                ...(item.scores?.[activeDim.id] || {}),
+                aspect: activeDim.name || 'Dimensi Sikap',
+                description: match.description !== undefined && match.description !== '' ? match.description : item.scores?.[activeDim.id]?.description || ''
+              }
+            }
+          };
+        });
+      });
+      setSuccessMsg(`Berhasil mengimpor nilai sikap untuk ${matchedRows.length} siswa pada dimensi "${activeDim?.name}"!`);
+    } else if (importTargetType === 'extracurricular') {
+      const activeExtra = extracurriculars.find(e => String(e.id) === String(selectedExtraId)) || extracurriculars[0];
+      setExtraScoresList(prev => {
+        return prev.map(item => {
+          const match = matchedRows.find(m => String(m.student_id) === String(item.student_id));
+          if (!match) return item;
+          return {
+            ...item,
+            predicate: match.predicate || item.predicate,
+            description: match.description || item.description
+          };
+        });
+      });
+      setSuccessMsg(`Berhasil mengimpor nilai ekstrakurikuler untuk ${matchedRows.length} siswa pada kegiatan "${activeExtra?.name}"!`);
+    } else if (importTargetType === 'homeroom_notes') {
+      setHomeroomNotesList(prev => {
+        return prev.map(item => {
+          const match = matchedRows.find(m => String(m.student_id) === String(item.student_id));
+          if (!match) return item;
+          return {
+            ...item,
+            homeroom_note: match.homeroom_note !== undefined && match.homeroom_note !== '' ? match.homeroom_note : item.homeroom_note
+          };
+        });
+      });
+      setSuccessMsg(`Berhasil mengimpor catatan wali kelas untuk ${matchedRows.length} siswa!`);
     }
 
     setImportModalOpen(false);
@@ -3050,6 +3399,27 @@ export default function InputNilai() {
 
                   <button
                     type="button"
+                    onClick={handleDownloadAttitudeTemplate}
+                    disabled={attitudeItems.length === 0}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unduh format spreadsheet Excel (.xlsx) penilaian sikap"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Unduh Template</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerFileInput('attitude')}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unggah spreadsheet untuk update nilai deskripsi sikap"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Import Excel</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleAutoFillAttitudeDescriptions}
                     disabled={attitudeItems.length === 0 || attitudeDimensions.length === 0}
                     className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
@@ -3228,6 +3598,27 @@ export default function InputNilai() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
+                    onClick={handleDownloadExtraTemplate}
+                    disabled={extraScoresList.length === 0 || !selectedExtraId}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unduh format spreadsheet Excel (.xlsx) penilaian ekstrakurikuler"
+                  >
+                    <Download className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Unduh Template</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerFileInput('extracurricular')}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unggah spreadsheet untuk update nilai predikat & deskripsi ekstrakurikuler"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Import Excel</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleAutoGenerateExtraDescriptions}
                     disabled={extraScoresList.length === 0 || !selectedExtraId}
                     className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-xl font-black text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
@@ -3390,6 +3781,27 @@ export default function InputNilai() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleDownloadHomeroomTemplate}
+                    disabled={homeroomNotesList.length === 0}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unduh format spreadsheet Excel (.xlsx) catatan wali kelas"
+                  >
+                    <Download className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Unduh Template</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerFileInput('homeroom_notes')}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
+                    title="Unggah spreadsheet untuk update catatan wali kelas"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Import Excel</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleSaveHomeroomNotes}
@@ -4138,7 +4550,12 @@ export default function InputNilai() {
                     <th className="py-2 px-3 w-10 text-center">No</th>
                     <th className="py-2 px-3 w-24">NIS</th>
                     <th className="py-2 px-3">Nama Siswa</th>
-                    <th className="py-2 px-3 text-center w-28">Nilai / Skor</th>
+                    <th className="py-2 px-3 text-center w-40">
+                      {importTargetType === 'attitude' ? 'Deskripsi Sikap' :
+                       importTargetType === 'extracurricular' ? 'Predikat / Deskripsi' :
+                       importTargetType === 'homeroom_notes' ? 'Catatan Wali Kelas' :
+                       'Nilai / Skor'}
+                    </th>
                     <th className="py-2 px-3 text-center w-28">Status</th>
                   </tr>
                 </thead>
@@ -4151,7 +4568,26 @@ export default function InputNilai() {
                         {r.student_name}
                       </td>
                       <td className="py-2 px-3 text-center font-black">
-                        {r.score !== null && r.score !== undefined ? (
+                        {importTargetType === 'attitude' ? (
+                          <span className="text-[11px] text-amber-900 line-clamp-1 max-w-[220px] mx-auto block text-left" title={r.description}>
+                            {r.description || '-'}
+                          </span>
+                        ) : importTargetType === 'extracurricular' ? (
+                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded font-black text-[10px]">
+                              {r.predicate || 'Baik'}
+                            </span>
+                            {r.description && (
+                              <span className="text-[10px] text-slate-500 line-clamp-1 max-w-[150px]" title={r.description}>
+                                {r.description}
+                              </span>
+                            )}
+                          </div>
+                        ) : importTargetType === 'homeroom_notes' ? (
+                          <span className="text-[11px] text-slate-800 line-clamp-1 max-w-[220px] mx-auto block text-left" title={r.homeroom_note}>
+                            {r.homeroom_note || '-'}
+                          </span>
+                        ) : r.score !== null && r.score !== undefined ? (
                           <span className="px-2 py-0.5 bg-teal-50 text-teal-900 border border-teal-200 rounded font-black">
                             {r.score}
                           </span>
