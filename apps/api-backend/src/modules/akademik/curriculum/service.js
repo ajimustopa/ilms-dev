@@ -187,7 +187,16 @@ class CurriculumService {
     let baseQuery = db('semesters');
 
     if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('semesters.satuan_pendidikan_id', query.satuan_pendidikan_id);
+      baseQuery = baseQuery.where(function() {
+        this.where('semesters.satuan_pendidikan_id', query.satuan_pendidikan_id)
+            .orWhereNull('semesters.satuan_pendidikan_id');
+      });
+    }
+    if (query.academic_year_id) {
+      baseQuery = baseQuery.where(function() {
+        this.where('semesters.academic_year_id', query.academic_year_id)
+            .orWhereNull('semesters.academic_year_id');
+      });
     }
     return baseQuery.orderBy('semesters.start_date', 'asc');
   }

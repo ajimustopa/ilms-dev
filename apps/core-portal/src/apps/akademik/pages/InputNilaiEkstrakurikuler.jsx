@@ -154,21 +154,23 @@ export default function InputNilaiEkstrakurikuler() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      const unitId = activeSchoolUnit?.id || 1;
       const [ayRes, typeRes] = await Promise.all([
-        api.get('/akademik/academic-years'),
+        api.get('/akademik/academic-years', { params: { satuan_pendidikan_id: unitId } }),
         api.get('/akademik/assessment-types', {
           params: {
-            satuan_pendidikan_id: activeSchoolUnit?.id || 1,
+            satuan_pendidikan_id: unitId,
             category: 'ekskul'
           }
         })
       ]);
 
       const ays = ayRes.data?.data || [];
-      setAcademicYears(ays);
+      const uniqueAys = Array.from(new Map(ays.map(y => [y.id, y])).values());
+      setAcademicYears(uniqueAys);
       setAssessmentTypes(typeRes.data?.data || []);
 
-      const activeAy = ays.find(y => y.is_active) || ays[0];
+      const activeAy = uniqueAys.find(y => y.is_active) || uniqueAys[0];
       if (activeAy) {
         setSelectedAcademicYearId(String(activeAy.id));
       }
@@ -181,12 +183,17 @@ export default function InputNilaiEkstrakurikuler() {
 
   const fetchSemesters = async () => {
     try {
+      const unitId = activeSchoolUnit?.id || 1;
       const res = await api.get('/akademik/semesters', {
-        params: { academic_year_id: selectedAcademicYearId }
+        params: {
+          satuan_pendidikan_id: unitId,
+          academic_year_id: selectedAcademicYearId
+        }
       });
       const sems = res.data?.data || [];
-      setSemesters(sems);
-      const activeSem = sems.find(s => s.is_active) || sems[0];
+      const uniqueSems = Array.from(new Map(sems.map(s => [s.id, s])).values());
+      setSemesters(uniqueSems);
+      const activeSem = uniqueSems.find(s => s.is_active) || uniqueSems[0];
       if (activeSem) setSelectedSemesterId(String(activeSem.id));
     } catch (err) {
       console.error('Error fetching semesters:', err);
