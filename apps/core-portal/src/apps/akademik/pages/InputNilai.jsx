@@ -36,7 +36,12 @@ import {
   CheckCircle2,
   GraduationCap,
   ClipboardList,
-  FileText
+  FileText,
+  History,
+  Clock,
+  ToggleLeft,
+  ToggleRight,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function InputNilai() {
@@ -119,6 +124,20 @@ export default function InputNilai() {
   // ----------------------------------------------------
   const [reportItems, setReportItems] = useState([]); // [{ student_id, student_name, nis, final_score, tp_scores, type_scores, competency_description, predicate }]
   const [processingReport, setProcessingReport] = useState(false);
+
+  // Modal Simpan Nilai Rapor & Rekam Riwayat
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveForm, setSaveForm] = useState({
+    method: 'manual', // 'manual' | 'calculated_from_components'
+    version_label: '',
+    notes: ''
+  });
+
+  // Modal Riwayat & Versi Penginputan Nilai Rapor
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [selectedHistoryDetail, setSelectedHistoryDetail] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // ----------------------------------------------------
   // TAB 5: BUKU NILAI (LEGER) & CETAK RAPOR STATE
@@ -375,10 +394,30 @@ export default function InputNilai() {
       });
 
       setReportItems(items);
+      fetchReportScoreHistory();
     } catch (err) {
       console.error('Error loading report processor data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReportScoreHistory = async () => {
+    if (!selectedClassId || !selectedSubjectId || !selectedSemesterId) return;
+    try {
+      setLoadingHistory(true);
+      const res = await api.get('/akademik/scores/report-history', {
+        params: {
+          class_group_id: selectedClassId,
+          subject_id: selectedSubjectId,
+          semester_id: selectedSemesterId
+        }
+      });
+      setHistoryList(res.data?.data || []);
+    } catch (err) {
+      console.error('Error fetching report history:', err);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -702,7 +741,53 @@ export default function InputNilai() {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const handleSaveProcessedReport = async () => {
+  // Kalkulasi & Generate Nilai dari Bobot Komponen Pengujian
+  const handleCalculateFromComponents = () => {
+    if (!recapData || reportItems.length === 0) return;
+    const targetKkm = recapData?.kkm || 75;
+    const tps = recapData?.learning_objectives || learningObjectives || [];
+
+    const updated = reportItems.map(item => {
+      const calcFinal = item.calculated_final !== null && item.calculated_final !== undefined
+        ? item.calculated_final
+        : item.final_score;
+      
+      let predicate = 'C';
+      if (calcFinal >= 90) predicate = 'A';
+      else if (calcFinal >= 80) predicate = 'B';
+      else if (calcFinal >= 70) predicate = 'C';
+      else predicate = 'D';
+
+      const narrative = buildAutoCompetencyDescription(item.tp_scores || {}, tps, targetKkm);
+
+      return {
+        ...item,
+        final_score: calcFinal,
+        predicate,
+        competency_description: narrative || item.competency_description
+      };
+    });
+
+    setReportItems(updated);
+    setSaveForm(prev => ({ ...prev, method: 'calculated_from_components' }));
+    setSuccessMsg('Nilai akhir berhasil dihitung otomatis dari bobot jenis pengujian!');
+    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  // Buka Modal Konfirmasi Simpan & Catatan User
+  const handleOpenSaveModal = (defaultMethod = 'manual') => {
+    const nextVer = historyList.length + 1;
+    setSaveForm({
+      method: defaultMethod,
+      version_label: `Versi ${nextVer} (${defaultMethod === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'})`,
+      notes: defaultMethod === 'calculated_from_components'
+        ? 'Generate otomatis dari bobot ujian dan capaian TP'
+        : 'Input manual nilai akhir rapor dan narasi capaian'
+    });
+    setSaveModalOpen(true);
+  };
+
+  const handleConfirmSaveReport = async () => {
     if (reportItems.length === 0) return;
     setProcessingReport(true);
     setErrorMsg('');
@@ -712,22 +797,67 @@ export default function InputNilai() {
         subject_id: Number(selectedSubjectId),
         semester_id: Number(selectedSemesterId),
         academic_year_id: Number(selectedAcademicYearId),
+        method: saveForm.method,
+        version_label: saveForm.version_label,
+        notes: saveForm.notes,
         items: reportItems.map(item => ({
           student_id: item.student_id,
           final_score: item.final_score !== '' ? parseFloat(item.final_score) : null,
+          predicate: item.predicate,
           tp_scores: item.tp_scores,
+          type_scores: item.type_scores,
           competency_description: item.competency_description
         }))
       };
 
       await api.post('/akademik/scores/process-report', payload);
-      setSuccessMsg('Nilai akhir rapor dan deskripsi capaian kompetensi berhasil disimpan dan dikunci!');
+      setSuccessMsg(`Nilai akhir rapor (${saveForm.version_label}) berhasil disimpan ke riwayat & ditetapkan aktif!`);
+      setSaveModalOpen(false);
       fetchReportProcessorData();
+      fetchReportScoreHistory();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Gagal menyimpan pengolahan nilai rapor');
     } finally {
       setProcessingReport(false);
+    }
+  };
+
+  // Aksi Riwayat Versi Nilai
+  const handleActivateHistoryVersion = async (historyId) => {
+    try {
+      const res = await api.post(`/akademik/scores/report-history/${historyId}/activate`);
+      setSuccessMsg(res.data?.message || 'Versi nilai berhasil diaktifkan!');
+      fetchReportScoreHistory();
+      fetchReportProcessorData();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengaktifkan versi nilai');
+    }
+  };
+
+  const handleToggleHistoryVersion = async (historyId) => {
+    try {
+      const res = await api.patch(`/akademik/scores/report-history/${historyId}/toggle`);
+      setSuccessMsg(res.data?.message || 'Status versi nilai berhasil diubah!');
+      fetchReportScoreHistory();
+      fetchReportProcessorData();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengubah status versi nilai');
+    }
+  };
+
+  const handleDeleteHistoryVersion = async (historyId) => {
+    if (!confirm('Yakin ingin menghapus riwayat versi nilai ini?')) return;
+    try {
+      await api.delete(`/akademik/scores/report-history/${historyId}`);
+      setSuccessMsg('Riwayat versi nilai berhasil dihapus!');
+      fetchReportScoreHistory();
+      if (selectedHistoryDetail?.id === historyId) setSelectedHistoryDetail(null);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus riwayat versi');
     }
   };
 
@@ -1399,20 +1529,45 @@ export default function InputNilai() {
           {activeTab === 'report_processor' && (
             <>
               <button
+                type="button"
+                onClick={() => setHistoryModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl transition active:scale-95 shadow-2xs"
+                title="Buka riwayat versi penginputan nilai rapor"
+              >
+                <History className="w-4 h-4 text-indigo-600" />
+                <span>Riwayat & Versi</span>
+                {historyList.length > 0 && (
+                  <span className="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full text-[10px] font-black">
+                    {historyList.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleCalculateFromComponents}
+                className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold rounded-xl transition active:scale-95"
+                title="Hitung nilai akhir secara otomatis dari bobot ujian/tugas"
+              >
+                <Calculator className="w-4 h-4 text-indigo-600" />
+                <span>Hitung dari Bobot</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleGenerateAllNarratives}
                 className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-xl transition active:scale-95"
                 title="Generate otomatis narasi capaian tertinggi & terendah berbasis Tujuan Pembelajaran (TP)"
               >
                 <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>Auto-Generate Narasi TP</span>
+                <span>Auto Narasi TP</span>
               </button>
               <button
-                onClick={handleSaveProcessedReport}
+                type="button"
+                onClick={() => handleOpenSaveModal('manual')}
                 disabled={processingReport || reportItems.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95"
               >
-                {processingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                <span>Simpan & Kunci Nilai Rapor</span>
+                <Save className="w-4 h-4" />
+                <span>Simpan Nilai Rapor</span>
               </button>
             </>
           )}
@@ -1947,12 +2102,35 @@ export default function InputNilai() {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
+                onClick={() => setHistoryModalOpen(true)}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
+                title="Buka riwayat versi penginputan nilai rapor"
+              >
+                <History className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Riwayat & Versi Nilai</span>
+                {historyList.length > 0 && (
+                  <span className="px-1.5 py-0.2 bg-teal-500 text-slate-950 rounded-full text-[10px] font-black">
+                    {historyList.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleCalculateFromComponents}
+                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5 active:scale-95"
+                title="Kalkulasi nilai akhir dari bobot jenis pengujian"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>Hitung dari Bobot Komponen</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleDownloadReportTemplate}
                 className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
                 title="Unduh format spreadsheet Excel (.xlsx) nilai rapor & deskripsi capaian"
               >
                 <Download className="w-3.5 h-3.5 text-teal-600" />
-                <span>Unduh Template Excel</span>
+                <span>Unduh Template</span>
               </button>
               <button
                 type="button"
@@ -1961,25 +2139,64 @@ export default function InputNilai() {
                 title="Unggah spreadsheet untuk update nilai rapor & deskripsi sekaligus"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>Import Spreadsheet</span>
+                <span>Import Excel</span>
               </button>
               <button
+                type="button"
                 onClick={handleGenerateAllNarratives}
                 className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Auto-Generate Narasi TP</span>
+                <span>Auto Narasi TP</span>
               </button>
               <button
-                onClick={handleSaveProcessedReport}
+                type="button"
+                onClick={() => handleOpenSaveModal('manual')}
                 disabled={processingReport || reportItems.length === 0}
                 className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
               >
-                {processingReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Simpan & Kunci Nilai</span>
+                <Save className="w-3.5 h-3.5" />
+                <span>Simpan Nilai Rapor</span>
               </button>
             </div>
           </div>
+
+          {/* Active Version Info Banner */}
+          {(() => {
+            const activeVersion = historyList.find(h => h.is_active);
+            if (!activeVersion) return null;
+            return (
+              <div className="p-3.5 bg-teal-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-teal-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-teal-500/20 rounded-xl text-teal-300">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-xs text-white">Versi Rapor Aktif: {activeVersion.version_label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        activeVersion.method === 'calculated_from_components' ? 'bg-indigo-500/30 text-indigo-200' : 'bg-amber-500/30 text-amber-200'
+                      }`}>
+                        {activeVersion.method === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-teal-200 mt-0.5">
+                      Catatan: <em>{activeVersion.user_notes || 'Tanpa keterangan'}</em> • Disimpan oleh <strong>{activeVersion.recorded_by_name || 'Staf'}</strong> ({new Date(activeVersion.created_at).toLocaleString('id-ID')})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setHistoryModalOpen(true)}
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                >
+                  <History className="w-3.5 h-3.5 text-teal-300" />
+                  <span>Kelola Versi</span>
+                </button>
+              </div>
+            );
+          })()}
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <table className="w-full text-left text-xs">
@@ -2781,6 +2998,261 @@ export default function InputNilai() {
                   <span>Terapkan {importStats.matchedCount} Nilai</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 6: KONFIRMASI SIMPAN NILAI RAPOR & REKAM RIWAYAT */}
+      {/* ======================================================== */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-teal-50 text-teal-700 rounded-xl">
+                  <Save className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">Simpan & Kunci Nilai Rapor</h3>
+                  <p className="text-[11px] text-slate-500">Rekam riwayat versi penginputan nilai rapor semester ini</p>
+                </div>
+              </div>
+              <button onClick={() => setSaveModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Metode Penginputan Nilai</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSaveForm({ ...saveForm, method: 'manual' })}
+                    className={`p-3 rounded-2xl border text-left transition ${
+                      saveForm.method === 'manual'
+                        ? 'bg-teal-50 border-teal-500 text-teal-950 font-bold shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Edit2 className="w-3.5 h-3.5 text-teal-600" />
+                      <span className="font-black text-xs">Input Manual</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 leading-tight block">
+                      Nilai dan narasi diinput atau disesuaikan secara langsung oleh guru/staf.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSaveForm({ ...saveForm, method: 'calculated_from_components' })}
+                    className={`p-3 rounded-2xl border text-left transition ${
+                      saveForm.method === 'calculated_from_components'
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-950 font-bold shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Calculator className="w-3.5 h-3.5 text-indigo-600" />
+                      <span className="font-black text-xs">Otomatis Terbobot</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 leading-tight block">
+                      Dihasilkan dari rata-rata nilai harian, ulangan, dan ujian sesuai bobot.
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Nama / Label Versi</label>
+                <input
+                  type="text"
+                  value={saveForm.version_label}
+                  onChange={(e) => setSaveForm({ ...saveForm, version_label: e.target.value })}
+                  placeholder="misal: Versi 1 (Final Semester), Versi Perbaikan Remedial"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Keterangan / Catatan Penginputan *</label>
+                <textarea
+                  rows={3}
+                  value={saveForm.notes}
+                  onChange={(e) => setSaveForm({ ...saveForm, notes: e.target.value })}
+                  placeholder="Tuliskan keterangan penginputan nilai ini (misal: Nilai rapor semester 1 santri angkatan 2019)..."
+                  className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800 leading-relaxed"
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-[11px] text-slate-600 font-medium">
+                <span>Jumlah Siswa yang Disimpan:</span>
+                <strong className="text-teal-800 font-black">{reportItems.length} Siswa</strong>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSaveModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSaveReport}
+                  disabled={processingReport}
+                  className="flex items-center gap-2 px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition active:scale-95"
+                >
+                  {processingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Simpan Versi Nilai</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL 7: RIWAYAT & VERSI PENGINPUTAN NILAI RAPOR */}
+      {/* ======================================================== */}
+      {historyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800">Riwayat & Versi Penginputan Nilai Rapor</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Daftar seluruh versi penginputan nilai untuk kelas <strong>{activeClassName}</strong> • Mapel <strong>{subjects.find(s => String(s.id) === String(selectedSubjectId))?.name}</strong>
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setHistoryModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* History List Content */}
+            <div className="overflow-y-auto space-y-3 pr-1 grow">
+              {loadingHistory ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                  <span>Memuat riwayat penginputan nilai...</span>
+                </div>
+              ) : historyList.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs space-y-2">
+                  <History className="w-8 h-8 mx-auto text-slate-300" />
+                  <p>Belum ada riwayat penginputan nilai yang tersimpan untuk kelas dan mapel ini.</p>
+                </div>
+              ) : (
+                historyList.map((h) => (
+                  <div
+                    key={h.id}
+                    className={`p-4 rounded-2xl border transition ${
+                      h.is_active
+                        ? 'bg-teal-50/40 border-teal-300 shadow-xs'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-slate-900 text-xs">{h.version_label}</span>
+                          {h.is_active ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Versi Aktif (Rapor Resmi)</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200">
+                              Nonaktif
+                            </span>
+                          )}
+
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            h.method === 'calculated_from_components'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}>
+                            {h.method === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-700 font-medium">
+                          {h.user_notes || 'Tanpa catatan khusus'}
+                        </p>
+
+                        <div className="flex items-center gap-3 text-[10px] text-slate-500 font-medium pt-1">
+                          <span>Penginput: <strong>{h.recorded_by_name || 'Staf'}</strong></span>
+                          <span>•</span>
+                          <span>Waktu: <strong>{new Date(h.created_at).toLocaleString('id-ID')}</strong></span>
+                          <span>•</span>
+                          <span>Snapshot: <strong>{h.student_count || 0} Siswa</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Actions per Version */}
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                        {!h.is_active ? (
+                          <button
+                            type="button"
+                            onClick={() => handleActivateHistoryVersion(h.id)}
+                            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 flex items-center gap-1"
+                            title="Tetapkan versi ini sebagai nilai rapor resmi aktif"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Tetapkan Aktif</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleHistoryVersion(h.id)}
+                            className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl font-bold text-xs transition flex items-center gap-1"
+                            title="Nonaktifkan versi nilai ini"
+                          >
+                            <ToggleRight className="w-3.5 h-3.5" />
+                            <span>Nonaktifkan</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHistoryVersion(h.id)}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                          title="Hapus versi ini dari riwayat"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between shrink-0 text-xs">
+              <span className="text-[11px] text-slate-500">
+                Total Tersimpan: <strong>{historyList.length}</strong> Versi
+              </span>
+              <button
+                type="button"
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

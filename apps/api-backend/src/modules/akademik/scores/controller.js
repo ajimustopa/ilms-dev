@@ -170,7 +170,64 @@ class ScoresController {
       res.status(200).json({
         success: true,
         data,
-        message: 'Pengolahan nilai rapor dan deskripsi capaian berhasil diproses',
+        message: 'Pengolahan nilai rapor dan deskripsi capaian berhasil disimpan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // 5B. Riwayat Versi Nilai Rapor
+  async getReportScoreHistory(req, res, next) {
+    try {
+      const data = await scoresService.getReportScoreHistory(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar riwayat versi penginputan nilai rapor berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async activateReportScoreVersion(req, res, next) {
+    try {
+      const data = await scoresService.activateReportScoreVersion(req.params.id, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: data.message,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async toggleReportScoreVersion(req, res, next) {
+    try {
+      const data = await scoresService.toggleReportScoreVersion(req.params.id, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: data.message,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteReportScoreVersion(req, res, next) {
+    try {
+      const data = await scoresService.deleteReportScoreVersion(req.params.id);
+      res.status(200).json({
+        success: true,
+        data,
+        message: data.message,
         errors: null
       });
     } catch (err) {

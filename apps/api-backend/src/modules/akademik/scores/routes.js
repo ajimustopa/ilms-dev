@@ -26,6 +26,10 @@ router.post('/assessment-sessions/:id/scores', authenticate, requirePermission('
 // 4. Rekap Matriks Nilai & Pengolahan Nilai Rapor
 router.get('/scores/recap-matrix', authenticate, requirePermission('akademik.scores.read'), scoresController.getRecapMatrix);
 router.post('/scores/process-report', authenticate, requirePermission('akademik.scores.create'), scoresController.processReportScores);
+router.get('/scores/report-history', authenticate, requirePermission('akademik.scores.read'), scoresController.getReportScoreHistory);
+router.post('/scores/report-history/:id/activate', authenticate, requirePermission('akademik.scores.update'), scoresController.activateReportScoreVersion);
+router.patch('/scores/report-history/:id/toggle', authenticate, requirePermission('akademik.scores.update'), scoresController.toggleReportScoreVersion);
+router.delete('/scores/report-history/:id', authenticate, requirePermission('akademik.scores.delete'), scoresController.deleteReportScoreVersion);
 router.get('/scores/leger', authenticate, requirePermission('akademik.scores.read'), scoresController.getLegerData);
 
 // 5. Nilai Akademik (Legacy / Standard)

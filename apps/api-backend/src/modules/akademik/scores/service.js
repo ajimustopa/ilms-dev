@@ -301,13 +301,13 @@ class ScoresService {
       throw error;
     }
 
-    // Ambil daftar siswa aktif di rombel ini
+    // Ambil daftar siswa di rombel ini
     const students = await db('student_class_enrollments')
       .join('students', 'student_class_enrollments.student_id', 'students.id')
       .where({
-        'student_class_enrollments.class_group_id': session.class_group_id,
-        'student_class_enrollments.status': 'aktif'
+        'student_class_enrollments.class_group_id': session.class_group_id
       })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
       .select(
         'students.id as student_id',
         'students.full_name as student_name',
@@ -498,9 +498,9 @@ class ScoresService {
     const students = await db('student_class_enrollments')
       .join('students', 'student_class_enrollments.student_id', 'students.id')
       .where({
-        'student_class_enrollments.class_group_id': class_group_id,
-        'student_class_enrollments.status': 'aktif'
+        'student_class_enrollments.class_group_id': class_group_id
       })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
       .select(
         'students.id as student_id',
         'students.full_name as student_name',
@@ -850,10 +850,216 @@ class ScoresService {
       });
     }
 
+    // 4. Catat ke report_score_input_history
+    const historyMethod = payload.method === 'calculated_from_components' ? 'calculated_from_components' : 'manual';
+    const userNotes = payload.user_notes || payload.notes || null;
+    const historyRecordedByName = user?.full_name || user?.username || 'Guru / Staf Penginput';
+    const historyRecordedByEmpId = user?.ref_type === 'staff' ? user.ref_id : null;
+
+    const existingHistoryCount = await db('report_score_input_history')
+      .where({
+        class_group_id,
+        subject_id,
+        semester_id
+      })
+      .count('id as cnt')
+      .first();
+    const nextVersionNum = (parseInt(existingHistoryCount?.cnt || 0, 10)) + 1;
+    const versionLabel = payload.version_label || `Versi ${nextVersionNum} (${historyMethod === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'})`;
+
+    // Nonaktifkan versi sebelumnya
+    await db('report_score_input_history')
+      .where({
+        class_group_id,
+        subject_id,
+        semester_id
+      })
+      .update({ is_active: false });
+
+    // Insert history snapshot baru
+    const [historyId] = await db('report_score_input_history').insert({
+      satuan_pendidikan_id: classGroup?.satuan_pendidikan_id || payload.satuan_pendidikan_id || 1,
+      class_group_id,
+      subject_id,
+      extracurricular_id: payload.extracurricular_id || null,
+      semester_id,
+      academic_year_id: academic_year_id || classGroup?.academic_year_id || null,
+      method: historyMethod,
+      version_label: versionLabel,
+      user_notes: userNotes,
+      scores_data: JSON.stringify(items),
+      is_active: true,
+      recorded_by_name: historyRecordedByName,
+      recorded_by_employee_id: historyRecordedByEmpId,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    });
+
     return {
       success: true,
       total_processed: processedResults.length,
+      history_id: historyId,
+      version_label: versionLabel,
+      method: historyMethod,
       items: processedResults
+    };
+  }
+
+  // ==========================================
+  // 5B. Riwayat & Versi Penginputan Nilai Rapor
+  // ==========================================
+  async getReportScoreHistory(query = {}) {
+    const { class_group_id, subject_id, semester_id } = query;
+    if (!class_group_id || !subject_id || !semester_id) {
+      const error = new Error('Field class_group_id, subject_id, dan semester_id wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const history = await db('report_score_input_history')
+      .where({
+        class_group_id,
+        subject_id,
+        semester_id
+      })
+      .orderBy('id', 'desc');
+
+    return history.map(h => {
+      let parsedScores = [];
+      try {
+        parsedScores = typeof h.scores_data === 'string' ? JSON.parse(h.scores_data) : (h.scores_data || []);
+      } catch (e) {
+        parsedScores = [];
+      }
+      return {
+        ...h,
+        is_active: Boolean(h.is_active),
+        scores_data: parsedScores,
+        student_count: parsedScores.length
+      };
+    });
+  }
+
+  async activateReportScoreVersion(historyId, user = null) {
+    const history = await db('report_score_input_history').where({ id: historyId }).first();
+    if (!history) {
+      const error = new Error('Riwayat versi nilai tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Set semua versi lain ke nonaktif, dan versi ini ke aktif
+    await db('report_score_input_history')
+      .where({
+        class_group_id: history.class_group_id,
+        subject_id: history.subject_id,
+        semester_id: history.semester_id
+      })
+      .update({ is_active: false });
+
+    await db('report_score_input_history')
+      .where({ id: historyId })
+      .update({ is_active: true, updated_at: db.fn.now() });
+
+    // Pulihkan / terapkan nilai dari snapshot versi ini ke student_scores & student_tp_scores
+    let items = [];
+    try {
+      items = typeof history.scores_data === 'string' ? JSON.parse(history.scores_data) : (history.scores_data || []);
+    } catch (e) {
+      items = [];
+    }
+
+    const reviewerEmployeeId = user?.ref_type === 'staff' ? user.ref_id : (history.recorded_by_employee_id || 1);
+    const recordDate = new Date().toISOString().split('T')[0];
+
+    for (const item of items) {
+      if (!item.student_id) continue;
+      const sId = item.student_id;
+      const finalScoreVal = item.final_score !== null && item.final_score !== undefined && item.final_score !== ''
+        ? parseFloat(item.final_score)
+        : null;
+
+      if (finalScoreVal !== null) {
+        const existingFinal = await db('student_scores')
+          .where({
+            student_id: sId,
+            subject_id: history.subject_id,
+            semester_id: history.semester_id,
+            score_type: 'nilai_akhir'
+          })
+          .first();
+
+        if (existingFinal) {
+          await db('student_scores').where({ id: existingFinal.id }).update({
+            score: finalScoreVal,
+            description: `Nilai Rapor Akhir Semester (${history.version_label})`,
+            competency_description: item.competency_description || existingFinal.competency_description,
+            recorded_by_employee_id: reviewerEmployeeId,
+            recorded_at: recordDate,
+            updated_at: db.fn.now()
+          });
+        } else {
+          await db('student_scores').insert({
+            student_id: sId,
+            subject_id: history.subject_id,
+            semester_id: history.semester_id,
+            score_type: 'nilai_akhir',
+            score: finalScoreVal,
+            description: `Nilai Rapor Akhir Semester (${history.version_label})`,
+            competency_description: item.competency_description || null,
+            recorded_by_employee_id: reviewerEmployeeId,
+            recorded_at: recordDate,
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Versi ${history.version_label} berhasil ditetapkan sebagai nilai rapor aktif`,
+      activated_version_id: historyId
+    };
+  }
+
+  async toggleReportScoreVersion(historyId, user = null) {
+    const history = await db('report_score_input_history').where({ id: historyId }).first();
+    if (!history) {
+      const error = new Error('Riwayat versi nilai tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (!history.is_active) {
+      return await this.activateReportScoreVersion(historyId, user);
+    } else {
+      await db('report_score_input_history')
+        .where({ id: historyId })
+        .update({ is_active: false, updated_at: db.fn.now() });
+
+      return {
+        success: true,
+        message: `Versi ${history.version_label} berhasil dinonaktifkan`,
+        is_active: false
+      };
+    }
+  }
+
+  async deleteReportScoreVersion(historyId) {
+    const history = await db('report_score_input_history').where({ id: historyId }).first();
+    if (!history) {
+      const error = new Error('Riwayat versi nilai tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await db('report_score_input_history').where({ id: historyId }).del();
+
+    return {
+      success: true,
+      message: `Riwayat versi nilai berhasil dihapus`,
+      deleted_id: historyId
     };
   }
 
@@ -882,9 +1088,9 @@ class ScoresService {
     const students = await db('student_class_enrollments')
       .join('students', 'student_class_enrollments.student_id', 'students.id')
       .where({
-        'student_class_enrollments.class_group_id': class_group_id,
-        'student_class_enrollments.status': 'aktif'
+        'student_class_enrollments.class_group_id': class_group_id
       })
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
       .select(
         'students.id as student_id',
         'students.full_name as student_name',
@@ -1277,7 +1483,7 @@ class ScoresService {
       ? await db('student_class_enrollments')
           .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
           .whereIn('student_class_enrollments.student_id', allStudentIds)
-          .where({ 'student_class_enrollments.status': 'aktif' })
+          .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
           .select('student_class_enrollments.student_id', 'class_groups.name as class_group_name')
       : [];
 
