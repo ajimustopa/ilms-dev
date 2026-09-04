@@ -447,7 +447,7 @@ function generateCashFlowPdf(data, schoolUnit, user) {
  */
 function generateBalanceSheetPdf(data, schoolUnit, user) {
   const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
-  const title = 'Laporan Posisi Keuangan (Neraca)';
+  const title = 'Laporan Posisi Keuangan (Neraca Nirlaba)';
   const period = data.period;
 
   drawHeader(doc, schoolUnit, title, period);
@@ -455,35 +455,73 @@ function generateBalanceSheetPdf(data, schoolUnit, user) {
   const startX = 50;
   const contentWidth = doc.page.width - 100;
 
+  // Helper render sub-table
+  const renderAccountGroup = (groupTitle, accounts, colorTheme = '#0284c7', subtotalLabel = 'Subtotal', subtotalVal = 0, isDebit = true) => {
+    checkPageBreak(doc, 50, schoolUnit, title, period);
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor(colorTheme).text(groupTitle, startX + 4, doc.y);
+    doc.moveDown(0.2);
+
+    if (!accounts || accounts.length === 0) {
+      const ey = doc.y;
+      doc.rect(startX, ey, contentWidth, 16).fill('#ffffff').strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+      doc.fontSize(7.5).font('Helvetica').fillColor('#94a3b8').text('Tidak ada akun dalam kelompok ini', startX, ey + 4, { align: 'center', width: contentWidth });
+      doc.y = ey + 18;
+    } else {
+      accounts.forEach((a, idx) => {
+        checkPageBreak(doc, 20, schoolUnit, title, period);
+        const ry = doc.y;
+        if (idx % 2 === 1) doc.rect(startX, ry, contentWidth, 16).fill('#fafafa');
+        doc.strokeColor('#f1f5f9').lineWidth(0.5).rect(startX, ry, contentWidth, 16).stroke();
+
+        const netVal = isDebit ? (a.debit - a.credit) : (a.credit - a.debit);
+        doc.fontSize(8).font('Helvetica').fillColor('#1e293b').text(a.account_name, startX + 6, ry + 4, { width: contentWidth - 120 });
+        doc.font('Helvetica-Bold').fillColor(colorTheme).text(formatRawNumber(netVal), startX + contentWidth - 110, ry + 4, { width: 104, align: 'right' });
+        doc.y = ry + 16;
+      });
+    }
+
+    const totY = doc.y;
+    doc.rect(startX, totY, contentWidth, 17).fill('#f8fafc');
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(colorTheme).text(subtotalLabel, startX + 6, totY + 4);
+    doc.text(formatCurrency(subtotalVal), startX + contentWidth - 110, totY + 4, { width: 104, align: 'right' });
+    doc.y = totY + 20;
+  };
+
   // I. ASET (AKTIVA)
   doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#0284c7').text('I. ASET / AKTIVA', startX, doc.y);
   doc.moveDown(0.3);
 
-  const astY = doc.y;
-  doc.rect(startX, astY, contentWidth, 18).fill('#f1f5f9');
-  doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
-  doc.text('Nama Akun Aset', startX + 6, astY + 5, { width: contentWidth - 120 });
-  doc.text('Nilai Buku (Rp)', startX + contentWidth - 110, astY + 5, { width: 104, align: 'right' });
-  doc.y = astY + 18;
+  // A. Harta Lancar (Kas & Setara Kas)
+  renderAccountGroup(
+    'A. Harta Lancar (Kas & Bank)',
+    data.current_assets || [],
+    '#0284c7',
+    'Subtotal Harta Lancar',
+    data.total_current_assets || 0,
+    true
+  );
 
-  if (!data.assets || data.assets.length === 0) {
-    const ey = doc.y;
-    doc.rect(startX, ey, contentWidth, 18).fill('#ffffff').strokeColor('#e2e8f0').lineWidth(0.5).stroke();
-    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8').text('Tidak ada akun aset tercatat', startX, ey + 5, { align: 'center', width: contentWidth });
-    doc.y = ey + 18;
-  } else {
-    data.assets.forEach((a, idx) => {
-      const ry = doc.y;
-      if (idx % 2 === 1) doc.rect(startX, ry, contentWidth, 18).fill('#fafafa');
-      doc.strokeColor('#f1f5f9').lineWidth(0.5).rect(startX, ry, contentWidth, 18).stroke();
+  // B. Piutang Siswa & Piutang Lain
+  renderAccountGroup(
+    'B. Piutang (Piutang Siswa & Piutang Lain)',
+    data.receivables || [],
+    '#0284c7',
+    'Subtotal Piutang',
+    data.total_receivables || 0,
+    true
+  );
 
-      doc.fontSize(8).font('Helvetica').fillColor('#1e293b').text(a.account_name, startX + 6, ry + 5, { width: contentWidth - 120 });
-      doc.font('Helvetica-Bold').fillColor('#0284c7').text(formatRawNumber(a.debit - a.credit), startX + contentWidth - 110, ry + 5, { width: 104, align: 'right' });
-      doc.y = ry + 18;
-    });
-  }
+  // C. Inventaris & Aset Tetap
+  renderAccountGroup(
+    'C. Inventaris & Aset Tetap',
+    data.fixed_assets || [],
+    '#0284c7',
+    'Subtotal Inventaris & Aset Tetap',
+    data.total_fixed_assets || 0,
+    true
+  );
 
-  // Total Aset
+  // TOTAL ASET (AKTIVA)
   const totAstY = doc.y;
   doc.rect(startX, totAstY, contentWidth, 20).fill('#f0f9ff');
   doc.strokeColor('#bae6fd').lineWidth(0.8).rect(startX, totAstY, contentWidth, 20).stroke();
@@ -497,49 +535,29 @@ function generateBalanceSheetPdf(data, schoolUnit, user) {
   doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#7c3aed').text('II. KEWAJIBAN & EKUITAS (PASIVA)', startX, doc.y);
   doc.moveDown(0.3);
 
-  // Sub Kewajiban
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#475569').text('A. Kewajiban (Liabilitas)', startX + 4, doc.y);
-  doc.moveDown(0.2);
+  // A. Kewajiban (Utang)
+  renderAccountGroup(
+    'A. Kewajiban (Utang Lancar & Jangka Panjang)',
+    data.liabilities || [],
+    '#475569',
+    'Subtotal Kewajiban (Utang)',
+    data.total_liabilities || 0,
+    false
+  );
 
-  data.liabilities.forEach((l, idx) => {
-    const ry = doc.y;
-    if (idx % 2 === 1) doc.rect(startX, ry, contentWidth, 18).fill('#fafafa');
-    doc.strokeColor('#f1f5f9').lineWidth(0.5).rect(startX, ry, contentWidth, 18).stroke();
-
-    doc.fontSize(8).font('Helvetica').fillColor('#1e293b').text(l.account_name, startX + 6, ry + 5, { width: contentWidth - 120 });
-    doc.font('Helvetica-Bold').fillColor('#475569').text(formatRawNumber(l.credit - l.debit), startX + contentWidth - 110, ry + 5, { width: 104, align: 'right' });
-    doc.y = ry + 18;
-  });
-
-  const totLiabY = doc.y;
-  doc.rect(startX, totLiabY, contentWidth, 18).fill('#f8fafc');
-  doc.fontSize(8).font('Helvetica-Bold').fillColor('#475569').text('Subtotal Kewajiban', startX + 6, totLiabY + 4);
-  doc.text(formatCurrency(data.total_liabilities), startX + contentWidth - 110, totLiabY + 4, { width: 104, align: 'right' });
-  doc.y = totLiabY + 22;
-
-  // Sub Ekuitas
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#475569').text('B. Ekuitas (Modal / Saldo Dana)', startX + 4, doc.y);
-  doc.moveDown(0.2);
-
-  data.equity.forEach((eq, idx) => {
-    const ry = doc.y;
-    if (idx % 2 === 1) doc.rect(startX, ry, contentWidth, 18).fill('#fafafa');
-    doc.strokeColor('#f1f5f9').lineWidth(0.5).rect(startX, ry, contentWidth, 18).stroke();
-
-    doc.fontSize(8).font('Helvetica').fillColor('#1e293b').text(eq.account_name, startX + 6, ry + 5, { width: contentWidth - 120 });
-    doc.font('Helvetica-Bold').fillColor('#475569').text(formatRawNumber(eq.credit - eq.debit), startX + contentWidth - 110, ry + 5, { width: 104, align: 'right' });
-    doc.y = ry + 18;
-  });
-
-  const totEqY = doc.y;
-  doc.rect(startX, totEqY, contentWidth, 18).fill('#f8fafc');
-  doc.fontSize(8).font('Helvetica-Bold').fillColor('#475569').text('Subtotal Ekuitas', startX + 6, totEqY + 4);
-  doc.text(formatCurrency(data.total_equity), startX + contentWidth - 110, totEqY + 4, { width: 104, align: 'right' });
-  doc.y = totEqY + 22;
+  // B. Ekuitas / Saldo Dana / Modal
+  renderAccountGroup(
+    'B. Ekuitas (Saldo Dana / Modal)',
+    data.equity || [],
+    '#7c3aed',
+    'Subtotal Ekuitas (Saldo Dana)',
+    data.total_equity || 0,
+    false
+  );
 
   // TOTAL KEWAJIBAN & EKUITAS
   const totPasY = doc.y;
-  const totalPasiva = data.total_liabilities + data.total_equity;
+  const totalPasiva = data.total_liabilities_and_equity || (data.total_liabilities + data.total_equity);
   doc.rect(startX, totPasY, contentWidth, 20).fill('#f5f3ff');
   doc.strokeColor('#ddd6fe').lineWidth(0.8).rect(startX, totPasY, contentWidth, 20).stroke();
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#6d28d9');
@@ -558,10 +576,126 @@ function generateBalanceSheetPdf(data, schoolUnit, user) {
   return doc;
 }
 
+/**
+ * 6. Generate Student Ledger (Kartu Pembayaran Siswa) PDF
+ */
+function generateStudentLedgerPdf(ledgerData, schoolUnit, user) {
+  const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
+  const title = 'KARTU BUKTI PEMBAYARAN KEUANGAN SISWA';
+  const period = ledgerData.items?.[0]?.period_year ? `Tahun Ajaran / Periode ${ledgerData.items[0].period_year}` : 'Semua Periode';
+
+  drawHeader(doc, schoolUnit, title, period);
+
+  const startX = 40;
+  const contentWidth = doc.page.width - 80;
+
+  // Profil Siswa Card
+  const student = ledgerData.student || {};
+  const studentY = doc.y;
+  doc.rect(startX, studentY, contentWidth, 36).fill('#f8fafc');
+  doc.strokeColor('#cbd5e1').lineWidth(0.5).rect(startX, studentY, contentWidth, 36).stroke();
+
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a');
+  doc.text(`Nama Santri/Siswa : ${student.name || '-'}`, startX + 8, studentY + 7);
+  doc.text(`NIS / NISN        : ${student.nis || '-'} / ${student.nisn || '-'}`, startX + 8, studentY + 20);
+
+  doc.text(`Kelas / Rombel    : ${student.class_name || '-'}`, startX + 280, studentY + 7);
+  doc.text(`Status Pelunasan  : ${ledgerData.summary?.settlement_status || '-'}`, startX + 280, studentY + 20);
+
+  doc.y = studentY + 44;
+
+  // Table Headers
+  const colWidths = [120, 50, 75, 75, 75, 55, 64]; // total 514
+  const headers = ['Pos Biaya / Tagihan', 'Periode', 'Tagihan (Rp)', 'Diskon', 'Bayar (Rp)', 'Sisa (Rp)', 'Status'];
+
+  const renderTableHeader = () => {
+    const y = doc.y;
+    doc.rect(startX, y, 514, 20).fill('#f1f5f9');
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).rect(startX, y, 514, 20).stroke();
+
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
+    let curX = startX;
+    headers.forEach((h, idx) => {
+      const align = idx >= 2 && idx <= 5 ? 'right' : 'left';
+      doc.text(h, curX + 4, y + 6, { width: colWidths[idx] - 8, align });
+      curX += colWidths[idx];
+    });
+    doc.y = y + 20;
+  };
+
+  renderTableHeader();
+
+  // Table Rows
+  (ledgerData.items || []).forEach((it, idx) => {
+    checkPageBreak(doc, 22, schoolUnit, title, period);
+
+    const ry = doc.y;
+    if (idx % 2 === 1) doc.rect(startX, ry, 514, 20).fill('#fafafa');
+    doc.strokeColor('#f1f5f9').lineWidth(0.5).rect(startX, ry, 514, 20).stroke();
+
+    doc.fontSize(8).font('Helvetica').fillColor('#1e293b');
+    let curX = startX;
+
+    doc.font('Helvetica-Bold').text(it.fee_type_name, curX + 4, ry + 6, { width: colWidths[0] - 8 });
+    curX += colWidths[0];
+
+    doc.font('Helvetica').text(it.period_label, curX + 4, ry + 6, { width: colWidths[1] - 8 });
+    curX += colWidths[1];
+
+    doc.text(formatRawNumber(it.amount), curX + 4, ry + 6, { width: colWidths[2] - 8, align: 'right' });
+    curX += colWidths[2];
+
+    doc.text(formatRawNumber(it.discount_amount), curX + 4, ry + 6, { width: colWidths[3] - 8, align: 'right' });
+    curX += colWidths[3];
+
+    doc.font('Helvetica-Bold').fillColor('#047857').text(formatRawNumber(it.paid_amount), curX + 4, ry + 6, { width: colWidths[4] - 8, align: 'right' });
+    curX += colWidths[4];
+
+    doc.fillColor(it.remaining_amount > 0 ? '#b91c1c' : '#047857').text(formatRawNumber(it.remaining_amount), curX + 4, ry + 6, { width: colWidths[5] - 8, align: 'right' });
+    curX += colWidths[5];
+
+    const statusLabel = it.status === 'paid' ? 'Lunas' : (it.status === 'partially_paid' ? 'Sebagian' : 'Belum Lunas');
+    doc.fillColor('#475569').text(statusLabel, curX + 4, ry + 6, { width: colWidths[6] - 8 });
+
+    doc.y = ry + 20;
+  });
+
+  // Table Summary Footer
+  const sumY = doc.y + 4;
+  doc.rect(startX, sumY, 514, 22).fill('#f8fafc');
+  doc.strokeColor('#cbd5e1').lineWidth(0.8).rect(startX, sumY, 514, 22).stroke();
+
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a');
+  doc.text('TOTAL REKAPITULASI KEUANGAN SISWA', startX + 8, sumY + 6);
+
+  const summary = ledgerData.summary || {};
+  doc.text(formatCurrency(summary.total_billed), startX + 170, sumY + 6, { width: 75, align: 'right' });
+  doc.text(formatCurrency(summary.total_discount), startX + 245, sumY + 6, { width: 75, align: 'right' });
+  doc.fillColor('#047857').text(formatCurrency(summary.total_paid), startX + 320, sumY + 6, { width: 75, align: 'right' });
+  doc.fillColor(summary.total_remaining > 0 ? '#b91c1c' : '#047857').text(formatCurrency(summary.total_remaining), startX + 395, sumY + 6, { width: 75, align: 'right' });
+
+  doc.y = sumY + 36;
+
+  // Catatan & Tanda Tangan
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#334155').text('Ketentuan & Validitas:', startX, doc.y);
+  doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('Kartu ini merupakan dokumen resmi rekapitulasi penagihan dan pembayaran siswa di Sistem Informasi Keuangan Sekolah Terpadu.', startX, doc.y + 12, { width: 300 });
+
+  const ttdY = doc.y - 12;
+  const ttdX = startX + 340;
+  doc.fontSize(8).font('Helvetica').fillColor('#334155').text('Bendahara / Kasir Sekolah,', ttdX, ttdY, { align: 'center', width: 160 });
+  doc.moveDown(3);
+  doc.font('Helvetica-Bold').text(`( ${user?.name || user?.username || 'Petugas Keuangan'} )`, ttdX, doc.y, { align: 'center', width: 160 });
+
+  applyPageNumbers(doc, user);
+  doc.end();
+  return doc;
+}
+
 module.exports = {
   generateTrialBalancePdf,
   generateGeneralLedgerPdf,
   generateIncomeStatementPdf,
   generateCashFlowPdf,
-  generateBalanceSheetPdf
+  generateBalanceSheetPdf,
+  generateStudentLedgerPdf
 };

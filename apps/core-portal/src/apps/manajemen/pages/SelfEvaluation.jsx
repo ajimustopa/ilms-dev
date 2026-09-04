@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import DatePickerField from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   Activity,
   Award,
@@ -279,7 +280,7 @@ export default function SelfEvaluation() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -330,17 +331,15 @@ export default function SelfEvaluation() {
               </button>
 
               {contextType === 'school_unit' && (
-                <select
+                <SearchableSelect
                   value={selectedUnitId}
-                  onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                  className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 outline-none focus:border-indigo-500 font-medium"
-                >
-                  {schoolUnits?.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.level})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedUnitId(Number(val))}
+                  className="w-56"
+                  options={schoolUnits?.map((unit) => ({
+                    value: unit.id,
+                    label: `${unit.name} (${unit.level})`,
+                  })) || []}
+                />
               )}
             </div>
 
@@ -442,7 +441,7 @@ export default function SelfEvaluation() {
 
       {/* TAB 1: MATRIKS EVALUASI SASARAN */}
       {mainTab === 'evadir' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
           {!activeReport ? (
             <div className="py-12 text-center space-y-3">
               <Activity className="w-12 h-12 text-slate-600 mx-auto" />
@@ -653,7 +652,7 @@ export default function SelfEvaluation() {
 
       {/* TAB 2: PUBLICATIONS HISTORY */}
       {mainTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
@@ -750,7 +749,7 @@ export default function SelfEvaluation() {
       {/* MODAL 1: CREATE REPORT */}
       {modalType === 'create_report' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">Buat Periode Laporan EVADIR Baru</h3>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
@@ -802,7 +801,7 @@ export default function SelfEvaluation() {
       {/* MODAL 2: PUBLISH EVADIR */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-400" />
@@ -878,7 +877,7 @@ export default function SelfEvaluation() {
       {/* MODAL 3: CREATE RTL (FOLLOW UP) */}
       {modalType === 'create_rtl' && selectedGoalForRtl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-400" />
@@ -944,7 +943,7 @@ export default function SelfEvaluation() {
       {/* MODAL 4: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Laporan EVADIR</h3>

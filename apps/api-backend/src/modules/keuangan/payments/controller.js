@@ -27,6 +27,19 @@ class PaymentsController {
     } catch (err) { next(err); }
   };
 
+  getAllInflows = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.getAllInflows(schoolUnitId, req.query);
+      res.json({
+        success: true,
+        data,
+        message: 'Daftar seluruh penerimaan kas (Siswa, PPDB & Sumber Lain) berhasil diambil',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
   getPaymentHistory = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -154,6 +167,26 @@ class PaymentsController {
     } catch (err) { next(err); }
   };
 
+  getPaymentProofAllocations = async (req, res, next) => {
+    try {
+      const data = await paymentsService.getPaymentProofAllocations(req.params.id);
+      res.json({ success: true, data, message: 'Daftar alokasi bukti transfer berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  savePaymentProofAllocations = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.savePaymentProofAllocations(
+        schoolUnitId,
+        req.params.id,
+        req.body.allocations || [],
+        req.user?.id
+      );
+      res.json({ success: true, data, message: 'Rincian alokasi tagihan bukti transfer berhasil disimpan', errors: null });
+    } catch (err) { next(err); }
+  };
+
   verifyPaymentProof = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -163,6 +196,9 @@ class PaymentsController {
         req.user?.id,
         req.body.cash_account_id
       );
+      if (result.error === 'VALIDATION') {
+        return res.status(422).json({ success: false, data: null, message: result.message, errors: null });
+      }
       if (result.error === 'NOT_FOUND') {
         return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
       }
@@ -202,6 +238,16 @@ class PaymentsController {
         message: 'Bukti transfer berhasil ditolak',
         errors: null
       });
+    } catch (err) { next(err); }
+  };
+
+  refundPayment = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const reason = req.body.reason || req.body.refund_reason;
+      const cashAccountId = req.body.refund_cash_account_id || req.body.cash_account_id;
+      const data = await paymentsService.refundBillPayment(schoolUnitId, req.params.id, cashAccountId, reason, req.user?.id);
+      res.json({ success: true, data, message: data.message, errors: null });
     } catch (err) { next(err); }
   };
 }

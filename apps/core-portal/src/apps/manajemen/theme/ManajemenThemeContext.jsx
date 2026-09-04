@@ -61,6 +61,17 @@ export function ManajemenThemeProvider({ children, defaultTheme = 'dark' }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, [theme]);
 
+  // Unmount cleanup: Bersihkan residual state tema saat user navigasi keluar dari modul Manajemen
+  useEffect(() => {
+    return () => {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.removeAttribute('data-theme');
+      document.body.classList.remove('dark');
+      document.body.removeAttribute('data-theme');
+      document.body.removeAttribute('data-manajemen-root');
+    };
+  }, []);
+
   const value = useMemo(() => ({
     theme,
     isDark: theme === 'dark',

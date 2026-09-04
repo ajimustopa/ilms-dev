@@ -31,14 +31,41 @@ class PayrollController {
   disbursePayroll = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const result = await payrollService.disbursePayroll(schoolUnitId, req.params.id, req.body.cash_account_id, req.user?.id);
+      const result = await payrollService.disbursePayroll(
+        schoolUnitId,
+        req.params.id,
+        req.body.cash_account_id,
+        req.user?.id,
+        req.body
+      );
       if (result.error === 'NOT_FOUND') {
         return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
       }
       if (result.error === 'CONFLICT') {
         return res.status(409).json({ success: false, data: null, message: result.message, errors: null });
       }
+      if (result.error === 'UNPROCESSABLE') {
+        return res.status(422).json({ success: false, data: null, message: result.message, errors: null });
+      }
       res.json({ success: true, data: result.data, message: 'Pencairan gaji berhasil dieksekusi', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  rejectPayroll = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await payrollService.rejectPayrollDisbursement(
+        schoolUnitId,
+        req.params.id,
+        req.body.rejection_reason,
+        req.user?.id
+      );
+      res.json({
+        success: true,
+        data,
+        message: 'Pengembalian payroll untuk koreksi berhasil diproses',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 }

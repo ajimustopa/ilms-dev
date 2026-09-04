@@ -225,6 +225,20 @@ router.delete(
 );
 
 router.post(
+  '/programs/:id/move',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  controller.moveProgram
+);
+
+router.put(
+  '/programs/:id/move',
+  verifyJwt,
+  requirePermission('manajemen.planning.rips.manage'),
+  controller.moveProgram
+);
+
+router.post(
   '/programs/:id/link-goals',
   verifyJwt,
   requirePermission('manajemen.planning.rips.manage'),

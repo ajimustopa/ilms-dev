@@ -4,6 +4,7 @@
  */
 const db = require('../../../config/db/akademik');
 const employeesService = require('../../kepegawaian/employees/service');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class StudentAffairsService {
   // ==========================================
@@ -152,9 +153,10 @@ class StudentAffairsService {
   // ==========================================
   async listExtracurriculars(query = {}) {
     let baseQuery = db('extracurriculars');
-    if (query.satuan_pendidikan_id) {
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
       baseQuery = baseQuery.where((q) => {
-        q.where('satuan_pendidikan_id', query.satuan_pendidikan_id).orWhereNull('satuan_pendidikan_id');
+        q.where('satuan_pendidikan_id', unitId).orWhereNull('satuan_pendidikan_id');
       });
     }
 
@@ -248,9 +250,10 @@ class StudentAffairsService {
         'grade_levels.name as grade_level_name'
       );
 
-    if (query.satuan_pendidikan_id) {
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
       baseQuery = baseQuery.where(b => {
-        b.where('academic_calendar_events.satuan_pendidikan_id', query.satuan_pendidikan_id)
+        b.where('academic_calendar_events.satuan_pendidikan_id', unitId)
           .orWhereNull('academic_calendar_events.satuan_pendidikan_id');
       });
     }

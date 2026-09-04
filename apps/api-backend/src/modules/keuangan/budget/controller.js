@@ -52,12 +52,39 @@ class BudgetController {
     } catch (err) { next(err); }
   };
 
+  updateBudgetPlanTitle = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await budgetService.updateBudgetPlanTitle(
+        schoolUnitId,
+        req.params.id,
+        req.body.title,
+        req.user?.id
+      );
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Dokumen RAPBS tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Nama dokumen RAPBS berhasil diperbarui', errors: null });
+    } catch (err) { next(err); }
+  };
+
   publishBudgetPlan = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await budgetService.publishBudgetPlan(schoolUnitId, req.params.id, req.user?.id);
       if (!data) return res.status(404).json({ success: false, data: null, message: 'RAPBS tidak ditemukan', errors: null });
       res.json({ success: true, data, message: 'RAPBS berhasil diterbitkan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  generateIncomeFromFeeAssignments = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await budgetService.generateIncomeFromFeeAssignments(schoolUnitId, req.params.id, req.user?.id);
+      res.json({
+        success: true,
+        data,
+        message: 'Rencana penerimaan berhasil digenerate dari penetapan biaya santri (pos bulanan dikali 12 bulan)',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 

@@ -66,6 +66,11 @@ const keuanganBookkeepingRoutes = require('./modules/keuangan/bookkeeping/routes
 const keuanganReportsRoutes = require('./modules/keuangan/reports/routes');
 const keuanganDashboardRoutes = require('./modules/keuangan/dashboard/routes');
 const keuanganParentFacingRoutes = require('./modules/keuangan/parent-facing/routes');
+const keuanganSchemesRoutes = require('./modules/keuangan/schemes/routes');
+const keuanganLegacyMigrationRoutes = require('./modules/keuangan/legacy-migration/routes');
+const keuanganCashTransfersRoutes = require('./modules/keuangan/cash-transfers/routes');
+const keuanganPpdbBillingRoutes = require('./modules/keuangan/ppdb-billing/routes');
+const keuanganBankStatementsRoutes = require('./modules/keuangan/bank-statements/routes');
 
 const app = express();
 
@@ -267,6 +272,11 @@ keuanganV1Router.use('/', keuanganBookkeepingRoutes);
 keuanganV1Router.use('/', keuanganReportsRoutes);
 keuanganV1Router.use('/', keuanganDashboardRoutes);
 keuanganV1Router.use('/', keuanganParentFacingRoutes);
+keuanganV1Router.use('/', keuanganSchemesRoutes);
+keuanganV1Router.use('/', keuanganLegacyMigrationRoutes);
+keuanganV1Router.use('/', keuanganCashTransfersRoutes);
+keuanganV1Router.use('/', keuanganPpdbBillingRoutes);
+keuanganV1Router.use('/', keuanganBankStatementsRoutes);
 
 // Mount Keuangan Router ke /api/v1/keuangan
 app.use('/api/v1/keuangan', keuanganV1Router);

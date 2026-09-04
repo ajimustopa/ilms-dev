@@ -107,7 +107,7 @@ export default function Dashboard() {
   const cascadingStages = [
     { label: 'Profil Lembaga', path: '/manajemen/institution-profile', color: 'from-blue-600 to-indigo-600', count: 'Legalitas' },
     { label: 'Rencana Induk (RIPS)', path: '/manajemen/planning/rips', color: 'from-indigo-600 to-violet-600', count: data.strategic.active_rips ? 'Aktif' : 'Draft' },
-    { label: 'RKJP (8 Thn) & RKJM', path: '/manajemen/planning/rkjp-rkjm', color: 'from-violet-600 to-purple-600', count: 'Multi-Tahun' },
+    { label: 'RKJP & RKJM', path: '/manajemen/planning/rkjp-rkjm', color: 'from-violet-600 to-purple-600', count: 'Multi-Tahun' },
     { label: 'RKT Tahunan', path: '/manajemen/planning/rkt', color: 'from-purple-600 to-pink-600', count: 'TA 2026/2027' },
     { label: 'Tugas & Proyek', path: '/manajemen/tasks', color: 'from-pink-600 to-rose-600', count: `${data.tasks.total_tasks} Tugas` },
     { label: 'Evaluasi Diri (EVADIR)', path: '/manajemen/evadir', color: 'from-amber-600 to-orange-600', count: 'Sasaran' },
@@ -133,7 +133,7 @@ export default function Dashboard() {
       )}
 
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl mj-card-hover">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl mj-card-hover">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold">

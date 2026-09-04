@@ -18,24 +18,43 @@ class LongTermPlanningService {
   }
 
   /**
+   * Helper: Konversi angka ke Angka Romawi (1 -> I, 2 -> II, 3 -> III, dst.)
+   */
+  toRoman(num) {
+    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+    return roman[num - 1] || `${num}`;
+  }
+
+  /**
    * POST /long-term-work-plans
-   * Membuat RKJP 8 Tahun dan OTOMATIS membuat 2 RKJM turunan (Tahun 1-4 dan Tahun 5-8) dalam 1 transaksi
+   * Membuat RKJP dengan durasi tahun fleksibel (ditetapkan user) dan OTOMATIS membuat RKJM turunan per 4 tahun dalam 1 transaksi
    */
   async createRkjpWithRkjm(payload, user = null) {
-    const { school_unit_id, start_year, title } = payload;
+    const { school_unit_id, start_year, end_year, duration_years, title } = payload;
     if (!start_year) {
-      const error = new Error("start_year wajib diisi");
+      const error = new Error("Tahun awal (start_year) wajib diisi");
       error.statusCode = 422;
       throw error;
     }
 
     const unitId = school_unit_id ? Number(school_unit_id) : null;
     const sYear = Number(start_year);
-    const endYear = sYear + 7; // 8 tahun total (mis. 2026-2033)
+    let eYear = sYear + 7; // Default 8 tahun jika tidak ditentukan
+    if (end_year) {
+      eYear = Number(end_year);
+    } else if (duration_years) {
+      eYear = sYear + Number(duration_years) - 1;
+    }
+
+    if (eYear < sYear) {
+      const error = new Error("Tahun akhir tidak boleh lebih kecil dari tahun awal");
+      error.statusCode = 422;
+      throw error;
+    }
 
     return db.transaction(async (trx) => {
       // 1. Insert RKJP
-      const defaultTitle = unitId ? `RKJP Satuan Pendidikan ${sYear}-${endYear}` : `RKJP Gabungan Yayasan ${sYear}-${endYear}`;
+      const defaultTitle = unitId ? `RKJP Satuan Pendidikan ${sYear}-${eYear}` : `RKJP Gabungan Yayasan ${sYear}-${eYear}`;
       const rkjpTitle = title || defaultTitle;
       const [rkjpId] = await trx('long_term_work_plans').insert({
         school_unit_id: unitId,
@@ -43,7 +62,7 @@ class LongTermPlanningService {
         parent_rkjp_id: null,
         title: rkjpTitle,
         start_year: sYear,
-        end_year: endYear,
+        end_year: eYear,
         sequence_order: null,
         current_version: 1,
         status: 'draft',
@@ -52,41 +71,33 @@ class LongTermPlanningService {
         updated_at: trx.fn.now(),
       });
 
-      // 2. Insert RKJM 1 (Tahun 1-4)
-      const rkjm1Start = sYear;
-      const rkjm1End = sYear + 3;
-      const [rkjm1Id] = await trx('long_term_work_plans').insert({
-        school_unit_id: unitId,
-        plan_type: 'rkjm',
-        parent_rkjp_id: rkjpId,
-        title: `RKJM I (Tahun 1-4) Periode ${rkjm1Start}-${rkjm1End}`,
-        start_year: rkjm1Start,
-        end_year: rkjm1End,
-        sequence_order: 1,
-        current_version: 1,
-        status: 'draft',
-        created_by: user?.id || null,
-        created_at: trx.fn.now(),
-        updated_at: trx.fn.now(),
-      });
+      // 2. Dynamically Insert RKJM children (chunk per 4 tahun)
+      let currentSeq = 1;
+      for (let y = sYear; y <= eYear; y += 4) {
+        const rkjmStart = y;
+        const rkjmEnd = Math.min(y + 3, eYear);
+        const yearOffsetStart = rkjmStart - sYear + 1;
+        const yearOffsetEnd = rkjmEnd - sYear + 1;
+        const yearLabel = yearOffsetStart === yearOffsetEnd
+          ? `Tahun ${yearOffsetStart}`
+          : `Tahun ${yearOffsetStart}-${yearOffsetEnd}`;
 
-      // 3. Insert RKJM 2 (Tahun 5-8)
-      const rkjm2Start = sYear + 4;
-      const rkjm2End = endYear;
-      const [rkjm2Id] = await trx('long_term_work_plans').insert({
-        school_unit_id: unitId,
-        plan_type: 'rkjm',
-        parent_rkjp_id: rkjpId,
-        title: `RKJM II (Tahun 5-8) Periode ${rkjm2Start}-${rkjm2End}`,
-        start_year: rkjm2Start,
-        end_year: rkjm2End,
-        sequence_order: 2,
-        current_version: 1,
-        status: 'draft',
-        created_by: user?.id || null,
-        created_at: trx.fn.now(),
-        updated_at: trx.fn.now(),
-      });
+        await trx('long_term_work_plans').insert({
+          school_unit_id: unitId,
+          plan_type: 'rkjm',
+          parent_rkjp_id: rkjpId,
+          title: `RKJM ${this.toRoman(currentSeq)} (${yearLabel}) Periode ${rkjmStart}-${rkjmEnd}`,
+          start_year: rkjmStart,
+          end_year: rkjmEnd,
+          sequence_order: currentSeq,
+          current_version: 1,
+          status: 'draft',
+          created_by: user?.id || null,
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now(),
+        });
+        currentSeq++;
+      }
 
       const rkjp = await trx('long_term_work_plans').where({ id: rkjpId }).first();
       const rkjms = await trx('long_term_work_plans').where({ parent_rkjp_id: rkjpId }).orderBy('sequence_order', 'asc');
@@ -161,8 +172,12 @@ class LongTermPlanningService {
     // Ambil program aktif RIPS yang sesuai dokumen RIPS ini (hindari duplikasi lintas dokumen satuan/yayasan)
     let programQuery = db('rips_programs as p')
       .leftJoin('rips_program_categories as c', 'p.category_id', 'c.id')
+      .leftJoin('rips_domains as direct_domain', 'p.domain_id', 'direct_domain.id')
+      .leftJoin('rips_subdomains as direct_subdomain', 'p.subdomain_id', 'direct_subdomain.id')
       .select(
         'p.*',
+        'direct_domain.name as direct_domain_name',
+        'direct_subdomain.name as direct_subdomain_name',
         'c.name as category_name',
         'c.color as category_color',
         'c.bg_color as category_bg_color',
@@ -336,11 +351,11 @@ class LongTermPlanningService {
       });
 
       const linked = goalLinks.filter((gl) => gl.rips_program_id === p.id);
-      // Determine primary domain & subdomain from linked goals
-      const primaryDomain = linked[0]?.domain_id || null;
-      const primaryDomainName = linked[0]?.domain_name || null;
-      const primarySubdomain = linked[0]?.subdomain_id || null;
-      const primarySubdomainName = linked[0]?.subdomain_name || null;
+      // Determine primary domain & subdomain (direct takes precedence, then linked goals)
+      const primaryDomain = p.domain_id || linked[0]?.domain_id || null;
+      const primaryDomainName = p.direct_domain_name || linked[0]?.domain_name || null;
+      const primarySubdomain = p.subdomain_id || linked[0]?.subdomain_id || null;
+      const primarySubdomainName = p.direct_subdomain_name || linked[0]?.subdomain_name || null;
 
       return {
         program_id: p.id,
@@ -597,19 +612,96 @@ class LongTermPlanningService {
 
   /**
    * PUT /long-term-work-plans/:id
-   * Memperbarui judul atau tahun dokumen perencanaan
+   * Memperbarui judul, status, atau rentang tahun dokumen perencanaan
    */
-  async updatePlan(planId, payload) {
+  async updatePlan(planId, payload, user = null) {
+    const plan = await this.getPlanById(planId);
     const updateData = {};
     if (payload.title) updateData.title = payload.title;
     if (payload.status) updateData.status = payload.status;
+
+    let yearChanged = false;
+    let newStartYear = plan.start_year;
+    let newEndYear = plan.end_year;
+
+    if (payload.start_year !== undefined && payload.start_year !== null && payload.start_year !== '') {
+      newStartYear = Number(payload.start_year);
+      if (newStartYear !== plan.start_year) {
+        updateData.start_year = newStartYear;
+        yearChanged = true;
+      }
+    }
+
+    if (payload.end_year !== undefined && payload.end_year !== null && payload.end_year !== '') {
+      newEndYear = Number(payload.end_year);
+      if (newEndYear !== plan.end_year) {
+        updateData.end_year = newEndYear;
+        yearChanged = true;
+      }
+    }
+
+    if (newEndYear < newStartYear) {
+      const error = new Error("Tahun akhir tidak boleh lebih kecil dari tahun awal");
+      error.statusCode = 422;
+      throw error;
+    }
+
     updateData.updated_at = db.fn.now();
 
-    await db('long_term_work_plans')
-      .where({ id: planId })
-      .update(updateData);
+    return db.transaction(async (trx) => {
+      await trx('long_term_work_plans')
+        .where({ id: planId })
+        .update(updateData);
 
-    return this.getPlanById(planId);
+      // Jika dokumen bertipe RKJP dan rentang tahunnya diubah, sinkronkan RKJM anak secara otomatis!
+      if (plan.plan_type === 'rkjp' && yearChanged) {
+        // Hapus RKJM turunan lama
+        await trx('long_term_work_plans')
+          .where({ parent_rkjp_id: planId })
+          .delete();
+
+        // Buat ulang RKJM turunan sesuai rentang tahun baru (chunk per 4 tahun)
+        let currentSeq = 1;
+        for (let y = newStartYear; y <= newEndYear; y += 4) {
+          const rkjmStart = y;
+          const rkjmEnd = Math.min(y + 3, newEndYear);
+          const yearOffsetStart = rkjmStart - newStartYear + 1;
+          const yearOffsetEnd = rkjmEnd - newStartYear + 1;
+          const yearLabel = yearOffsetStart === yearOffsetEnd
+            ? `Tahun ${yearOffsetStart}`
+            : `Tahun ${yearOffsetStart}-${yearOffsetEnd}`;
+
+          await trx('long_term_work_plans').insert({
+            school_unit_id: plan.school_unit_id,
+            plan_type: 'rkjm',
+            parent_rkjp_id: planId,
+            title: `RKJM ${this.toRoman(currentSeq)} (${yearLabel}) Periode ${rkjmStart}-${rkjmEnd}`,
+            start_year: rkjmStart,
+            end_year: rkjmEnd,
+            sequence_order: currentSeq,
+            current_version: 1,
+            status: 'draft',
+            created_by: user?.id || null,
+            created_at: trx.fn.now(),
+            updated_at: trx.fn.now(),
+          });
+          currentSeq++;
+        }
+      }
+
+      const updatedPlan = await trx('long_term_work_plans').where({ id: planId }).first();
+      let rkjmList = [];
+      if (updatedPlan.plan_type === 'rkjp') {
+        rkjmList = await trx('long_term_work_plans')
+          .where({ parent_rkjp_id: planId })
+          .orderBy('sequence_order', 'asc');
+      }
+
+      return {
+        ...updatedPlan,
+        rkjm_list: rkjmList,
+      };
+    });
   }
 
   async getPublications(planId, planType) {

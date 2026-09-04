@@ -150,7 +150,7 @@ export default function RombelManagement() {
     setSelectedClass(null);
     try {
       const params = {};
-      if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
 
       const [yRes, gRes, cRes, tRes, exRes, suRes, subRes] = await Promise.all([
         api.get('/akademik/academic-years', { params }),
@@ -173,9 +173,12 @@ export default function RombelManagement() {
       const unitsList = suRes.data?.data?.items || (Array.isArray(suRes.data?.data) ? suRes.data.data : []);
       setSchoolUnitsList(Array.isArray(unitsList) ? unitsList : []);
 
-      const activeY = years.find((y) => y.is_active) || years[0];
-      if (activeY) {
-        setSelectedYearId(activeY.id);
+      // Auto select active year
+      const activeYear = years.find((y) => y.is_active);
+      if (activeYear) {
+        setSelectedYearId(activeYear.id);
+      } else if (years.length > 0) {
+        setSelectedYearId(years[0].id);
       } else {
         setSelectedYearId('');
       }
@@ -189,10 +192,11 @@ export default function RombelManagement() {
   const fetchClassGroups = async () => {
     setLoading(true);
     try {
+      const activeUnitId = (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') ? activeSchoolUnit.id : undefined;
       const [cgRes, unassignedRes, allStudentsRes] = await Promise.all([
         api.get('/akademik/class-groups', {
           params: {
-            satuan_pendidikan_id: activeSchoolUnit?.id,
+            satuan_pendidikan_id: activeUnitId,
             academic_year_id: selectedYearId || undefined,
             grade_level_id: rombelTab === 'reguler' ? (selectedGradeId || undefined) : undefined,
             type: rombelTab
@@ -200,13 +204,13 @@ export default function RombelManagement() {
         }),
         api.get('/akademik/unassigned-students', {
           params: {
-            satuan_pendidikan_id: activeSchoolUnit?.id,
+            satuan_pendidikan_id: activeUnitId,
             academic_year_id: selectedYearId || undefined
           }
         }).catch(() => ({ data: { data: [] } })),
         api.get('/akademik/students', {
           params: {
-            satuan_pendidikan_id: activeSchoolUnit?.id,
+            satuan_pendidikan_id: activeUnitId,
             status: 'aktif',
             per_page: 500
           }

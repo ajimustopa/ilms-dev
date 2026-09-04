@@ -9,6 +9,7 @@ const qualityService = require('../modules/manajemen/quality/service');
 let intervalId = null;
 let lastReminderDate = null;
 let lastSnapshotDate = null;
+let lastBillsCronDate = null;
 
 async function runDailyJobs() {
   const now = new Date();
@@ -36,6 +37,19 @@ async function runDailyJobs() {
       lastSnapshotDate = todayStr;
     } catch (err) {
       console.warn(`[Scheduler] Gagal memperbarui snapshot eksekutif:`, err.message);
+    }
+  }
+
+  // 3. Job Generator Draf Tagihan Bulanan Keuangan (Jalankan setiap tanggal 25)
+  if (now.getDate() === 25 && lastBillsCronDate !== todayStr) {
+    try {
+      console.log(`[Scheduler ${todayStr}] Menjalankan auto-generator draf tagihan bulanan Keuangan...`);
+      const billsService = require('../modules/keuangan/bills/service');
+      await billsService.autoGenerateMonthlyDraftBills();
+      lastBillsCronDate = todayStr;
+      console.log(`[Scheduler ${todayStr}] Draf tagihan bulanan Keuangan selesai di-generate.`);
+    } catch (err) {
+      console.warn(`[Scheduler] Gagal generate draf tagihan bulanan:`, err.message);
     }
   }
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
 import DatePickerField from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   Activity,
   Target,
@@ -257,15 +258,15 @@ export default function EvaluationMonev() {
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'verified':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Terverifikasi Selesai</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-done">Terverifikasi Selesai</span>;
       case 'completed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/20 text-blue-400 border border-blue-500/40">Selesai (Menunggu Verifikasi)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-sky">Selesai (Menunggu Verifikasi)</span>;
       case 'in_progress':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">Sedang Dijalankan</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-progress">Sedang Dijalankan</span>;
       case 'delayed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40">Tertunda / Overdue</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-risk">Tertunda / Overdue</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-500/20 text-slate-400 border border-slate-500/40">Draft</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-slate">Draft</span>;
     }
   };
 
@@ -435,9 +436,9 @@ export default function EvaluationMonev() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        g.status === 'achieved' ? 'bg-emerald-500/20 text-emerald-400' :
-                        g.status === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-300'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        g.status === 'achieved' ? 'mj-badge-done' :
+                        g.status === 'critical' ? 'mj-badge-risk' : 'mj-badge-slate'
                       }`}>
                         {g.status}
                       </span>
@@ -567,9 +568,9 @@ export default function EvaluationMonev() {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        k.achievement_status === 'achieved' ? 'bg-emerald-500/20 text-emerald-400' :
-                        k.achievement_status === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-300'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        k.achievement_status === 'achieved' ? 'mj-badge-done' :
+                        k.achievement_status === 'critical' ? 'mj-badge-risk' : 'mj-badge-slate'
                       }`}>
                         {k.achievement_status}
                       </span>
@@ -647,30 +648,32 @@ export default function EvaluationMonev() {
           {/* RTL Filter Controls */}
           <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <select
+              <SearchableSelect
                 value={rtlStatusFilter}
-                onChange={(e) => setRtlStatusFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none"
-              >
-                <option value="all">Semua Status RTL</option>
-                <option value="in_progress">Sedang Dijalankan</option>
-                <option value="completed">Selesai (Menunggu Verifikasi)</option>
-                <option value="verified">Terverifikasi</option>
-                <option value="delayed">Tertunda / Overdue</option>
-              </select>
+                onChange={(val) => setRtlStatusFilter(val)}
+                className="w-56"
+                options={[
+                  { value: 'all', label: 'Semua Status RTL' },
+                  { value: 'in_progress', label: 'Sedang Dijalankan' },
+                  { value: 'completed', label: 'Selesai (Menunggu Verifikasi)' },
+                  { value: 'verified', label: 'Terverifikasi' },
+                  { value: 'delayed', label: 'Tertunda / Overdue' },
+                ]}
+              />
 
-              <select
+              <SearchableSelect
                 value={rtlSourceFilter}
-                onChange={(e) => setRtlSourceFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none"
-              >
-                <option value="all">Semua Sumber Temuan</option>
-                <option value="kpi">Kamus KPI</option>
-                <option value="program">Program Kerja</option>
-                <option value="quality_goal">Sasaran Mutu</option>
-                <option value="risk">Manajemen Risiko</option>
-                <option value="general">Umum / Bebas</option>
-              </select>
+                onChange={(val) => setRtlSourceFilter(val)}
+                className="w-56"
+                options={[
+                  { value: 'all', label: 'Semua Sumber Temuan' },
+                  { value: 'kpi', label: 'Kamus KPI' },
+                  { value: 'program', label: 'Program Kerja' },
+                  { value: 'quality_goal', label: 'Sasaran Mutu' },
+                  { value: 'risk', label: 'Manajemen Risiko' },
+                  { value: 'general', label: 'Umum / Bebas' },
+                ]}
+              />
             </div>
 
             <button
@@ -768,7 +771,7 @@ export default function EvaluationMonev() {
       {/* MODAL: BUAT / UBAH RTL */}
       {rtlModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {editMode ? 'Ubah Rencana Tindak Lanjut (RTL)' : 'Catat Rencana Tindak Lanjut (RTL) Baru'}
@@ -782,18 +785,18 @@ export default function EvaluationMonev() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Tipe Sumber Temuan</label>
-                  <select
+                  <SearchableSelect
                     value={rtlFormData.source_type}
-                    onChange={(e) => setRtlFormData({ ...rtlFormData, source_type: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="kpi">Kamus KPI / IKU</option>
-                    <option value="program">Program Kerja</option>
-                    <option value="activity">Kegiatan Renop</option>
-                    <option value="quality_goal">Sasaran Mutu</option>
-                    <option value="risk">Manajemen Risiko</option>
-                    <option value="general">Umum / Temuan Audit</option>
-                  </select>
+                    onChange={(val) => setRtlFormData({ ...rtlFormData, source_type: val })}
+                    options={[
+                      { value: 'kpi', label: 'Kamus KPI / IKU' },
+                      { value: 'program', label: 'Program Kerja' },
+                      { value: 'activity', label: 'Kegiatan Renop' },
+                      { value: 'quality_goal', label: 'Sasaran Mutu' },
+                      { value: 'risk', label: 'Manajemen Risiko' },
+                      { value: 'general', label: 'Umum / Temuan Audit' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Kode / Referensi Sumber</label>
@@ -845,16 +848,18 @@ export default function EvaluationMonev() {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">PIC Penanggung Jawab</label>
-                  <select
+                  <SearchableSelect
                     value={rtlFormData.pic_employee_id}
-                    onChange={(e) => setRtlFormData({ ...rtlFormData, pic_employee_id: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="">-- Pilih PIC --</option>
-                    {references.employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                    ))}
-                  </select>
+                    placeholder="-- Pilih PIC --"
+                    onChange={(val) => setRtlFormData({ ...rtlFormData, pic_employee_id: val })}
+                    options={[
+                      { value: '', label: '-- Pilih PIC --' },
+                      ...references.employees.map((emp) => ({
+                        value: emp.id,
+                        label: emp.full_name,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Tenggat Waktu (Deadline)</label>
@@ -866,16 +871,16 @@ export default function EvaluationMonev() {
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Status RTL</label>
-                  <select
+                  <SearchableSelect
                     value={rtlFormData.status}
-                    onChange={(e) => setRtlFormData({ ...rtlFormData, status: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="in_progress">Sedang Dijalankan</option>
-                    <option value="completed">Selesai (Menunggu Verifikasi)</option>
-                    <option value="delayed">Tertunda</option>
-                  </select>
+                    onChange={(val) => setRtlFormData({ ...rtlFormData, status: val })}
+                    options={[
+                      { value: 'draft', label: 'Draft' },
+                      { value: 'in_progress', label: 'Sedang Dijalankan' },
+                      { value: 'completed', label: 'Selesai (Menunggu Verifikasi)' },
+                      { value: 'delayed', label: 'Tertunda' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -927,7 +932,7 @@ export default function EvaluationMonev() {
       {/* MODAL: VERIFIKASI SELESAI RTL */}
       {verifyModalOpen && selectedRtl && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />

@@ -138,12 +138,21 @@ class MasterDataController {
     } catch (err) { next(err); }
   };
 
-  // 4. Account Mappings
+  // 4. Account Mappings (Aturan Transaksi)
   listAccountMappings = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const data = await masterDataService.listAccountMappings(schoolUnitId);
-      res.json({ success: true, data, message: 'Mapping akun transaksi berhasil diambil', errors: null });
+      const data = await masterDataService.listAccountMappings(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Daftar aturan transaksi berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getAccountMappingById = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.getAccountMappingById(schoolUnitId, req.params.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Aturan transaksi tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Detail aturan transaksi berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 
@@ -151,7 +160,7 @@ class MasterDataController {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await masterDataService.createAccountMapping(schoolUnitId, req.body, req.user?.id);
-      res.status(201).json({ success: true, data, message: 'Mapping akun transaksi berhasil ditambahkan', errors: null });
+      res.status(201).json({ success: true, data, message: 'Aturan transaksi kustom berhasil ditambahkan', errors: null });
     } catch (err) { next(err); }
   };
 
@@ -159,8 +168,34 @@ class MasterDataController {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await masterDataService.updateAccountMapping(schoolUnitId, req.params.id, req.body, req.user?.id);
-      if (!data) return res.status(404).json({ success: false, data: null, message: 'Mapping akun tidak ditemukan', errors: null });
-      res.json({ success: true, data, message: 'Mapping akun transaksi berhasil diperbarui', errors: null });
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Aturan transaksi tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Aturan transaksi berhasil diperbarui', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  updateAccountMappingStatus = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.updateAccountMappingStatus(schoolUnitId, req.params.id, req.body.is_active, req.user?.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Aturan transaksi tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: `Status aturan transaksi berhasil diubah menjadi ${req.body.is_active ? 'Aktif' : 'Non-aktif'}`, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  overrideSystemTransactionRule = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.overrideSystemTransactionRule(schoolUnitId, req.params.id, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Override struktural aturan sistem berhasil diterapkan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  deleteAccountMapping = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.deleteAccountMapping(schoolUnitId, req.params.id, req.user?.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Aturan transaksi tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Aturan transaksi dinonaktifkan (kebijakan non-delete)', errors: null });
     } catch (err) { next(err); }
   };
 
@@ -301,8 +336,17 @@ class MasterDataController {
   listCatalogItems = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const data = await masterDataService.listCatalogItems(schoolUnitId);
-      res.json({ success: true, data, message: 'Katalog item berhasil diambil', errors: null });
+      const data = await masterDataService.listCatalogItems(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Katalog standar biaya berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getCatalogItemById = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.getCatalogItemById(schoolUnitId, req.params.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Item katalog tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Detail item katalog berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 
@@ -310,7 +354,7 @@ class MasterDataController {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await masterDataService.createCatalogItem(schoolUnitId, req.body, req.user?.id);
-      res.status(201).json({ success: true, data, message: 'Item katalog berhasil ditambahkan', errors: null });
+      res.status(201).json({ success: true, data, message: 'Item standar biaya katalog berhasil ditambahkan', errors: null });
     } catch (err) { next(err); }
   };
 
@@ -318,7 +362,24 @@ class MasterDataController {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await masterDataService.updateCatalogItem(schoolUnitId, req.params.id, req.body, req.user?.id);
-      res.json({ success: true, data, message: 'Item katalog berhasil diperbarui', errors: null });
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Item katalog tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Item standar biaya katalog berhasil diperbarui', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  updateCatalogItemStatus = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await masterDataService.updateCatalogItemStatus(schoolUnitId, req.params.id, req.body.is_active, req.user?.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Item katalog tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: `Status item katalog berhasil diubah menjadi ${req.body.is_active ? 'Aktif' : 'Non-aktif'}`, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getCatalogItemPriceHistory = async (req, res, next) => {
+    try {
+      const data = await masterDataService.getCatalogItemPriceHistory(req.params.id);
+      res.json({ success: true, data, message: 'Riwayat harga acuan item katalog berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 

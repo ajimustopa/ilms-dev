@@ -3,6 +3,7 @@
  * Modul Akademik - Fitur 5: Presensi & Pengajuan Izin Siswa
  */
 const db = require('../../../config/db/akademik');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class AttendanceService {
   // ==========================================
@@ -25,8 +26,9 @@ class AttendanceService {
     if (query.class_group_id) {
       baseQuery = baseQuery.where('student_attendances.class_group_id', query.class_group_id);
     }
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('student_attendances.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('student_attendances.satuan_pendidikan_id', unitId);
     }
     if (query.start_date && query.end_date) {
       baseQuery = baseQuery.whereBetween('student_attendances.attendance_date', [query.start_date, query.end_date]);
@@ -160,8 +162,9 @@ class AttendanceService {
     if (query.student_id) {
       baseQuery = baseQuery.where('student_id', query.student_id);
     }
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('satuan_pendidikan_id', unitId);
     }
     if (query.start_date && query.end_date) {
       baseQuery = baseQuery.whereBetween('attendance_date', [query.start_date, query.end_date]);

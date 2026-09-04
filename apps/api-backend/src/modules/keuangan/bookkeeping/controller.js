@@ -2,6 +2,7 @@
  * Bookkeeping Controller for Keuangan Module
  */
 const bookkeepingService = require('./service');
+const fundBalanceEngine = require('./fundBalanceEngine');
 
 class BookkeepingController {
   getSchoolUnitId(req) {
@@ -121,6 +122,94 @@ class BookkeepingController {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await bookkeepingService.listAuditLogs(schoolUnitId, req.query);
       res.json({ success: true, data, message: 'Audit log transaksi keuangan berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  // 5. Saldo per Sumber Dana (Kantong Dana & Opening Pool)
+  listFundBalances = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.listFundBalances(schoolUnitId, req.query.academic_year_id);
+      res.json({ success: true, data, message: 'Daftar saldo sumber dana berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  listFundMutations = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.listFundMutations(schoolUnitId, req.params.id, req.query);
+      res.json({ success: true, data, message: 'Riwayat mutasi sumber dana berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  // 6. Pinjaman & Realokasi Antar Tahun Ajaran
+  listInterYearLoans = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.listInterYearLoans(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Daftar pinjaman dana antar tahun ajaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  createInterYearLoan = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.createInterYearLoan({
+        schoolUnitId,
+        ...req.body,
+        userId: req.user?.id || 1
+      });
+      res.status(201).json({ success: true, data, message: 'Pinjaman dana antar tahun ajaran berhasil dicatat & saldo telah direalokasikan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  repayInterYearLoan = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.repayInterYearLoan({
+        schoolUnitId,
+        loanId: req.params.id,
+        amount: req.body.amount,
+        repaidAt: req.body.repaid_at,
+        notes: req.body.notes,
+        userId: req.user?.id || 1
+      });
+      res.json({ success: true, data, message: 'Pengembalian pinjaman dana berhasil dicatat & saldo telah dikembalikan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getInterYearLoanById = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.getInterYearLoanById(schoolUnitId, req.params.id);
+      if (!data) {
+        return res.status(404).json({ success: false, data: null, message: 'Data pinjaman tidak ditemukan', errors: null });
+      }
+      res.json({ success: true, data, message: 'Detail pinjaman antar tahun ajaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getAcademicYearLoansSummary = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.getAcademicYearLoansSummary(schoolUnitId, req.query.academic_year_id);
+      res.json({ success: true, data, message: 'Ringkasan pinjaman tahun ajaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getGeneralLedger = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await bookkeepingService.getGeneralLedger(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Buku besar berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getWorksheet = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await bookkeepingService.getWorksheet(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Lembar kerja (worksheet) berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 }

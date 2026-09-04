@@ -22,11 +22,20 @@ router.get(
   requirePermission('keuangan.payroll.disburse'),
   controller.listPayrollDisbursements
 );
+
 router.post(
   '/payroll-disbursements/:id/disburse',
   verifyJwt,
   requirePermission('keuangan.payroll.disburse'),
   controller.disbursePayroll
+);
+
+// Kembalikan Payroll untuk Koreksi ke Kepegawaian
+router.post(
+  '/payroll-disbursements/:id/reject',
+  verifyJwt,
+  requirePermission('keuangan.payroll.disburse'),
+  controller.rejectPayroll
 );
 
 module.exports = router;

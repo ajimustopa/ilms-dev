@@ -61,6 +61,16 @@ exports.seed = async function (knex) {
       code: 'keuangan.master.fee_adjustments.approve',
       description: 'Menyetujui/menolak pengajuan keringanan biaya'
     },
+    {
+      module: 'keuangan.master',
+      code: 'keuangan.transaction_rules.manage_system',
+      description: 'Override struktural aturan transaksi sistem (Super Admin / Admin Yayasan)'
+    },
+    {
+      module: 'keuangan.master',
+      code: 'keuangan.cash_transfers.manage',
+      description: 'Kelola transfer antar akun kas'
+    },
 
     // Modul: keuangan.budget
     {
@@ -95,6 +105,11 @@ exports.seed = async function (knex) {
       code: 'keuangan.bills.cancel',
       description: 'Membatalkan tagihan'
     },
+    {
+      module: 'keuangan.bills',
+      code: 'keuangan.bills.write_off',
+      description: 'Penghapusan piutang macet tagihan siswa (Write-off)'
+    },
 
     // Modul: keuangan.payments
     {
@@ -106,6 +121,11 @@ exports.seed = async function (knex) {
       module: 'keuangan.payments',
       code: 'keuangan.payments.correct',
       description: 'Mengoreksi pembayaran'
+    },
+    {
+      module: 'keuangan.payments',
+      code: 'keuangan.payments.refund',
+      description: 'Pengembalian kelebihan bayar siswa (Refund)'
     },
     {
       module: 'keuangan.payments',

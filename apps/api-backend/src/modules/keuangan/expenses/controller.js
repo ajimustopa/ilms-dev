@@ -50,9 +50,23 @@ class ExpensesController {
   deleteExpense = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const success = await expensesService.softDeleteExpense(schoolUnitId, req.params.id, req.body.deleted_reason, req.user?.id);
-      if (!success) return res.status(404).json({ success: false, data: null, message: 'Data pengeluaran tidak ditemukan', errors: null });
-      res.json({ success: true, data: null, message: 'Pengeluaran berhasil dihapus', errors: null });
+      const reason = req.body.deleted_reason || req.body.reason || req.query.reason || 'Dibatalkan oleh user';
+      const result = await expensesService.softDeleteExpense(schoolUnitId, req.params.id, reason, req.user?.id);
+      if (!result) return res.status(404).json({ success: false, data: null, message: 'Data pengeluaran tidak ditemukan', errors: null });
+      res.json({
+        success: true,
+        data: result,
+        message: result.message || 'Pengeluaran berhasil dibatalkan dan jurnal pembalik telah diterbitkan',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  reassignFundSource = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await expensesService.reassignExpenseFundSource(schoolUnitId, req.params.id, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Sumber dana pengeluaran berhasil dialokasikan ulang', errors: null });
     } catch (err) { next(err); }
   };
 }

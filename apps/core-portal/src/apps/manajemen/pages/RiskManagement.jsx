@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
 import DatePickerField from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   AlertTriangle,
   ShieldAlert,
@@ -267,13 +268,13 @@ export default function RiskManagement() {
   const renderLevelBadge = (level) => {
     switch (level) {
       case 'extreme':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-600/20 text-rose-400 border border-rose-600/40">Ekstrem (Kritis)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-risk">Ekstrem (Kritis)</span>;
       case 'high':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-orange-500/20 text-orange-400 border border-orange-500/40">Tinggi</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-risk">Tinggi</span>;
       case 'medium':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">Sedang</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-progress">Sedang</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Rendah</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-done">Rendah</span>;
     }
   };
 
@@ -430,29 +431,31 @@ export default function RiskManagement() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <select
+              <SearchableSelect
                 value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-300 focus:outline-none"
-              >
-                <option value="all">Semua Level Risiko</option>
-                <option value="extreme">Ekstrem (20–25)</option>
-                <option value="high">Tinggi (12–19)</option>
-                <option value="medium">Sedang (6–11)</option>
-                <option value="low">Rendah (1–5)</option>
-              </select>
+                onChange={(val) => setLevelFilter(val)}
+                className="w-48"
+                options={[
+                  { value: 'all', label: 'Semua Level Risiko' },
+                  { value: 'extreme', label: 'Ekstrem (20–25)' },
+                  { value: 'high', label: 'Tinggi (12–19)' },
+                  { value: 'medium', label: 'Sedang (6–11)' },
+                  { value: 'low', label: 'Rendah (1–5)' },
+                ]}
+              />
 
-              <select
+              <SearchableSelect
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-300 focus:outline-none"
-              >
-                <option value="all">Semua Status</option>
-                <option value="identified">Teridentifikasi</option>
-                <option value="mitigating">Sedang Dimitigasi</option>
-                <option value="resolved">Terselesaikan</option>
-                <option value="closed">Ditutup</option>
-              </select>
+                onChange={(val) => setStatusFilter(val)}
+                className="w-48"
+                options={[
+                  { value: 'all', label: 'Semua Status' },
+                  { value: 'identified', label: 'Teridentifikasi' },
+                  { value: 'mitigating', label: 'Sedang Dimitigasi' },
+                  { value: 'resolved', label: 'Terselesaikan' },
+                  { value: 'closed', label: 'Ditutup' },
+                ]}
+              />
             </div>
           </div>
 
@@ -658,11 +661,11 @@ export default function RiskManagement() {
                     <td className="p-3 text-slate-200">👤 {r.mitigation_pic_name || 'Belum diatur'}</td>
                     <td className="p-3 font-semibold text-slate-300">{r.mitigation_deadline ? r.mitigation_deadline.slice(0, 10) : '-'}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        r.mitigation_status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                        r.mitigation_status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                        r.mitigation_status === 'delayed' ? 'bg-rose-500/20 text-rose-400' :
-                        'bg-slate-800 text-slate-400'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        r.mitigation_status === 'completed' ? 'mj-badge-done' :
+                        r.mitigation_status === 'in_progress' ? 'mj-badge-sky' :
+                        r.mitigation_status === 'delayed' ? 'mj-badge-risk' :
+                        'mj-badge-slate'
                       }`}>
                         {r.mitigation_status || 'planned'}
                       </span>
@@ -760,7 +763,7 @@ export default function RiskManagement() {
       {/* MODAL: DAFTAR RISIKO PER SEL HEATMAP */}
       {cellModalOpen && selectedCellRisks && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-white">
@@ -806,7 +809,7 @@ export default function RiskManagement() {
       {/* MODAL: IDENTIFIKASI / UBAH RISIKO */}
       {riskModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {riskEditMode ? 'Ubah Data Identifikasi Risiko' : 'Identifikasi Risiko Baru'}
@@ -831,18 +834,18 @@ export default function RiskManagement() {
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Kategori Risiko *</label>
-                  <select
+                  <SearchableSelect
                     value={riskFormData.category}
-                    onChange={(e) => setRiskFormData({ ...riskFormData, category: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="Operasional & Sarpras">Operasional & Sarpras</option>
-                    <option value="Akademik & Kurikulum">Akademik & Kurikulum</option>
-                    <option value="Sumber Daya Manusia (SDM)">Sumber Daya Manusia (SDM)</option>
-                    <option value="Keuangan & Likuiditas">Keuangan & Likuiditas</option>
-                    <option value="Teknologi Informasi & Keamanan">Teknologi Informasi & Keamanan</option>
-                    <option value="Kepatuhan & Regulasi">Kepatuhan & Regulasi</option>
-                  </select>
+                    onChange={(val) => setRiskFormData({ ...riskFormData, category: val })}
+                    options={[
+                      { value: 'Operasional & Sarpras', label: 'Operasional & Sarpras' },
+                      { value: 'Akademik & Kurikulum', label: 'Akademik & Kurikulum' },
+                      { value: 'Sumber Daya Manusia (SDM)', label: 'Sumber Daya Manusia (SDM)' },
+                      { value: 'Keuangan & Likuiditas', label: 'Keuangan & Likuiditas' },
+                      { value: 'Teknologi Informasi & Keamanan', label: 'Teknologi Informasi & Keamanan' },
+                      { value: 'Kepatuhan & Regulasi', label: 'Kepatuhan & Regulasi' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -889,31 +892,31 @@ export default function RiskManagement() {
                 <div className="grid grid-cols-3 gap-3 items-center">
                   <div>
                     <label className="block text-slate-300 font-semibold mb-1">Probabilitas (1 - 5)</label>
-                    <select
+                    <SearchableSelect
                       value={riskFormData.probability_val}
-                      onChange={(e) => setRiskFormData({ ...riskFormData, probability_val: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value={1}>1 - Sangat Jarang</option>
-                      <option value={2}>2 - Jarang</option>
-                      <option value={3}>3 - Mungkin</option>
-                      <option value={4}>4 - Sering</option>
-                      <option value={5}>5 - Hampir Pasti</option>
-                    </select>
+                      onChange={(val) => setRiskFormData({ ...riskFormData, probability_val: Number(val) || val })}
+                      options={[
+                        { value: 1, label: '1 - Sangat Jarang' },
+                        { value: 2, label: '2 - Jarang' },
+                        { value: 3, label: '3 - Mungkin' },
+                        { value: 4, label: '4 - Sering' },
+                        { value: 5, label: '5 - Hampir Pasti' },
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-300 font-semibold mb-1">Dampak / Severity (1 - 5)</label>
-                    <select
+                    <SearchableSelect
                       value={riskFormData.impact_val}
-                      onChange={(e) => setRiskFormData({ ...riskFormData, impact_val: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value={1}>1 - Sangat Rendah</option>
-                      <option value={2}>2 - Rendah</option>
-                      <option value={3}>3 - Sedang</option>
-                      <option value={4}>4 - Tinggi</option>
-                      <option value={5}>5 - Kritis / Katastropik</option>
-                    </select>
+                      onChange={(val) => setRiskFormData({ ...riskFormData, impact_val: Number(val) || val })}
+                      options={[
+                        { value: 1, label: '1 - Sangat Rendah' },
+                        { value: 2, label: '2 - Rendah' },
+                        { value: 3, label: '3 - Sedang' },
+                        { value: 4, label: '4 - Tinggi' },
+                        { value: 5, label: '5 - Kritis / Katastropik' },
+                      ]}
+                    />
                   </div>
                   <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-center space-y-0.5">
                     <span className="text-[10px] text-slate-400 block">Skor & Level Terhitung:</span>
@@ -927,42 +930,42 @@ export default function RiskManagement() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Keterhubungan Sasaran Strategis</label>
-                  <select
+                  <SearchableSelect
                     value={riskFormData.relation_id}
-                    onChange={(e) => {
-                      const sg = strategicGoals.find(g => String(g.id) === e.target.value);
+                    placeholder="-- Tidak Ditautkan --"
+                    onChange={(val) => {
+                      const sg = strategicGoals.find(g => String(g.id) === String(val));
                       setRiskFormData({
                         ...riskFormData,
                         relation_type: sg ? 'sasaran' : 'none',
-                        relation_id: e.target.value,
+                        relation_id: val,
                         relation_code: sg?.code || '',
                         relation_name: sg?.name || ''
                       });
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="">-- Tidak Ditautkan --</option>
-                    {strategicGoals.map((sg) => (
-                      <option key={sg.id} value={sg.id}>
-                        {sg.code}: {sg.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: '-- Tidak Ditautkan --' },
+                      ...strategicGoals.map((sg) => ({
+                        value: sg.id,
+                        label: `${sg.code}: ${sg.name}`,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Penanggung Jawab (Risk Owner)</label>
-                  <select
+                  <SearchableSelect
                     value={riskFormData.owner_employee_id}
-                    onChange={(e) => setRiskFormData({ ...riskFormData, owner_employee_id: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="">-- Pilih Pegawai --</option>
-                    {references.employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- Pilih Pegawai --"
+                    onChange={(val) => setRiskFormData({ ...riskFormData, owner_employee_id: val })}
+                    options={[
+                      { value: '', label: '-- Pilih Pegawai --' },
+                      ...references.employees.map((emp) => ({
+                        value: emp.id,
+                        label: emp.full_name,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -990,7 +993,7 @@ export default function RiskManagement() {
       {/* MODAL: TINDAKAN MITIGASI & RESIDUAL RISK */}
       {mitigationModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
               <div className="space-y-1">
                 <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950 px-2 py-0.5 rounded">
@@ -1020,18 +1023,18 @@ export default function RiskManagement() {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">PIC Mitigasi</label>
-                  <select
+                  <SearchableSelect
                     value={mitigationFormData.mitigation_pic_id}
-                    onChange={(e) => setMitigationFormData({ ...mitigationFormData, mitigation_pic_id: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="">-- Pilih PIC --</option>
-                    {references.employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- Pilih PIC --"
+                    onChange={(val) => setMitigationFormData({ ...mitigationFormData, mitigation_pic_id: val })}
+                    options={[
+                      { value: '', label: '-- Pilih PIC --' },
+                      ...references.employees.map((emp) => ({
+                        value: emp.id,
+                        label: emp.full_name,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Tenggat Waktu</label>
@@ -1043,16 +1046,16 @@ export default function RiskManagement() {
                 </div>
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Status Progres</label>
-                  <select
+                  <SearchableSelect
                     value={mitigationFormData.mitigation_status}
-                    onChange={(e) => setMitigationFormData({ ...mitigationFormData, mitigation_status: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  >
-                    <option value="planned">Direncanakan</option>
-                    <option value="in_progress">Sedang Berjalan</option>
-                    <option value="completed">Selesai / Efektif</option>
-                    <option value="delayed">Tertunda</option>
-                  </select>
+                    onChange={(val) => setMitigationFormData({ ...mitigationFormData, mitigation_status: val })}
+                    options={[
+                      { value: 'planned', label: 'Direncanakan' },
+                      { value: 'in_progress', label: 'Sedang Berjalan' },
+                      { value: 'completed', label: 'Selesai / Efektif' },
+                      { value: 'delayed', label: 'Tertunda' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -1064,31 +1067,31 @@ export default function RiskManagement() {
                 <div className="grid grid-cols-3 gap-3 items-center">
                   <div>
                     <label className="block text-slate-300 font-semibold mb-1">Residual Prob (1 - 5)</label>
-                    <select
+                    <SearchableSelect
                       value={mitigationFormData.residual_probability}
-                      onChange={(e) => setMitigationFormData({ ...mitigationFormData, residual_probability: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value={1}>1 - Sangat Jarang</option>
-                      <option value={2}>2 - Jarang</option>
-                      <option value={3}>3 - Mungkin</option>
-                      <option value={4}>4 - Sering</option>
-                      <option value={5}>5 - Hampir Pasti</option>
-                    </select>
+                      onChange={(val) => setMitigationFormData({ ...mitigationFormData, residual_probability: Number(val) || val })}
+                      options={[
+                        { value: 1, label: '1 - Sangat Jarang' },
+                        { value: 2, label: '2 - Jarang' },
+                        { value: 3, label: '3 - Mungkin' },
+                        { value: 4, label: '4 - Sering' },
+                        { value: 5, label: '5 - Hampir Pasti' },
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-300 font-semibold mb-1">Residual Impact (1 - 5)</label>
-                    <select
+                    <SearchableSelect
                       value={mitigationFormData.residual_impact}
-                      onChange={(e) => setMitigationFormData({ ...mitigationFormData, residual_impact: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    >
-                      <option value={1}>1 - Sangat Rendah</option>
-                      <option value={2}>2 - Rendah</option>
-                      <option value={3}>3 - Sedang</option>
-                      <option value={4}>4 - Tinggi</option>
-                      <option value={5}>5 - Kritis</option>
-                    </select>
+                      onChange={(val) => setMitigationFormData({ ...mitigationFormData, residual_impact: Number(val) || val })}
+                      options={[
+                        { value: 1, label: '1 - Sangat Rendah' },
+                        { value: 2, label: '2 - Rendah' },
+                        { value: 3, label: '3 - Sedang' },
+                        { value: 4, label: '4 - Tinggi' },
+                        { value: 5, label: '5 - Kritis' },
+                      ]}
+                    />
                   </div>
                   <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-center space-y-0.5">
                     <span className="text-[10px] text-slate-400 block">Skor Residual:</span>

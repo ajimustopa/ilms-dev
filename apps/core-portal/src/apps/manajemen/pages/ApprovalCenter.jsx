@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   FileCheck2,
   CheckCircle2,
@@ -313,11 +314,11 @@ export default function ApprovalCenter() {
   const renderStatusBadge = (status) => {
     switch (status) {
       case 'approved':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Disahkan (Approved)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-done">Disahkan (Approved)</span>;
       case 'rejected':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/20 text-rose-400 border border-rose-500/40">Ditolak (Rejected)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-risk">Ditolak (Rejected)</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40">Menunggu Otorisasi</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase mj-badge-progress">Menunggu Otorisasi</span>;
     }
   };
 
@@ -410,18 +411,19 @@ export default function ApprovalCenter() {
 
         {activeTab !== 'workflows' && (
           <div className="flex items-center gap-2">
-            <select
+            <SearchableSelect
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none"
-            >
-              <option value="all">Semua Tipe Dokumen</option>
-              <option value="institution_development_plan">Renstra / RPS / RJJP</option>
-              <option value="school_work_plan">Rencana Kerja Tahunan (RKT)</option>
-              <option value="work_plan_program">Program Kerja</option>
-              <option value="quality_goal">Sasaran Mutu</option>
-              <option value="evaluation_follow_up">Rencana Tindak Lanjut (RTL)</option>
-            </select>
+              onChange={(val) => setTypeFilter(val)}
+              className="w-56"
+              options={[
+                { value: 'all', label: 'Semua Tipe Dokumen' },
+                { value: 'institution_development_plan', label: 'Renstra / RPS / RJJP' },
+                { value: 'school_work_plan', label: 'Rencana Kerja Tahunan (RKT)' },
+                { value: 'work_plan_program', label: 'Program Kerja' },
+                { value: 'quality_goal', label: 'Sasaran Mutu' },
+                { value: 'evaluation_follow_up', label: 'Rencana Tindak Lanjut (RTL)' },
+              ]}
+            />
 
             <div className="relative min-w-[180px]">
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -631,7 +633,7 @@ export default function ApprovalCenter() {
       {/* DRAWER: DETAIL PENGAJUAN & AUDIT TRAIL */}
       {detailDrawerOpen && selectedRequest && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-end p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full h-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full h-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-slate-800 flex items-start justify-between gap-3 bg-slate-950/40">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -765,7 +767,7 @@ export default function ApprovalCenter() {
       {/* MODAL: AKSI PERSETUJUAN (APPROVE / RETURN / REJECT) */}
       {actionModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {actionType === 'approved' ? 'Setujui Pengajuan' : actionType === 'returned' ? 'Kembalikan Berkas untuk Perbaikan' : 'Tolak Pengajuan'}
@@ -815,7 +817,7 @@ export default function ApprovalCenter() {
       {/* MODAL: AJUKAN PERSETUJUAN BARU */}
       {submitModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">Ajukan Dokumen untuk Persetujuan Berjenjang</h3>
               <button onClick={() => setSubmitModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
@@ -826,10 +828,10 @@ export default function ApprovalCenter() {
             <form onSubmit={handleSaveSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Jenis Dokumen yang Diajukan</label>
-                <select
+                <SearchableSelect
                   value={submitFormData.reference_type}
-                  onChange={(e) => {
-                    const type = e.target.value;
+                  onChange={(val) => {
+                    const type = val;
                     let firstId = '';
                     if (type === 'school_work_plan') firstId = availableDocs.work_plans[0]?.id || '';
                     else if (type === 'institution_development_plan') firstId = availableDocs.institution_plans[0]?.id || '';
@@ -839,56 +841,53 @@ export default function ApprovalCenter() {
 
                     setSubmitFormData({ ...submitFormData, reference_type: type, reference_id: firstId });
                   }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                >
-                  <option value="school_work_plan">Rencana Kerja Tahunan (RKT)</option>
-                  <option value="institution_development_plan">Renstra / RPS / RJJP</option>
-                  <option value="work_plan_program">Program Kerja</option>
-                  <option value="quality_goal">Sasaran Mutu</option>
-                  <option value="evaluation_follow_up">Rencana Tindak Lanjut (RTL)</option>
-                </select>
+                  options={[
+                    { value: 'school_work_plan', label: 'Rencana Kerja Tahunan (RKT)' },
+                    { value: 'institution_development_plan', label: 'Renstra / RPS / RJJP' },
+                    { value: 'work_plan_program', label: 'Program Kerja' },
+                    { value: 'quality_goal', label: 'Sasaran Mutu' },
+                    { value: 'evaluation_follow_up', label: 'Rencana Tindak Lanjut (RTL)' },
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Pilih Berkas Dokumen *</label>
-                <select
-                  required
+                <SearchableSelect
                   value={submitFormData.reference_id}
-                  onChange={(e) => setSubmitFormData({ ...submitFormData, reference_id: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                >
-                  <option value="">-- Pilih Berkas Dokumen --</option>
-                  {submitFormData.reference_type === 'school_work_plan' && availableDocs.work_plans.map(p => (
-                    <option key={p.id} value={p.id}>[RKT] {p.title}</option>
-                  ))}
-                  {submitFormData.reference_type === 'institution_development_plan' && availableDocs.institution_plans.map(p => (
-                    <option key={p.id} value={p.id}>[{p.plan_type || 'PLAN'}] {p.title || p.name}</option>
-                  ))}
-                  {submitFormData.reference_type === 'work_plan_program' && availableDocs.programs.map(p => (
-                    <option key={p.id} value={p.id}>[PRG] {p.title}</option>
-                  ))}
-                  {submitFormData.reference_type === 'quality_goal' && availableDocs.quality_goals.map(p => (
-                    <option key={p.id} value={p.id}>[MUTU] {p.name}</option>
-                  ))}
-                  {submitFormData.reference_type === 'evaluation_follow_up' && availableDocs.follow_ups.map(p => (
-                    <option key={p.id} value={p.id}>[RTL] {p.action_plan}</option>
-                  ))}
-                </select>
+                  placeholder="-- Pilih Berkas Dokumen --"
+                  onChange={(val) => setSubmitFormData({ ...submitFormData, reference_id: val })}
+                  options={[
+                    { value: '', label: '-- Pilih Berkas Dokumen --' },
+                    ...(submitFormData.reference_type === 'school_work_plan'
+                      ? availableDocs.work_plans.map(p => ({ value: p.id, label: `[RKT] ${p.title}` }))
+                      : submitFormData.reference_type === 'institution_development_plan'
+                      ? availableDocs.institution_plans.map(p => ({ value: p.id, label: `[${p.plan_type || 'PLAN'}] ${p.title || p.name}` }))
+                      : submitFormData.reference_type === 'work_plan_program'
+                      ? availableDocs.programs.map(p => ({ value: p.id, label: `[PRG] ${p.title}` }))
+                      : submitFormData.reference_type === 'quality_goal'
+                      ? availableDocs.quality_goals.map(p => ({ value: p.id, label: `[MUTU] ${p.name}` }))
+                      : submitFormData.reference_type === 'evaluation_follow_up'
+                      ? availableDocs.follow_ups.map(p => ({ value: p.id, label: `[RTL] ${p.action_plan}` }))
+                      : []),
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Template Alur Kerja Persetujuan *</label>
-                <select
-                  required
+                <SearchableSelect
                   value={submitFormData.approval_workflow_id}
-                  onChange={(e) => setSubmitFormData({ ...submitFormData, approval_workflow_id: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                >
-                  <option value="">-- Pilih Template Workflow --</option>
-                  {workflows.map(wf => (
-                    <option key={wf.id} value={wf.id}>{wf.name} ({wf.steps?.length || 0} Step)</option>
-                  ))}
-                </select>
+                  placeholder="-- Pilih Template Workflow --"
+                  onChange={(val) => setSubmitFormData({ ...submitFormData, approval_workflow_id: val })}
+                  options={[
+                    { value: '', label: '-- Pilih Template Workflow --' },
+                    ...workflows.map(wf => ({
+                      value: wf.id,
+                      label: `${wf.name} (${wf.steps?.length || 0} Step)`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div>
@@ -926,7 +925,7 @@ export default function ApprovalCenter() {
       {/* MODAL: BUAT ALUR KERJA BARU */}
       {workflowModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">Buat Definisi Alur Kerja Persetujuan Baru</h3>
               <button onClick={() => setWorkflowModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
@@ -949,17 +948,17 @@ export default function ApprovalCenter() {
 
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Berlaku untuk Dokumen</label>
-                <select
+                <SearchableSelect
                   value={workflowFormData.applies_to}
-                  onChange={(e) => setWorkflowFormData({ ...workflowFormData, applies_to: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none"
-                >
-                  <option value="school_work_plan">Rencana Kerja Tahunan (RKT)</option>
-                  <option value="institution_development_plan">Renstra / RPS / RJJP</option>
-                  <option value="work_plan_program">Program Kerja & Anggaran</option>
-                  <option value="evaluation_follow_up">Rencana Tindak Lanjut (RTL)</option>
-                  <option value="general">Dokumen Umum Lainnya</option>
-                </select>
+                  onChange={(val) => setWorkflowFormData({ ...workflowFormData, applies_to: val })}
+                  options={[
+                    { value: 'school_work_plan', label: 'Rencana Kerja Tahunan (RKT)' },
+                    { value: 'institution_development_plan', label: 'Renstra / RPS / RJJP' },
+                    { value: 'work_plan_program', label: 'Program Kerja & Anggaran' },
+                    { value: 'evaluation_follow_up', label: 'Rencana Tindak Lanjut (RTL)' },
+                    { value: 'general', label: 'Dokumen Umum Lainnya' },
+                  ]}
+                />
               </div>
 
               {/* Steps Configurator */}
@@ -981,21 +980,24 @@ export default function ApprovalCenter() {
                       <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">
                         {step.step_order}
                       </span>
-                      <select
-                        required
-                        value={step.approver_employee_id}
-                        onChange={(e) => {
-                          const newSteps = [...workflowFormData.steps];
-                          newSteps[idx].approver_employee_id = e.target.value;
-                          setWorkflowFormData({ ...workflowFormData, steps: newSteps });
-                        }}
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs focus:outline-none"
-                      >
-                        <option value="">-- Pilih Approver --</option>
-                        {references.employees.map(emp => (
-                          <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                        ))}
-                      </select>
+                      <div className="flex-1 min-w-0">
+                        <SearchableSelect
+                          value={step.approver_employee_id}
+                          placeholder="-- Pilih Approver --"
+                          onChange={(val) => {
+                            const newSteps = [...workflowFormData.steps];
+                            newSteps[idx].approver_employee_id = val;
+                            setWorkflowFormData({ ...workflowFormData, steps: newSteps });
+                          }}
+                          options={[
+                            { value: '', label: '-- Pilih Approver --' },
+                            ...references.employees.map(emp => ({
+                              value: emp.id,
+                              label: emp.full_name,
+                            })),
+                          ]}
+                        />
+                      </div>
                       {workflowFormData.steps.length > 1 && (
                         <button
                           type="button"

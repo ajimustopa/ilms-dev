@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import DatePickerField from '../components/shared/DatePickerField';
 import {
   Compass,
@@ -28,12 +29,17 @@ import {
   BarChart3,
   Calendar,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Filter,
   Search,
   Maximize2,
-  Minimize2
+  Minimize2,
+  RefreshCw,
+  FolderInput,
+  X
 } from 'lucide-react';
+import MoveProgramModal from '../components/shared/MoveProgramModal';
 
 export default function RipsPlanning() {
   const { user, schoolUnits, activeSchoolUnit } = useAuth();
@@ -55,10 +61,17 @@ export default function RipsPlanning() {
   const [programCategories, setProgramCategories] = useState([]);
   const [publications, setPublications] = useState([]);
 
-  // Filters & Search
+  // Filters & Search (Matrix Tab)
   const [filterDomain, setFilterDomain] = useState('all');
+  const [filterSubdomain, setFilterSubdomain] = useState('all');
   const [filterBsc, setFilterBsc] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Filters & Search (Program & Upaya Strategis Tab)
+  const [filterProgramDomain, setFilterProgramDomain] = useState('all');
+  const [filterProgramSubdomain, setFilterProgramSubdomain] = useState('all');
+  const [programSearchQuery, setProgramSearchQuery] = useState('');
+  const [filterProgramFlagship, setFilterProgramFlagship] = useState(false);
 
   // Hierarchy Tree-View Expansion States
   const [expandedDomains, setExpandedDomains] = useState({});
@@ -87,6 +100,32 @@ export default function RipsPlanning() {
   // Program Form Goal & Indicator Live-Search Dropdown State
   const [progGoalSearch, setProgGoalSearch] = useState('');
   const [isGoalDropdownOpen, setIsGoalDropdownOpen] = useState(false);
+  const goalDropdownRef = useRef(null);
+
+  // Move Program Modal State
+  const [isMoveProgramModalOpen, setIsMoveProgramModalOpen] = useState(false);
+  const [programToMove, setProgramToMove] = useState(null);
+
+  const handleOpenMoveProgramModal = (prog) => {
+    setProgramToMove(prog);
+    setIsMoveProgramModalOpen(true);
+  };
+
+  // Close goal dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (goalDropdownRef.current && !goalDropdownRef.current.contains(event.target)) {
+        setIsGoalDropdownOpen(false);
+      }
+    };
+
+    if (isGoalDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isGoalDropdownOpen]);
 
   // Master domain / subdomain edit states
   const [editingDomain, setEditingDomain] = useState(null);
@@ -382,40 +421,123 @@ export default function RipsPlanning() {
     }
   };
 
-  // Filtered Goals
-  const filteredGoals = (goals || []).filter((g) => {
-    if (filterDomain && filterDomain !== 'all' && Number(g.domain_id) !== Number(filterDomain)) return false;
-    if (filterBsc && filterBsc !== 'all' && Number(g.bsc_aspect_id) !== Number(filterBsc)) return false;
-    return true;
-  });
 
+
+  // Toggle helpers for hierarchy expand/collapse
   // Toggle helpers for hierarchy expand/collapse
   const toggleDomain = (domainKey) => {
     setExpandedDomains((prev) => ({
       ...prev,
-      [domainKey]: prev[domainKey] === undefined ? false : !prev[domainKey],
+      [domainKey]: !prev[domainKey],
     }));
   };
 
   const toggleSubdomain = (subdomainKey) => {
     setExpandedSubdomains((prev) => ({
       ...prev,
-      [subdomainKey]: prev[subdomainKey] === undefined ? false : !prev[subdomainKey],
+      [subdomainKey]: !prev[subdomainKey],
     }));
   };
 
   const toggleGoal = (goalId) => {
     setExpandedGoals((prev) => ({
       ...prev,
-      [goalId]: prev[goalId] === undefined ? false : !prev[goalId],
+      [goalId]: !prev[goalId],
     }));
   };
 
   const toggleProgGoalIndicator = (key) => {
     setExpandedProgGoalIndicators((prev) => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
+      [key]: !prev[key],
     }));
+  };
+
+  // Expand / Collapse All for Tab 1 (Sasaran) & Tab 2 (Program)
+  const handleExpandAll = () => {
+    const allExpD = {};
+    const allExpS = {};
+    const allExpG = {};
+    const allExpPGI = {};
+
+    groupedHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+        allExpS[`prog_sub_${d.id}_${s.id}`] = true;
+        s.goals.forEach((g) => {
+          allExpG[g.id] = true;
+        });
+      });
+    });
+
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+        allExpS[`prog_sub_${d.id}_${s.id}`] = true;
+        s.programs.forEach((p) => {
+          (p.linked_goals || []).forEach((g) => {
+            allExpPGI[`pgi_${p.id}_${g.goal_id}`] = true;
+          });
+        });
+      });
+    });
+
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+    setExpandedGoals(allExpG);
+    setExpandedProgGoalIndicators(allExpPGI);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedDomains({});
+    setExpandedSubdomains({});
+    setExpandedGoals({});
+    setExpandedProgGoalIndicators({});
+  };
+
+  const handleExpandDomainsOnly = () => {
+    const allExpD = {};
+    groupedHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+    });
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains({});
+    setExpandedGoals({});
+    setExpandedProgGoalIndicators({});
+  };
+
+  const handleExpandSubdomains = () => {
+    const allExpD = {};
+    const allExpS = {};
+    groupedHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+        allExpS[`prog_sub_${d.id}_${s.id}`] = true;
+      });
+    });
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      allExpD[`prog_dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+        allExpS[`prog_sub_${d.id}_${s.id}`] = true;
+      });
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+    setExpandedGoals({});
+    setExpandedProgGoalIndicators({});
   };
 
   // Inline Indicator Handlers (Direct Table Add & Delete)
@@ -451,11 +573,84 @@ export default function RipsPlanning() {
     }
   };
 
-  // Group goals into Bidang (Domain) -> Sub-Bidang (Subdomain) -> Goals & Program Indicators
+  // All available subdomains across domains (used in MoveProgramModal and selects)
+  const allSubdomains = React.useMemo(() => {
+    const allSubs = [];
+    domains.forEach((d) => {
+      if (Array.isArray(d.subdomains)) {
+        d.subdomains.forEach((s) => {
+          allSubs.push({ ...s, domain_id: d.id, domainName: d.name });
+        });
+      }
+    });
+    return allSubs;
+  }, [domains]);
+
+  // Available Subdomains for Tab 1 (Sasaran Strategis)
+  const availableGoalSubdomains = React.useMemo(() => {
+    if (filterDomain === 'all') {
+      return allSubdomains;
+    }
+    const d = domains.find((dom) => String(dom.id) === String(filterDomain));
+    return d && Array.isArray(d.subdomains) ? d.subdomains : [];
+  }, [domains, filterDomain, allSubdomains]);
+
+  // Filtered Goals based on BSC Aspect & Search Query
+  const filteredGoals = React.useMemo(() => {
+    return goals.filter((g) => {
+      // Filter BSC Aspect
+      if (filterBsc !== 'all' && String(g.bsc_aspect_id) !== String(filterBsc)) {
+        return false;
+      }
+
+      // Filter Domain
+      if (filterDomain !== 'all' && String(g.domain_id) !== String(filterDomain)) {
+        return false;
+      }
+
+      // Filter Subdomain
+      if (filterSubdomain !== 'all' && String(g.subdomain_id) !== String(filterSubdomain)) {
+        return false;
+      }
+
+      // Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (g.title || '').toLowerCase().includes(q);
+        const matchCode = (g.code || '').toLowerCase().includes(q);
+        const matchInd = (g.indicator_name || '').toLowerCase().includes(q);
+        const matchDesc = (g.description || '').toLowerCase().includes(q);
+        const matchBsc = (g.bsc_aspect_name || '').toLowerCase().includes(q);
+        const matchDomain = (g.domain_name || '').toLowerCase().includes(q);
+        const matchSubdomain = (g.subdomain_name || '').toLowerCase().includes(q);
+        const matchIndicators = Array.isArray(g.indicators) && g.indicators.some(
+          (ind) => (ind.name || '').toLowerCase().includes(q) || (ind.code || '').toLowerCase().includes(q)
+        );
+        const matchLinkedProg = Array.isArray(g.linked_programs) && g.linked_programs.some(
+          (p) => (p.name || '').toLowerCase().includes(q) || (p.code || '').toLowerCase().includes(q)
+        );
+
+        if (!matchTitle && !matchCode && !matchInd && !matchDesc && !matchBsc && !matchDomain && !matchSubdomain && !matchIndicators && !matchLinkedProg) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [goals, filterBsc, filterDomain, filterSubdomain, searchQuery]);
+
+  const isFilteringActive = Boolean(
+    searchQuery.trim() || filterDomain !== 'all' || filterSubdomain !== 'all' || filterBsc !== 'all'
+  );
+  const isProgramFilteringActive = Boolean(
+    programSearchQuery.trim() || filterProgramDomain !== 'all' || filterProgramSubdomain !== 'all' || filterProgramFlagship
+  );
+
+  // Group goals into Bidang (Domain) -> Sub-Bidang (Subdomain) -> Goals (Hierarchy)
   const groupedHierarchy = React.useMemo(() => {
     const domainMap = new Map();
 
-    // 1. Initialize with all existing domains & their subdomains from master list
+    // 1. Inisialisasi domain yang ada
     domains.forEach((d, dIdx) => {
       const domOrder = d.order_index || (dIdx + 1);
       const subMap = new Map();
@@ -481,7 +676,7 @@ export default function RipsPlanning() {
       });
     });
 
-    // 2. Populate with filtered goals
+    // 2. Masukkan goals ke domain & subdomain yang sesuai
     filteredGoals.forEach((g) => {
       const dId = g.domain_id || 'unassigned';
       if (!domainMap.has(dId)) {
@@ -519,12 +714,21 @@ export default function RipsPlanning() {
 
       const subList = [];
       domainItem.subdomains.forEach((subItem) => {
+        if (filterSubdomain !== 'all' && String(filterSubdomain) !== String(subItem.id)) {
+          return;
+        }
         subList.push(subItem);
       });
 
       subList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
       const totalGoalsCount = subList.reduce((acc, curr) => acc + curr.goals.length, 0);
+
+      // Sembunyikan jika filter subdomain aktif atau search aktif dan tidak ada sasaran
+      if ((searchQuery.trim() || filterSubdomain !== 'all' || filterBsc !== 'all') && totalGoalsCount === 0) {
+        return;
+      }
+
       result.push({
         ...domainItem,
         subdomainList: subList,
@@ -533,7 +737,40 @@ export default function RipsPlanning() {
     });
 
     return result.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  }, [domains, filteredGoals, filterDomain]);
+  }, [domains, filteredGoals, filterDomain, filterSubdomain, searchQuery, filterBsc]);
+
+  // Auto-expand all when searching
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const expD = {};
+      const expS = {};
+      groupedHierarchy.forEach((d) => {
+        expD[`dom_${d.id}`] = true;
+        d.subdomainList?.forEach((s) => {
+          expS[`sub_${s.id}`] = true;
+        });
+      });
+      setExpandedDomains((prev) => ({ ...prev, ...expD }));
+      setExpandedSubdomains((prev) => ({ ...prev, ...expS }));
+    }
+  }, [searchQuery, groupedHierarchy]);
+
+  // Available subdomains for the Program tab filter based on selected domain
+  const availableProgramSubdomains = React.useMemo(() => {
+    if (filterProgramDomain === 'all') {
+      const allSubs = [];
+      domains.forEach((d) => {
+        if (Array.isArray(d.subdomains)) {
+          d.subdomains.forEach((s) => {
+            allSubs.push({ ...s, domainName: d.name });
+          });
+        }
+      });
+      return allSubs;
+    }
+    const d = domains.find((dom) => String(dom.id) === String(filterProgramDomain));
+    return d && Array.isArray(d.subdomains) ? d.subdomains : [];
+  }, [domains, filterProgramDomain]);
 
   // Group programs into Bidang (Domain) -> Sub-Bidang (Subdomain) -> Programs
   const groupedPrograms = React.useMemo(() => {
@@ -565,16 +802,19 @@ export default function RipsPlanning() {
       });
     });
 
-    // 2. Filter programs by search query
+    // 2. Filter programs by search query & flagship
     const filteredProgList = programs.filter((p) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
+      if (filterProgramFlagship && !p.is_flagship) return false;
+      if (!programSearchQuery.trim()) return true;
+      const q = programSearchQuery.toLowerCase();
       const matchName = p.name?.toLowerCase().includes(q);
       const matchCode = p.code?.toLowerCase().includes(q);
+      const matchDesc = p.description?.toLowerCase().includes(q);
+      const matchCat = p.category_name?.toLowerCase().includes(q);
       const matchGoal = p.linked_goals?.some(
         (g) => g.goal_title?.toLowerCase().includes(q) || g.goal_code?.toLowerCase().includes(q)
       );
-      return matchName || matchCode || matchGoal;
+      return matchName || matchCode || matchDesc || matchCat || matchGoal;
     });
 
     // 3. Place each program into domain and subdomain
@@ -605,23 +845,26 @@ export default function RipsPlanning() {
       subObj.programs.push(p);
     });
 
-    // 4. Convert to array and filter empty domains if searching
+    // 4. Convert to array and filter by filterProgramDomain & filterProgramSubdomain
     const result = [];
     domainMap.forEach((domainItem) => {
-      if (filterDomain !== 'all' && Number(filterDomain) !== Number(domainItem.id)) {
+      if (filterProgramDomain !== 'all' && String(filterProgramDomain) !== String(domainItem.id)) {
         return;
       }
 
       const subList = [];
       domainItem.subdomains.forEach((subItem) => {
+        if (filterProgramSubdomain !== 'all' && String(filterProgramSubdomain) !== String(subItem.id)) {
+          return;
+        }
         subList.push(subItem);
       });
 
       subList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
       const totalProgramsCount = subList.reduce((acc, curr) => acc + curr.programs.length, 0);
 
-      // If search active, only show domains with matching programs
-      if (searchQuery.trim() && totalProgramsCount === 0) {
+      // If search or subdomain filter active, only show domains with matching programs or when explicitly selecting this domain
+      if ((programSearchQuery.trim() || filterProgramSubdomain !== 'all' || filterProgramFlagship) && totalProgramsCount === 0) {
         return;
       }
 
@@ -633,12 +876,16 @@ export default function RipsPlanning() {
     });
 
     return result.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  }, [domains, programs, filterDomain, searchQuery]);
+  }, [domains, programs, filterProgramDomain, filterProgramSubdomain, programSearchQuery, filterProgramFlagship]);
+
+  const totalFilteredProgramsCount = React.useMemo(() => {
+    return groupedPrograms.reduce((acc, d) => acc + (d.totalPrograms || 0), 0);
+  }, [groupedPrograms]);
 
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -700,22 +947,31 @@ export default function RipsPlanning() {
               </button>
 
               {contextType === 'school_unit' && (
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={selectedUnitId}
-                    onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                    className="appearance-none bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-indigo-500/50 text-slate-100 text-xs font-semibold rounded-xl pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                  >
-                    {schoolUnits?.map((unit) => (
-                      <option key={unit.id} value={unit.id} className="bg-slate-900 text-slate-200 py-1.5">
-                        {unit.name} ({unit.level})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-indigo-400 absolute right-2.5 pointer-events-none transition-transform" />
-                </div>
+                <SearchableSelect
+                  value={selectedUnitId}
+                  onChange={(val) => setSelectedUnitId(Number(val))}
+                  className="w-56"
+                  options={schoolUnits?.map((unit) => ({
+                    value: unit.id,
+                    label: `${unit.name} (${unit.level})`,
+                  })) || []}
+                />
               )}
             </div>
+
+            {/* Reload / Refresh Button */}
+            <button
+              type="button"
+              onClick={fetchData}
+              disabled={loading}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition shadow-xs ${
+                loading ? 'opacity-60 cursor-not-allowed' : 'active:scale-95'
+              }`}
+              title="Segarkan / Muat ulang data RIPS dari database"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-300'}`} />
+              <span>Reload Data</span>
+            </button>
 
             {/* Kelola Visi Misi & Tujuan Button */}
             <button
@@ -891,7 +1147,7 @@ export default function RipsPlanning() {
       {activeTab === 'vision_mission' && (
         <div className="space-y-6">
           {/* Status & Ratification Action Banner */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase">Status Pengesahan:</span>
@@ -956,7 +1212,7 @@ export default function RipsPlanning() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Visi Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -974,7 +1230,7 @@ export default function RipsPlanning() {
             </div>
 
             {/* Misi Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-violet-400" />
@@ -998,7 +1254,7 @@ export default function RipsPlanning() {
             </div>
 
             {/* Tujuan Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Target className="w-4 h-4 text-amber-400" />
@@ -1026,131 +1282,231 @@ export default function RipsPlanning() {
 
       {/* TAB 1: MATRIKS SASARAN & INDIKATOR */}
       {activeTab === 'matrix' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
-          {/* Action & Filter Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1.5 flex items-center gap-1">
-                  <Filter className="w-3 h-3 text-indigo-400" /> Filter Bidang
-                </label>
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={filterDomain}
-                    onChange={(e) => setFilterDomain(e.target.value)}
-                    className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                  >
-                    <option value="all" className="bg-slate-950 text-slate-200">Semua Bidang ({domains.length})</option>
-                    {domains.map((d) => (
-                      <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200">
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1.5 flex items-center gap-1">
-                  <Target className="w-3 h-3 text-violet-400" /> Filter Aspek BSC
-                </label>
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={filterBsc}
-                    onChange={(e) => setFilterBsc(e.target.value)}
-                    className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                  >
-                    <option value="all" className="bg-slate-950 text-slate-200">Semua Aspek BSC ({bscAspects.length})</option>
-                    {bscAspects.map((b) => (
-                      <option key={b.id} value={b.id} className="bg-slate-950 text-slate-200">
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-              <button
-                onClick={() => {
-                  setNewDomainName('');
-                  setModalType('add_domain_quick');
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition"
-                title="Tambah Bidang Baru ke Matriks"
-              >
-                <Plus className="w-3.5 h-3.5 text-indigo-400" />
-                Tambah Bidang
-              </button>
-
-              <button
-                onClick={() => {
-                  setNewSubdomainData({ domain_id: domains[0]?.id || '', name: '' });
-                  setModalType('add_subdomain_quick');
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition"
-                title="Tambah Sub-Bidang Baru ke Matriks"
-              >
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
-                Tambah Sub-Bidang
-              </button>
-
-              <button
-                onClick={() => {
-                  setEditingItem(null);
-                  setFormData({
-                    domain_id: domains[0]?.id || '',
-                    bsc_aspect_id: bscAspects[0]?.id || '',
-                    title: '',
-                    indicators: [
-                      {
-                        name: '',
-                        unit: '%',
-                        baseline_percent: 0,
-                        target_percent: 100,
-                      }
-                    ],
-                    status: 'active',
-                  });
-                  setModalType('goal');
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Sasaran Baru
-              </button>
-            </div>
-          </div>
-
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           {/* Tree-View Hierarchical Matrix Table Card */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
             {/* Header Utama Tabel: Biru Solid (#3B82F6) */}
-            <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
+            <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-t-2xl relative z-20">
+              {/* Sisi Kiri: Ikon & Judul Tabel */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
                   <Compass className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
                     MANAJEMEN STRATEGIS
                   </h3>
-                  <p className="text-xs text-blue-100 font-medium">
-                    Hierarki Perencanaan: Bidang &gt; Sub Bidang &gt; Program &amp; Detail Indikator Kinerja
+                  <p className="text-[11px] text-blue-100 font-medium">
+                    Hierarki Perencanaan: Bidang &gt; Sub-Bidang &gt; Sasaran &amp; Indikator ({filteredGoals.length} Sasaran Terpetakan)
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs font-semibold">
-                <span className="px-2.5 py-1 rounded-full bg-blue-700/60 border border-blue-400/30">
-                  {filteredGoals.length} Sasaran Terpetakan
-                </span>
 
+              {/* Sisi Kanan: Filter Bidang, Filter Aspek BSC, Search, Tambah Bidang, Tambah Sub-Bidang, Tambah Sasaran, Layar Penuh */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* Filter Bidang dengan Live Search & High Visibility */}
+                <SearchableSelect
+                  value={filterDomain}
+                  onChange={(val) => {
+                    setFilterDomain(val || 'all');
+                    setFilterSubdomain('all');
+                  }}
+                  placeholder="Semua Bidang"
+                  searchPlaceholder="Cari bidang..."
+                  variant="header-white"
+                  accentColor="blue"
+                  className="w-44 sm:w-52"
+                  menuMinWidth="260px"
+                  options={[
+                    { value: 'all', label: `Semua Bidang (${domains.length})`, sublabel: 'Tampilkan seluruh bidang' },
+                    ...domains.map((d) => ({
+                      value: String(d.id),
+                      label: d.name,
+                      sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                      badge: d.code || `BID-${d.order_index || d.id}`
+                    }))
+                  ]}
+                />
+
+                {/* Filter Sub-Bidang dengan Live Search & High Visibility */}
+                <SearchableSelect
+                  value={filterSubdomain}
+                  onChange={(val) => setFilterSubdomain(val || 'all')}
+                  placeholder="Semua Sub-Bidang"
+                  searchPlaceholder="Cari sub-bidang..."
+                  variant="header-white"
+                  accentColor="blue"
+                  className="w-48 sm:w-56"
+                  menuMinWidth="260px"
+                  options={[
+                    {
+                      value: 'all',
+                      label: `Semua Sub-Bidang (${availableGoalSubdomains.length})`,
+                      sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                    },
+                    ...availableGoalSubdomains.map((s) => ({
+                      value: String(s.id),
+                      label: s.name,
+                      sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                      badge: s.code || undefined
+                    }))
+                  ]}
+                />
+
+                {/* Filter Aspek BSC dengan Live Search & High Visibility */}
+                <SearchableSelect
+                  value={filterBsc}
+                  onChange={(val) => setFilterBsc(val || 'all')}
+                  placeholder="Semua Aspek BSC"
+                  searchPlaceholder="Cari aspek BSC..."
+                  variant="header-white"
+                  accentColor="blue"
+                  className="w-48 sm:w-56"
+                  menuMinWidth="260px"
+                  options={[
+                    { value: 'all', label: `Semua Aspek BSC (${bscAspects.length})`, sublabel: 'Tampilkan seluruh aspek BSC' },
+                    ...bscAspects.map((b) => ({
+                      value: String(b.id),
+                      label: b.name,
+                      sublabel: b.description || `Aspek BSC ${b.name}`,
+                      badge: `BSC-${b.order_index || b.id}`
+                    }))
+                  ]}
+                />
+
+                {/* Live Search */}
+                <div className="relative flex items-center group">
+                  <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari sasaran / bidang..."
+                    className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                      title="Hapus kata kunci pencarian"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Tombol Tambah Bidang */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewDomainName('');
+                    setModalType('add_domain_quick');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs whitespace-nowrap"
+                  title="Tambah Bidang Baru ke Matriks"
+                >
+                  <Plus className="w-3.5 h-3.5 text-blue-100" />
+                  <span>Tambah Bidang</span>
+                </button>
+
+                {/* Tombol Tambah Sub-Bidang */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSubdomainData({ domain_id: domains[0]?.id || '', name: '' });
+                    setModalType('add_subdomain_quick');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-amber-950 text-xs font-bold transition border border-amber-300 shadow-xs whitespace-nowrap"
+                  title="Tambah Sub-Bidang Baru ke Matriks"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-900" />
+                  <span>Tambah Sub-Bidang</span>
+                </button>
+
+                {/* Tombol Tambah Sasaran Baru */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setFormData({
+                      domain_id: domains[0]?.id || '',
+                      bsc_aspect_id: bscAspects[0]?.id || '',
+                      title: '',
+                      indicators: [
+                        {
+                          name: '',
+                          unit: '%',
+                          baseline_percent: 0,
+                          target_percent: 100,
+                        }
+                      ],
+                      status: 'active',
+                    });
+                    setModalType('goal');
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-extrabold transition shadow-md whitespace-nowrap"
+                  title="Tambah Sasaran Baru"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Sasaran Baru</span>
+                </button>
+
+                {/* Kontrol Lipat / Buka Hirarki */}
+                <div className="flex items-center gap-1 bg-white/15 p-1 rounded-xl border border-white/20">
+                  <button
+                    type="button"
+                    onClick={handleCollapseAll}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/25 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                    title="Lipat Semua (Bidang, Sub-Bidang, Sasaran, & Indikator)"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                    <span>Lipat Semua</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandDomainsOnly}
+                    className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                    title="Buka Level Bidang Saja"
+                  >
+                    <span>Bidang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandSubdomains}
+                    className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                    title="Buka Level Bidang & Sub-Bidang"
+                  >
+                    <span>Sub-Bidang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandAll}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                    title="Buka Semua Rincian (Bidang, Sub-Bidang, Sasaran, & Indikator)"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    <span>Buka Semua</span>
+                  </button>
+                </div>
+
+                {/* Tombol Reload Data */}
+                <button
+                  type="button"
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs select-none whitespace-nowrap"
+                  title="Reload / Segarkan Data dari Database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden md:inline">Reload</span>
+                </button>
+
+                {/* Tombol Fullscreen */}
                 <button
                   type="button"
                   onClick={() => setIsFullscreenMatrix(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs select-none ml-1 whitespace-nowrap"
                   title="Tampilkan Matriks Manajemen Strategis dalam Layar Penuh"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -1169,21 +1525,20 @@ export default function RipsPlanning() {
                     <th className="py-2 px-3 w-40 border-r border-[#D1D5DB] text-[11px]">Aspek BSC</th>
                     <th className="py-2 px-3 w-24 text-right border-r border-[#D1D5DB] text-[11px]">Baseline</th>
                     <th className="py-2 px-3 w-24 text-right border-r border-[#D1D5DB] text-[11px]">Target</th>
-                    <th className="py-2 px-3 border-r border-[#D1D5DB] text-[11px]">Program &amp; Upaya Terkait</th>
                     <th className="py-2 px-2 w-16 text-center text-[11px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groupedHierarchy.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-500 bg-white">
+                      <td colSpan={6} className="py-8 text-center text-gray-500 bg-white">
                         Belum ada sasaran strategis RIPS yang sesuai filter.
                       </td>
                     </tr>
                   ) : (
                     groupedHierarchy.map((domainItem) => {
                       const domainKey = `dom_${domainItem.id}`;
-                      const isDomainExpanded = expandedDomains[domainKey] !== false; // default expanded
+                      const isDomainExpanded = isFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
                       return (
                         <React.Fragment key={domainKey}>
@@ -1192,7 +1547,7 @@ export default function RipsPlanning() {
                             <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
                               {domainItem.code}
                             </td>
-                            <td colSpan={5} className="py-1.5 px-3 border-r border-gray-300">
+                            <td colSpan={4} className="py-1.5 px-3 border-r border-gray-300">
                               <button
                                 onClick={() => toggleDomain(domainKey)}
                                 className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
@@ -1215,6 +1570,29 @@ export default function RipsPlanning() {
                             <td className="py-1.5 px-2 text-center">
                               <div className="flex items-center justify-center gap-1">
                                 <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewDomainName('');
+                                    setModalType('add_domain_quick');
+                                  }}
+                                  className="p-1 rounded bg-white hover:bg-blue-100 text-blue-700 transition shadow-2xs border border-gray-300"
+                                  title="Tambah Bidang Baru"
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewSubdomainData({ domain_id: domainItem.id !== 'unassigned' ? domainItem.id : (domains[0]?.id || ''), name: '' });
+                                    setModalType('add_subdomain_quick');
+                                  }}
+                                  className="p-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 transition shadow-2xs border border-amber-300"
+                                  title="Tambah Sub-Bidang di Bidang ini"
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-amber-800" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     setEditingItem(null);
                                     setFormData({
@@ -1273,7 +1651,7 @@ export default function RipsPlanning() {
                             ) : (
                               domainItem.subdomainList.map((subItem) => {
                                 const subKey = `sub_${domainItem.id}_${subItem.id}`;
-                                const isSubExpanded = expandedSubdomains[subKey] !== false; // default expanded
+                                const isSubExpanded = isFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
                                 return (
                                   <React.Fragment key={subKey}>
@@ -1281,7 +1659,7 @@ export default function RipsPlanning() {
                                       <td className="py-1.5 px-3 text-center border-r border-amber-200/80 font-mono text-[11px] text-amber-800">
                                         {subItem.code}
                                       </td>
-                                      <td colSpan={5} className="py-1.5 px-3 border-r border-amber-200/80 pl-7">
+                                      <td colSpan={4} className="py-1.5 px-3 border-r border-amber-200/80 pl-7">
                                         <button
                                           onClick={() => toggleSubdomain(subKey)}
                                           className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
@@ -1304,6 +1682,30 @@ export default function RipsPlanning() {
                                       <td className="py-1.5 px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                           <button
+                                            type="button"
+                                            onClick={() => {
+                                              setEditingItem(null);
+                                              setProgGoalSearch('');
+                                              setIsGoalDropdownOpen(false);
+                                              const subGoals = subItem.goals || [];
+                                              const initialGoal = subGoals.length > 0 ? subGoals[0] : null;
+                                              const initialInds = initialGoal ? (initialGoal.indicators || []).map((i) => i.id) : [];
+                                              setFormData({
+                                                is_flagship: 0,
+                                                status: 'active',
+                                                category_id: '',
+                                                linked_goal_ids: initialGoal ? [initialGoal.id] : [],
+                                                linked_indicator_ids: initialInds,
+                                              });
+                                              setModalType('program');
+                                            }}
+                                            className="p-1 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-900 transition shadow-2xs border border-indigo-300"
+                                            title="Tambah Program Baru di Sub-Bidang ini"
+                                          >
+                                            <Plus className="w-3.5 h-3.5 text-indigo-700" />
+                                          </button>
+                                          <button
+                                            type="button"
                                             onClick={() => {
                                               setEditingItem(null);
                                               setFormData({
@@ -1346,7 +1748,7 @@ export default function RipsPlanning() {
                                       subItem.goals.length === 0 ? (
                                         <tr className="bg-white border-b border-gray-200 text-gray-400 italic text-[11px]">
                                           <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                          <td colSpan={5} className="py-2 px-3 pl-10 border-r border-gray-200">
+                                          <td colSpan={4} className="py-2 px-3 pl-10 border-r border-gray-200">
                                             Belum ada sasaran / program di sub-bidang ini.{' '}
                                             <button
                                               onClick={() => {
@@ -1385,7 +1787,7 @@ export default function RipsPlanning() {
                                             : null;
 
                                           const hasIndicators = g.indicators && g.indicators.length > 0;
-                                          const isGoalExpanded = expandedGoals[g.id] !== false; // default expanded if has indicators
+                                          const isGoalExpanded = isFilteringActive ? true : Boolean(expandedGoals[g.id]);
                                           const isAddingHere = addingIndicatorGoalId === g.id;
 
                                           return (
@@ -1593,28 +1995,6 @@ export default function RipsPlanning() {
                                                 )}
                                               </td>
 
-                                              {/* Kolom Program & Upaya Terkait: Badge & Bintang untuk program prioritas */}
-                                              <td className="py-2 px-3 border-r border-gray-200 align-top">
-                                                <div className="flex flex-wrap gap-1">
-                                                  {g.linked_programs?.length > 0 ? (
-                                                    g.linked_programs.map((lp) => (
-                                                      <span
-                                                        key={lp.program_id}
-                                                        className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-bold leading-tight ${
-                                                          lp.is_flagship
-                                                            ? 'bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs'
-                                                            : 'bg-gray-100 text-gray-700 border border-gray-300'
-                                                        }`}
-                                                      >
-                                                        {lp.is_flagship ? '⭐ ' : ''}{lp.program_code}
-                                                      </span>
-                                                    ))
-                                                  ) : (
-                                                    <span className="text-gray-400 text-[10px] italic">Belum ada program terkait</span>
-                                                  )}
-                                                </div>
-                                              </td>
-
                                               {/* Kolom Aksi */}
                                               <td className="py-2 px-2 text-center align-top whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
@@ -1711,9 +2091,10 @@ export default function RipsPlanning() {
                   className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
                 >
                   {/* Header Utama Tabel di Fullscreen */}
-                  <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md z-10">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
+                  <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
+                    {/* Sisi Kiri: Ikon & Judul Tabel */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
                         <Compass className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -1726,28 +2107,216 @@ export default function RipsPlanning() {
                           </span>
                         </div>
                         <p className="text-[11px] text-blue-100 font-medium">
-                          Hierarki Perencanaan: Bidang &gt; Sub Bidang &gt; Program &amp; Detail Indikator Kinerja ({filteredGoals.length} Sasaran Terpetakan)
+                          Hierarki: Bidang &gt; Sub-Bidang &gt; Sasaran &amp; Indikator ({filteredGoals.length} Sasaran Terpetakan)
                         </p>
                       </div>
                     </div>
 
-                    {/* Quick Search & Tombol Tutup Fullscreen */}
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    {/* Sisi Kanan: Filter Bidang, Filter Aspek BSC, Search, Tambah Bidang, Tambah Sub-Bidang, Tambah Sasaran, Tutup Fullscreen */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {/* Filter Bidang dengan Live Search & High Visibility */}
+                      <SearchableSelect
+                        value={filterDomain}
+                        onChange={(val) => {
+                          setFilterDomain(val || 'all');
+                          setFilterSubdomain('all');
+                        }}
+                        placeholder="Semua Bidang"
+                        searchPlaceholder="Cari bidang..."
+                        variant="header-white"
+                        accentColor="blue"
+                        className="w-44 sm:w-52"
+                        menuMinWidth="260px"
+                        options={[
+                          { value: 'all', label: `Semua Bidang (${domains.length})`, sublabel: 'Tampilkan seluruh bidang' },
+                          ...domains.map((d) => ({
+                            value: String(d.id),
+                            label: d.name,
+                            sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                            badge: d.code || `BID-${d.order_index || d.id}`
+                          }))
+                        ]}
+                      />
+
+                      {/* Filter Sub-Bidang dengan Live Search & High Visibility */}
+                      <SearchableSelect
+                        value={filterSubdomain}
+                        onChange={(val) => setFilterSubdomain(val || 'all')}
+                        placeholder="Semua Sub-Bidang"
+                        searchPlaceholder="Cari sub-bidang..."
+                        variant="header-white"
+                        accentColor="blue"
+                        className="w-48 sm:w-56"
+                        menuMinWidth="260px"
+                        options={[
+                          {
+                            value: 'all',
+                            label: `Semua Sub-Bidang (${availableGoalSubdomains.length})`,
+                            sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                          },
+                          ...availableGoalSubdomains.map((s) => ({
+                            value: String(s.id),
+                            label: s.name,
+                            sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                            badge: s.code || undefined
+                          }))
+                        ]}
+                      />
+
+                      {/* Filter Aspek BSC dengan Live Search & High Visibility */}
+                      <SearchableSelect
+                        value={filterBsc}
+                        onChange={(val) => setFilterBsc(val || 'all')}
+                        placeholder="Semua Aspek BSC"
+                        searchPlaceholder="Cari aspek BSC..."
+                        variant="header-white"
+                        accentColor="blue"
+                        className="w-48 sm:w-56"
+                        menuMinWidth="260px"
+                        options={[
+                          { value: 'all', label: `Semua Aspek BSC (${bscAspects.length})`, sublabel: 'Tampilkan seluruh aspek BSC' },
+                          ...bscAspects.map((b) => ({
+                            value: String(b.id),
+                            label: b.name,
+                            sublabel: b.description || `Aspek BSC ${b.name}`,
+                            badge: `BSC-${b.order_index || b.id}`
+                          }))
+                        ]}
+                      />
+
+                      {/* Live Search */}
+                      <div className="relative flex items-center group">
+                        <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Cari sasaran / bidang..."
-                          className="bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-gray-900 placeholder-blue-200 focus:placeholder-gray-400 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none transition border border-white/20 focus:border-white w-48 sm:w-64 font-medium"
+                          className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
                         />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                            title="Hapus kata kunci pencarian"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
+                      {/* Tombol Tambah Bidang */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewDomainName('');
+                          setModalType('add_domain_quick');
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs whitespace-nowrap"
+                        title="Tambah Bidang Baru ke Matriks"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-blue-100" />
+                        <span>Tambah Bidang</span>
+                      </button>
+
+                      {/* Tombol Tambah Sub-Bidang */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewSubdomainData({ domain_id: domains[0]?.id || '', name: '' });
+                          setModalType('add_subdomain_quick');
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-amber-950 text-xs font-bold transition border border-amber-300 shadow-xs whitespace-nowrap"
+                        title="Tambah Sub-Bidang Baru ke Matriks"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-amber-900" />
+                        <span>Tambah Sub-Bidang</span>
+                      </button>
+
+                      {/* Tombol Tambah Sasaran Baru */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingItem(null);
+                          setFormData({
+                            domain_id: domains[0]?.id || '',
+                            bsc_aspect_id: bscAspects[0]?.id || '',
+                            title: '',
+                            indicators: [
+                              {
+                                name: '',
+                                unit: '%',
+                                baseline_percent: 0,
+                                target_percent: 100,
+                              }
+                            ],
+                            status: 'active',
+                          });
+                          setModalType('goal');
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-extrabold transition shadow-md whitespace-nowrap"
+                        title="Tambah Sasaran Baru"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tambah Sasaran Baru</span>
+                      </button>
+
+                      {/* Kontrol Lipat / Buka Hirarki in Fullscreen */}
+                      <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-xl border border-white/20">
+                        <button
+                          type="button"
+                          onClick={handleCollapseAll}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
+                          title="Lipat Semua (Bidang, Sub-Bidang, Sasaran, & Indikator)"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                          <span>Lipat Semua</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandDomainsOnly}
+                          className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                          title="Buka Level Bidang Saja"
+                        >
+                          Bidang
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandSubdomains}
+                          className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                          title="Buka Level Bidang & Sub-Bidang"
+                        >
+                          Sub-Bidang
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandAll}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-white/20 hover:bg-white/30 transition shadow-2xs"
+                          title="Buka Semua Rincian (Bidang, Sub-Bidang, Sasaran, & Indikator)"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                          <span>Buka Semua</span>
+                        </button>
+                      </div>
+
+                      {/* Tombol Reload Data */}
+                      <button
+                        type="button"
+                        onClick={fetchData}
+                        disabled={loading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none whitespace-nowrap"
+                        title="Reload / Segarkan Data dari Database"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        <span className="hidden md:inline">Reload</span>
+                      </button>
+
+                      {/* Tombol Tutup Fullscreen */}
                       <button
                         type="button"
                         onClick={() => setIsFullscreenMatrix(false)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/20 shadow-xs select-none"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none ml-1 whitespace-nowrap"
                         title="Tutup Mode Layar Penuh (ESC)"
                       >
                         <Minimize2 className="w-3.5 h-3.5" />
@@ -1768,28 +2337,27 @@ export default function RipsPlanning() {
                     className="bg-white"
                   >
                     <table className="w-full text-left text-xs border-collapse min-w-[900px]">
-                      <thead className="sticky top-0 z-20 shadow-xs bg-[#F3F4F6] text-gray-800 font-bold border-b border-[#D1D5DB]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 font-bold border-b border-[#D1D5DB]">
                         <tr>
                           <th className="py-2.5 px-3 w-28 text-center border-r border-[#D1D5DB] text-[11px]">Kode / Bidang</th>
                           <th className="py-2.5 px-3 border-r border-[#D1D5DB] text-[11px] min-w-[280px]">Sub-Bidang &amp; Sasaran Strategis</th>
                           <th className="py-2.5 px-3 w-40 border-r border-[#D1D5DB] text-[11px]">Aspek BSC</th>
                           <th className="py-2.5 px-3 w-24 text-right border-r border-[#D1D5DB] text-[11px]">Baseline</th>
                           <th className="py-2.5 px-3 w-24 text-right border-r border-[#D1D5DB] text-[11px]">Target</th>
-                          <th className="py-2.5 px-3 border-r border-[#D1D5DB] text-[11px] min-w-[240px]">Program &amp; Upaya Terkait</th>
                           <th className="py-2.5 px-2 w-16 text-center text-[11px]">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {groupedHierarchy.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="py-8 text-center text-gray-500 bg-white">
+                            <td colSpan={6} className="py-8 text-center text-gray-500 bg-white">
                               Belum ada sasaran strategis RIPS yang sesuai filter.
                             </td>
                           </tr>
                         ) : (
                           groupedHierarchy.map((domainItem) => {
                             const domainKey = `dom_${domainItem.id}`;
-                            const isDomainExpanded = expandedDomains[domainKey] !== false;
+                            const isDomainExpanded = isFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
                             return (
                               <React.Fragment key={domainKey}>
@@ -1798,7 +2366,7 @@ export default function RipsPlanning() {
                                   <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
                                     {domainItem.code}
                                   </td>
-                                  <td colSpan={5} className="py-1.5 px-3 border-r border-gray-300">
+                                  <td colSpan={4} className="py-1.5 px-3 border-r border-gray-300">
                                     <button
                                       onClick={() => toggleDomain(domainKey)}
                                       className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
@@ -1821,6 +2389,29 @@ export default function RipsPlanning() {
                                   <td className="py-1.5 px-2 text-center">
                                     <div className="flex items-center justify-center gap-1">
                                       <button
+                                        type="button"
+                                        onClick={() => {
+                                          setNewDomainName('');
+                                          setModalType('add_domain_quick');
+                                        }}
+                                        className="p-1 rounded bg-white hover:bg-blue-100 text-blue-700 transition shadow-2xs border border-gray-300"
+                                        title="Tambah Bidang Baru"
+                                      >
+                                        <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setNewSubdomainData({ domain_id: domainItem.id !== 'unassigned' ? domainItem.id : (domains[0]?.id || ''), name: '' });
+                                          setModalType('add_subdomain_quick');
+                                        }}
+                                        className="p-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 transition shadow-2xs border border-amber-300"
+                                        title="Tambah Sub-Bidang di Bidang ini"
+                                      >
+                                        <Plus className="w-3.5 h-3.5 text-amber-800" />
+                                      </button>
+                                      <button
+                                        type="button"
                                         onClick={() => {
                                           setEditingItem(null);
                                           setFormData({
@@ -1870,7 +2461,7 @@ export default function RipsPlanning() {
                                   ) : (
                                     domainItem.subdomainList.map((subItem) => {
                                       const subKey = `sub_${domainItem.id}_${subItem.id}`;
-                                      const isSubExpanded = expandedSubdomains[subKey] !== false;
+                                      const isSubExpanded = isFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
                                       return (
                                         <React.Fragment key={subKey}>
@@ -1878,7 +2469,7 @@ export default function RipsPlanning() {
                                             <td className="py-1.5 px-3 text-center border-r border-amber-200/80 font-mono text-[11px] text-amber-800">
                                               {subItem.code}
                                             </td>
-                                            <td colSpan={5} className="py-1.5 px-3 border-r border-amber-200/80 pl-7">
+                                            <td colSpan={4} className="py-1.5 px-3 border-r border-amber-200/80 pl-7">
                                               <button
                                                 onClick={() => toggleSubdomain(subKey)}
                                                 className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
@@ -1901,6 +2492,30 @@ export default function RipsPlanning() {
                                             <td className="py-1.5 px-2 text-center">
                                               <div className="flex items-center justify-center gap-1">
                                                 <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setEditingItem(null);
+                                                    setProgGoalSearch('');
+                                                    setIsGoalDropdownOpen(false);
+                                                    const subGoals = subItem.goals || [];
+                                                    const initialGoal = subGoals.length > 0 ? subGoals[0] : null;
+                                                    const initialInds = initialGoal ? (initialGoal.indicators || []).map((i) => i.id) : [];
+                                                    setFormData({
+                                                      is_flagship: 0,
+                                                      status: 'active',
+                                                      category_id: '',
+                                                      linked_goal_ids: initialGoal ? [initialGoal.id] : [],
+                                                      linked_indicator_ids: initialInds,
+                                                    });
+                                                    setModalType('program');
+                                                  }}
+                                                  className="p-1 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-900 transition shadow-2xs border border-indigo-300"
+                                                  title="Tambah Program Baru di Sub-Bidang ini"
+                                                >
+                                                  <Plus className="w-3.5 h-3.5 text-indigo-700" />
+                                                </button>
+                                                <button
+                                                  type="button"
                                                   onClick={() => {
                                                     setEditingItem(null);
                                                     setFormData({
@@ -1943,7 +2558,7 @@ export default function RipsPlanning() {
                                             subItem.goals.length === 0 ? (
                                               <tr className="bg-white border-b border-gray-200 text-gray-400 italic text-[11px]">
                                                 <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                                <td colSpan={5} className="py-2 px-3 pl-10 border-r border-gray-200">
+                                                <td colSpan={4} className="py-2 px-3 pl-10 border-r border-gray-200">
                                                   Belum ada sasaran / program di sub-bidang ini.
                                                 </td>
                                                 <td className="py-2 px-2 text-center">-</td>
@@ -1958,7 +2573,7 @@ export default function RipsPlanning() {
                                                   : null;
 
                                                 const hasIndicators = g.indicators && g.indicators.length > 0;
-                                                const isGoalExpanded = expandedGoals[g.id] !== false;
+                                                const isGoalExpanded = isFilteringActive ? true : Boolean(expandedGoals[g.id]);
                                                 const isAddingHere = addingIndicatorGoalId === g.id;
 
                                                 return (
@@ -2159,24 +2774,7 @@ export default function RipsPlanning() {
                                                       {targetVal ? `${targetVal}%` : '-'}
                                                     </td>
 
-                                                    {/* Kolom Program Terkait */}
-                                                    <td className="py-2 px-3 border-r border-gray-200 align-top">
-                                                      {g.linked_programs && g.linked_programs.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1">
-                                                          {g.linked_programs.map((lp) => (
-                                                            <span
-                                                              key={lp.program_id}
-                                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium"
-                                                              title={lp.program_name}
-                                                            >
-                                                              <span className="font-mono font-bold">{lp.program_code}</span>
-                                                            </span>
-                                                          ))}
-                                                        </div>
-                                                      ) : (
-                                                        <span className="text-[10px] text-gray-400 italic">Belum ada program</span>
-                                                      )}
-                                                    </td>
+
 
                                                     {/* Kolom Aksi */}
                                                     <td className="py-2 px-2 text-center align-top whitespace-nowrap">
@@ -2251,75 +2849,192 @@ export default function RipsPlanning() {
 
       {/* TAB 2: PROGRAM & UPAYA STRATEGIS (REDESIGNED AS HIGH-DENSITY TABLE) */}
       {activeTab === 'programs' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-400" />
-                Daftar Program &amp; Upaya Strategis RIPS
-              </h2>
-              <p className="text-xs text-slate-400">
-                Inisiatif terobosan dan program strategis yang menopang ketercapaian sasaran RIPS
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setEditingItem(null);
-                  setProgGoalSearch('');
-                  setIsGoalDropdownOpen(false);
-                  setFormData({
-                    is_flagship: 0,
-                    status: 'active',
-                    category_id: null,
-                    linked_goal_ids: [],
-                  });
-                  setModalType('program');
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50 self-start sm:self-auto"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Program Baru
-              </button>
-            </div>
-          </div>
-
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           {/* Program Table Card (Normal Inline Display) */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
             {/* Header Utama Tabel: Biru Solid (#3B82F6) */}
-            <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-bold">
-                  <Layers className="w-4 h-4 text-white" />
+            <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-t-2xl relative z-20">
+              {/* Sisi Kiri: Ikon & Judul Tabel */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
+                  <Layers className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
                     PROGRAM STRATEGIS &amp; INISIATIF TEROBOSAN
                   </h3>
                   <p className="text-[11px] text-blue-100 font-medium">
-                    Total {programs.length} Program Operasional ({programs.filter(p => p.is_flagship).length} Program Unggulan)
+                    Menampilkan {totalFilteredProgramsCount} dari {programs.length} Program Operasional ({programs.filter(p => p.is_flagship).length} Unggulan)
                   </p>
                 </div>
               </div>
 
-              {/* Quick Search & Fullscreen Toggle */}
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              {/* Sisi Kanan: Filter Bidang, Filter Sub-Bidang, Toggle Unggulan, Search, Tambah Program, Layar Penuh */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* Filter Bidang dengan Live Search & High Visibility */}
+                <SearchableSelect
+                  value={filterProgramDomain}
+                  onChange={(val) => {
+                    setFilterProgramDomain(val || 'all');
+                    setFilterProgramSubdomain('all');
+                  }}
+                  placeholder="Semua Bidang"
+                  searchPlaceholder="Cari bidang..."
+                  variant="header-white"
+                  accentColor="blue"
+                  className="w-40 sm:w-48"
+                  menuMinWidth="260px"
+                  options={[
+                    { value: 'all', label: `Semua Bidang (${domains.length})`, sublabel: 'Tampilkan seluruh bidang' },
+                    ...domains.map((d) => ({
+                      value: String(d.id),
+                      label: d.name,
+                      sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                      badge: d.code || `BID-${d.order_index || d.id}`
+                    }))
+                  ]}
+                />
+
+                {/* Filter Sub-Bidang dengan Live Search & High Visibility */}
+                <SearchableSelect
+                  value={filterProgramSubdomain}
+                  onChange={(val) => setFilterProgramSubdomain(val || 'all')}
+                  placeholder="Semua Sub-Bidang"
+                  searchPlaceholder="Cari sub-bidang..."
+                  variant="header-white"
+                  accentColor="blue"
+                  className="w-44 sm:w-52"
+                  menuMinWidth="260px"
+                  options={[
+                    {
+                      value: 'all',
+                      label: `Semua Sub-Bidang (${availableProgramSubdomains.length})`,
+                      sublabel: filterProgramDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                    },
+                    ...availableProgramSubdomains.map((s) => ({
+                      value: String(s.id),
+                      label: s.name,
+                      sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                      badge: s.code || undefined
+                    }))
+                  ]}
+                />
+
+                {/* Filter Tambahan: Flagship Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setFilterProgramFlagship((prev) => !prev)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition select-none border shadow-xs ${
+                    filterProgramFlagship
+                      ? 'bg-amber-400 text-amber-950 border-amber-300 shadow-md ring-2 ring-amber-300/40'
+                      : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+                  }`}
+                  title="Filter hanya program unggulan (Flagship)"
+                >
+                  <span>⭐</span>
+                  <span className="hidden sm:inline">Unggulan</span>
+                </button>
+
+                {/* Live Search */}
+                <div className="relative flex items-center group">
+                  <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                   <input
                     type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={programSearchQuery}
+                    onChange={(e) => setProgramSearchQuery(e.target.value)}
                     placeholder="Cari program / sasaran..."
-                    className="bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-gray-900 placeholder-blue-200 focus:placeholder-gray-400 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none transition border border-white/20 focus:border-white w-48 sm:w-64 font-medium"
+                    className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
                   />
+                  {programSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProgramSearchQuery('')}
+                      className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                      title="Hapus kata kunci pencarian"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
 
+                {/* Tombol Tambah Program Baru */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setProgGoalSearch('');
+                    setIsGoalDropdownOpen(false);
+                    setFormData({
+                      is_flagship: 0,
+                      status: 'active',
+                      category_id: '',
+                      linked_goal_ids: [],
+                      linked_indicator_ids: [],
+                    });
+                    setModalType('program');
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-extrabold transition shadow-md whitespace-nowrap"
+                  title="Tambah Program Baru"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Program</span>
+                </button>
+
+                {/* Kontrol Lipat / Buka Hirarki */}
+                <div className="flex items-center gap-1 bg-white/15 p-1 rounded-xl border border-white/20">
+                  <button
+                    type="button"
+                    onClick={handleCollapseAll}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/25 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                    title="Lipat Semua (Bidang, Sub-Bidang, & Sasaran)"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                    <span>Lipat Semua</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandDomainsOnly}
+                    className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                    title="Buka Level Bidang Saja"
+                  >
+                    <span>Bidang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandSubdomains}
+                    className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                    title="Buka Level Bidang & Sub-Bidang"
+                  >
+                    <span>Sub-Bidang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExpandAll}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                    title="Buka Semua Rincian (Bidang, Sub-Bidang, & Sasaran)"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    <span>Buka Semua</span>
+                  </button>
+                </div>
+
+                {/* Tombol Reload Data */}
+                <button
+                  type="button"
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none whitespace-nowrap"
+                  title="Reload / Segarkan Data dari Database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden md:inline">Reload</span>
+                </button>
+
+                {/* Tombol Layar Penuh */}
                 <button
                   type="button"
                   onClick={() => setIsFullscreenPrograms(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/20 shadow-xs select-none"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none ml-1 whitespace-nowrap"
                   title="Mode Layar Penuh"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -2351,7 +3066,7 @@ export default function RipsPlanning() {
                   ) : (
                     groupedPrograms.map((domain) => {
                       const domainKey = `prog_dom_${domain.id}`;
-                      const isDomainExpanded = expandedDomains[domainKey] !== false;
+                      const isDomainExpanded = isProgramFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
                       return (
                         <React.Fragment key={domain.id}>
@@ -2377,6 +3092,36 @@ export default function RipsPlanning() {
                                     ({domain.totalPrograms || 0} Program)
                                   </span>
                                 </button>
+
+                                {/* Direct Action Buttons on Domain Row */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setNewDomainName('');
+                                      setModalType('add_domain_quick');
+                                    }}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-blue-900 border border-blue-200 text-[11px] font-bold transition shadow-xs"
+                                    title="Tambah Bidang Baru"
+                                  >
+                                    <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Tambah Bidang</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setNewSubdomainData({ domain_id: domain.id !== 'unassigned' ? domain.id : (domains[0]?.id || ''), name: '' });
+                                      setModalType('add_subdomain_quick');
+                                    }}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-bold transition shadow-xs"
+                                    title={`Tambah Sub-Bidang di bawah Bidang ${domain.name}`}
+                                  >
+                                    <Plus className="w-3.5 h-3.5 text-amber-900" />
+                                    <span>Tambah Sub-Bidang</span>
+                                  </button>
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -2392,7 +3137,7 @@ export default function RipsPlanning() {
                             ) : (
                               domain.subdomainList.map((sub) => {
                                 const subKey = `prog_sub_${domain.id}_${sub.id}`;
-                                const isSubExpanded = expandedSubdomains[subKey] !== false;
+                                const isSubExpanded = isProgramFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
                                 return (
                                   <React.Fragment key={sub.id}>
@@ -2418,6 +3163,39 @@ export default function RipsPlanning() {
                                               ({sub.programs?.length || 0} Program)
                                             </span>
                                           </button>
+
+                                          {/* Direct Action Button on Subdomain Row to Add Program */}
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingItem(null);
+                                                setProgGoalSearch('');
+                                                setIsGoalDropdownOpen(false);
+                                                const domainGoals = goals.filter((g) => {
+                                                  const matchDomain = g.domain_id === domain.id;
+                                                  const matchSub = sub.id !== 'general' ? g.subdomain_id === sub.id : true;
+                                                  return matchDomain && matchSub;
+                                                });
+                                                const initialGoal = domainGoals.length > 0 ? domainGoals[0] : null;
+                                                const initialInds = initialGoal ? (initialGoal.indicators || []).map((i) => i.id) : [];
+                                                setFormData({
+                                                  is_flagship: 0,
+                                                  status: 'active',
+                                                  category_id: '',
+                                                  linked_goal_ids: initialGoal ? [initialGoal.id] : [],
+                                                  linked_indicator_ids: initialInds,
+                                                });
+                                                setModalType('program');
+                                              }}
+                                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition shadow-xs"
+                                              title={`Tambah Program Baru di Sub-Bidang ${sub.name}`}
+                                            >
+                                              <Plus className="w-3.5 h-3.5" />
+                                              <span>Tambah Program</span>
+                                            </button>
+                                          </div>
                                         </div>
                                       </td>
                                     </tr>
@@ -2443,29 +3221,22 @@ export default function RipsPlanning() {
                                               }`}
                                             >
                                               {/* Kode Program */}
-                                              <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top pl-8">
+                                              <td className="py-2 px-3 text-center border-r border-gray-200 align-middle">
                                                 <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block">
                                                   {p.code}
                                                 </span>
                                               </td>
 
-                                              {/* Nama Program & Deskripsi */}
-                                              <td className="py-2.5 px-4 border-r border-gray-200 align-top">
-                                                <div className="space-y-1">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-gray-900 text-xs leading-snug">
-                                                      {p.name}
+                                              {/* Nama Program (Satu Baris, Sejajar / Masuk dari Sub-Bidang) */}
+                                              <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                  <span className="font-bold text-gray-900 text-xs leading-snug">
+                                                    {p.name}
+                                                  </span>
+                                                  {isFlagship && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0">
+                                                      ⭐ Flagship
                                                     </span>
-                                                    {isFlagship && (
-                                                      <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs shrink-0">
-                                                        ⭐ Flagship
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                  {p.description && (
-                                                    <p className="text-[11px] text-gray-600 leading-relaxed">
-                                                      {p.description}
-                                                    </p>
                                                   )}
                                                 </div>
                                               </td>
@@ -2500,7 +3271,7 @@ export default function RipsPlanning() {
                                                   <div className="space-y-2">
                                                     {p.linked_goals.map((lg) => {
                                                       const indKey = `ind_${p.id}_${lg.goal_id}`;
-                                                      const isIndExpanded = !!expandedProgGoalIndicators[indKey];
+                                                      const isIndExpanded = isProgramFilteringActive ? true : Boolean(expandedProgGoalIndicators[indKey]);
                                                       const indCount = lg.indicators?.length || 0;
 
                                                       return (
@@ -2592,6 +3363,14 @@ export default function RipsPlanning() {
                                               <td className="py-2.5 px-2 text-center align-top whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
                                                   <button
+                                                    type="button"
+                                                    onClick={() => handleOpenMoveProgramModal(p)}
+                                                    className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition"
+                                                    title="Pindahkan Program ke Sub-Bidang Lain"
+                                                  >
+                                                    <FolderInput className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
                                                     onClick={() => {
                                                       setEditingItem(p);
                                                       setProgGoalSearch('');
@@ -2600,10 +3379,11 @@ export default function RipsPlanning() {
                                                         code: p.code,
                                                         name: p.name,
                                                         description: p.description,
-                                                        category_id: p.category_id,
+                                                        category_id: p.category_id !== null && p.category_id !== undefined ? String(p.category_id) : '',
                                                         is_flagship: p.is_flagship,
                                                         status: p.status,
                                                         linked_goal_ids: p.linked_goals?.map((g) => g.goal_id) || [],
+                                                        linked_indicator_ids: p.linked_indicator_ids || p.linked_goals?.flatMap((g) => (g.indicators || []).map((i) => i.id)) || [],
                                                       });
                                                       setModalType('program');
                                                     }}
@@ -2672,10 +3452,11 @@ export default function RipsPlanning() {
                     className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
                   >
                     {/* Header Utama Tabel di Fullscreen */}
-                    <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-bold">
-                          <Layers className="w-4 h-4 text-white" />
+                    <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
+                      {/* Sisi Kiri: Ikon & Judul Tabel */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
+                          <Layers className="w-5 h-5 text-white" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -2687,28 +3468,177 @@ export default function RipsPlanning() {
                             </span>
                           </div>
                           <p className="text-[11px] text-blue-100 font-medium">
-                            Total {programs.length} Program Operasional ({programs.filter((p) => p.is_flagship).length} Program Unggulan)
+                            Menampilkan {totalFilteredProgramsCount} dari {programs.length} Program Operasional ({programs.filter((p) => p.is_flagship).length} Unggulan)
                           </p>
                         </div>
                       </div>
 
-                      {/* Quick Search & Tombol Tutup Fullscreen */}
-                      <div className="flex items-center gap-2">
-                        <div className="relative">
-                          <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      {/* Sisi Kanan: Filter Bidang, Filter Sub-Bidang, Toggle Unggulan, Search, Tambah Program, Tutup Fullscreen */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        {/* Filter Bidang dengan Live Search & High Visibility */}
+                        <SearchableSelect
+                          value={filterProgramDomain}
+                          onChange={(val) => {
+                            setFilterProgramDomain(val || 'all');
+                            setFilterProgramSubdomain('all');
+                          }}
+                          placeholder="Semua Bidang"
+                          searchPlaceholder="Cari bidang..."
+                          variant="header-white"
+                          accentColor="blue"
+                          className="w-40 sm:w-48"
+                          menuMinWidth="260px"
+                          options={[
+                            { value: 'all', label: `Semua Bidang (${domains.length})`, sublabel: 'Tampilkan seluruh bidang' },
+                            ...domains.map((d) => ({
+                              value: String(d.id),
+                              label: d.name,
+                              sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                              badge: d.code || `BID-${d.order_index || d.id}`
+                            }))
+                          ]}
+                        />
+
+                        {/* Filter Sub-Bidang dengan Live Search & High Visibility */}
+                        <SearchableSelect
+                          value={filterProgramSubdomain}
+                          onChange={(val) => setFilterProgramSubdomain(val || 'all')}
+                          placeholder="Semua Sub-Bidang"
+                          searchPlaceholder="Cari sub-bidang..."
+                          variant="header-white"
+                          accentColor="blue"
+                          className="w-44 sm:w-52"
+                          menuMinWidth="260px"
+                          options={[
+                            {
+                              value: 'all',
+                              label: `Semua Sub-Bidang (${availableProgramSubdomains.length})`,
+                              sublabel: filterProgramDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                            },
+                            ...availableProgramSubdomains.map((s) => ({
+                              value: String(s.id),
+                              label: s.name,
+                              sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                              badge: s.code || undefined
+                            }))
+                          ]}
+                        />
+
+                        {/* Filter Tambahan: Flagship Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => setFilterProgramFlagship((prev) => !prev)}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition select-none border shadow-xs ${
+                            filterProgramFlagship
+                              ? 'bg-amber-400 text-amber-950 border-amber-300 shadow-md ring-2 ring-amber-300/40'
+                              : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+                          }`}
+                          title="Filter hanya program unggulan (Flagship)"
+                        >
+                          <span>⭐</span>
+                          <span className="hidden sm:inline">Unggulan</span>
+                        </button>
+
+                        {/* Live Search */}
+                        <div className="relative flex items-center group">
+                          <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                           <input
                             type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={programSearchQuery}
+                            onChange={(e) => setProgramSearchQuery(e.target.value)}
                             placeholder="Cari program / sasaran..."
-                            className="bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-gray-900 placeholder-blue-200 focus:placeholder-gray-400 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none transition border border-white/20 focus:border-white w-48 sm:w-64 font-medium"
+                            className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
                           />
+                          {programSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setProgramSearchQuery('')}
+                              className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                              title="Hapus kata kunci pencarian"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
 
+                        {/* Tombol Tambah Program Baru */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingItem(null);
+                            setProgGoalSearch('');
+                            setIsGoalDropdownOpen(false);
+                            setFormData({
+                              is_flagship: 0,
+                              status: 'active',
+                              category_id: '',
+                              linked_goal_ids: [],
+                              linked_indicator_ids: [],
+                            });
+                            setModalType('program');
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-extrabold transition shadow-md whitespace-nowrap"
+                          title="Tambah Program Baru"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Tambah Program</span>
+                        </button>
+
+                        {/* Kontrol Lipat / Buka Hirarki in Fullscreen */}
+                        <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-xl border border-white/20">
+                          <button
+                            type="button"
+                            onClick={handleCollapseAll}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
+                            title="Lipat Semua (Bidang, Sub-Bidang, & Sasaran)"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                            <span>Lipat Semua</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleExpandDomainsOnly}
+                            className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                            title="Buka Level Bidang Saja"
+                          >
+                            Bidang
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleExpandSubdomains}
+                            className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                            title="Buka Level Bidang & Sub-Bidang"
+                          >
+                            Sub-Bidang
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleExpandAll}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-white/20 hover:bg-white/30 transition shadow-2xs"
+                            title="Buka Semua Rincian (Bidang, Sub-Bidang, & Sasaran)"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                            <span>Buka Semua</span>
+                          </button>
+                        </div>
+
+                        {/* Tombol Reload Data */}
+                        <button
+                          type="button"
+                          onClick={fetchData}
+                          disabled={loading}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none whitespace-nowrap"
+                          title="Reload / Segarkan Data dari Database"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                          <span className="hidden md:inline">Reload</span>
+                        </button>
+
+                        {/* Tombol Tutup Fullscreen */}
                         <button
                           type="button"
                           onClick={() => setIsFullscreenPrograms(false)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/20 shadow-xs select-none"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none ml-1 whitespace-nowrap"
                           title="Tutup Mode Layar Penuh (ESC)"
                         >
                           <Minimize2 className="w-3.5 h-3.5" />
@@ -2729,7 +3659,7 @@ export default function RipsPlanning() {
                       className="bg-white"
                     >
                     <table className="w-full text-left border-collapse min-w-[900px]">
-                      <thead className="sticky top-0 z-20 shadow-xs">
+                      <thead className="sticky top-0 z-10 shadow-xs">
                         <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                           <th className="py-2.5 px-4 border-r border-[#D1D5DB] min-w-[240px]">Nama Program &amp; Deskripsi</th>
@@ -2749,7 +3679,7 @@ export default function RipsPlanning() {
                         ) : (
                           groupedPrograms.map((domain) => {
                             const domainKey = `prog_dom_${domain.id}`;
-                            const isDomainExpanded = expandedDomains[domainKey] !== false;
+                            const isDomainExpanded = isProgramFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
                             return (
                               <React.Fragment key={domain.id}>
@@ -2775,6 +3705,36 @@ export default function RipsPlanning() {
                                           ({domain.totalPrograms || 0} Program)
                                         </span>
                                       </button>
+                                      
+                                      {/* Direct Action Buttons on Domain Row */}
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNewDomainName('');
+                                            setModalType('add_domain_quick');
+                                          }}
+                                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-blue-900 border border-blue-200 text-[11px] font-bold transition shadow-xs"
+                                          title="Tambah Bidang Baru"
+                                        >
+                                          <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                          <span>Tambah Bidang</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNewSubdomainData({ domain_id: domain.id !== 'unassigned' ? domain.id : (domains[0]?.id || ''), name: '' });
+                                            setModalType('add_subdomain_quick');
+                                          }}
+                                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-bold transition shadow-xs"
+                                          title={`Tambah Sub-Bidang di bawah Bidang ${domain.name}`}
+                                        >
+                                          <Plus className="w-3.5 h-3.5 text-amber-900" />
+                                          <span>Tambah Sub-Bidang</span>
+                                        </button>
+                                      </div>
                                     </div>
                                   </td>
                                 </tr>
@@ -2783,7 +3743,7 @@ export default function RipsPlanning() {
                                 {isDomainExpanded &&
                                   domain.subdomainList.map((sub) => {
                                     const subKey = `prog_sub_${domain.id}_${sub.id}`;
-                                    const isSubExpanded = expandedSubdomains[subKey] !== false;
+                                    const isSubExpanded = isProgramFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
                                     return (
                                       <React.Fragment key={sub.id}>
@@ -2809,6 +3769,39 @@ export default function RipsPlanning() {
                                                   ({sub.programs?.length || 0} Program)
                                                 </span>
                                               </button>
+
+                                              {/* Direct Action Button on Subdomain Row to Add Program */}
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingItem(null);
+                                                    setProgGoalSearch('');
+                                                    setIsGoalDropdownOpen(false);
+                                                    const domainGoals = goals.filter((g) => {
+                                                      const matchDomain = g.domain_id === domain.id;
+                                                      const matchSub = sub.id !== 'general' ? g.subdomain_id === sub.id : true;
+                                                      return matchDomain && matchSub;
+                                                    });
+                                                    const initialGoal = domainGoals.length > 0 ? domainGoals[0] : null;
+                                                    const initialInds = initialGoal ? (initialGoal.indicators || []).map((i) => i.id) : [];
+                                                    setFormData({
+                                                      is_flagship: 0,
+                                                      status: 'active',
+                                                      category_id: '',
+                                                      linked_goal_ids: initialGoal ? [initialGoal.id] : [],
+                                                      linked_indicator_ids: initialInds,
+                                                    });
+                                                    setModalType('program');
+                                                  }}
+                                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition shadow-xs"
+                                                  title={`Tambah Program Baru di Sub-Bidang ${sub.name}`}
+                                                >
+                                                  <Plus className="w-3.5 h-3.5" />
+                                                  <span>Tambah Program</span>
+                                                </button>
+                                              </div>
                                             </div>
                                           </td>
                                         </tr>
@@ -2884,7 +3877,7 @@ export default function RipsPlanning() {
                                                     <div className="space-y-2">
                                                       {p.linked_goals.map((lg) => {
                                                         const indKey = `ind_${p.id}_${lg.goal_id}`;
-                                                        const isIndExpanded = !!expandedProgGoalIndicators[indKey];
+                                                        const isIndExpanded = isProgramFilteringActive ? true : Boolean(expandedProgGoalIndicators[indKey]);
                                                         const indCount = lg.indicators?.length || 0;
 
                                                         return (
@@ -2970,10 +3963,17 @@ export default function RipsPlanning() {
                                                     {p.status || 'Active'}
                                                   </span>
                                                 </td>
-
                                                 {/* Aksi */}
                                                 <td className="py-2.5 px-2 text-center align-top whitespace-nowrap">
                                                   <div className="flex items-center justify-center gap-1">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleOpenMoveProgramModal(p)}
+                                                      className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition"
+                                                      title="Pindahkan Program ke Sub-Bidang Lain"
+                                                    >
+                                                      <FolderInput className="w-3.5 h-3.5" />
+                                                    </button>
                                                     <button
                                                       onClick={() => {
                                                         setEditingItem(p);
@@ -2983,10 +3983,13 @@ export default function RipsPlanning() {
                                                           code: p.code,
                                                           name: p.name,
                                                           description: p.description,
-                                                          category_id: p.category_id,
+                                                          domain_id: p.domain_id ? String(p.domain_id) : '',
+                                                          subdomain_id: p.subdomain_id ? String(p.subdomain_id) : '',
+                                                          category_id: p.category_id !== null && p.category_id !== undefined ? String(p.category_id) : '',
                                                           is_flagship: p.is_flagship,
                                                           status: p.status,
                                                           linked_goal_ids: p.linked_goals?.map((g) => g.goal_id) || [],
+                                                          linked_indicator_ids: p.linked_indicator_ids || p.linked_goals?.flatMap((g) => (g.indicators || []).map((i) => i.id)) || [],
                                                         });
                                                         setModalType('program');
                                                       }}
@@ -3027,7 +4030,7 @@ export default function RipsPlanning() {
 
       {/* TAB 3: RIWAYAT PENERBITAN RESMI */}
       {activeTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -3123,10 +4126,14 @@ export default function RipsPlanning() {
         </div>
       )}
 
-      {/* MODAL 1: GOAL FORM */}
-      {modalType === 'goal' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+      {/* ALL MODALS & POPUPS RENDERED IN PORTAL ON TOP OF FULLSCREEN OVERLAY (Z-INDEX 100000) */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div className="rips-modals-portal" style={{ position: 'relative', zIndex: 100000 }}>
+            {/* MODAL 1: GOAL FORM */}
+            {modalType === 'goal' && (
+              <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingItem ? 'Edit Sasaran RIPS' : 'Tambah Sasaran RIPS Baru'}
@@ -3137,55 +4144,46 @@ export default function RipsPlanning() {
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Bidang (Domain)</label>
-                  <div className="relative">
-                    <select
-                      value={formData.domain_id || ''}
-                      onChange={(e) => setFormData({ ...formData, domain_id: Number(e.target.value) })}
-                      required
-                      className="w-full appearance-none bg-slate-950/90 border border-slate-800 hover:border-slate-700 rounded-xl px-3.5 pr-8 py-2.5 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                    >
-                      {domains.map((d) => (
-                        <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200 py-1">{d.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-indigo-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Bidang (Domain) *</label>
+                  <SearchableSelect
+                    value={formData.domain_id || ''}
+                    placeholder="-- Pilih Bidang --"
+                    onChange={(val) => setFormData({ ...formData, domain_id: Number(val) })}
+                    options={domains.map((d) => ({
+                      value: d.id,
+                      label: d.name,
+                    }))}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Sub-Bidang (Opsional)</label>
-                  <div className="relative">
-                    <select
-                      value={formData.subdomain_id || ''}
-                      onChange={(e) => setFormData({ ...formData, subdomain_id: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full appearance-none bg-slate-950/90 border border-slate-800 hover:border-slate-700 rounded-xl px-3.5 pr-8 py-2.5 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                    >
-                      <option value="" className="bg-slate-950 text-slate-400">-- Tanpa Sub-Bidang --</option>
-                      {domains.find((d) => d.id === Number(formData.domain_id))?.subdomains?.map((s) => (
-                        <option key={s.id} value={s.id} className="bg-slate-950 text-slate-200 py-1">{s.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-indigo-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <SearchableSelect
+                    value={formData.subdomain_id || ''}
+                    placeholder="-- Tanpa Sub-Bidang --"
+                    onChange={(val) => setFormData({ ...formData, subdomain_id: val ? Number(val) : null })}
+                    options={[
+                      { value: '', label: '-- Tanpa Sub-Bidang --' },
+                      ...(domains.find((d) => d.id === Number(formData.domain_id))?.subdomains?.map((s) => ({
+                        value: s.id,
+                        label: s.name,
+                      })) || []),
+                    ]}
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Aspek Balanced Scorecard (BSC)</label>
-                <div className="relative">
-                  <select
-                    value={formData.bsc_aspect_id || ''}
-                    onChange={(e) => setFormData({ ...formData, bsc_aspect_id: Number(e.target.value) })}
-                    required
-                    className="w-full appearance-none bg-slate-950/90 border border-slate-800 hover:border-slate-700 rounded-xl px-3.5 pr-8 py-2.5 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                  >
-                    {bscAspects.map((b) => (
-                      <option key={b.id} value={b.id} className="bg-slate-950 text-slate-200 py-1">{b.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-violet-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Aspek Balanced Scorecard (BSC) *</label>
+                <SearchableSelect
+                  value={formData.bsc_aspect_id || ''}
+                  placeholder="-- Pilih Aspek BSC --"
+                  onChange={(val) => setFormData({ ...formData, bsc_aspect_id: Number(val) })}
+                  options={bscAspects.map((b) => ({
+                    value: b.id,
+                    label: b.name,
+                  }))}
+                />
               </div>
 
               <div>
@@ -3340,8 +4338,8 @@ export default function RipsPlanning() {
 
       {/* MODAL 2: PROGRAM FORM (LIVE SEARCH SASARAN & CHECKLIST INDIKATOR) */}
       {modalType === 'program' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-400" />
@@ -3365,18 +4363,18 @@ export default function RipsPlanning() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Kategori Program</label>
-                  <select
+                  <SearchableSelect
                     value={formData.category_id || ''}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                  >
-                    <option value="">-- Pilih Kategori --</option>
-                    {programCategories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- Pilih Kategori --"
+                    onChange={(val) => setFormData({ ...formData, category_id: val ? Number(val) : null })}
+                    options={[
+                      { value: '', label: '-- Pilih Kategori --' },
+                      ...programCategories.map((cat) => ({
+                        value: cat.id,
+                        label: cat.name,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -3394,10 +4392,10 @@ export default function RipsPlanning() {
               {/* SELEKSI SASARAN STRATEGIS DENGAN LIVE SEARCH DROPDOWN */}
               <div className="space-y-2 pt-1 border-t border-slate-800/80">
                 <label className="block text-xs font-bold text-indigo-300">
-                  1. Pilih Sasaran Strategis (Live Search Dropdown)
+                  1. Pilih Sasaran Strategis
                 </label>
                 
-                <div className="relative">
+                <div className="relative" ref={goalDropdownRef}>
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -3450,11 +4448,25 @@ export default function RipsPlanning() {
                             <div
                               key={g.id}
                               onClick={() => {
-                                const current = formData.linked_goal_ids || [];
+                                const currentGoalIds = formData.linked_goal_ids || [];
+                                const currentIndIds = formData.linked_indicator_ids || [];
+                                const goalIndIds = (g.indicators && g.indicators.length > 0
+                                  ? g.indicators
+                                  : [{ id: `fallback_${g.id}` }]
+                                ).map((i) => i.id);
+
                                 if (isSelected) {
-                                  setFormData({ ...formData, linked_goal_ids: current.filter((id) => id !== g.id) });
+                                  setFormData({
+                                    ...formData,
+                                    linked_goal_ids: currentGoalIds.filter((id) => id !== g.id),
+                                    linked_indicator_ids: currentIndIds.filter((id) => !goalIndIds.includes(id)),
+                                  });
                                 } else {
-                                  setFormData({ ...formData, linked_goal_ids: [...current, g.id] });
+                                  setFormData({
+                                    ...formData,
+                                    linked_goal_ids: [...currentGoalIds, g.id],
+                                    linked_indicator_ids: Array.from(new Set([...currentIndIds, ...goalIndIds])),
+                                  });
                                 }
                               }}
                               className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition ${
@@ -3494,20 +4506,25 @@ export default function RipsPlanning() {
               {/* DAFTAR CEKLIST INDIKATOR DARI SASARAN YANG DIPILIH */}
               <div className="space-y-2 pt-1 border-t border-slate-800/80">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-emerald-300">
-                    2. Daftar Ceklist Indikator Kinerja Sasaran Terkait
-                  </label>
-                  <span className="text-[10px] text-slate-400">
-                    {formData.linked_goal_ids?.length || 0} Sasaran Terpilih
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-300">
+                      2. Pilih Indikator Kinerja yang Terkait dengan Program Ini
+                    </label>
+                    <p className="text-[10.5px] text-slate-400">
+                      Centang satu atau lebih indikator spesifik yang ingin dihubungkan ke program ini:
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-slate-400 shrink-0 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                    {formData.linked_indicator_ids?.length || 0} Indikator Terpilih
                   </span>
                 </div>
 
                 {(!formData.linked_goal_ids || formData.linked_goal_ids.length === 0) ? (
                   <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-slate-400 text-xs">
-                    💡 Pilih sasaran strategis terlebih dahulu pada kolom pencarian di atas untuk menampilkan daftar indikator kinerjanya.
+                    💡 Pilih sasaran strategis terlebih dahulu pada kolom pencarian di atas untuk memilih indikator kinerjanya.
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                     {formData.linked_goal_ids.map((goalId) => {
                       const g = goals.find((item) => item.id === goalId);
                       if (!g) return null;
@@ -3523,43 +4540,115 @@ export default function RipsPlanning() {
                             }
                           ];
 
+                      const allGoalIndIds = gIndicators.map((i) => i.id);
+                      const selectedGoalInds = allGoalIndIds.filter((id) => (formData.linked_indicator_ids || []).includes(id));
+                      const isAllSelected = selectedGoalInds.length === allGoalIndIds.length;
+
                       return (
-                        <div key={g.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                          <div className="flex items-center justify-between pb-1.5 border-b border-slate-850">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800">
+                        <div key={g.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-xs">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-850 gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
                                 {g.code}
                               </span>
-                              <span className="text-xs font-bold text-white">{g.title}</span>
+                              <span className="text-xs font-bold text-white truncate">{g.title}</span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const current = formData.linked_goal_ids || [];
-                                setFormData({ ...formData, linked_goal_ids: current.filter((id) => id !== g.id) });
-                              }}
-                              className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-950/40 border border-rose-900/60 transition"
-                            >
-                              Hapus Sasaran
-                            </button>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentInds = formData.linked_indicator_ids || [];
+                                  if (isAllSelected) {
+                                    // Unselect all for this goal
+                                    setFormData({
+                                      ...formData,
+                                      linked_indicator_ids: currentInds.filter((id) => !allGoalIndIds.includes(id)),
+                                    });
+                                  } else {
+                                    // Select all for this goal
+                                    setFormData({
+                                      ...formData,
+                                      linked_indicator_ids: Array.from(new Set([...currentInds, ...allGoalIndIds])),
+                                    });
+                                  }
+                                }}
+                                className="text-[10px] text-indigo-300 hover:text-white font-medium px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 transition"
+                              >
+                                {isAllSelected ? 'Batal Semua' : 'Pilih Semua'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentGoals = formData.linked_goal_ids || [];
+                                  const currentInds = formData.linked_indicator_ids || [];
+                                  setFormData({
+                                    ...formData,
+                                    linked_goal_ids: currentGoals.filter((id) => id !== g.id),
+                                    linked_indicator_ids: currentInds.filter((id) => !allGoalIndIds.includes(id)),
+                                  });
+                                }}
+                                className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-950/40 border border-rose-900/60 transition"
+                              >
+                                ✕ Hapus
+                              </button>
+                            </div>
                           </div>
 
                           {/* Daftar Indikator Checkbox */}
-                          <div className="space-y-1.5 pl-1">
-                            {gIndicators.map((ind) => (
-                              <div
-                                key={ind.id}
-                                className="flex items-start justify-between gap-2 p-2 rounded-xl bg-slate-900/90 border border-slate-800/80 text-[11px] text-slate-200"
-                              >
-                                <div className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                                  <span className="leading-snug">{ind.name}</span>
+                          <div className="space-y-1.5 pl-0.5">
+                            {gIndicators.map((ind) => {
+                              const isIndChecked = (formData.linked_indicator_ids || []).includes(ind.id);
+                              return (
+                                <div
+                                  key={ind.id}
+                                  onClick={() => {
+                                    const currentInds = formData.linked_indicator_ids || [];
+                                    if (isIndChecked) {
+                                      setFormData({
+                                        ...formData,
+                                        linked_indicator_ids: currentInds.filter((id) => id !== ind.id),
+                                      });
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        linked_indicator_ids: [...currentInds, ind.id],
+                                      });
+                                    }
+                                  }}
+                                  className={`flex items-start justify-between gap-2.5 p-2 rounded-xl border text-[11px] cursor-pointer transition select-none ${
+                                    isIndChecked
+                                      ? 'bg-slate-900/90 border-emerald-500/50 text-slate-100 shadow-xs ring-1 ring-emerald-500/20'
+                                      : 'bg-slate-950/50 border-slate-800/80 text-slate-400 hover:bg-slate-900/50 hover:text-slate-300'
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-2 min-w-0">
+                                    <input
+                                      type="checkbox"
+                                      checked={isIndChecked}
+                                      onChange={() => {}} // handled by parent div
+                                      className="w-3.5 h-3.5 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 mt-0.5 pointer-events-none shrink-0"
+                                    />
+                                    <div className="space-y-0.5 min-w-0">
+                                      {ind.code && (
+                                        <span className="font-mono text-[9px] font-bold text-slate-400 block">
+                                          {ind.code}
+                                        </span>
+                                      )}
+                                      <span className={`leading-snug block ${isIndChecked ? 'font-medium text-slate-100' : 'text-slate-400'}`}>
+                                        {ind.name}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${
+                                    isIndChecked
+                                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'
+                                      : 'bg-slate-900 text-slate-500 border-slate-800'
+                                  }`}>
+                                    Target: {ind.target_percent}{ind.unit || '%'}
+                                  </span>
                                 </div>
-                                <span className="font-mono text-[10px] text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60 shrink-0">
-                                  Target: {ind.target_percent}{ind.unit || '%'}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -3604,8 +4693,8 @@ export default function RipsPlanning() {
 
       {/* MODAL 3: HEADER VISI MISI & TUJUAN */}
       {modalType === 'header' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -3682,8 +4771,8 @@ export default function RipsPlanning() {
 
       {/* MODAL 4: PUBLISH / SK PENGESAHAN DOKUMEN */}
       {modalType === 'publish' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -3787,8 +4876,8 @@ export default function RipsPlanning() {
 
       {/* MODAL 5: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Dokumen RIPS</h3>
@@ -3848,8 +4937,8 @@ export default function RipsPlanning() {
 
       {/* MODAL 6: KELOLA MASTER BIDANG, BSC & KATEGORI PROGRAM */}
       {modalType === 'manage_masters' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white">Kelola Master Custom RIPS</h3>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white">✕</button>
@@ -4223,8 +5312,8 @@ export default function RipsPlanning() {
 
       {/* SAFE DELETE CONFIRMATION MODAL WITH DEPENDENCY BREAKDOWN */}
       {deleteConfirmModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Trash2 className="w-5 h-5 text-rose-400" />
@@ -4400,8 +5489,8 @@ export default function RipsPlanning() {
 
       {/* QUICK MODAL: TAMBAH BIDANG */}
       {modalType === 'add_domain_quick' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-400" />
@@ -4460,8 +5549,8 @@ export default function RipsPlanning() {
 
       {/* QUICK MODAL: TAMBAH SUB-BIDANG */}
       {modalType === 'add_subdomain_quick' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-4 h-4 text-amber-400" />
@@ -4473,20 +5562,17 @@ export default function RipsPlanning() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Pilih Bidang Induk
+                  Pilih Bidang Induk *
                 </label>
-                <select
+                <SearchableSelect
                   value={newSubdomainData.domain_id}
-                  onChange={(e) => setNewSubdomainData({ ...newSubdomainData, domain_id: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500"
-                >
-                  <option value="" disabled>-- Pilih Bidang --</option>
-                  {domains.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="-- Pilih Bidang --"
+                  onChange={(val) => setNewSubdomainData({ ...newSubdomainData, domain_id: val })}
+                  options={domains.map((d) => ({
+                    value: d.id,
+                    label: d.name,
+                  }))}
+                />
               </div>
 
               <div>
@@ -4539,6 +5625,24 @@ export default function RipsPlanning() {
           </div>
         </div>
       )}
+    </div>,
+    document.body
+  )}
+
+      {/* Modal Pindahkan Program ke Sub-Bidang Lain */}
+      <MoveProgramModal
+        isOpen={isMoveProgramModalOpen}
+        onClose={() => {
+          setIsMoveProgramModalOpen(false);
+          setProgramToMove(null);
+        }}
+        program={programToMove}
+        domains={domains}
+        subdomains={allSubdomains}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
     </div>
   );
 }

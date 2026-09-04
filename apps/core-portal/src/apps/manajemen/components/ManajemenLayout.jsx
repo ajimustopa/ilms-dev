@@ -89,7 +89,7 @@ function ManajemenLayoutContent() {
           show: true,
         },
         {
-          label: 'RKJP (8 Thn) & RKJM (4 Thn)',
+          label: 'RKJP & RKJM',
           path: '/manajemen/planning/rkjp-rkjm',
           icon: CalendarRange,
           show: true,

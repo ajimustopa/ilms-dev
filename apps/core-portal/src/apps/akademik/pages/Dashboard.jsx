@@ -33,7 +33,9 @@ export default function AkademikDashboard() {
     try {
       setLoading(true);
       const params = {};
-      if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') {
+        params.satuan_pendidikan_id = activeSchoolUnit.id;
+      }
 
       const [sumRes, attRes, leaveRes, calRes, psbRes] = await Promise.all([
         api.get('/akademik/reports/academic-summary', { params }).catch(() => ({ data: { data: {} } })),

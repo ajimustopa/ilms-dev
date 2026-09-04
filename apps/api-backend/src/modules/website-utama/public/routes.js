@@ -40,6 +40,7 @@ router.post('/ppdb/registrants/:id/documents', publicController.addDocument);
 router.post('/ppdb/registrants/:id/submit', publicController.submitRegistrant);
 router.get('/ppdb/schedules', publicController.getPpdbSchedules);
 router.post('/ppdb/registrants/:id/payment', publicController.initiatePayment);
+router.post('/ppdb/registrants/:id/payment-proof', publicController.uploadPaymentProof);
 router.get('/ppdb/registrants/:id/payment-status', publicController.getPaymentStatus);
 router.get('/ppdb/registrants/:id/status', publicController.getRegistrantStatus);
 

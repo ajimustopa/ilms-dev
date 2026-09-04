@@ -37,6 +37,14 @@ class BillsController {
     } catch (err) { next(err); }
   };
 
+  getStudentFeeReference = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.getStudentFeeReference(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Acuan penetapan biaya siswa berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
   getBillById = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -49,7 +57,13 @@ class BillsController {
   cancelBill = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const result = await billsService.cancelBill(schoolUnitId, req.params.id, req.body.cancel_reason, req.user?.id);
+      const result = await billsService.cancelBill(
+        schoolUnitId,
+        req.params.id,
+        req.body.cancel_reason,
+        req.user?.id,
+        req.body.cancelled_at
+      );
       if (result.error === 'NOT_FOUND') {
         return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
       }
@@ -97,6 +111,132 @@ class BillsController {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await billsService.getReminderLogs(schoolUnitId, req.params.id);
       res.json({ success: true, data, message: 'Log reminder tagihan berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  updateDraftBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.updateDraftBill(schoolUnitId, req.params.id, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Draft tagihan berhasil diperbarui', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  publishBills = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.publishBills(schoolUnitId, req.body, req.user?.id);
+      res.json({ success: true, data, message: `Berhasil menerbitkan ${data.published_count} tagihan siswa`, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  writeOffBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const reason = req.body.reason || req.body.write_off_reason;
+      const data = await billsService.writeOffBill(schoolUnitId, req.params.id, reason, req.user?.id);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  createManualDraftBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.createManualDraftBill(schoolUnitId, req.body, req.user?.id);
+      res.status(201).json({ success: true, data, message: 'Draf tagihan manual berhasil dibuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  reviseIssuedBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.reviseIssuedBill(schoolUnitId, req.params.id, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Tagihan berhasil direvisi', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getBillRevisions = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.getBillRevisions(schoolUnitId, req.params.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Tagihan tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Riwayat revisi tagihan berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  approveBillDiscount = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const userRoles = req.user?.roles?.map(r => r.name || r) || [];
+      const data = await billsService.approveBillDiscount(schoolUnitId, req.params.id, req.user?.id, userRoles);
+      res.json({ success: true, data, message: 'Diskon tagihan berhasil disetujui, tagihan kini siap diterbitkan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  rejectBillDiscount = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const userRoles = req.user?.roles?.map(r => r.name || r) || [];
+      const reason = req.body.reason || req.body.rejection_reason;
+      const data = await billsService.rejectBillDiscount(schoolUnitId, req.params.id, reason, req.user?.id, userRoles);
+      res.json({ success: true, data, message: 'Diskon tagihan ditolak dan dikembalikan ke nominal normal', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  autoGenerateMonthlyDraftBills = async (req, res, next) => {
+    try {
+      const targetAcademicYearId = req.body.academic_year_id || null;
+      const targetMonth = req.body.period_month !== undefined ? req.body.period_month : null;
+      const data = await billsService.autoGenerateMonthlyDraftBills(targetAcademicYearId, targetMonth);
+      res.json({ success: true, data, message: 'Pemicu otomatisasi draf bulanan selesai dieksekusi', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getBillsMatrix = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.getBillsMatrix(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Matriks tagihan siswa berhasil dimuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  publishCellBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.publishCellBill(schoolUnitId, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Tagihan sel berhasil diterbitkan', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  publishBatchColumnBills = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.publishBatchColumnBills(schoolUnitId, req.body, req.user?.id);
+      res.json({ success: true, data, message: 'Penerbitan tagihan kolom massal selesai', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  listReminderLogs = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.listReminderLogs(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Daftar riwayat reminder tagihan berhasil dimuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  broadcastReminders = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.broadcastReminders(schoolUnitId, req.body, req.user?.id);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  importColumnBills = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.importColumnBills(schoolUnitId, req.body, req.user?.id);
+      res.json({ success: true, data, message: data.message, errors: null });
     } catch (err) { next(err); }
   };
 }

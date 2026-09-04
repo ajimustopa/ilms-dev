@@ -183,6 +183,44 @@ class AnnualWorkPlanController {
       next(err);
     }
   }
+
+  // Program Management in RKT
+  async getAvailableRipsPrograms(req, res, next) {
+    try {
+      const data = await service.getAvailableRipsPrograms(req.params.id);
+      res.json({ success: true, data, message: 'Daftar program RIPS yang tersedia berhasil diambil', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async addProgramToRkt(req, res, next) {
+    try {
+      const data = await service.addProgramToRkt(req.params.id, req.body, req.user);
+      res.status(201).json({ success: true, data, message: 'Program RIPS berhasil ditambahkan ke RKT', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createAndAttachProgramToRkt(req, res, next) {
+    try {
+      const data = await service.createAndAttachProgramToRkt(req.params.id, req.body, req.user);
+      res.status(201).json({ success: true, data, message: 'Program baru berhasil dibuat di RIPS dan dimasukkan ke RKT', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removeProgramFromRkt(req, res, next) {
+    try {
+      const data = await service.removeProgramFromRkt(req.params.id, req.params.programId);
+      res.json({ success: true, data, message: 'Program berhasil dikeluarkan dari RKT', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AnnualWorkPlanController();
+

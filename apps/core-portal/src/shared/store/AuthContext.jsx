@@ -81,13 +81,23 @@ export function AuthProvider({ children }) {
 
             // Sync active school unit
             const savedUnitId = localStorage.getItem('aldepos_active_school_unit_id');
+            const savedUnitRaw = localStorage.getItem('aldepos_active_school_unit');
             let initialUnit = null;
-            if (savedUnitId === 'all' && isAdmin) {
-              initialUnit = null;
-            } else if (savedUnitId) {
-              initialUnit = permittedUnits.find(u => String(u.id) === String(savedUnitId)) || permittedUnits[0] || null;
-            } else {
-              initialUnit = permittedUnits[0] || null;
+            if (savedUnitRaw && savedUnitRaw !== 'undefined') {
+              try {
+                initialUnit = JSON.parse(savedUnitRaw);
+              } catch {
+                initialUnit = null;
+              }
+            }
+            if (!initialUnit) {
+              if (savedUnitId === 'all') {
+                initialUnit = { id: 'all', name: 'Pusat Yayasan (Gabungan)', is_foundation: true };
+              } else if (savedUnitId) {
+                initialUnit = permittedUnits.find(u => String(u.id) === String(savedUnitId)) || permittedUnits[0] || null;
+              } else {
+                initialUnit = permittedUnits[0] || null;
+              }
             }
 
             setActiveSchoolUnit(initialUnit);

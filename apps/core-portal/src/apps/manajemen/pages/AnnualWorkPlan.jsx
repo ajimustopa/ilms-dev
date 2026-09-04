@@ -7,6 +7,7 @@ import {
   School,
   Building2,
   Plus,
+  Pencil,
   Edit2,
   Trash2,
   Send,
@@ -36,69 +37,38 @@ import {
   CheckSquare,
   ListPlus,
   FolderOpen,
+  FolderInput,
   Maximize2,
   Minimize2,
   Printer,
   Eye,
+  BookOpen,
   X
 } from 'lucide-react';
 import { useManajemenTheme } from '../theme/ManajemenThemeContext';
+import DatePickerField, { isoToDmy, dmyToIso } from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
+import MoveProgramModal from '../components/shared/MoveProgramModal';
 
-// Custom Searchable Select Component with Live Search, Multi-Select & Full Keyboard Navigation (ArrowUp/Down/Enter/Escape)
-function SearchableSelect({
+// Alias DatePickerField sebagai DateInput berdesain modern bertema
+const IndonesianDateInput = DatePickerField;
+
+// Clean & Compact Live-Search Academic Year Dropdown Component based on Master Data Akademik
+function AcademicYearDropdown({
   value,
   onChange,
-  options = [],
-  placeholder = '-- Pilih --',
-  searchPlaceholder = 'Ketik untuk mencari...',
+  academicYears = [],
   className = '',
-  disabled = false,
-  allowClear = true,
-  required = false,
-  isMulti = false,
 }) {
   const { isDark } = useManajemenTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef(null);
-  const inputRef = useRef(null);
-  const triggerRef = useRef(null);
-  const listRef = useRef(null);
+  const searchInputRef = useRef(null);
   const optionRefs = useRef([]);
 
-  // Normalisasi value multi vs single
-  const selectedValues = useMemo(() => {
-    if (!isMulti) return value !== undefined && value !== null && value !== '' ? [String(value)] : [];
-    if (Array.isArray(value)) return value.map(String);
-    if (value !== undefined && value !== null && value !== '') return [String(value)];
-    return [];
-  }, [value, isMulti]);
-
-  // Filter options berdasarkan search
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
-    const q = search.toLowerCase().trim();
-    return options.filter((o) => {
-      const matchLabel = o.label?.toLowerCase().includes(q);
-      const matchSub = o.sublabel?.toLowerCase().includes(q);
-      return matchLabel || matchSub;
-    });
-  }, [options, search]);
-
-  // Reset highlight index saat filter berubah
-  useEffect(() => {
-    setHighlightedIndex(0);
-  }, [filteredOptions.length, search]);
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (isOpen && optionRefs.current[highlightedIndex]) {
-      optionRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
-    }
-  }, [highlightedIndex, isOpen]);
-
-  // Close dropdown on click outside
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -107,308 +77,162 @@ function SearchableSelect({
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => searchInputRef.current?.focus(), 50);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
 
-  // Handle single select / toggle multi select
-  const handleSelectOption = (optVal) => {
-    const valStr = String(optVal);
-    if (!isMulti) {
-      onChange(optVal);
-      setIsOpen(false);
-      triggerRef.current?.focus();
-    } else {
-      const isSelected = selectedValues.includes(valStr);
-      let updated;
-      if (isSelected) {
-        updated = selectedValues.filter((v) => v !== valStr);
-      } else {
-        updated = [...selectedValues, valStr];
-      }
-      // Cast ke tipe data aslinya (misal number)
-      const castedUpdated = updated.map((v) => {
-        const orig = options.find((o) => String(o.value) === String(v));
-        return orig ? orig.value : v;
-      });
-      onChange(castedUpdated);
+  // Filtered academic years by search query
+  const filteredYears = useMemo(() => {
+    if (!search.trim()) return academicYears;
+    const q = search.toLowerCase().trim();
+    return academicYears.filter((ay) => ay.name.toLowerCase().includes(q));
+  }, [academicYears, search]);
+
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [filteredYears.length, search]);
+
+  useEffect(() => {
+    if (isOpen && optionRefs.current[highlightedIndex]) {
+      optionRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
     }
-  };
+  }, [highlightedIndex, isOpen]);
 
-  // Keyboard navigation handler
   const handleKeyDown = (e) => {
-    if (disabled) return;
-
     if (!isOpen) {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
         e.preventDefault();
-        setSearch('');
         setIsOpen(true);
       }
       return;
     }
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filteredOptions.length - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (filteredOptions.length > 0 && filteredOptions[highlightedIndex]) {
-        handleSelectOption(filteredOptions[highlightedIndex].value);
-      }
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       setIsOpen(false);
-      triggerRef.current?.focus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev < filteredYears.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : Math.max(0, filteredYears.length - 1)));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredYears[highlightedIndex]) {
+        onChange(filteredYears[highlightedIndex].name);
+        setIsOpen(false);
+      }
     }
   };
 
-  // Selected options objects
-  const selectedOptionObjs = useMemo(() => {
-    return selectedValues
-      .map((val) => options.find((o) => String(o.value) === String(val)))
-      .filter(Boolean);
-  }, [selectedValues, options]);
+  const selectedItem = academicYears.find((ay) => ay.name === value);
 
   return (
-    <div ref={containerRef} className={`relative ${className}`} onKeyDown={handleKeyDown}>
+    <div ref={containerRef} className={`relative inline-block ${isOpen ? 'z-[500]' : 'z-10'} ${className}`} onKeyDown={handleKeyDown}>
       {/* Trigger Button */}
       <button
-        ref={triggerRef}
         type="button"
-        disabled={disabled}
-        onClick={() => {
-          setSearch('');
-          setIsOpen(!isOpen);
-        }}
-        className={`w-full flex items-center justify-between gap-2 border rounded-xl px-3 py-2 text-xs text-left transition min-h-[38px] shadow-xs ${
-          isDark
-            ? 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-700'
-            : 'bg-slate-50 border-slate-300 text-slate-900 hover:border-slate-400'
-        } ${
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs border ${
           isOpen
-            ? isDark ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-indigo-500 ring-2 ring-indigo-500/20'
-            : ''
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            ? isDark
+              ? 'bg-slate-900 text-indigo-400 border-indigo-500/60 ring-1 ring-indigo-500/30'
+              : 'bg-white text-indigo-700 border-indigo-500 ring-1 ring-indigo-500/30 shadow-sm'
+            : isDark
+              ? 'bg-slate-950 hover:bg-slate-900 text-slate-200 border-slate-800 hover:border-slate-700'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
+        }`}
       >
-        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
-          {selectedOptionObjs.length === 0 ? (
-            <span className={`font-medium truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{placeholder}</span>
-          ) : isMulti ? (
-            selectedOptionObjs.map((opt) => (
-              <span
-                key={opt.value}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold shadow-xs border ${
-                  isDark
-                    ? 'bg-indigo-600/20 text-indigo-200 border-indigo-500/30'
-                    : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                }`}
-              >
-                <span className="truncate max-w-[130px]">{opt.label}</span>
-                <span
-                  role="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectOption(opt.value);
-                  }}
-                  className={`p-0.5 rounded transition cursor-pointer font-bold leading-none ${
-                    isDark
-                      ? 'text-indigo-300 hover:text-rose-300'
-                      : 'text-indigo-600 hover:text-rose-600'
-                  }`}
-                  title="Hapus"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </span>
-              </span>
-            ))
-          ) : (
-            <div className="flex items-center gap-2 truncate">
-              {selectedOptionObjs[0].badge && (
-                <span
-                  className={
-                    selectedOptionObjs[0].badgeClass ||
-                    (isDark
-                      ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                      : 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200')
-                  }
-                >
-                  {selectedOptionObjs[0].badge}
-                </span>
-              )}
-              <span className={`font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                {selectedOptionObjs[0].label}
-              </span>
-              {selectedOptionObjs[0].sublabel && (
-                <span className={`text-[10px] shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  ({selectedOptionObjs[0].sublabel})
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0 text-slate-400">
-          {allowClear && selectedOptionObjs.length > 0 && !disabled && (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(isMulti ? [] : '');
-              }}
-              className={`p-1 rounded transition cursor-pointer ${
-                isDark
-                  ? 'hover:bg-slate-800 hover:text-white'
-                  : 'hover:bg-slate-100 hover:text-slate-900'
-              }`}
-              title="Hapus semua pilihan"
-            >
-              <X className="w-3 h-3" />
-            </span>
-          )}
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform duration-200 ${
-              isOpen ? (isDark ? 'rotate-180 text-indigo-400' : 'rotate-180 text-indigo-600') : ''
-            }`}
-          />
-        </div>
+        <CalendarDays className={`w-3.5 h-3.5 ${selectedItem?.isActive ? 'text-emerald-500' : 'text-slate-400'}`} />
+        <span className="font-mono text-xs">
+          TA {value || 'Pilih Tahun'}
+        </span>
+        {selectedItem?.isActive && (
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/25">
+            Aktif
+          </span>
+        )}
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Hidden input for HTML form validation */}
-      {required && (
-        <input
-          type="text"
-          value={selectedValues.length > 0 ? selectedValues.join(',') : ''}
-          required={required}
-          className="opacity-0 absolute pointer-events-none w-0 h-0"
-          onChange={() => {}}
-        />
-      )}
-
-      {/* Floating Menu with Live Search & Keyboard Navigation */}
+      {/* Popover Menu */}
       {isOpen && (
-        <div className={`absolute left-0 right-0 top-full mt-1.5 z-50 border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-64 animate-fadeIn ${
+        <div className={`absolute right-0 mt-1.5 w-60 border rounded-xl shadow-2xl z-[1000] p-1.5 space-y-1 ${
           isDark
-            ? 'bg-slate-900 border-slate-700 text-white'
-            : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/60'
+            ? 'bg-slate-900 border-slate-800 text-white'
+            : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/80'
         }`}>
-          {/* Live Search Bar */}
-          <div className={`p-2 border-b sticky top-0 z-10 space-y-1.5 ${
-            isDark ? 'border-slate-800 bg-slate-950/95' : 'border-slate-200 bg-slate-50'
-          }`}>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchPlaceholder}
-                className={`w-full rounded-xl pl-8 pr-7 py-1.5 text-xs outline-none focus:border-indigo-500 font-medium border ${
-                  isDark
-                    ? 'bg-slate-900 border-slate-800 text-slate-200 placeholder-slate-500'
-                    : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                }`}
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 ${
-                    isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Keyboard Hint & Selection Counter */}
-            <div className={`flex items-center justify-between text-[10px] px-1 ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}>
-              <span>Navigasi: gunakan ↑ / ↓ dan Enter</span>
-              {isMulti && (
-                <span className={`font-semibold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                  {selectedValues.length} dipilih
-                </span>
-              )}
-            </div>
+          {/* Live Search Input */}
+          <div className="relative p-1">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari tahun ajaran..."
+              className={`w-full border rounded-lg pl-9 pr-6 py-1.5 text-xs outline-none focus:border-indigo-500 font-mono ${
+                isDark
+                  ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder:text-slate-500'
+                  : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400'
+              }`}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
-          {/* Options List */}
-          <div ref={listRef} className={`overflow-y-auto p-1 divide-y ${
-            isDark ? 'divide-slate-800/40' : 'divide-slate-100'
-          }`}>
-            {filteredOptions.length === 0 ? (
-              <div className="py-5 text-center text-xs text-slate-500">
-                Tidak ada pilihan yang cocok
+          {/* List of Academic Years from Master Akademik */}
+          <div className="max-h-48 overflow-y-auto space-y-0.5 p-0.5 custom-scrollbar">
+            {filteredYears.length === 0 ? (
+              <div className="py-4 text-center text-slate-400 text-xs">
+                Tahun ajaran tidak ditemukan
               </div>
             ) : (
-              filteredOptions.map((opt, idx) => {
-                const isSelected = selectedValues.includes(String(opt.value));
+              filteredYears.map((ay, idx) => {
+                const isSelected = ay.name === value;
                 const isHighlighted = idx === highlightedIndex;
 
                 return (
                   <button
-                    key={opt.value}
+                    key={ay.name}
                     ref={(el) => (optionRefs.current[idx] = el)}
                     type="button"
-                    onMouseEnter={() => setHighlightedIndex(idx)}
-                    onClick={() => handleSelectOption(opt.value)}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition cursor-pointer ${
-                      isHighlighted
-                        ? isDark
-                          ? 'bg-indigo-600/30 text-white ring-1 ring-indigo-500/50 font-bold'
-                          : 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-400 font-bold'
-                        : isSelected
-                        ? isDark
-                          ? 'bg-indigo-950/40 text-indigo-200 font-semibold'
-                          : 'bg-indigo-50/70 text-indigo-800 font-semibold'
-                        : isDark
-                        ? 'hover:bg-slate-800 text-slate-300'
-                        : 'hover:bg-slate-100 text-slate-700'
+                    onClick={() => {
+                      onChange(ay.name);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition ${
+                      isSelected
+                        ? isDark ? 'bg-indigo-600/90 text-white font-bold' : 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200'
+                        : isHighlighted
+                          ? isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-900'
+                          : isDark ? 'hover:bg-slate-800/60 text-slate-300' : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {isMulti && (
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          readOnly
-                          className={`w-3.5 h-3.5 rounded focus:ring-0 shrink-0 pointer-events-none ${
-                            isDark
-                              ? 'border-slate-700 bg-slate-950 text-indigo-500'
-                              : 'border-slate-300 bg-white text-indigo-600'
-                          }`}
-                        />
-                      )}
-                      {opt.badge && (
-                        <span
-                          className={
-                            opt.badgeClass ||
-                            (isDark
-                              ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                              : 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200')
-                          }
-                        >
-                          {opt.badge}
-                        </span>
-                      )}
-                      <span className={`truncate ${isSelected ? 'font-bold' : ''}`}>{opt.label}</span>
-                      {opt.sublabel && (
-                        <span className={`text-[10px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          &bull; {opt.sublabel}
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{ay.name}</span>
+                      {ay.isActive && (
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                          isSelected
+                            ? isDark ? 'bg-white/20 text-white' : 'bg-emerald-600 text-white'
+                            : 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25'
+                        }`}>
+                          Aktif
                         </span>
                       )}
                     </div>
-                    {!isMulti && isSelected && (
-                      <Check className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                    {isSelected && (
+                      <Check className={`w-3.5 h-3.5 ${isDark ? 'text-white' : 'text-indigo-600'}`} />
                     )}
                   </button>
                 );
@@ -421,11 +245,6 @@ function SearchableSelect({
   );
 }
 
-import DatePickerField, { isoToDmy, dmyToIso } from '../components/shared/DatePickerField';
-
-// Alias DatePickerField sebagai DateInput berdesain modern bertema
-const IndonesianDateInput = DatePickerField;
-
 export default function AnnualWorkPlan() {
   const { user, schoolUnits, activeSchoolUnit } = useAuth();
 
@@ -436,9 +255,26 @@ export default function AnnualWorkPlan() {
   const [selectedUnitId, setSelectedUnitId] = useState(
     activeSchoolUnit?.id || (schoolUnits?.[0]?.id || 1)
   );
-  const [academicYear, setAcademicYear] = useState('2026/2027');
+  const [academicYear, setAcademicYear] = useState(() => {
+    try {
+      const saved = localStorage.getItem('core_rkt_academic_year');
+      if (saved) return saved;
+    } catch (_) {}
+    return '2026/2027';
+  });
+  const [academicYearsList, setAcademicYearsList] = useState([]);
+
+  // Auto-sync academicYear selection to localStorage
+  useEffect(() => {
+    if (academicYear) {
+      try {
+        localStorage.setItem('core_rkt_academic_year', academicYear);
+      } catch (_) {}
+    }
+  }, [academicYear]);
   const [filterFlagshipOnly, setFilterFlagshipOnly] = useState(false);
   const [filterDomain, setFilterDomain] = useState('all');
+  const [filterSubdomain, setFilterSubdomain] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -469,6 +305,99 @@ export default function AnnualWorkPlan() {
   const [formData, setFormData] = useState({});
   const [formLoading, setFormLoading] = useState(false);
   const [selectedPubSnapshot, setSelectedPubSnapshot] = useState(null);
+
+  // Subdomain Addition Modal States
+  const [isAddSubdomainModalOpen, setIsAddSubdomainModalOpen] = useState(false);
+  const [selectedDomainForSubdomain, setSelectedDomainForSubdomain] = useState(null);
+  const [newSubdomainName, setNewSubdomainName] = useState('');
+  const [subdomainFormLoading, setSubdomainFormLoading] = useState(false);
+
+  // Edit Domain & Edit Subdomain Modal States
+  const [isEditDomainModalOpen, setIsEditDomainModalOpen] = useState(false);
+  const [editingDomainObj, setEditingDomainObj] = useState(null);
+  const [editDomainForm, setEditDomainForm] = useState({ name: '', order_index: 1 });
+
+  const [isEditSubdomainModalOpen, setIsEditSubdomainModalOpen] = useState(false);
+  const [editingSubdomainObj, setEditingSubdomainObj] = useState(null);
+  const [editSubdomainForm, setEditSubdomainForm] = useState({ name: '', order_index: 1 });
+
+  // Move Program Modal States
+  const [isMoveProgramModalOpen, setIsMoveProgramModalOpen] = useState(false);
+  const [programToMove, setProgramToMove] = useState(null);
+
+  const handleOpenMoveProgramModal = (prog) => {
+    setProgramToMove(prog);
+    setIsMoveProgramModalOpen(true);
+  };
+
+  // Program Addition Modal States for RKT
+  const [isAddProgramModalOpen, setIsAddProgramModalOpen] = useState(false);
+  const [addProgramTab, setAddProgramTab] = useState('existing'); // 'existing' | 'new'
+  const [targetAddContext, setTargetAddContext] = useState(null); // { domainId, subdomainId, domainName, subdomainName }
+  const [availableRipsPrograms, setAvailableRipsPrograms] = useState([]);
+  const [availableRipsGoals, setAvailableRipsGoals] = useState([]);
+  const [availableRipsCategories, setAvailableRipsCategories] = useState([]);
+  const [selectedRipsProg, setSelectedRipsProg] = useState(null);
+  const [existingProgSearch, setExistingProgSearch] = useState('');
+  const [isExistingDropdownOpen, setIsExistingDropdownOpen] = useState(false);
+  const [existingTargetPercent, setExistingTargetPercent] = useState(100);
+  const [existingNotes, setExistingNotes] = useState('');
+
+  // Form state for creating a brand new program directly in RKT & RIPS
+  const [newProgFormData, setNewProgFormData] = useState({
+    code: '',
+    name: '',
+    category_id: '',
+    domain_id: '',
+    subdomain_id: '',
+    description: '',
+    is_flagship: 0,
+    linked_goal_ids: [],
+    linked_indicator_ids: [],
+    target_percent: 100,
+    notes: '',
+  });
+  const [newProgGoalSearch, setNewProgGoalSearch] = useState('');
+  const [isNewProgGoalDropdownOpen, setIsNewProgGoalDropdownOpen] = useState(false);
+  const existingDropdownRef = useRef(null);
+  const newProgGoalDropdownRef = useRef(null);
+
+  // Program Edit Modal States for RKT (Sync to RIPS & RKT)
+  const [isEditProgramModalOpen, setIsEditProgramModalOpen] = useState(false);
+  const [editingProgramObj, setEditingProgramObj] = useState(null);
+  const [editProgFormData, setEditProgFormData] = useState({
+    code: '',
+    name: '',
+    category_id: '',
+    domain_id: '',
+    subdomain_id: '',
+    description: '',
+    is_flagship: 0,
+    linked_goal_ids: [],
+    linked_indicator_ids: [],
+    target_percent: 100,
+    notes: '',
+  });
+  const [editProgGoalSearch, setEditProgGoalSearch] = useState('');
+  const [isEditProgGoalDropdownOpen, setIsEditProgGoalDropdownOpen] = useState(false);
+  const editProgGoalDropdownRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (existingDropdownRef.current && !existingDropdownRef.current.contains(e.target)) {
+        setIsExistingDropdownOpen(false);
+      }
+      if (newProgGoalDropdownRef.current && !newProgGoalDropdownRef.current.contains(e.target)) {
+        setIsNewProgGoalDropdownOpen(false);
+      }
+      if (editProgGoalDropdownRef.current && !editProgGoalDropdownRef.current.contains(e.target)) {
+        setIsEditProgGoalDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Helper untuk menyorot kata kunci pencarian
   const highlightMatch = (text, query) => {
@@ -545,9 +474,20 @@ export default function AnnualWorkPlan() {
     }));
   }, [positionTypes]);
 
+  // Available Subdomains based on selected filterDomain
+  const availableSubdomains = useMemo(() => {
+    if (filterDomain === 'all') {
+      return (subdomainsData || []).map((s) => {
+        const d = (domainsData || []).find((dom) => Number(dom.id) === Number(s.domain_id));
+        return { ...s, domainName: d?.name };
+      });
+    }
+    return (subdomainsData || []).filter((s) => Number(s.domain_id) === Number(filterDomain));
+  }, [domainsData, subdomainsData, filterDomain]);
+
   // Status apakah sedang ada pencarian atau filter aktif
   const isFilteringActive = Boolean(
-    searchQuery.trim() || filterFlagshipOnly || filterDomain !== 'all' || filterCategory !== 'all' || filterStatus !== 'all'
+    searchQuery.trim() || filterFlagshipOnly || filterDomain !== 'all' || filterSubdomain !== 'all' || filterCategory !== 'all' || filterStatus !== 'all'
   );
 
   // Lock body overflow when fullscreen is active
@@ -572,6 +512,63 @@ export default function AnnualWorkPlan() {
       setSelectedUnitId(activeSchoolUnit.id);
     }
   }, [activeSchoolUnit]);
+
+  // Load master academic years from Akademik module master data
+  useEffect(() => {
+    const loadAcademicYears = async () => {
+      try {
+        const res = await api.get('/akademik/academic-years').catch(() => null);
+        const masterYears = res?.data?.data || [];
+
+        const yearMap = new Map();
+        masterYears.forEach((ay) => {
+          const name = ay.name || ay.academic_year || ay.code;
+          if (name) {
+            const isAct = ay.is_active === 1 || ay.is_active === true || ay.status === 'active';
+            if (!yearMap.has(name) || isAct) {
+              yearMap.set(name, {
+                name,
+                id: ay.id,
+                isActive: isAct,
+                startDate: ay.start_date,
+                endDate: ay.end_date,
+              });
+            }
+          }
+        });
+
+        // Sort descending by start year (newest first)
+        const sorted = Array.from(yearMap.values()).sort((a, b) => {
+          const yA = parseInt(a.name.split('/')[0]) || 0;
+          const yB = parseInt(b.name.split('/')[0]) || 0;
+          return yB - yA;
+        });
+
+        if (sorted.length > 0) {
+          setAcademicYearsList(sorted);
+          // Only fallback if saved/current academicYear is not found in master list
+          const savedYear = (() => {
+            try { return localStorage.getItem('core_rkt_academic_year'); } catch (_) { return null; }
+          })();
+          const currentYear = savedYear || academicYear;
+          const isCurrentValid = sorted.some((s) => s.name === currentYear);
+
+          if (!isCurrentValid) {
+            const activeItem = sorted.find((y) => y.isActive) || sorted[0];
+            if (activeItem) {
+              setAcademicYear(activeItem.name);
+            }
+          } else if (savedYear && savedYear !== academicYear) {
+            setAcademicYear(savedYear);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load academic years:', err);
+      }
+    };
+
+    loadAcademicYears();
+  }, []);
 
   // Fetch RKT Data & Matrix
   const fetchData = async () => {
@@ -605,12 +602,7 @@ export default function AnnualWorkPlan() {
             if (updatedProg) setCurrentProgramObj(updatedProg);
           }
 
-          // Expand all programs by default
-          const exp = {};
-          progs.forEach((p) => {
-            exp[p.program_id] = true;
-          });
-          setExpandedPrograms(exp);
+          // Default: semuanya terlipat (collapsed)
         }
 
         // 3. Get Publications
@@ -649,19 +641,22 @@ export default function AnnualWorkPlan() {
   const toggleDomain = (key) => {
     setExpandedDomains((prev) => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
+      [key]: !prev[key],
     }));
   };
 
   const toggleSubdomain = (key) => {
     setExpandedSubdomains((prev) => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
+      [key]: !prev[key],
     }));
   };
 
   const toggleProgram = (pId) => {
-    setExpandedPrograms((prev) => ({ ...prev, [pId]: !prev[pId] }));
+    setExpandedPrograms((prev) => ({
+      ...prev,
+      [pId]: !prev[pId],
+    }));
   };
 
   // Group Programs by Domain and Subdomain (Hierarchy Tree with Enhanced Search & Filtering)
@@ -784,6 +779,9 @@ export default function AnnualWorkPlan() {
 
       const subList = [];
       domainItem.subdomains.forEach((subItem) => {
+        if (filterSubdomain !== 'all' && String(filterSubdomain) !== String(subItem.id)) {
+          return;
+        }
         subList.push(subItem);
       });
 
@@ -803,7 +801,7 @@ export default function AnnualWorkPlan() {
     });
 
     return result.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  }, [programs, domainsData, subdomainsData, filterDomain, filterCategory, filterStatus, filterFlagshipOnly, searchQuery, employees, isFilteringActive]);
+  }, [programs, domainsData, subdomainsData, filterDomain, filterSubdomain, filterCategory, filterStatus, filterFlagshipOnly, searchQuery, employees, isFilteringActive]);
 
   // Total Program setelah difilter
   const totalFilteredPrograms = useMemo(() => {
@@ -1043,45 +1041,457 @@ export default function AnnualWorkPlan() {
 
   // Expand All / Collapse All Hierarchies
   const handleExpandAll = () => {
-    const allExp = {};
+    const allExpD = {};
+    const allExpS = {};
+    const allExpP = {};
     groupedProgramsHierarchy.forEach((d) => {
-      allExp[`dom_${d.id}`] = true;
+      allExpD[`dom_${d.id}`] = true;
       d.subdomainList.forEach((s) => {
-        allExp[`sub_${d.id}_${s.id}`] = true;
+        allExpS[`sub_${d.id}_${s.id}`] = true;
       });
     });
     programs.forEach((p) => {
-      allExp[p.program_id] = true;
+      allExpP[p.program_id] = true;
     });
-    setExpandedDomains(allExp);
-    setExpandedSubdomains(allExp);
-    setExpandedPrograms(allExp);
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+    setExpandedPrograms(allExpP);
   };
 
   const handleCollapseAll = () => {
-    const allClose = {};
+    setExpandedDomains({});
+    setExpandedSubdomains({});
+    setExpandedPrograms({});
+  };
+
+  const handleExpandDomainsOnly = () => {
+    const allExpD = {};
     groupedProgramsHierarchy.forEach((d) => {
-      allClose[`dom_${d.id}`] = false;
+      allExpD[`dom_${d.id}`] = true;
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains({});
+    setExpandedPrograms({});
+  };
+
+  const handleExpandSubdomains = () => {
+    const allExpD = {};
+    const allExpS = {};
+    groupedProgramsHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
       d.subdomainList.forEach((s) => {
-        allClose[`sub_${d.id}_${s.id}`] = false;
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+      });
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+    setExpandedPrograms({});
+  };
+
+  const handleExpandProgramsOnly = () => {
+    const allExpD = {};
+    const allExpS = {};
+    const allExpP = {};
+    groupedProgramsHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
       });
     });
     programs.forEach((p) => {
-      allClose[p.program_id] = false;
+      allExpP[p.program_id] = true;
     });
-    setExpandedDomains(allClose);
-    setExpandedSubdomains(allClose);
-    setExpandedPrograms(allClose);
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+    setExpandedPrograms(allExpP);
   };
 
   const handlePrint = () => {
     window.print();
   };
+
+  // Open Add Program Modal
+  const handleOpenAddProgramModal = async (targetContext = null) => {
+    if (!annualWorkPlan?.id) return;
+    setTargetAddContext(targetContext);
+    setIsAddProgramModalOpen(true);
+    // Jika dibuka langsung dari tombol baris sub-bidang, arahkan langsung ke tab Buat Program Baru dengan penempatan sub-bidang terpilih
+    setAddProgramTab(targetContext ? 'new' : 'existing');
+    setSelectedRipsProg(null);
+    setExistingProgSearch('');
+    setIsExistingDropdownOpen(false);
+    setExistingTargetPercent(100);
+    setExistingNotes('');
+
+    try {
+      // 1. Fetch available RIPS programs for this RKT
+      const availRes = await api.get(`/manajemen/annual-work-plans/${annualWorkPlan.id}/available-programs`);
+      if (availRes.data?.success) {
+        setAvailableRipsPrograms(availRes.data.data || []);
+      }
+
+      // 2. Fetch RIPS goals & categories for creating new programs
+      const [goalsRes, catsRes] = await Promise.all([
+        api.get('/manajemen/rips/goals').catch(() => ({ data: { data: [] } })),
+        api.get('/manajemen/rips/program-categories').catch(() => ({ data: { data: [] } })),
+      ]);
+
+      let allGoals = goalsRes.data?.data || [];
+      if (annualWorkPlan.school_unit_id) {
+        allGoals = allGoals.filter((g) => g.school_unit_id === annualWorkPlan.school_unit_id || g.rips_document_id === (annualWorkPlan.school_unit_id === 1 ? 2 : 3));
+      } else {
+        allGoals = allGoals.filter((g) => !g.school_unit_id || g.rips_document_id === 1);
+      }
+      setAvailableRipsGoals(allGoals);
+      setAvailableRipsCategories(catsRes.data?.data || []);
+
+      const defaultDomainId = targetContext?.domainId ? String(targetContext.domainId) : (domainsData[0]?.id ? String(domainsData[0].id) : '');
+      const defaultSubdomainId = targetContext?.subdomainId ? String(targetContext.subdomainId) : '';
+
+      let maxNum = 0;
+      (availRes.data?.data || []).concat(programs).forEach((p) => {
+        const match = (p.code || p.program_code)?.match(/PRG-(?:UNG-)?(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      const suggestedCode = `PRG-${String(maxNum + 1).padStart(3, '0')}`;
+
+      setNewProgFormData({
+        code: suggestedCode,
+        name: '',
+        category_id: catsRes.data?.data?.[0]?.id ? String(catsRes.data.data[0].id) : '',
+        domain_id: defaultDomainId,
+        subdomain_id: defaultSubdomainId,
+        description: '',
+        is_flagship: 0,
+        linked_goal_ids: [],
+        linked_indicator_ids: [],
+        target_percent: 100,
+        notes: '',
+      });
+      setNewProgGoalSearch('');
+      setIsNewProgGoalDropdownOpen(false);
+    } catch (err) {
+      console.error('Error fetching data for add program modal:', err);
+    }
+  };
+
+  // Submit: Tambahkan program yang sudah ada di RIPS ke RKT
+  const handleAddExistingProgramToRkt = async (e) => {
+    e.preventDefault();
+    if (!selectedRipsProg?.id) {
+      alert('Silakan pilih salah satu program RIPS dari daftar pencarian.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.post(`/manajemen/annual-work-plans/${annualWorkPlan.id}/programs`, {
+        rips_program_id: selectedRipsProg.id,
+        target_percent: existingTargetPercent,
+        notes: existingNotes,
+        domain_id: targetAddContext?.domainId || undefined,
+        subdomain_id: targetAddContext?.subdomainId || undefined,
+      });
+
+      const targetDomId = targetAddContext?.domainId;
+      const targetSubId = targetAddContext?.subdomainId;
+      if (targetDomId) {
+        setExpandedDomains((prev) => ({
+          ...prev,
+          [targetDomId]: true,
+          [`dom_${targetDomId}`]: true,
+        }));
+      }
+      if (targetSubId) {
+        setExpandedSubdomains((prev) => ({
+          ...prev,
+          [targetSubId]: true,
+          [`sub_${targetDomId}_${targetSubId}`]: true,
+        }));
+      }
+
+      setIsAddProgramModalOpen(false);
+      await fetchData();
+      alert(`Program "${selectedRipsProg.name}" berhasil dimasukkan ke RKT TA ${academicYear}!`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menambahkan program ke RKT');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Submit: Buat program baru di RIPS dan langsung masukkan ke RKT
+  const handleCreateNewProgramInRkt = async (e) => {
+    e.preventDefault();
+    if (!newProgFormData.name?.trim()) {
+      alert('Nama program kerja wajib diisi');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.post(`/manajemen/annual-work-plans/${annualWorkPlan.id}/programs/new`, {
+        ...newProgFormData,
+        target_percent: newProgFormData.target_percent,
+        notes: newProgFormData.notes,
+      });
+
+      const activeDomainId = newProgFormData.domain_id || targetAddContext?.domainId;
+      const activeSubId = newProgFormData.subdomain_id || targetAddContext?.subdomainId;
+      if (activeDomainId) {
+        setExpandedDomains((prev) => ({
+          ...prev,
+          [activeDomainId]: true,
+          [`dom_${activeDomainId}`]: true,
+        }));
+      }
+      if (activeSubId) {
+        setExpandedSubdomains((prev) => ({
+          ...prev,
+          [activeSubId]: true,
+          [`sub_${activeDomainId}_${activeSubId}`]: true,
+        }));
+      }
+
+      setIsAddProgramModalOpen(false);
+      await fetchData();
+      alert(`Program baru "${newProgFormData.name}" berhasil dibuat di RIPS dan dimasukkan ke RKT TA ${academicYear}!`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal membuat program baru');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Open Add Subdomain Modal for a specific Domain
+  const handleOpenAddSubdomainModal = (domain) => {
+    setSelectedDomainForSubdomain(domain);
+    setNewSubdomainName('');
+    setIsAddSubdomainModalOpen(true);
+  };
+
+  // Submit: Tambah Sub-Bidang Baru ke Domain
+  const handleSaveSubdomainSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDomainForSubdomain || !newSubdomainName.trim()) {
+      alert('Mohon masukkan nama sub-bidang.');
+      return;
+    }
+    setSubdomainFormLoading(true);
+    try {
+      await api.post('/manajemen/rips/subdomains', {
+        domain_id: selectedDomainForSubdomain.id,
+        name: newSubdomainName.trim(),
+        order_index: (selectedDomainForSubdomain.subdomainList?.length || 0) + 1,
+      });
+      await fetchData();
+      setIsAddSubdomainModalOpen(false);
+      setNewSubdomainName('');
+      setSelectedDomainForSubdomain(null);
+      alert('Sub-Bidang baru berhasil ditambahkan!');
+    } catch (err) {
+      console.error('Error adding subdomain:', err);
+      alert(err.response?.data?.message || 'Gagal menambahkan sub-bidang baru.');
+    } finally {
+      setSubdomainFormLoading(false);
+    }
+  };
+
+  // Open Edit Domain Modal (Berlaku untuk seluruh TA)
+  const handleOpenEditDomainModal = (domain) => {
+    setEditingDomainObj(domain);
+    setEditDomainForm({
+      name: domain.name || '',
+      order_index: domain.order_index || 1,
+    });
+    setIsEditDomainModalOpen(true);
+  };
+
+  // Submit: Edit Domain
+  const handleSaveEditDomain = async (e) => {
+    e.preventDefault();
+    if (!editingDomainObj?.id || !editDomainForm.name.trim()) {
+      alert('Nama bidang wajib diisi.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.put(`/manajemen/rips/domains/${editingDomainObj.id}`, {
+        name: editDomainForm.name.trim(),
+        order_index: Number(editDomainForm.order_index || 1),
+      });
+      await fetchData();
+      setIsEditDomainModalOpen(false);
+      setEditingDomainObj(null);
+      alert('Bidang berhasil diperbarui dan berlaku untuk seluruh tahun ajaran!');
+    } catch (err) {
+      console.error('Error updating domain:', err);
+      alert(err.response?.data?.message || 'Gagal memperbarui bidang.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Open Edit Subdomain Modal (Berlaku untuk seluruh TA)
+  const handleOpenEditSubdomainModal = (domain, sub) => {
+    setEditingSubdomainObj({ ...sub, domain_id: domain.id, domain_name: domain.name });
+    setEditSubdomainForm({
+      name: sub.name || '',
+      order_index: sub.order_index || 1,
+    });
+    setIsEditSubdomainModalOpen(true);
+  };
+
+  // Submit: Edit Subdomain
+  const handleSaveEditSubdomain = async (e) => {
+    e.preventDefault();
+    if (!editingSubdomainObj?.id || !editSubdomainForm.name.trim()) {
+      alert('Nama sub-bidang wajib diisi.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.put(`/manajemen/rips/subdomains/${editingSubdomainObj.id}`, {
+        name: editSubdomainForm.name.trim(),
+        order_index: Number(editSubdomainForm.order_index || 1),
+      });
+      await fetchData();
+      setIsEditSubdomainModalOpen(false);
+      setEditingSubdomainObj(null);
+      alert('Sub-bidang berhasil diperbarui dan berlaku untuk seluruh tahun ajaran!');
+    } catch (err) {
+      console.error('Error updating subdomain:', err);
+      alert(err.response?.data?.message || 'Gagal memperbarui sub-bidang.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Remove program from RKT
+  const handleRemoveProgramFromRkt = async (prog) => {
+    if (!window.confirm(`Keluarkan program "[${prog.program_code}] ${prog.program_name}" dari RKT TA ${academicYear}?`)) return;
+    try {
+      await api.delete(`/manajemen/annual-work-plans/${annualWorkPlan.id}/programs/${prog.program_id}`);
+      fetchData();
+      alert('Program berhasil dikeluarkan dari RKT');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengeluarkan program dari RKT');
+    }
+  };
+
+  // Open Edit Program Modal (Sync to RIPS & RKT)
+  const handleOpenEditProgramModal = async (prog) => {
+    setEditingProgramObj(prog);
+
+    // Fetch RIPS goals & categories if not yet loaded
+    let allGoals = availableRipsGoals;
+    let allCats = availableRipsCategories;
+    if (!allCats || allCats.length === 0 || !allGoals || allGoals.length === 0) {
+      try {
+        const [goalsRes, catsRes] = await Promise.all([
+          api.get('/manajemen/rips/goals').catch(() => ({ data: { data: [] } })),
+          api.get('/manajemen/rips/program-categories').catch(() => ({ data: { data: [] } })),
+        ]);
+        allGoals = goalsRes.data?.data || [];
+        if (annualWorkPlan.school_unit_id) {
+          allGoals = allGoals.filter((g) => g.school_unit_id === annualWorkPlan.school_unit_id || g.rips_document_id === (annualWorkPlan.school_unit_id === 1 ? 2 : 3));
+        } else {
+          allGoals = allGoals.filter((g) => !g.school_unit_id || g.rips_document_id === 1);
+        }
+        allCats = catsRes.data?.data || [];
+        setAvailableRipsGoals(allGoals);
+        setAvailableRipsCategories(allCats);
+      } catch (err) {
+        console.error('Failed to load goals/categories for edit modal:', err);
+      }
+    }
+
+    const existingGoalIds = (prog.linked_goals || []).map((g) => g.goal_id);
+    setEditProgFormData({
+      code: prog.program_code || '',
+      name: prog.program_name || '',
+      category_id: prog.category_id ? String(prog.category_id) : '',
+      domain_id: prog.domain_id ? String(prog.domain_id) : '',
+      subdomain_id: prog.subdomain_id ? String(prog.subdomain_id) : '',
+      description: prog.program_description || '',
+      is_flagship: prog.is_flagship === 1 ? 1 : 0,
+      target_percent: prog.target_percent !== null && prog.target_percent !== undefined ? Number(prog.target_percent) : 100,
+      notes: prog.target_notes || '',
+      linked_goal_ids: existingGoalIds,
+      linked_indicator_ids: [],
+    });
+    setEditProgGoalSearch('');
+    setIsEditProgGoalDropdownOpen(false);
+    setIsEditProgramModalOpen(true);
+  };
+
+  // Submit: Simpan Edit Program (Otomatis Sync ke RIPS & RKT)
+  const handleSaveEditedProgram = async (e) => {
+    e.preventDefault();
+    if (!editingProgramObj?.program_id || !editProgFormData.name?.trim()) {
+      alert('Nama program kerja wajib diisi');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      // 1. Update RIPS Program Master
+      await api.put(`/manajemen/rips/programs/${editingProgramObj.program_id}`, {
+        name: editProgFormData.name.trim(),
+        code: editProgFormData.code ? editProgFormData.code.trim() : undefined,
+        category_id: editProgFormData.category_id ? Number(editProgFormData.category_id) : null,
+        domain_id: editProgFormData.domain_id ? Number(editProgFormData.domain_id) : null,
+        subdomain_id: editProgFormData.subdomain_id ? Number(editProgFormData.subdomain_id) : null,
+        description: editProgFormData.description || null,
+        is_flagship: editProgFormData.is_flagship ? 1 : 0,
+        linked_goal_ids: editProgFormData.linked_goal_ids,
+        linked_indicator_ids: editProgFormData.linked_indicator_ids,
+      });
+
+      // 2. Update RKT Target & Notes
+      if (annualWorkPlan?.id) {
+        await api.post(`/manajemen/annual-work-plans/${annualWorkPlan.id}/programs`, {
+          rips_program_id: editingProgramObj.program_id,
+          target_percent: editProgFormData.target_percent,
+          notes: editProgFormData.notes,
+          domain_id: editProgFormData.domain_id || undefined,
+          subdomain_id: editProgFormData.subdomain_id || undefined,
+        });
+      }
+
+      const activeDomainId = editProgFormData.domain_id;
+      const activeSubId = editProgFormData.subdomain_id;
+      if (activeDomainId) {
+        setExpandedDomains((prev) => ({
+          ...prev,
+          [activeDomainId]: true,
+          [`dom_${activeDomainId}`]: true,
+        }));
+      }
+      if (activeSubId) {
+        setExpandedSubdomains((prev) => ({
+          ...prev,
+          [activeSubId]: true,
+          [`sub_${activeDomainId}_${activeSubId}`]: true,
+        }));
+      }
+
+      setIsEditProgramModalOpen(false);
+      setEditingProgramObj(null);
+      await fetchData();
+      alert(`Program "${editProgFormData.name}" berhasil diperbarui di RKT dan RIPS!`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memperbarui program');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   // Render RKT Table Body (Hierarki: Bidang -> Sub-Bidang -> Program -> Tugas)
   const renderRktTableBody = () => {
     return groupedProgramsHierarchy.map((domain) => {
       const domKey = `dom_${domain.id}`;
-      const isDomExpanded = isFilteringActive || expandedDomains[domKey] !== false;
+      const isDomExpanded = isFilteringActive ? true : Boolean(expandedDomains[domKey]);
 
       return (
         <React.Fragment key={domain.id}>
@@ -1091,25 +1501,53 @@ export default function AnnualWorkPlan() {
               {domain.code}
             </td>
             <td colSpan={6} className="py-2 px-3">
-              <button
-                type="button"
-                onClick={() => toggleDomain(domKey)}
-                className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
-              >
-                <span className="p-0.5 rounded bg-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  {isDomExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
-                </span>
-                <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">
-                  BIDANG: {domain.name}
-                </span>
-                <span className="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300 text-gray-700 leading-tight">
-                  {domain.totalPrograms} Program Kerja / {domain.subdomainList.length} Sub-Bidang
-                </span>
-              </button>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleDomain(domKey)}
+                  className="flex items-center gap-1.5 text-left group focus:outline-none flex-1 min-w-0"
+                >
+                  <span className="p-0.5 rounded bg-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                    {isDomExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    )}
+                  </span>
+                  <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                    BIDANG: {domain.name}
+                  </span>
+                  <span className="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300 text-gray-700 leading-tight shrink-0">
+                    {domain.totalPrograms} Program Kerja / {domain.subdomainList.length} Sub-Bidang
+                  </span>
+                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditDomainModal(domain);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-blue-700 text-[10.5px] font-bold transition border border-gray-300 shadow-2xs select-none cursor-pointer"
+                    title={`Edit Nama / Urutan Bidang ${domain.name} (Berlaku untuk seluruh TA)`}
+                  >
+                    <Pencil className="w-3 h-3 text-amber-600" />
+                    <span>Edit Bidang</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenAddSubdomainModal(domain);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10.5px] font-bold transition shadow-xs select-none cursor-pointer"
+                    title={`Tambah Sub-Bidang baru di Bidang ${domain.name}`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Sub-Bidang</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
 
@@ -1117,7 +1555,7 @@ export default function AnnualWorkPlan() {
           {isDomExpanded &&
             domain.subdomainList.map((sub) => {
               const subKey = `sub_${domain.id}_${sub.id}`;
-              const isSubExpanded = isFilteringActive || expandedSubdomains[subKey] !== false;
+              const isSubExpanded = isFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
               return (
                 <React.Fragment key={sub.id}>
@@ -1126,52 +1564,85 @@ export default function AnnualWorkPlan() {
                       {sub.code}
                     </td>
                     <td colSpan={6} className="py-2 px-3 pl-7">
-                      <button
-                        type="button"
-                        onClick={() => toggleSubdomain(subKey)}
-                        className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
-                      >
-                        <span className="p-0.5 rounded bg-amber-200 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                          {isSubExpanded ? (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          )}
-                        </span>
-                        <span className="text-xs font-bold text-amber-900 group-hover:text-amber-700 transition-colors">
-                          Sub-Bidang: {sub.name}
-                        </span>
-                        <span className="ml-1 text-[10px] text-amber-800 font-normal">
-                          ({sub.programs.length} program terjadwal)
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => toggleSubdomain(subKey)}
+                          className="flex items-center gap-1.5 text-left group focus:outline-none"
+                        >
+                          <span className="p-0.5 rounded bg-amber-200 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                            {isSubExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            )}
+                          </span>
+                          <span className="text-xs font-bold text-amber-900 group-hover:text-amber-700 transition-colors">
+                            Sub-Bidang: {sub.name}
+                          </span>
+                          <span className="ml-1 text-[10px] text-amber-800 font-normal">
+                            ({sub.programs.length} program terjadwal)
+                          </span>
+                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditSubdomainModal(domain, sub);
+                            }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/90 hover:bg-white text-amber-900 hover:text-amber-700 text-[10.5px] font-bold transition border border-amber-300 shadow-2xs cursor-pointer"
+                            title={`Edit Nama / Urutan Sub-Bidang ${sub.name} (Berlaku untuk seluruh TA)`}
+                          >
+                            <Pencil className="w-3 h-3 text-amber-700" />
+                            <span>Edit Sub-Bidang</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAddProgramModal({
+                                domainId: domain.id,
+                                subdomainId: sub.id,
+                                domainName: domain.name,
+                                subdomainName: sub.name,
+                              });
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10.5px] font-bold transition shadow-xs cursor-pointer"
+                            title={`Tambah Program ke RKT pada Sub-Bidang ${sub.name}`}
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Tambah Program</span>
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
 
                   {/* LEVEL 3: PROGRAM ROW & LEVEL 4: TASKS / ACTIVITIES */}
                   {isSubExpanded &&
                     sub.programs.map((prog) => {
-                      const isProgExpanded = isFilteringActive || (expandedPrograms[prog.program_id] ?? true);
+                      const isProgExpanded = isFilteringActive ? true : Boolean(expandedPrograms[prog.program_id]);
                       const actCount = prog.activities?.length || 0;
                       const commMembersCount = prog.committee?.members?.length || 0;
                       const isCommDisahkan = prog.committee?.status === 'disahkan';
 
                       return (
                         <React.Fragment key={prog.program_id}>
-                          {/* BARIS PROGRAM */}
+                          {/* BARIS PROGRAM (SEJAJAR / LEBIH KE DALAM DARI SUB-BIDANG, TEKS SATU BARIS) */}
                           <tr className="bg-slate-50/80 hover:bg-blue-50/70 border-b border-gray-200 font-medium transition-colors">
                             {/* Kode Program */}
-                            <td className="py-2.5 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-indigo-700 align-middle">
+                            <td className="py-2 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-indigo-700 align-middle">
                               {highlightMatch(prog.program_code, searchQuery)}
                             </td>
 
-                            {/* Nama Program */}
-                            <td className="py-2.5 px-4 border-r border-gray-200 align-middle">
-                              <div className="flex items-center gap-2">
+                            {/* Nama Program (Satu Baris, Indentasi Sejajar / Masuk dari Sub-Bidang) */}
+                            <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <button
                                   type="button"
                                   onClick={() => toggleProgram(prog.program_id)}
-                                  className="p-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition shrink-0"
+                                  className="p-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition shrink-0 cursor-pointer"
                                   title={isProgExpanded ? 'Sembunyikan rincian tugas' : 'Tampilkan rincian tugas'}
                                 >
                                   {isProgExpanded ? (
@@ -1189,11 +1660,6 @@ export default function AnnualWorkPlan() {
                                   </span>
                                 )}
                               </div>
-                              {prog.program_description && (
-                                <p className="text-[11px] text-gray-500 mt-0.5 pl-6 line-clamp-1">
-                                  {highlightMatch(prog.program_description, searchQuery)}
-                                </p>
-                              )}
                             </td>
 
                             {/* Kategori Program */}
@@ -1257,17 +1723,43 @@ export default function AnnualWorkPlan() {
                               </div>
                             </td>
 
-                            {/* Aksi Tambah Tugas */}
-                            <td className="py-2.5 px-3 text-center align-middle">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenAddActivity(prog)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition shadow-xs"
-                                title="Tambah baris langkah tugas kegiatan baru pada program ini"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>Tugas</span>
-                              </button>
+                            {/* Aksi Tambah Tugas & Kelola Program */}
+                            <td className="py-2.5 px-3 text-center align-middle whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAddActivity(prog)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition shadow-xs"
+                                  title="Tambah baris langkah tugas kegiatan baru pada program ini"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Tugas</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditProgramModal(prog)}
+                                  className="p-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition shadow-2xs"
+                                  title="Edit Program Kerja (Otomatis sinkron ke RIPS & RKT)"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenMoveProgramModal(prog)}
+                                  className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs"
+                                  title="Pindahkan program ke Sub-Bidang lainnya"
+                                >
+                                  <FolderInput className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveProgramFromRkt(prog)}
+                                  className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition shadow-2xs"
+                                  title="Keluarkan program ini dari RKT tahun ajaran ini"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
 
@@ -1307,7 +1799,7 @@ export default function AnnualWorkPlan() {
                                       </td>
 
                                       {/* Judul Langkah Tugas & Catatan */}
-                                      <td className="py-2 px-4 pl-8 border-r border-gray-200 align-middle">
+                                      <td className="py-2 px-3 pl-12 sm:pl-14 border-r border-gray-200 align-middle">
                                         <div className="flex items-center gap-2">
                                           <CheckSquare className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                                           <span className="text-xs font-semibold text-gray-900 leading-snug">
@@ -1484,12 +1976,14 @@ export default function AnnualWorkPlan() {
   };
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 pt-2">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-visible">
+        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+          <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        </div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-40">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
               <CalendarDays className="w-6 h-6" />
@@ -1513,7 +2007,7 @@ export default function AnnualWorkPlan() {
           </div>
 
           {/* Context Switcher & Academic Year Selectors */}
-          <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+          <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto relative z-50">
             {/* Context Switcher: Yayasan vs Satuan */}
             <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
               <button
@@ -1542,36 +2036,35 @@ export default function AnnualWorkPlan() {
 
             {/* School Unit Dropdown (if context === school_unit) */}
             {contextType === 'school_unit' && (
-              <div className="relative">
-                <select
-                  value={selectedUnitId}
-                  onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
-                >
-                  {schoolUnits?.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.level})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                value={selectedUnitId}
+                onChange={(val) => setSelectedUnitId(Number(val))}
+                className="w-56"
+                options={schoolUnits?.map((u) => ({
+                  value: u.id,
+                  label: `${u.name} (${u.level})`,
+                })) || []}
+              />
             )}
 
-            {/* Academic Year Selector */}
-            <div className="relative">
-              <select
-                value={academicYear}
-                onChange={(e) => setAcademicYear(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-bold"
-              >
-                <option value="2025/2026">2025/2026</option>
-                <option value="2026/2027">2026/2027</option>
-                <option value="2027/2028">2027/2028</option>
-                <option value="2028/2029">2028/2029</option>
-                <option value="2029/2030">2029/2030</option>
-                <option value="2030/2031">2030/2031</option>
-              </select>
-            </div>
+            {/* Live-Search Academic Year Dropdown */}
+            <AcademicYearDropdown
+              value={academicYear}
+              onChange={setAcademicYear}
+              academicYears={academicYearsList}
+            />
+
+            {/* Reload Data Button */}
+            <button
+              type="button"
+              onClick={fetchData}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold rounded-xl shadow-xs transition disabled:opacity-60"
+              title="Muat ulang seluruh data RKT dari database"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
+              <span>{loading ? 'Memuat...' : 'Muat Ulang'}</span>
+            </button>
 
             {/* Publish RKT Button */}
             {annualWorkPlan && (
@@ -1598,62 +2091,77 @@ export default function AnnualWorkPlan() {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+        <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs relative z-20">
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Filter Domain */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={filterDomain}
-                onChange={(e) => setFilterDomain(e.target.value)}
-                className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-              >
-                <option value="all" className="bg-slate-950 text-slate-200">
-                  Semua Bidang ({domainsData?.length || 0})
-                </option>
-                {domainsData?.map((d) => (
-                  <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200">
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-            </div>
+            <SearchableSelect
+              value={filterDomain}
+              onChange={(val) => {
+                setFilterDomain(val || 'all');
+                setFilterSubdomain('all');
+              }}
+              className="w-52"
+              placeholder="Semua Bidang"
+              options={[
+                { value: 'all', label: `Semua Bidang (${domainsData?.length || 0})`, sublabel: 'Tampilkan seluruh bidang' },
+                ...(domainsData?.map((d) => ({
+                  value: String(d.id),
+                  label: d.name,
+                  sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                  badge: d.code || `BID-${d.order_index || d.id}`
+                })) || []),
+              ]}
+            />
+
+            {/* Filter Sub-Bidang */}
+            <SearchableSelect
+              value={filterSubdomain}
+              onChange={(val) => setFilterSubdomain(val || 'all')}
+              className="w-56"
+              placeholder="Semua Sub-Bidang"
+              options={[
+                {
+                  value: 'all',
+                  label: `Semua Sub-Bidang (${availableSubdomains.length})`,
+                  sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                },
+                ...availableSubdomains.map((s) => ({
+                  value: String(s.id),
+                  label: s.name,
+                  sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                  badge: s.code || undefined
+                }))
+              ]}
+            />
 
             {/* Filter Kategori (jika ada) */}
             {programCategories.length > 0 && (
-              <div className="relative inline-flex items-center">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                >
-                  <option value="all" className="bg-slate-950 text-slate-200">
-                    Semua Kategori ({programCategories.length})
-                  </option>
-                  {programCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name} className="bg-slate-950 text-slate-200">
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-              </div>
+              <SearchableSelect
+                value={filterCategory}
+                onChange={(val) => setFilterCategory(val)}
+                className="w-48"
+                options={[
+                  { value: 'all', label: `Semua Kategori (${programCategories.length})` },
+                  ...programCategories.map((cat) => ({
+                    value: cat.name,
+                    label: cat.name,
+                  })),
+                ]}
+              />
             )}
 
             {/* Filter Status Progres */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-              >
-                <option value="all" className="bg-slate-950 text-slate-200">Semua Status</option>
-                <option value="not_started" className="bg-slate-950 text-slate-200">Belum Mulai (0%)</option>
-                <option value="in_progress" className="bg-slate-950 text-slate-200">Sedang Berjalan (1-99%)</option>
-                <option value="completed" className="bg-slate-950 text-slate-200">Selesai (100%)</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-            </div>
+            <SearchableSelect
+              value={filterStatus}
+              onChange={(val) => setFilterStatus(val)}
+              className="w-48"
+              options={[
+                { value: 'all', label: 'Semua Status' },
+                { value: 'not_started', label: 'Belum Mulai (0%)' },
+                { value: 'in_progress', label: 'Sedang Berjalan (1-99%)' },
+                { value: 'completed', label: 'Selesai (100%)' },
+              ]}
+            />
 
             {/* Flagship Toggle */}
             <label className="flex items-center gap-2 text-slate-300 font-semibold cursor-pointer select-none px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800">
@@ -1671,21 +2179,21 @@ export default function AnnualWorkPlan() {
 
           {/* Search Box with Clear Button */}
           <div className="flex items-center gap-3">
-            <div className="relative flex-1 sm:flex-initial">
-              <Search className="w-3.5 h-3.5 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative flex items-center group flex-1 sm:flex-initial">
+              <Search className="w-3.5 h-3.5 text-indigo-400 group-focus-within:text-indigo-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
               <input
                 type="text"
                 placeholder="Cari kode, nama, deskripsi, tugas, panitia..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 w-full sm:w-72 transition font-medium"
+                className="bg-slate-950/90 hover:bg-slate-950 focus:bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:placeholder-slate-400 outline-none w-full sm:w-72 transition-all duration-200 font-medium shadow-inner"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 rounded-md hover:bg-slate-800 transition"
-                  title="Hapus pencarian"
+                  className="absolute right-2.5 p-0.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all z-10"
+                  title="Hapus kata kunci pencarian"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1735,49 +2243,192 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 1: RKT HIERARCHICAL TABLE (BIDANG -> SUB-BIDANG -> PROGRAM -> TUGAS) */}
       {mainTab === 'rkt' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 flex-wrap gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-indigo-400" />
-                Matriks Operasional Program Kerja Tahunan ({academicYear})
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Struktur pohon hierarki Bidang &amp; Sub-Bidang. Klik tombol panitia untuk melihat susunan SK, dan klik <strong>+ Tambah Tugas</strong> pada setiap program.
-              </p>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+          {/* Header Utama Tabel: Biru Solid (#3B82F6) seperti di RIPS */}
+          <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-2xl relative z-50">
+            {/* Sisi Kiri: Ikon & Judul Tabel */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
+                <FolderOpen className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
+                  MATRIKS OPERASIONAL PROGRAM KERJA TAHUNAN ({academicYear})
+                </h3>
+                <p className="text-[11px] text-blue-100 font-medium">
+                  {currentLevelLabel} &bull; Menampilkan {totalFilteredPrograms} dari {programs.length} Program Operasional &amp; Tugas
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Sisi Kanan: Filter Bidang, Filter Sub-Bidang, Filter Status, Search, Tambah Program, Cetak, Layar Penuh */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {/* Filter Bidang dengan Live Search & High Visibility */}
+              <SearchableSelect
+                value={filterDomain}
+                onChange={(val) => {
+                  setFilterDomain(val || 'all');
+                  setFilterSubdomain('all');
+                }}
+                placeholder="Semua Bidang"
+                searchPlaceholder="Cari bidang..."
+                variant="header-white"
+                accentColor="blue"
+                className="w-40 sm:w-48"
+                menuMinWidth="240px"
+                options={[
+                  { value: 'all', label: `Semua Bidang (${domainsData?.length || 0})`, sublabel: 'Tampilkan seluruh bidang' },
+                  ...(domainsData?.map((d) => ({
+                    value: String(d.id),
+                    label: d.name,
+                    sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                    badge: d.code || `BID-${d.order_index || d.id}`
+                  })) || [])
+                ]}
+              />
+
+              {/* Filter Sub-Bidang dengan Live Search & High Visibility */}
+              <SearchableSelect
+                value={filterSubdomain}
+                onChange={(val) => setFilterSubdomain(val || 'all')}
+                placeholder="Semua Sub-Bidang"
+                searchPlaceholder="Cari sub-bidang..."
+                variant="header-white"
+                accentColor="blue"
+                className="w-44 sm:w-52"
+                menuMinWidth="240px"
+                options={[
+                  {
+                    value: 'all',
+                    label: `Semua Sub-Bidang (${availableSubdomains.length})`,
+                    sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                  },
+                  ...availableSubdomains.map((s) => ({
+                    value: String(s.id),
+                    label: s.name,
+                    sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                    badge: s.code || undefined
+                  }))
+                ]}
+              />
+
+              {/* Filter Status */}
+              <SearchableSelect
+                value={filterStatus}
+                onChange={(val) => setFilterStatus(val || 'all')}
+                placeholder="Semua Status"
+                variant="header-white"
+                accentColor="blue"
+                className="w-36 sm:w-40"
+                menuMinWidth="180px"
+                options={[
+                  { value: 'all', label: 'Semua Status' },
+                  { value: 'not_started', label: 'Belum Mulai' },
+                  { value: 'in_progress', label: 'Sedang Berjalan' },
+                  { value: 'completed', label: 'Selesai' },
+                ]}
+              />
+
+              {/* Search Box */}
+              <div className="relative flex items-center group">
+                <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari program / tugas..."
+                  className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                    title="Hapus kata kunci pencarian"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Tambah Program */}
               <button
                 type="button"
-                onClick={handleExpandAll}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition"
+                onClick={handleOpenAddProgramModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold transition shadow-xs select-none"
+                title="Tambah Program Baru atau Pilih dari RIPS ke RKT Ini"
               >
-                Buka Semua
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tambah Program</span>
               </button>
+
+              {/* Kontrol Lipat / Buka Hirarki */}
+              <div className="flex items-center gap-1 bg-white/15 p-1 rounded-xl border border-white/20">
+                <button
+                  type="button"
+                  onClick={handleCollapseAll}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/25 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                  title="Lipat Semua (Bidang, Sub-Bidang, & Program)"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                  <span>Lipat Semua</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExpandDomainsOnly}
+                  className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                  title="Buka Level Bidang Saja"
+                >
+                  <span>Bidang</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExpandSubdomains}
+                  className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                  title="Buka Level Bidang & Sub-Bidang"
+                >
+                  <span>Sub-Bidang</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExpandAll}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                  title="Buka Semua Rincian (Bidang, Sub-Bidang, & Program)"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  <span>Buka Semua</span>
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={handleCollapseAll}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition"
+                onClick={fetchData}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none disabled:opacity-60"
+                title="Muat ulang tabel RKT dari database"
               >
-                Tutup Semua
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Muat Ulang</span>
               </button>
+
               <button
                 type="button"
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition border border-slate-700 shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none"
                 title="Cetak Dokumen RKT"
               >
-                <Printer className="w-3.5 h-3.5 text-indigo-400" />
+                <Printer className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Cetak</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setIsFullscreen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white text-xs font-bold transition border border-indigo-500/40 shadow-xs select-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none"
                 title="Tampilkan Matriks RKT dalam Mode Layar Penuh (Fullscreen)"
               >
-                <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Layar Penuh</span>
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Layar Penuh</span>
               </button>
             </div>
           </div>
@@ -1895,7 +2546,7 @@ export default function AnnualWorkPlan() {
               className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
             >
               {/* Header Fullscreen */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md z-10">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
                     <CalendarDays className="w-5 h-5 text-white" />
@@ -1918,38 +2569,58 @@ export default function AnnualWorkPlan() {
                 {/* Quick Filters & Controls in Fullscreen */}
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Filter Domain in Fullscreen */}
-                  <div className="relative inline-flex items-center">
-                    <select
-                      value={filterDomain}
-                      onChange={(e) => setFilterDomain(e.target.value)}
-                      className="appearance-none bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl pl-3 pr-7 py-1.5 outline-none border border-white/20 focus:border-white transition cursor-pointer"
-                    >
-                      <option value="all" className="bg-slate-900 text-slate-100">
-                        Semua Bidang ({domainsData?.length || 0})
-                      </option>
-                      {domainsData?.map((d) => (
-                        <option key={d.id} value={d.id} className="bg-slate-900 text-slate-100">
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-blue-200 absolute right-2 pointer-events-none" />
-                  </div>
+                  <SearchableSelect
+                    value={filterDomain}
+                    onChange={(val) => {
+                      setFilterDomain(val || 'all');
+                      setFilterSubdomain('all');
+                    }}
+                    className="w-52"
+                    placeholder="Semua Bidang"
+                    options={[
+                      { value: 'all', label: `Semua Bidang (${domainsData?.length || 0})`, sublabel: 'Tampilkan seluruh bidang' },
+                      ...(domainsData?.map((d) => ({
+                        value: String(d.id),
+                        label: d.name,
+                        sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                        badge: d.code || `BID-${d.order_index || d.id}`
+                      })) || []),
+                    ]}
+                  />
+
+                  {/* Filter Sub-Bidang in Fullscreen */}
+                  <SearchableSelect
+                    value={filterSubdomain}
+                    onChange={(val) => setFilterSubdomain(val || 'all')}
+                    className="w-56"
+                    placeholder="Semua Sub-Bidang"
+                    options={[
+                      {
+                        value: 'all',
+                        label: `Semua Sub-Bidang (${availableSubdomains.length})`,
+                        sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                      },
+                      ...availableSubdomains.map((s) => ({
+                        value: String(s.id),
+                        label: s.name,
+                        sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                        badge: s.code || undefined
+                      }))
+                    ]}
+                  />
 
                   {/* Filter Status in Fullscreen */}
-                  <div className="relative inline-flex items-center">
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="appearance-none bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl pl-3 pr-7 py-1.5 outline-none border border-white/20 focus:border-white transition cursor-pointer"
-                    >
-                      <option value="all" className="bg-slate-900 text-slate-100">Semua Status</option>
-                      <option value="not_started" className="bg-slate-900 text-slate-100">Belum Mulai</option>
-                      <option value="in_progress" className="bg-slate-900 text-slate-100">Sedang Berjalan</option>
-                      <option value="completed" className="bg-slate-900 text-slate-100">Selesai</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-blue-200 absolute right-2 pointer-events-none" />
-                  </div>
+                  <SearchableSelect
+                    value={filterStatus}
+                    onChange={(val) => setFilterStatus(val)}
+                    className="w-44"
+                    options={[
+                      { value: 'all', label: 'Semua Status' },
+                      { value: 'not_started', label: 'Belum Mulai' },
+                      { value: 'in_progress', label: 'Sedang Berjalan' },
+                      { value: 'completed', label: 'Selesai' },
+                    ]}
+                  />
 
                   {/* Flagship Only Toggle */}
                   <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-semibold text-white cursor-pointer select-none">
@@ -1963,45 +2634,87 @@ export default function AnnualWorkPlan() {
                   </label>
 
                   {/* Search Input with Clear Button */}
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <div className="relative flex items-center group">
+                    <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Cari program / tugas / PIC..."
-                      className="bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-gray-900 placeholder-blue-200 focus:placeholder-gray-400 text-xs rounded-xl pl-8 pr-7 py-1.5 outline-none transition border border-white/20 focus:border-white w-40 sm:w-56 font-medium"
+                      className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
                     />
                     {searchQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-0.5 rounded transition"
-                        title="Hapus pencarian"
+                        className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                        title="Hapus kata kunci pencarian"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     )}
                   </div>
 
-                  {/* Buka Semua / Tutup Semua */}
+                  {/* Tambah Program Button in Fullscreen */}
+                  <button
+                    type="button"
+                    onClick={handleOpenAddProgramModal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-extrabold transition shadow-md select-none whitespace-nowrap"
+                    title="Tambah Program Baru atau Pilih dari RIPS ke RKT Ini"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Program</span>
+                  </button>
+
+                  {/* Kontrol Lipat / Buka Hirarki in Fullscreen */}
                   <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-xl border border-white/20">
                     <button
                       type="button"
-                      onClick={handleExpandAll}
-                      className="px-2 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
-                      title="Buka semua bidang, sub-bidang dan program"
+                      onClick={handleCollapseAll}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
+                      title="Lipat Semua (Bidang, Sub-Bidang, & Program)"
                     >
-                      Buka Semua
+                      <ChevronUp className="w-3 h-3" />
+                      <span>Lipat Semua</span>
                     </button>
                     <button
                       type="button"
-                      onClick={handleCollapseAll}
-                      className="px-2 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
+                      onClick={handleExpandDomainsOnly}
+                      className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                      title="Buka Level Bidang Saja"
                     >
-                      Tutup Semua
+                      Bidang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExpandSubdomains}
+                      className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                      title="Buka Level Bidang & Sub-Bidang"
+                    >
+                      Sub-Bidang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExpandAll}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-white/20 hover:bg-white/30 transition shadow-2xs"
+                      title="Buka Semua Rincian (Bidang, Sub-Bidang, & Program)"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                      <span>Buka Semua</span>
                     </button>
                   </div>
+
+                  {/* Reload Data Button in Fullscreen */}
+                  <button
+                    type="button"
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition border border-white/30 shadow-xs select-none disabled:opacity-60"
+                    title="Muat ulang tabel RKT dari database"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Muat Ulang</span>
+                  </button>
 
                   {/* Print Button */}
                   <button
@@ -2068,7 +2781,7 @@ export default function AnnualWorkPlan() {
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse min-w-[950px]">
-                    <thead className="sticky top-0 z-20 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                    <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                       <tr>
                         <th className="py-3 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                         <th className="py-3 px-4 border-r border-[#D1D5DB] min-w-[280px]">Program Kerja / Langkah Tugas Kegiatan</th>
@@ -2092,7 +2805,7 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 2: PUBLICATIONS */}
       {mainTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -2158,7 +2871,7 @@ export default function AnnualWorkPlan() {
       {/* POPUP MODAL: DETAIL KEPANITIAAN PROGRAM */}
       {modalType === 'committee_detail' && currentProgramObj && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <div className="flex items-center gap-2">
@@ -2297,7 +3010,7 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 2: PUBLICATIONS HISTORY */}
       {mainTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
@@ -2394,7 +3107,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 1: ADD / EDIT ACTIVITY */}
       {modalType === 'activity' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingActivity ? 'Edit Langkah Tugas Kegiatan' : 'Tambah Langkah Tugas Kegiatan'}
@@ -2584,7 +3297,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 2: ADD COMMITTEE MEMBER */}
       {modalType === 'add_member' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">Tambah Jabatan Kepanitiaan</h3>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
@@ -2641,7 +3354,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 3: SAHKAN KEPANITIAAN */}
       {modalType === 'sahkan_committee' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -2714,7 +3427,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 4: PUBLISH RKT */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-400" />
@@ -2797,7 +3510,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 5: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Dokumen RKT</h3>
@@ -2846,6 +3559,1194 @@ export default function AnnualWorkPlan() {
           </div>
         </div>
       )}
+
+      {/* MODAL 6: TAMBAH PROGRAM KE RKT (PILIH DARI RIPS / BUAT BARU) */}
+      {isAddProgramModalOpen && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Tambah Program ke RKT (TA {academicYear})
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Pilih program yang sudah terdaftar di RIPS atau buat program baru yang otomatis tersinkron ke RIPS &amp; RKT.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddProgramModalOpen(false)}
+                className="text-slate-400 hover:text-white font-bold p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setAddProgramTab('existing')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  addProgramTab === 'existing'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                Pilih Program dari RIPS ({availableRipsPrograms.length} Tersedia)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddProgramTab('new')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  addProgramTab === 'new'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Buat Program Baru di RIPS &amp; RKT
+              </button>
+            </div>
+
+            {/* Target Context Banner */}
+            {targetAddContext && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                  <span className="truncate">
+                    Target Penempatan: <strong>{targetAddContext.domainName}</strong> › <strong>{targetAddContext.subdomainName}</strong>
+                  </span>
+                </div>
+                <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-900/60 text-emerald-200 border border-emerald-700/50 shrink-0">
+                  Terpilih Otomatis
+                </span>
+              </div>
+            )}
+
+            {/* TAB 1: PILIH DARI PROGRAM RIPS */}
+            {addProgramTab === 'existing' && (
+              <form onSubmit={handleAddExistingProgramToRkt} className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+                {/* Live Search Program Dropdown */}
+                <div className="space-y-1.5" ref={existingDropdownRef}>
+                  <label className="block font-semibold text-slate-200 text-xs">
+                    Pilih Program RIPS <span className="text-rose-400">*</span>
+                  </label>
+
+                  {selectedRipsProg ? (
+                    <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 flex items-start justify-between gap-3 animate-fadeIn">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800">
+                            {selectedRipsProg.code}
+                          </span>
+                          <span className="font-bold text-white text-xs">{selectedRipsProg.name}</span>
+                          {selectedRipsProg.is_flagship === 1 && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/60">
+                              ⭐ Unggulan
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-300">
+                          {selectedRipsProg.domain_name || 'Bidang'} {selectedRipsProg.subdomain_name ? `> ${selectedRipsProg.subdomain_name}` : ''}
+                        </p>
+                        {selectedRipsProg.description && (
+                          <p className="text-[10.5px] text-slate-400 line-clamp-2 italic">
+                            {selectedRipsProg.description}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRipsProg(null);
+                          setIsExistingDropdownOpen(true);
+                        }}
+                        className="text-[10px] text-indigo-300 hover:text-white font-semibold px-2.5 py-1 rounded-xl bg-indigo-900/60 border border-indigo-700/60 transition shrink-0"
+                      >
+                        Ganti Program
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={existingProgSearch}
+                          onChange={(e) => {
+                            setExistingProgSearch(e.target.value);
+                            setIsExistingDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsExistingDropdownOpen(true)}
+                          placeholder="Ketik kode, nama program, bidang, atau kategori..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
+                        />
+                        {existingProgSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setExistingProgSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Dropdown Menu Hasil Pencarian */}
+                      {isExistingDropdownOpen && (
+                        <div className="absolute z-30 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                          {(() => {
+                            const filtered = availableRipsPrograms.filter((p) => {
+                              if (!existingProgSearch.trim()) return true;
+                              const q = existingProgSearch.toLowerCase();
+                              return (
+                                p.code?.toLowerCase().includes(q) ||
+                                p.name?.toLowerCase().includes(q) ||
+                                p.domain_name?.toLowerCase().includes(q) ||
+                                p.subdomain_name?.toLowerCase().includes(q) ||
+                                p.category_name?.toLowerCase().includes(q)
+                              );
+                            });
+
+                            if (filtered.length === 0) {
+                              return (
+                                <div className="p-3.5 text-center text-slate-400 text-xs italic space-y-1">
+                                  <p>Tidak ada program RIPS yang cocok atau seluruh program sudah dimasukkan ke RKT TA {academicYear}.</p>
+                                  <p className="text-[10px] text-indigo-400 font-normal">
+                                    💡 Anda dapat membuat program baru di tab "Buat Program Baru".
+                                  </p>
+                                </div>
+                              );
+                            }
+
+                            return filtered.map((p) => (
+                              <div
+                                key={p.id}
+                                onClick={() => {
+                                  setSelectedRipsProg(p);
+                                  setIsExistingDropdownOpen(false);
+                                  setExistingProgSearch('');
+                                }}
+                                className="p-2.5 rounded-xl flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-850 text-slate-200 hover:text-white transition"
+                              >
+                                <div className="flex items-start gap-2.5 min-w-0">
+                                  <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
+                                    {p.code}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold leading-tight truncate">{p.name}</p>
+                                    <p className="text-[10px] text-slate-400 truncate">
+                                      {p.domain_name || 'Bidang'} &bull; {p.category_name || 'Reguler'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-1">
+                                  {p.is_flagship === 1 && (
+                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60">
+                                      ⭐ Unggulan
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-indigo-400 font-bold px-2 py-0.5 rounded bg-indigo-950/40 border border-indigo-800/40">
+                                    Pilih
+                                  </span>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Target & Catatan */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-1">
+                    <label className="block font-semibold text-slate-300 mb-1">Target Capaian RKT (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={existingTargetPercent}
+                      onChange={(e) => setExistingTargetPercent(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-bold"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold text-slate-300 mb-1">Catatan Pelaksanaan (Opsional)</label>
+                    <input
+                      type="text"
+                      value={existingNotes}
+                      onChange={(e) => setExistingNotes(e.target.value)}
+                      placeholder="Contoh: Fokus semester ganjil / prioritas sarana..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddProgramModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={formLoading || !selectedRipsProg}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition shadow-lg ${
+                      selectedRipsProg
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-950/50'
+                        : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {formLoading ? 'Memproses...' : 'Masukkan ke RKT'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: BUAT PROGRAM BARU (LANGSUNG TERSINKRON KE RIPS & RKT) */}
+            {addProgramTab === 'new' && (
+              <form onSubmit={handleCreateNewProgramInRkt} className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+                {/* Penempatan Bidang & Sub-Bidang */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Bidang Penempatan *</label>
+                    <SearchableSelect
+                      value={newProgFormData.domain_id || ''}
+                      placeholder="-- Pilih Bidang --"
+                      onChange={(val) => setNewProgFormData({ ...newProgFormData, domain_id: val ? Number(val) : '', subdomain_id: '' })}
+                      options={domainsData.map((d) => ({
+                        value: d.id,
+                        label: d.name,
+                      }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Sub-Bidang Penempatan *</label>
+                    <SearchableSelect
+                      value={newProgFormData.subdomain_id || ''}
+                      placeholder="-- Pilih Sub-Bidang --"
+                      onChange={(val) => setNewProgFormData({ ...newProgFormData, subdomain_id: val ? Number(val) : '' })}
+                      options={subdomainsData
+                        .filter((s) => !newProgFormData.domain_id || Number(s.domain_id) === Number(newProgFormData.domain_id))
+                        .map((s) => ({
+                          value: s.id,
+                          label: s.name,
+                        }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Kode Program *</label>
+                    <input
+                      type="text"
+                      value={newProgFormData.code || ''}
+                      onChange={(e) => setNewProgFormData({ ...newProgFormData, code: e.target.value })}
+                      required
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold text-slate-300 mb-1">Kategori Program</label>
+                    <SearchableSelect
+                      value={newProgFormData.category_id || ''}
+                      placeholder="-- Pilih Kategori --"
+                      onChange={(val) => setNewProgFormData({ ...newProgFormData, category_id: val ? Number(val) : '' })}
+                      options={[
+                        { value: '', label: '-- Pilih Kategori --' },
+                        ...availableRipsCategories.map((c) => ({
+                          value: c.id,
+                          label: c.name,
+                        })),
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Nama Program Kerja *</label>
+                  <input
+                    type="text"
+                    value={newProgFormData.name || ''}
+                    onChange={(e) => setNewProgFormData({ ...newProgFormData, name: e.target.value })}
+                    required
+                    placeholder="Contoh: Pengadaan ATK Bulanan Sekolah..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Deskripsi / Inisiatif Strategis</label>
+                  <textarea
+                    rows={2}
+                    value={newProgFormData.description || ''}
+                    onChange={(e) => setNewProgFormData({ ...newProgFormData, description: e.target.value })}
+                    placeholder="Deskripsi operasional program kerja..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Pilih Sasaran Strategis RIPS Terkait */}
+                <div className="space-y-1.5" ref={newProgGoalDropdownRef}>
+                  <div className="flex items-center justify-between">
+                    <label className="block font-semibold text-indigo-300 text-xs">
+                      1. Hubungkan ke Sasaran Strategis RIPS Terkait
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      {newProgFormData.linked_goal_ids?.length || 0} Sasaran Terpilih
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={newProgGoalSearch}
+                        onChange={(e) => {
+                          setNewProgGoalSearch(e.target.value);
+                          setIsNewProgGoalDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsNewProgGoalDropdownOpen(true)}
+                        placeholder="Ketik kode, nama sasaran, atau bidang untuk mencari..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
+                      />
+                      {newProgGoalSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setNewProgGoalSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Dropdown Menu Sasaran */}
+                    {isNewProgGoalDropdownOpen && (
+                      <div className="absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                        {(() => {
+                          const filteredGoals = availableRipsGoals.filter((g) => {
+                            if (!newProgGoalSearch.trim()) return true;
+                            const q = newProgGoalSearch.toLowerCase();
+                            return (
+                              g.code?.toLowerCase().includes(q) ||
+                              g.title?.toLowerCase().includes(q) ||
+                              g.domain_name?.toLowerCase().includes(q)
+                            );
+                          });
+
+                          if (filteredGoals.length === 0) {
+                            return (
+                              <div className="p-3 text-center text-slate-500 text-xs italic">
+                                Tidak ada sasaran strategis yang cocok dengan kata kunci "{newProgGoalSearch}".
+                              </div>
+                            );
+                          }
+
+                          return filteredGoals.map((g) => {
+                            const isSelected = newProgFormData.linked_goal_ids?.includes(g.id);
+                            return (
+                              <div
+                                key={g.id}
+                                onClick={() => {
+                                  const currentGoalIds = newProgFormData.linked_goal_ids || [];
+                                  const currentIndIds = newProgFormData.linked_indicator_ids || [];
+                                  const goalIndIds = (g.indicators && g.indicators.length > 0
+                                    ? g.indicators
+                                    : [{ id: `fallback_${g.id}` }]
+                                  ).map((i) => i.id);
+
+                                  if (isSelected) {
+                                    setNewProgFormData({
+                                      ...newProgFormData,
+                                      linked_goal_ids: currentGoalIds.filter((id) => id !== g.id),
+                                      linked_indicator_ids: currentIndIds.filter((id) => !goalIndIds.includes(id)),
+                                    });
+                                  } else {
+                                    setNewProgFormData({
+                                      ...newProgFormData,
+                                      linked_goal_ids: [...currentGoalIds, g.id],
+                                      linked_indicator_ids: Array.from(new Set([...currentIndIds, ...goalIndIds])),
+                                    });
+                                  }
+                                }}
+                                className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition ${
+                                  isSelected
+                                    ? 'bg-indigo-600/20 border border-indigo-500/40 text-white'
+                                    : 'hover:bg-slate-850 text-slate-300 hover:text-white'
+                                }`}
+                              >
+                                <div className="flex items-start gap-2 min-w-0">
+                                  <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
+                                    {g.code}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold leading-tight truncate">{g.title}</p>
+                                    <p className="text-[10px] text-slate-400 truncate">
+                                      {g.domain_name || 'Bidang'} &bull; {g.indicators?.length || 1} Indikator
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {}}
+                                    className="w-4 h-4 rounded border-slate-700 text-indigo-600 pointer-events-none"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Indikator Checkboxes */}
+                {newProgFormData.linked_goal_ids && newProgFormData.linked_goal_ids.length > 0 && (
+                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-emerald-300">
+                        2. Pilih Indikator Kinerja yang Terkait
+                      </label>
+                      <span className="text-[10px] text-slate-400 shrink-0 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                        {newProgFormData.linked_indicator_ids?.length || 0} Indikator Terpilih
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                      {newProgFormData.linked_goal_ids.map((goalId) => {
+                        const g = availableRipsGoals.find((item) => item.id === goalId);
+                        if (!g) return null;
+                        const gIndicators = g.indicators && g.indicators.length > 0
+                          ? g.indicators
+                          : [
+                              {
+                                id: `fallback_${g.id}`,
+                                name: g.indicator_name || g.title,
+                                unit: g.indicator_unit || '%',
+                                baseline_percent: g.baseline_percent ?? 0,
+                                target_percent: g.target_percent ?? 100,
+                              }
+                            ];
+
+                        const allGoalIndIds = gIndicators.map((i) => i.id);
+                        const selectedGoalInds = allGoalIndIds.filter((id) => (newProgFormData.linked_indicator_ids || []).includes(id));
+                        const isAllSelected = selectedGoalInds.length === allGoalIndIds.length;
+
+                        return (
+                          <div key={g.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-850 gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
+                                  {g.code}
+                                </span>
+                                <span className="text-xs font-bold text-white truncate">{g.title}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentInds = newProgFormData.linked_indicator_ids || [];
+                                    if (isAllSelected) {
+                                      setNewProgFormData({
+                                        ...newProgFormData,
+                                        linked_indicator_ids: currentInds.filter((id) => !allGoalIndIds.includes(id)),
+                                      });
+                                    } else {
+                                      setNewProgFormData({
+                                        ...newProgFormData,
+                                        linked_indicator_ids: Array.from(new Set([...currentInds, ...allGoalIndIds])),
+                                      });
+                                    }
+                                  }}
+                                  className="text-[10px] text-indigo-300 hover:text-white font-medium px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/60 transition"
+                                >
+                                  {isAllSelected ? 'Batal Semua' : 'Pilih Semua'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentGoals = newProgFormData.linked_goal_ids || [];
+                                    const currentInds = newProgFormData.linked_indicator_ids || [];
+                                    setNewProgFormData({
+                                      ...newProgFormData,
+                                      linked_goal_ids: currentGoals.filter((id) => id !== g.id),
+                                      linked_indicator_ids: currentInds.filter((id) => !allGoalIndIds.includes(id)),
+                                    });
+                                  }}
+                                  className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-950/40 border border-rose-900/60 transition"
+                                >
+                                  ✕ Hapus
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5 pl-0.5">
+                              {gIndicators.map((ind) => {
+                                const isIndChecked = (newProgFormData.linked_indicator_ids || []).includes(ind.id);
+                                return (
+                                  <div
+                                    key={ind.id}
+                                    onClick={() => {
+                                      const currentInds = newProgFormData.linked_indicator_ids || [];
+                                      if (isIndChecked) {
+                                        setNewProgFormData({
+                                          ...newProgFormData,
+                                          linked_indicator_ids: currentInds.filter((id) => id !== ind.id),
+                                        });
+                                      } else {
+                                        setNewProgFormData({
+                                          ...newProgFormData,
+                                          linked_indicator_ids: [...currentInds, ind.id],
+                                        });
+                                      }
+                                    }}
+                                    className={`flex items-start justify-between gap-2.5 p-2 rounded-xl border text-[11px] cursor-pointer transition select-none ${
+                                      isIndChecked
+                                        ? 'bg-slate-900/90 border-emerald-500/50 text-slate-100 shadow-xs ring-1 ring-emerald-500/20'
+                                        : 'bg-slate-950/50 border-slate-800/80 text-slate-400 hover:bg-slate-900/50 hover:text-slate-300'
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-2 min-w-0">
+                                      <input
+                                        type="checkbox"
+                                        checked={isIndChecked}
+                                        onChange={() => {}}
+                                        className="w-3.5 h-3.5 rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 mt-0.5 pointer-events-none shrink-0"
+                                      />
+                                      <span className={`leading-snug block ${isIndChecked ? 'font-medium text-slate-100' : 'text-slate-400'}`}>
+                                        {ind.name}
+                                      </span>
+                                    </div>
+                                    <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${
+                                      isIndChecked
+                                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80'
+                                        : 'bg-slate-900 text-slate-500 border-slate-800'
+                                    }`}>
+                                      Target: {ind.target_percent}{ind.unit || '%'}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                  <input
+                    type="checkbox"
+                    id="rkt_flagship_cb"
+                    checked={newProgFormData.is_flagship === 1 || newProgFormData.is_flagship === true}
+                    onChange={(e) => setNewProgFormData({ ...newProgFormData, is_flagship: e.target.checked ? 1 : 0 })}
+                    className="rounded border-slate-700 text-amber-500 focus:ring-amber-500"
+                  />
+                  <label htmlFor="rkt_flagship_cb" className="text-xs text-amber-300 font-medium cursor-pointer">
+                    Tandai sebagai Program Unggulan (Flagship Program)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800/80">
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">Target Capaian RKT (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={newProgFormData.target_percent}
+                      onChange={(e) => setNewProgFormData({ ...newProgFormData, target_percent: Number(e.target.value) })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-bold"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-semibold text-slate-300 mb-1">Catatan Pelaksanaan (Opsional)</label>
+                    <input
+                      type="text"
+                      value={newProgFormData.notes || ''}
+                      onChange={(e) => setNewProgFormData({ ...newProgFormData, notes: e.target.value })}
+                      placeholder="Catatan pelaksanaan tahunan..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddProgramModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={formLoading}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/50"
+                  >
+                    {formLoading ? 'Menyimpan...' : 'Simpan & Masukkan ke RKT'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 8: EDIT PROGRAM KERJA (SYNC OTOMATIS RIPS & RKT) */}
+      {isEditProgramModalOpen && editingProgramObj && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-amber-400" />
+                  Edit Program Kerja
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Perubahan nama, kategori, bidang, atau sasaran akan otomatis tersinkronisasi ke master RIPS &amp; target RKT.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditProgramModalOpen(false);
+                  setEditingProgramObj(null);
+                }}
+                className="text-slate-400 hover:text-white font-bold p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedProgram} className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Penempatan Bidang & Sub-Bidang */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Bidang Penempatan *</label>
+                  <SearchableSelect
+                    value={editProgFormData.domain_id || ''}
+                    placeholder="-- Pilih Bidang --"
+                    onChange={(val) => setEditProgFormData({ ...editProgFormData, domain_id: val ? Number(val) : '', subdomain_id: '' })}
+                    options={domainsData.map((d) => ({
+                      value: d.id,
+                      label: d.name,
+                    }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Sub-Bidang Penempatan *</label>
+                  <SearchableSelect
+                    value={editProgFormData.subdomain_id || ''}
+                    placeholder="-- Pilih Sub-Bidang --"
+                    onChange={(val) => setEditProgFormData({ ...editProgFormData, subdomain_id: val ? Number(val) : '' })}
+                    options={subdomainsData
+                      .filter((s) => !editProgFormData.domain_id || Number(s.domain_id) === Number(editProgFormData.domain_id))
+                      .map((s) => ({
+                        value: s.id,
+                        label: s.name,
+                      }))}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Kode Program *</label>
+                  <input
+                    type="text"
+                    value={editProgFormData.code || ''}
+                    onChange={(e) => setEditProgFormData({ ...editProgFormData, code: e.target.value })}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500 font-mono font-bold"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-300 mb-1">Kategori Program</label>
+                  <SearchableSelect
+                    value={editProgFormData.category_id || ''}
+                    placeholder="-- Pilih Kategori --"
+                    onChange={(val) => setEditProgFormData({ ...editProgFormData, category_id: val ? Number(val) : '' })}
+                    options={[
+                      { value: '', label: '-- Pilih Kategori --' },
+                      ...availableRipsCategories.map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                      })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Nama Program Kerja *</label>
+                <input
+                  type="text"
+                  value={editProgFormData.name || ''}
+                  onChange={(e) => setEditProgFormData({ ...editProgFormData, name: e.target.value })}
+                  required
+                  placeholder="Contoh: Pengadaan ATK Bulanan Sekolah..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Deskripsi / Inisiatif Strategis</label>
+                <textarea
+                  rows={2}
+                  value={editProgFormData.description || ''}
+                  onChange={(e) => setEditProgFormData({ ...editProgFormData, description: e.target.value })}
+                  placeholder="Deskripsi operasional program kerja..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* Hubungkan Sasaran Strategis RIPS */}
+              <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center justify-between">
+                  <label className="block font-semibold text-indigo-300">
+                    Keterkaitan Sasaran Strategis RIPS
+                  </label>
+                  <span className="text-[11px] text-indigo-400 font-mono">
+                    {editProgFormData.linked_goal_ids?.length || 0} Sasaran Terpilih
+                  </span>
+                </div>
+
+                {/* Dropdown Pencarian Sasaran */}
+                <div className="relative" ref={editProgGoalDropdownRef}>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={editProgGoalSearch}
+                      onChange={(e) => {
+                        setEditProgGoalSearch(e.target.value);
+                        setIsEditProgGoalDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsEditProgGoalDropdownOpen(true)}
+                      placeholder="Cari kode atau judul sasaran strategis RIPS..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-200 outline-none focus:border-amber-500"
+                    />
+                    {editProgGoalSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setEditProgGoalSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditProgGoalDropdownOpen && (
+                    <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                      {(() => {
+                        const filtered = availableRipsGoals.filter((g) => {
+                          if (!editProgGoalSearch.trim()) return true;
+                          const q = editProgGoalSearch.toLowerCase();
+                          return g.code?.toLowerCase().includes(q) || g.title?.toLowerCase().includes(q) || g.domain_name?.toLowerCase().includes(q);
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="p-3 text-center text-slate-400 text-xs italic">
+                              Tidak ada sasaran strategis yang cocok.
+                            </div>
+                          );
+                        }
+
+                        return filtered.map((g) => {
+                          const isSelected = editProgFormData.linked_goal_ids?.includes(g.id);
+                          return (
+                            <div
+                              key={g.id}
+                              onClick={() => {
+                                const currentGoalIds = editProgFormData.linked_goal_ids || [];
+                                if (isSelected) {
+                                  setEditProgFormData({
+                                    ...editProgFormData,
+                                    linked_goal_ids: currentGoalIds.filter((id) => id !== g.id),
+                                  });
+                                } else {
+                                  setEditProgFormData({
+                                    ...editProgFormData,
+                                    linked_goal_ids: [...currentGoalIds, g.id],
+                                  });
+                                }
+                              }}
+                              className={`p-2 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer transition ${
+                                isSelected ? 'bg-indigo-950/50 text-indigo-200' : 'hover:bg-slate-850 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="rounded border-slate-700 text-indigo-500 pointer-events-none"
+                                />
+                                <span className="font-mono text-[10px] font-bold text-indigo-400 shrink-0">{g.code}</span>
+                                <span className="text-xs truncate">{g.title}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 shrink-0">{g.domain_name || 'Bidang'}</span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Badge Tag Sasaran yang Terpilih */}
+                {editProgFormData.linked_goal_ids && editProgFormData.linked_goal_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {editProgFormData.linked_goal_ids.map((goalId) => {
+                      const g = availableRipsGoals.find((goal) => goal.id === goalId);
+                      return (
+                        <span
+                          key={goalId}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-medium bg-indigo-950/70 text-indigo-300 border border-indigo-700/60"
+                        >
+                          <strong>{g?.code || `SAS-${goalId}`}</strong>: <span className="max-w-[160px] truncate">{g?.title || 'Sasaran'}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditProgFormData({
+                                ...editProgFormData,
+                                linked_goal_ids: editProgFormData.linked_goal_ids.filter((id) => id !== goalId),
+                              });
+                            }}
+                            className="hover:text-white ml-0.5"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                <input
+                  type="checkbox"
+                  id="rkt_edit_flagship_cb"
+                  checked={editProgFormData.is_flagship === 1 || editProgFormData.is_flagship === true}
+                  onChange={(e) => setEditProgFormData({ ...editProgFormData, is_flagship: e.target.checked ? 1 : 0 })}
+                  className="rounded border-slate-700 text-amber-500 focus:ring-amber-500"
+                />
+                <label htmlFor="rkt_edit_flagship_cb" className="text-xs text-amber-300 font-medium cursor-pointer">
+                  Tandai sebagai Program Unggulan (Flagship Program ⭐)
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800/80">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Target Capaian RKT (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editProgFormData.target_percent}
+                    onChange={(e) => setEditProgFormData({ ...editProgFormData, target_percent: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500 font-bold"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-300 mb-1">Catatan Pelaksanaan RKT</label>
+                  <input
+                    type="text"
+                    value={editProgFormData.notes || ''}
+                    onChange={(e) => setEditProgFormData({ ...editProgFormData, notes: e.target.value })}
+                    placeholder="Catatan pelaksanaan tahunan..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditProgramModalOpen(false);
+                    setEditingProgramObj(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-lg shadow-amber-950/50"
+                >
+                  {formLoading ? 'Menyimpan...' : 'Simpan Perubahan Program'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: TAMBAH SUB-BIDANG BARU */}
+      {isAddSubdomainModalOpen && selectedDomainForSubdomain && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-amber-400" />
+                Tambah Sub-Bidang Baru
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddSubdomainModalOpen(false);
+                  setSelectedDomainForSubdomain(null);
+                }}
+                className="text-slate-400 hover:text-white font-bold p-1 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+              Menambahkan sub-bidang baru di bawah <strong>BIDANG: {selectedDomainForSubdomain.name}</strong> ({selectedDomainForSubdomain.code}).
+            </div>
+
+            <form onSubmit={handleSaveSubdomainSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nama Sub-Bidang <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newSubdomainName}
+                  onChange={(e) => setNewSubdomainName(e.target.value)}
+                  placeholder="Contoh: Kurikulum & Pembelajaran, Sarana Prasarana, dll."
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddSubdomainModalOpen(false);
+                    setSelectedDomainForSubdomain(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={subdomainFormLoading || !newSubdomainName.trim()}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-lg shadow-amber-950/50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{subdomainFormLoading ? 'Menyimpan...' : 'Simpan Sub-Bidang'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT BIDANG (DOMAIN) */}
+      {isEditDomainModalOpen && editingDomainObj && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-400" />
+                Edit Bidang (Domain)
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditDomainModalOpen(false);
+                  setEditingDomainObj(null);
+                }}
+                className="text-slate-400 hover:text-white font-bold p-1 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200">
+              Perubahan nama bidang ini akan <strong>tersimpan permanen di master RIPS</strong> dan berlaku untuk <strong>seluruh tahun ajaran</strong> lainnya.
+            </div>
+
+            <form onSubmit={handleSaveEditDomain} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nama Bidang <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editDomainForm.name}
+                  onChange={(e) => setEditDomainForm({ ...editDomainForm, name: e.target.value })}
+                  placeholder="Contoh: Kurikulum & Pembelajaran, Kesiswaan, dll."
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nomor Urut Tampilan
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editDomainForm.order_index}
+                  onChange={(e) => setEditDomainForm({ ...editDomainForm, order_index: parseInt(e.target.value, 10) || 1 })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditDomainModalOpen(false);
+                    setEditingDomainObj(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading || !editDomainForm.name.trim()}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-lg shadow-blue-950/50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{formLoading ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SUB-BIDANG */}
+      {isEditSubdomainModalOpen && editingSubdomainObj && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                Edit Sub-Bidang
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditSubdomainModalOpen(false);
+                  setEditingSubdomainObj(null);
+                }}
+                className="text-slate-400 hover:text-white font-bold p-1 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+              Sub-Bidang di bawah <strong>BIDANG: {editingSubdomainObj.domain_name}</strong>. Perubahan akan <strong>tersimpan permanen di master RIPS</strong> dan berlaku untuk <strong>seluruh tahun ajaran</strong>.
+            </div>
+
+            <form onSubmit={handleSaveEditSubdomain} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nama Sub-Bidang <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editSubdomainForm.name}
+                  onChange={(e) => setEditSubdomainForm({ ...editSubdomainForm, name: e.target.value })}
+                  placeholder="Contoh: Pemenuhan Sarpras, Administrasi, dll."
+                  required
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nomor Urut Tampilan
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editSubdomainForm.order_index}
+                  onChange={(e) => setEditSubdomainForm({ ...editSubdomainForm, order_index: parseInt(e.target.value, 10) || 1 })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditSubdomainModalOpen(false);
+                    setEditingSubdomainObj(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading || !editSubdomainForm.name.trim()}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-lg shadow-amber-950/50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{formLoading ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pindahkan Program ke Sub-Bidang Lain */}
+      <MoveProgramModal
+        isOpen={isMoveProgramModalOpen}
+        onClose={() => {
+          setIsMoveProgramModalOpen(false);
+          setProgramToMove(null);
+        }}
+        program={programToMove}
+        domains={domainsData}
+        subdomains={subdomainsData}
+        onSuccess={() => {
+          fetchData();
+        }}
+      />
     </div>
   );
 }

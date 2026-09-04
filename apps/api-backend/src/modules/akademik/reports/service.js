@@ -3,6 +3,7 @@
  * Modul Akademik - Fitur 7: Laporan & Rekapitulasi Akademik
  */
 const db = require('../../../config/db/akademik');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class ReportsService {
   async getAcademicSummary(query = {}) {
@@ -10,10 +11,11 @@ class ReportsService {
     let classQuery = db('class_groups');
     let attendanceQuery = db('student_attendances');
 
-    if (query.satuan_pendidikan_id) {
-      studentQuery = studentQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
-      classQuery = classQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
-      attendanceQuery = attendanceQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      studentQuery = studentQuery.where('satuan_pendidikan_id', unitId);
+      classQuery = classQuery.where('satuan_pendidikan_id', unitId);
+      attendanceQuery = attendanceQuery.where('satuan_pendidikan_id', unitId);
     }
 
     const totalStudents = await studentQuery.clone().count('id as total').first();

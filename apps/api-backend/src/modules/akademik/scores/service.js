@@ -3,6 +3,7 @@
  * Modul Akademik - Fitur 3: Penilaian (Assessment Types, Sessions, Scores & Report Card Processor)
  */
 const db = require('../../../config/db/akademik');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class ScoresService {
   // ==========================================
@@ -10,8 +11,9 @@ class ScoresService {
   // ==========================================
   async listAssessmentTypes(query = {}) {
     let baseQuery = db('assessment_types');
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('satuan_pendidikan_id', unitId);
     }
     if (query.category) {
       baseQuery = baseQuery.where('category', query.category);
@@ -136,8 +138,9 @@ class ScoresService {
         'semesters.name as semester_name'
       );
 
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('assessment_sessions.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('assessment_sessions.satuan_pendidikan_id', unitId);
     }
     if (query.academic_year_id) {
       baseQuery = baseQuery.where('assessment_sessions.academic_year_id', query.academic_year_id);

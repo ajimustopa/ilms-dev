@@ -15,7 +15,7 @@ class ParentFacingService {
         'student_bills.school_unit_id': schoolUnitId,
         'student_bills.student_id': studentId
       })
-      .whereNot('student_bills.status', 'cancelled')
+      .whereNotIn('student_bills.status', ['cancelled', 'draft'])
       .select(
         'student_bills.*',
         'fee_types.name as fee_type_name',
@@ -46,7 +46,7 @@ class ParentFacingService {
       )
       .first();
 
-    if (!bill) return null;
+    if (!bill || bill.status === 'draft') return null;
 
     const payments = await db('bill_payments')
       .where('student_bill_id', billId)
@@ -82,8 +82,8 @@ class ParentFacingService {
       })
       .first();
 
-    if (!bill) {
-      const err = new Error('Tagihan tidak ditemukan atau bukan milik unit sekolah ini');
+    if (!bill || bill.status === 'draft') {
+      const err = new Error('Tagihan tidak ditemukan, berstatus draft, atau bukan milik unit sekolah ini');
       err.statusCode = 404;
       throw err;
     }

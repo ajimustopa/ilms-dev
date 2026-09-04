@@ -3,12 +3,14 @@ import * as XLSX from 'xlsx';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import DatePickerField from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   CalendarRange,
   School,
   Building2,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Plus,
   Save,
   Send,
@@ -36,9 +38,12 @@ import {
   CheckSquare,
   ListChecks,
   BarChart3,
-  Check
+  Check,
+  FolderInput,
+  X
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import MoveProgramModal from '../components/shared/MoveProgramModal';
 
 export default function LongTermPlanning() {
   const { user, schoolUnits, activeSchoolUnit } = useAuth();
@@ -73,6 +78,7 @@ export default function LongTermPlanning() {
 
   // Filters & Search
   const [filterDomain, setFilterDomain] = useState('all');
+  const [filterSubdomain, setFilterSubdomain] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDomains, setExpandedDomains] = useState({});
   const [expandedSubdomains, setExpandedSubdomains] = useState({});
@@ -84,6 +90,15 @@ export default function LongTermPlanning() {
   const [formData, setFormData] = useState({});
   const [formLoading, setFormLoading] = useState(false);
   const [selectedPubSnapshot, setSelectedPubSnapshot] = useState(null);
+
+  // Move Program Modal State
+  const [isMoveProgramModalOpen, setIsMoveProgramModalOpen] = useState(false);
+  const [programToMove, setProgramToMove] = useState(null);
+
+  const handleOpenMoveProgramModal = (prog) => {
+    setProgramToMove(prog);
+    setIsMoveProgramModalOpen(true);
+  };
 
   // Lock body overflow when fullscreen is active
   useEffect(() => {
@@ -211,16 +226,29 @@ export default function LongTermPlanning() {
   const toggleDomain = (key) => {
     setExpandedDomains((prev) => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
+      [key]: !prev[key],
     }));
   };
 
   const toggleSubdomain = (key) => {
     setExpandedSubdomains((prev) => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key],
+      [key]: !prev[key],
     }));
   };
+
+  // Available Subdomains based on selected filterDomain
+  const availableSubdomains = useMemo(() => {
+    const domains = targetsData?.domains || [];
+    const subdomains = targetsData?.subdomains || [];
+    if (filterDomain === 'all') {
+      return subdomains.map((s) => {
+        const d = domains.find((dom) => Number(dom.id) === Number(s.domain_id));
+        return { ...s, domainName: d?.name };
+      });
+    }
+    return subdomains.filter((s) => Number(s.domain_id) === Number(filterDomain));
+  }, [targetsData, filterDomain]);
 
   // Grouping Programs by Domain and Subdomain (matching RipsPlanning Tab 2)
   const groupedPrograms = useMemo(() => {
@@ -309,14 +337,17 @@ export default function LongTermPlanning() {
 
       const subList = [];
       domainItem.subdomains.forEach((subItem) => {
+        if (filterSubdomain !== 'all' && String(filterSubdomain) !== String(subItem.id)) {
+          return;
+        }
         subList.push(subItem);
       });
 
       subList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
       const totalProgramsCount = subList.reduce((acc, curr) => acc + curr.programs.length, 0);
 
-      // If search active, only show domains with matching programs
-      if (searchQuery.trim() && totalProgramsCount === 0) {
+      // If search or subdomain filter active, only show domains with matching programs
+      if ((searchQuery.trim() || filterSubdomain !== 'all') && totalProgramsCount === 0) {
         return;
       }
 
@@ -328,7 +359,7 @@ export default function LongTermPlanning() {
     });
 
     return result.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  }, [targetsData, filterDomain, searchQuery]);
+  }, [targetsData, filterDomain, filterSubdomain, searchQuery]);
 
   // Grouping Goals by Domain and Subdomain for Tabel Target Sasaran (MANAJEMEN STRATEGIS style)
   const groupedGoalsHierarchy = useMemo(() => {
@@ -414,13 +445,16 @@ export default function LongTermPlanning() {
 
       const subList = [];
       domainItem.subdomains.forEach((subItem) => {
+        if (filterSubdomain !== 'all' && String(filterSubdomain) !== String(subItem.id)) {
+          return;
+        }
         subList.push(subItem);
       });
 
       subList.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
       const totalGoalsCount = subList.reduce((acc, curr) => acc + curr.goals.length, 0);
 
-      if (searchQuery.trim() && totalGoalsCount === 0) {
+      if ((searchQuery.trim() || filterSubdomain !== 'all') && totalGoalsCount === 0) {
         return;
       }
 
@@ -432,7 +466,7 @@ export default function LongTermPlanning() {
     });
 
     return result.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
-  }, [targetsData, filterDomain, searchQuery]);
+  }, [targetsData, filterDomain, filterSubdomain, searchQuery]);
 
   // Checklist Toggle Helper (murni menandai pelaksanaan program di tahun bersangkutan: true / false)
   const handleChecklistToggle = (programId, year) => {
@@ -447,6 +481,69 @@ export default function LongTermPlanning() {
         },
       };
     });
+  };
+
+  const isFilteringActive = Boolean(
+    searchQuery.trim() || filterDomain !== 'all' || filterSubdomain !== 'all'
+  );
+
+  // Expand / Collapse All Hierarchies
+  const handleExpandAll = () => {
+    const allExpD = {};
+    const allExpS = {};
+
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+      });
+    });
+
+    groupedGoalsHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+      });
+    });
+
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedDomains({});
+    setExpandedSubdomains({});
+  };
+
+  const handleExpandDomainsOnly = () => {
+    const allExpD = {};
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+    });
+    groupedGoalsHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains({});
+  };
+
+  const handleExpandSubdomains = () => {
+    const allExpD = {};
+    const allExpS = {};
+    groupedPrograms.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+      });
+    });
+    groupedGoalsHierarchy.forEach((d) => {
+      allExpD[`dom_${d.id}`] = true;
+      d.subdomainList.forEach((s) => {
+        allExpS[`sub_${d.id}_${s.id}`] = true;
+      });
+    });
+    setExpandedDomains(allExpD);
+    setExpandedSubdomains(allExpS);
   };
 
   // Toggle "Pilih Semua" (Select All / Deselect All) untuk Satu Kolom Tahun Ajaran
@@ -532,15 +629,33 @@ export default function LongTermPlanning() {
     }
   };
 
+  // Helper: Roman Numerals (1 -> I, 2 -> II, 3 -> III, dst.)
+  const toRoman = (num) => {
+    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+    return roman[num - 1] || `${num}`;
+  };
+
   // Handle Create RKJP
   const handleCreateRkjp = async (e) => {
     e.preventDefault();
+    const sYear = Number(formData.start_year);
+    const eYear = Number(formData.end_year);
+    if (!sYear || !eYear) {
+      alert('Tahun awal dan tahun akhir wajib diisi');
+      return;
+    }
+    if (eYear < sYear) {
+      alert('Tahun akhir tidak boleh lebih kecil dari tahun awal');
+      return;
+    }
+
     setFormLoading(true);
     try {
       const targetUnitId = contextType === 'school_unit' ? selectedUnitId : null;
       await api.post('/manajemen/long-term-work-plans', {
         school_unit_id: targetUnitId,
-        start_year: Number(formData.start_year),
+        start_year: sYear,
+        end_year: eYear,
         title: formData.title || undefined,
       });
       setModalType(null);
@@ -557,18 +672,31 @@ export default function LongTermPlanning() {
   const handleUpdateRkjp = async (e) => {
     e.preventDefault();
     if (!editingRkjp) return;
+    const sYear = Number(formData.start_year);
+    const eYear = Number(formData.end_year);
+    if (!sYear || !eYear) {
+      alert('Tahun awal dan tahun akhir wajib diisi');
+      return;
+    }
+    if (eYear < sYear) {
+      alert('Tahun akhir tidak boleh lebih kecil dari tahun awal');
+      return;
+    }
+
     setFormLoading(true);
     try {
       await api.put(`/manajemen/long-term-work-plans/${editingRkjp.id}`, {
         title: formData.title,
         status: formData.status,
+        start_year: sYear,
+        end_year: eYear,
       });
       setModalType(null);
       setEditingRkjp(null);
       setFormData({});
       fetchRkjpPlans();
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal memperbarui nama dokumen');
+      alert(err.response?.data?.message || 'Gagal memperbarui dokumen');
     } finally {
       setFormLoading(false);
     }
@@ -972,18 +1100,24 @@ export default function LongTermPlanning() {
   };
 
   // Determine which years and plan apply to active tab
-  const rkjm1 = activeRkjp?.rkjm_list?.find((r) => r.sequence_order === 1);
-  const rkjm2 = activeRkjp?.rkjm_list?.find((r) => r.sequence_order === 2);
-
   let currentTabPlan = activeRkjp;
   let displayedYears = targetsData?.academic_years || [];
 
-  if (activeTab === 'rkjm_1' && rkjm1) {
-    currentTabPlan = rkjm1;
-    displayedYears = displayedYears.slice(0, 4);
-  } else if (activeTab === 'rkjm_2' && rkjm2) {
-    currentTabPlan = rkjm2;
-    displayedYears = displayedYears.slice(4, 8);
+  if (activeTab.startsWith('rkjm_')) {
+    const rkjmKey = activeTab.replace('rkjm_', '');
+    const matchedRkjm = activeRkjp?.rkjm_list?.find(
+      (r) => String(r.id) === rkjmKey || String(r.sequence_order) === rkjmKey
+    );
+    if (matchedRkjm) {
+      currentTabPlan = matchedRkjm;
+      const rkjmAcademicYears = [];
+      for (let y = Number(matchedRkjm.start_year); y <= Number(matchedRkjm.end_year); y++) {
+        rkjmAcademicYears.push(`${y}/${y + 1}`);
+      }
+      displayedYears = (targetsData?.academic_years || []).filter((ay) =>
+        rkjmAcademicYears.includes(ay)
+      );
+    }
   }
 
   const selectedUnit = schoolUnits?.find((u) => u.id === Number(selectedUnitId));
@@ -1005,7 +1139,7 @@ export default function LongTermPlanning() {
 
     return groupedPrograms.map((domain) => {
       const domainKey = `dom_${domain.id}`;
-      const isDomainExpanded = expandedDomains[domainKey] !== false;
+      const isDomainExpanded = isFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
       return (
         <React.Fragment key={domain.id}>
@@ -1041,7 +1175,7 @@ export default function LongTermPlanning() {
           {isDomainExpanded &&
             domain.subdomainList.map((sub) => {
               const subKey = `sub_${domain.id}_${sub.id}`;
-              const isSubExpanded = expandedSubdomains[subKey] !== false;
+              const isSubExpanded = isFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
               return (
                 <React.Fragment key={sub.id}>
@@ -1080,27 +1214,32 @@ export default function LongTermPlanning() {
                         className="bg-white hover:bg-blue-50/60 border-b border-gray-200 text-gray-800 transition-colors"
                       >
                         {/* Kode Program */}
-                        <td className="py-2.5 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-blue-700 align-top">
+                        <td className="py-2 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-blue-700 align-middle">
                           {row.program_code}
                         </td>
 
-                        {/* Nama Program & Deskripsi */}
-                        <td className="py-2.5 px-4 border-r border-gray-200 align-top min-w-[240px]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-900 leading-snug">
-                              {row.program_name}
-                            </span>
-                            {row.is_flagship === 1 && (
-                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
-                                ⭐ Unggulan
+                        {/* Nama Program (Satu Baris, Sejajar / Masuk dari Sub-Bidang) */}
+                        <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle min-w-[240px]">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-gray-900 leading-snug">
+                                {row.program_name}
                               </span>
-                            )}
+                              {row.is_flagship === 1 && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                                  ⭐ Unggulan
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenMoveProgramModal(row)}
+                              className="p-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition shrink-0 cursor-pointer"
+                              title="Pindahkan Program ke Sub-Bidang Lain"
+                            >
+                              <FolderInput className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          {row.description && (
-                            <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
-                              {row.description}
-                            </p>
-                          )}
                         </td>
 
                         {/* Kategori Program */}
@@ -1165,7 +1304,7 @@ export default function LongTermPlanning() {
 
     return groupedGoalsHierarchy.map((domain) => {
       const domainKey = `dom_${domain.id}`;
-      const isDomainExpanded = expandedDomains[domainKey] !== false;
+      const isDomainExpanded = isFilteringActive ? true : Boolean(expandedDomains[domainKey]);
 
       return (
         <React.Fragment key={domain.id}>
@@ -1201,7 +1340,7 @@ export default function LongTermPlanning() {
           {isDomainExpanded &&
             domain.subdomainList.map((sub) => {
               const subKey = `sub_${domain.id}_${sub.id}`;
-              const isSubExpanded = expandedSubdomains[subKey] !== false;
+              const isSubExpanded = isFilteringActive ? true : Boolean(expandedSubdomains[subKey]);
 
               return (
                 <React.Fragment key={sub.id}>
@@ -1321,7 +1460,7 @@ export default function LongTermPlanning() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -1337,12 +1476,12 @@ export default function LongTermPlanning() {
                 </span>
                 {activeRkjp && (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                    Periode {activeRkjp.start_year}-{activeRkjp.end_year}
+                    Periode {activeRkjp.start_year}-{activeRkjp.end_year} ({activeRkjp.end_year - activeRkjp.start_year + 1} Tahun)
                   </span>
                 )}
               </div>
               <p className="text-slate-400 text-xs mt-0.5">
-                Perencanaan RKJP (8 Tahun) &amp; RKJM (4 Tahun) berbasis target tahunan bersama (Single Source of Truth)
+                Perencanaan RKJP &amp; RKJM berbasis target tahunan bersama (Single Source of Truth)
               </p>
             </div>
           </div>
@@ -1375,31 +1514,28 @@ export default function LongTermPlanning() {
               </button>
 
               {contextType === 'school_unit' && (
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={selectedUnitId}
-                    onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                    className="appearance-none bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-indigo-500/50 text-slate-100 text-xs font-semibold rounded-xl pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                  >
-                    {schoolUnits?.map((unit) => (
-                      <option key={unit.id} value={unit.id} className="bg-slate-900 text-slate-200 py-1.5">
-                        {unit.name} ({unit.level})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-indigo-400 absolute right-2.5 pointer-events-none transition-transform" />
-                </div>
+                <SearchableSelect
+                  value={selectedUnitId}
+                  onChange={(val) => setSelectedUnitId(Number(val))}
+                  className="w-56"
+                  options={schoolUnits?.map((unit) => ({
+                    value: unit.id,
+                    label: `${unit.name} (${unit.level})`,
+                  })) || []}
+                />
               )}
             </div>
 
             {/* Create RKJP Button (Always accessible) */}
             <button
               onClick={() => {
+                const currentYear = new Date().getFullYear();
                 const defaultTitle = contextType === 'foundation'
-                  ? `RKJP Gabungan Yayasan ${new Date().getFullYear()}-${new Date().getFullYear() + 7}`
-                  : `RKJP ${selectedUnit?.name || 'Satuan'} ${new Date().getFullYear()}-${new Date().getFullYear() + 7}`;
+                  ? `RKJP Gabungan Yayasan ${currentYear}-${currentYear + 7}`
+                  : `RKJP ${selectedUnit?.name || 'Satuan'} ${currentYear}-${currentYear + 7}`;
                 setFormData({
-                  start_year: new Date().getFullYear(),
+                  start_year: currentYear,
+                  end_year: currentYear + 7,
                   title: defaultTitle,
                 });
                 setModalType('create_rkjp');
@@ -1456,11 +1592,16 @@ export default function LongTermPlanning() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingRkjp(plan);
-                    setFormData({ title: plan.title, status: plan.status });
+                    setFormData({
+                      title: plan.title,
+                      status: plan.status,
+                      start_year: plan.start_year,
+                      end_year: plan.end_year
+                    });
                     setModalType('edit_rkjp');
                   }}
                   className="px-1.5 py-1 text-slate-300 hover:text-white hover:bg-white/10 rounded transition"
-                  title="Ubah Nama Dokumen"
+                  title="Ubah Dokumen & Rentang Tahun"
                 >
                   <Edit3 className="w-3 h-3" />
                 </button>
@@ -1469,7 +1610,7 @@ export default function LongTermPlanning() {
                     e.stopPropagation();
                     if (
                       window.confirm(
-                        `Apakah Anda yakin ingin menghapus dokumen "${plan.title}"?\n\nPerhatian: Seluruh 2 periode RKJM turunan dan publikasi yang terkait dengan dokumen ini akan ikut dihapus.`
+                        `Apakah Anda yakin ingin menghapus dokumen "${plan.title}"?\n\nPerhatian: Seluruh periode RKJM turunan dan publikasi yang terkait dengan dokumen ini akan ikut dihapus.`
                       )
                     ) {
                       handleDeleteRkjp(plan.id);
@@ -1492,7 +1633,7 @@ export default function LongTermPlanning() {
 
       {/* Global Loading Spinner for Page Fetch */}
       {loading && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-4 shadow-xl animate-fadeIn">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4 shadow-xl animate-fadeIn">
           <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/30">
             <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
           </div>
@@ -1517,32 +1658,27 @@ export default function LongTermPlanning() {
                 }`}
               >
                 <CalendarRange className="w-4 h-4" />
-                RKJP (8 Tahun) {activeRkjp.start_year}-{activeRkjp.end_year}
+                RKJP ({activeRkjp.end_year - activeRkjp.start_year + 1} Tahun: {activeRkjp.start_year}-{activeRkjp.end_year})
               </button>
 
-              <button
-                onClick={() => setActiveTab('rkjm_1')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
-                  activeTab === 'rkjm_1'
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                RKJM I (Tahun 1-4: {rkjm1?.start_year}-{rkjm1?.end_year})
-              </button>
-
-              <button
-                onClick={() => setActiveTab('rkjm_2')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
-                  activeTab === 'rkjm_2'
-                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                RKJM II (Tahun 5-8: {rkjm2?.start_year}-{rkjm2?.end_year})
-              </button>
+              {activeRkjp.rkjm_list?.map((rkjm) => {
+                const tabKey = `rkjm_${rkjm.id}`;
+                const isActive = activeTab === tabKey || activeTab === `rkjm_${rkjm.sequence_order}`;
+                return (
+                  <button
+                    key={rkjm.id}
+                    onClick={() => setActiveTab(tabKey)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+                      isActive
+                        ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    {rkjm.title || `RKJM ${toRoman(rkjm.sequence_order)} (${rkjm.start_year}-${rkjm.end_year})`}
+                  </button>
+                );
+              })}
 
               <button
                 onClick={() => setActiveTab('publications')}
@@ -1582,7 +1718,7 @@ export default function LongTermPlanning() {
 
           {/* TAB CONTENT: MATRIX */}
           {activeTab !== 'publications' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
               {/* Sub-Tab Navigation Bar: 2 View Modes */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
@@ -1622,41 +1758,77 @@ export default function LongTermPlanning() {
               </div>
 
               {/* Filter and Actions Bar */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800 relative z-30">
                 <div className="flex flex-wrap items-center gap-3">
                   <div>
                     <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1.5 flex items-center gap-1">
                       <Filter className="w-3 h-3 text-indigo-400" /> Filter Bidang
                     </label>
-                    <div className="relative inline-flex items-center">
-                      <select
-                        value={filterDomain}
-                        onChange={(e) => setFilterDomain(e.target.value)}
-                        className="appearance-none bg-slate-950/90 hover:bg-slate-850/90 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium rounded-xl pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition shadow-inner cursor-pointer"
-                      >
-                        <option value="all" className="bg-slate-950 text-slate-200">
-                          Semua Bidang ({targetsData?.domains?.length || 0})
-                        </option>
-                        {targetsData?.domains?.map((d) => (
-                          <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200">
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
-                    </div>
+                    <SearchableSelect
+                      value={filterDomain}
+                      onChange={(val) => {
+                        setFilterDomain(val || 'all');
+                        setFilterSubdomain('all');
+                      }}
+                      className="w-52"
+                      placeholder="Semua Bidang"
+                      options={[
+                        { value: 'all', label: `Semua Bidang (${targetsData?.domains?.length || 0})`, sublabel: 'Tampilkan seluruh bidang' },
+                        ...(targetsData?.domains?.map((d) => ({
+                          value: String(d.id),
+                          label: d.name,
+                          sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                          badge: d.code || `BID-${d.order_index || d.id}`
+                        })) || []),
+                      ]}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1.5 flex items-center gap-1">
+                      Filter Sub-Bidang
+                    </label>
+                    <SearchableSelect
+                      value={filterSubdomain}
+                      onChange={(val) => setFilterSubdomain(val || 'all')}
+                      className="w-56"
+                      placeholder="Semua Sub-Bidang"
+                      options={[
+                        {
+                          value: 'all',
+                          label: `Semua Sub-Bidang (${availableSubdomains.length})`,
+                          sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                        },
+                        ...availableSubdomains.map((s) => ({
+                          value: String(s.id),
+                          label: s.name,
+                          sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                          badge: s.code || undefined
+                        }))
+                      ]}
+                    />
                   </div>
 
                   <div className="self-end pb-0.5">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <div className="relative flex items-center group">
+                      <Search className="w-3.5 h-3.5 text-indigo-400 group-focus-within:text-indigo-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Cari program / sasaran..."
-                        className="bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 w-48 sm:w-64"
+                        className="bg-slate-950/90 hover:bg-slate-950 focus:bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-100 placeholder-slate-500 focus:placeholder-slate-400 outline-none w-48 sm:w-64 transition-all duration-200 font-medium shadow-inner"
                       />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-2.5 p-0.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all z-10"
+                          title="Hapus kata kunci pencarian"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1712,6 +1884,36 @@ export default function LongTermPlanning() {
                     <span className="px-2.5 py-1 rounded-full bg-blue-700/60 border border-blue-400/30">
                       {subViewMode === 'plan_checklist' ? `${targetsData?.matrix?.length || 0} Total Program` : `${targetsData?.goals?.length || 0} Sasaran Strategis`}
                     </span>
+
+                    {/* Kontrol Lipat / Buka Hirarki */}
+                    <div className="flex items-center gap-1 bg-white/15 p-1 rounded-xl border border-white/20">
+                      <button
+                        type="button"
+                        onClick={handleCollapseAll}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/25 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                        title="Lipat Semua (Bidang & Sub-Bidang)"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                        <span>Lipat Semua</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExpandDomainsOnly}
+                        className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/20 text-white text-[11px] font-medium transition select-none"
+                        title="Buka Level Bidang Saja"
+                      >
+                        <span>Bidang</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExpandAll}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold transition shadow-2xs select-none"
+                        title="Buka Semua Rincian (Bidang & Sub-Bidang)"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                        <span>Buka Semua</span>
+                      </button>
+                    </div>
 
                     {/* Export Spreadsheet (.xlsx) Button */}
                     <button
@@ -1877,7 +2079,7 @@ export default function LongTermPlanning() {
                   className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
                 >
                   {/* Header Fullscreen */}
-                  <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md z-10">
+                  <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
                         {subViewMode === 'plan_checklist' ? <ListChecks className="w-5 h-5 text-white" /> : <Layers className="w-5 h-5 text-white" />}
@@ -1923,15 +2125,104 @@ export default function LongTermPlanning() {
                         </button>
                       </div>
 
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      {/* Filter Bidang di Fullscreen */}
+                      <SearchableSelect
+                        value={filterDomain}
+                        onChange={(val) => {
+                          setFilterDomain(val || 'all');
+                          setFilterSubdomain('all');
+                        }}
+                        placeholder="Semua Bidang"
+                        searchPlaceholder="Cari bidang..."
+                        variant="header-white"
+                        accentColor="blue"
+                        className="w-40 sm:w-48"
+                        menuMinWidth="240px"
+                        options={[
+                          { value: 'all', label: `Semua Bidang (${targetsData?.domains?.length || 0})`, sublabel: 'Tampilkan seluruh bidang' },
+                          ...(targetsData?.domains?.map((d) => ({
+                            value: String(d.id),
+                            label: d.name,
+                            sublabel: `Kode: ${d.code || `BID-${d.order_index || d.id}`}`,
+                            badge: d.code || `BID-${d.order_index || d.id}`
+                          })) || [])
+                        ]}
+                      />
+
+                      {/* Filter Sub-Bidang di Fullscreen */}
+                      <SearchableSelect
+                        value={filterSubdomain}
+                        onChange={(val) => setFilterSubdomain(val || 'all')}
+                        placeholder="Semua Sub-Bidang"
+                        searchPlaceholder="Cari sub-bidang..."
+                        variant="header-white"
+                        accentColor="blue"
+                        className="w-44 sm:w-52"
+                        menuMinWidth="240px"
+                        options={[
+                          {
+                            value: 'all',
+                            label: `Semua Sub-Bidang (${availableSubdomains.length})`,
+                            sublabel: filterDomain === 'all' ? 'Seluruh sub-bidang yayasan' : 'Semua sub-bidang pada bidang ini'
+                          },
+                          ...availableSubdomains.map((s) => ({
+                            value: String(s.id),
+                            label: s.name,
+                            sublabel: s.domainName ? `Bidang: ${s.domainName}` : `Sub-Bidang ${s.code || ''}`,
+                            badge: s.code || undefined
+                          }))
+                        ]}
+                      />
+
+                      <div className="relative flex items-center group">
+                        <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Cari program / sasaran..."
-                          className="bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-gray-900 placeholder-blue-200 focus:placeholder-gray-400 text-xs rounded-xl pl-8 pr-3 py-1.5 outline-none transition border border-white/20 focus:border-white w-40 sm:w-48 font-medium"
+                          className="bg-white/15 hover:bg-white/25 focus:bg-white text-white focus:text-slate-800 placeholder-blue-100/70 focus:placeholder-slate-400 text-xs rounded-xl pl-9 pr-8 py-1.5 outline-none transition-all duration-200 border border-white/25 focus:border-white focus:ring-2 focus:ring-white/40 w-40 sm:w-56 font-medium shadow-inner focus:shadow-md"
                         />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                            title="Hapus kata kunci pencarian"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Kontrol Lipat / Buka Hirarki in Fullscreen */}
+                      <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-xl border border-white/20">
+                        <button
+                          type="button"
+                          onClick={handleCollapseAll}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white hover:bg-white/20 transition"
+                          title="Lipat Semua (Bidang & Sub-Bidang)"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                          <span>Lipat Semua</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandDomainsOnly}
+                          className="hidden sm:inline px-2 py-1 rounded-lg text-[11px] font-medium text-white hover:bg-white/20 transition"
+                          title="Buka Level Bidang Saja"
+                        >
+                          Bidang
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExpandAll}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-white/20 hover:bg-white/30 transition shadow-2xs"
+                          title="Buka Semua Rincian (Bidang & Sub-Bidang)"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                          <span>Buka Semua</span>
+                        </button>
                       </div>
 
                       {/* Export Spreadsheet (.xlsx) Button */}
@@ -2001,7 +2292,7 @@ export default function LongTermPlanning() {
                     className="bg-white"
                   >
                     <table className="w-full text-left border-collapse min-w-[900px]">
-                      <thead className="sticky top-0 z-20 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                         {subViewMode === 'plan_checklist' ? (
                           <tr>
                             <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
@@ -2075,7 +2366,7 @@ export default function LongTermPlanning() {
 
           {/* TAB CONTENT: PUBLICATIONS HISTORY */}
           {activeTab === 'publications' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <History className="w-5 h-5 text-indigo-400" />
@@ -2171,8 +2462,8 @@ export default function LongTermPlanning() {
         </>
       ) : (
         /* Empty State */
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-4 shadow-xl">
-          <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4 shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
             <CalendarRange className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-white">
@@ -2203,31 +2494,136 @@ export default function LongTermPlanning() {
       {/* MODAL 1: CREATE RKJP */}
       {modalType === 'create_rkjp' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white">Buat Dokumen RKJP Baru (8 Tahun)</h3>
+              <div>
+                <h3 className="text-base font-bold text-white">Buat Dokumen RKJP Baru</h3>
+                <p className="text-xs text-slate-400">Atur periode tahun perencanaan (durasi fleksibel)</p>
+              </div>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
             <form onSubmit={handleCreateRkjp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Tahun Awal Dimulai</label>
-                <input
-                  type="number"
-                  min="2020"
-                  max="2100"
-                  value={formData.start_year || ''}
-                  onChange={(e) => setFormData({ ...formData, start_year: e.target.value })}
-                  required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  RKJP akan berjalan 8 tahun (sampai {Number(formData.start_year || 2026) + 7}) dan otomatis membentuk RKJM I ({Number(formData.start_year || 2026)}-{Number(formData.start_year || 2026) + 3}) & RKJM II ({Number(formData.start_year || 2026) + 4}-{Number(formData.start_year || 2026) + 7}).
-                </p>
+              {/* Rentang Tahun */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tahun Awal *</label>
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={formData.start_year || ''}
+                    onChange={(e) => {
+                      const s = Number(e.target.value);
+                      const currentDiff = (Number(formData.end_year) || (s + 7)) - (Number(formData.start_year) || s);
+                      const newEnd = s + Math.max(0, currentDiff);
+                      setFormData(prev => ({
+                        ...prev,
+                        start_year: s,
+                        end_year: newEnd,
+                        title: (!prev.title || prev.title.startsWith('RKJP'))
+                          ? (contextType === 'foundation' ? `RKJP Gabungan Yayasan ${s}-${newEnd}` : `RKJP ${selectedUnit?.name || 'Satuan'} ${s}-${newEnd}`)
+                          : prev.title
+                      }));
+                    }}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tahun Akhir *</label>
+                  <input
+                    type="number"
+                    min={formData.start_year || 2000}
+                    max="2100"
+                    value={formData.end_year || ''}
+                    onChange={(e) => {
+                      const eVal = Number(e.target.value);
+                      const sVal = Number(formData.start_year) || 2026;
+                      setFormData(prev => ({
+                        ...prev,
+                        end_year: eVal,
+                        title: (!prev.title || prev.title.startsWith('RKJP'))
+                          ? (contextType === 'foundation' ? `RKJP Gabungan Yayasan ${sVal}-${eVal}` : `RKJP ${selectedUnit?.name || 'Satuan'} ${sVal}-${eVal}`)
+                          : prev.title
+                      }));
+                    }}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-mono font-bold"
+                  />
+                </div>
               </div>
 
+              {/* Quick Preset Duration Chips */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-slate-400 font-medium">Pilihan Cepat Durasi:</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[4, 5, 6, 7, 8, 10, 12].map((dur) => {
+                    const s = Number(formData.start_year) || new Date().getFullYear();
+                    const eTarget = s + dur - 1;
+                    const isSelected = Number(formData.end_year) === eTarget;
+                    return (
+                      <button
+                        key={dur}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            end_year: eTarget,
+                            title: (!prev.title || prev.title.startsWith('RKJP'))
+                              ? (contextType === 'foundation' ? `RKJP Gabungan Yayasan ${s}-${eTarget}` : `RKJP ${selectedUnit?.name || 'Satuan'} ${s}-${eTarget}`)
+                              : prev.title
+                          }));
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
+                            : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        {dur} Tahun
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dynamic RKJM Breakdown Preview */}
+              {(() => {
+                const s = Number(formData.start_year) || 0;
+                const e = Number(formData.end_year) || 0;
+                const totalYears = e >= s ? (e - s + 1) : 0;
+                const rkjmCount = Math.ceil(totalYears / 4);
+
+                if (totalYears <= 0) return null;
+
+                return (
+                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-2xl space-y-2 text-xs text-indigo-300">
+                    <div className="flex items-center justify-between font-bold text-white">
+                      <span>Total Periode: {totalYears} Tahun ({s} - {e})</span>
+                      <span className="text-[11px] bg-indigo-600/40 px-2.5 py-0.5 rounded-full border border-indigo-500/40 text-indigo-200">
+                        {rkjmCount} Periode RKJM
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {Array.from({ length: rkjmCount }).map((_, idx) => {
+                        const rStart = s + idx * 4;
+                        const rEnd = Math.min(rStart + 3, e);
+                        const dur = rEnd - rStart + 1;
+                        return (
+                          <span key={idx} className="px-2.5 py-1 rounded-lg bg-slate-900 border border-indigo-700/50 text-[11px] font-semibold text-indigo-200">
+                            RKJM {toRoman(idx + 1)} ({rStart}-{rEnd} &bull; {dur} Thn)
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Judul Dokumen RKJP</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Judul Dokumen RKJP *</label>
                 <input
                   type="text"
                   value={formData.title || ''}
@@ -2249,7 +2645,7 @@ export default function LongTermPlanning() {
                 </button>
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={formLoading || !formData.start_year || !formData.end_year || Number(formData.end_year) < Number(formData.start_year)}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50 disabled:opacity-60"
                 >
                   {formLoading ? (
@@ -2270,15 +2666,18 @@ export default function LongTermPlanning() {
         </div>
       )}
 
-      {/* MODAL 1.5: EDIT RKJP */}
+      {/* MODAL 1.5: EDIT RKJP (TITLE, STATUS & YEAR RANGE) */}
       {modalType === 'edit_rkjp' && editingRkjp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-indigo-400" />
-                Ubah Nama Dokumen RKJP
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-indigo-400" />
+                  Ubah Dokumen RKJP &amp; Periode Tahun
+                </h3>
+                <p className="text-xs text-slate-400">Sesuaikan nama, status, atau tambah/kurangi tahun RKJP</p>
+              </div>
               <button
                 onClick={() => {
                   setModalType(null);
@@ -2291,21 +2690,127 @@ export default function LongTermPlanning() {
             </div>
 
             <form onSubmit={handleUpdateRkjp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Periode Tahun</label>
-                <div className="px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl text-xs text-slate-400 font-mono">
-                  {editingRkjp.start_year} - {editingRkjp.end_year} (8 Tahun)
+              {/* Rentang Tahun Baru */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tahun Awal *</label>
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={formData.start_year || ''}
+                    onChange={(e) => setFormData({ ...formData, start_year: Number(e.target.value) })}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tahun Akhir *</label>
+                  <input
+                    type="number"
+                    min={formData.start_year || 2000}
+                    max="2100"
+                    value={formData.end_year || ''}
+                    onChange={(e) => setFormData({ ...formData, end_year: Number(e.target.value) })}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-mono font-bold"
+                  />
                 </div>
               </div>
 
+              {/* Quick Preset Duration Chips */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-slate-400 font-medium">Pilihan Cepat Durasi:</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[4, 5, 6, 7, 8, 10, 12].map((dur) => {
+                    const s = Number(formData.start_year) || editingRkjp.start_year;
+                    const eTarget = s + dur - 1;
+                    const isSelected = Number(formData.end_year) === eTarget;
+                    return (
+                      <button
+                        key={dur}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            end_year: eTarget
+                          }));
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
+                            : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        {dur} Tahun
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dynamic RKJM Breakdown Preview */}
+              {(() => {
+                const s = Number(formData.start_year) || 0;
+                const e = Number(formData.end_year) || 0;
+                const totalYears = e >= s ? (e - s + 1) : 0;
+                const rkjmCount = Math.ceil(totalYears / 4);
+
+                if (totalYears <= 0) return null;
+
+                return (
+                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-2xl space-y-2 text-xs text-indigo-300">
+                    <div className="flex items-center justify-between font-bold text-white">
+                      <span>Total Periode Baru: {totalYears} Tahun ({s} - {e})</span>
+                      <span className="text-[11px] bg-indigo-600/40 px-2.5 py-0.5 rounded-full border border-indigo-500/40 text-indigo-200">
+                        {rkjmCount} Periode RKJM
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {Array.from({ length: rkjmCount }).map((_, idx) => {
+                        const rStart = s + idx * 4;
+                        const rEnd = Math.min(rStart + 3, e);
+                        const dur = rEnd - rStart + 1;
+                        return (
+                          <span key={idx} className="px-2.5 py-1 rounded-lg bg-slate-900 border border-indigo-700/50 text-[11px] font-semibold text-indigo-200">
+                            RKJM {toRoman(idx + 1)} ({rStart}-{rEnd} &bull; {dur} Thn)
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300 space-y-1">
+                <span className="font-bold">Info Sinkronisasi:</span>
+                <p>
+                  Jika Anda menambah atau mengurangi tahun RKJP, sistem akan otomatis menyesuaikan jumlah dan periode RKJM turunan. Target rencana tahunan yang sudah ada pada tahun yang tetap aktif tidak akan hilang.
+                </p>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Judul Dokumen RKJP</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Judul Dokumen RKJP *</label>
                 <input
                   type="text"
                   value={formData.title || ''}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Status Dokumen</label>
+                <SearchableSelect
+                  value={formData.status || 'draft'}
+                  onChange={(val) => setFormData({ ...formData, status: val })}
+                  options={[
+                    { value: 'draft', label: 'Draft (Dapat diedit)' },
+                    { value: 'published', label: 'Published (Resmi)' },
+                    { value: 'archived', label: 'Archived (Arsip)' },
+                  ]}
                 />
               </div>
 
@@ -2323,7 +2828,7 @@ export default function LongTermPlanning() {
                 </button>
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={formLoading || !formData.start_year || !formData.end_year || Number(formData.end_year) < Number(formData.start_year)}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50 disabled:opacity-60"
                 >
                   {formLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -2337,7 +2842,7 @@ export default function LongTermPlanning() {
       {/* MODAL 2: PUBLISH DOCUMENT */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-400" />
@@ -2417,7 +2922,7 @@ export default function LongTermPlanning() {
       {/* MODAL 3: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Perencanaan</h3>
@@ -2476,6 +2981,21 @@ export default function LongTermPlanning() {
           </div>
         </div>
       )}
+
+      {/* Modal Pindahkan Program ke Sub-Bidang Lain */}
+      <MoveProgramModal
+        isOpen={isMoveProgramModalOpen}
+        onClose={() => {
+          setIsMoveProgramModalOpen(false);
+          setProgramToMove(null);
+        }}
+        program={programToMove}
+        domains={targetsData?.domains || []}
+        subdomains={targetsData?.subdomains || []}
+        onSuccess={() => {
+          if (activeRkjp?.id) fetchPlanDetails(activeRkjp.id);
+        }}
+      />
     </div>
   );
 }

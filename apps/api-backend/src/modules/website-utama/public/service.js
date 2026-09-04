@@ -6,6 +6,8 @@ const db = require('../db');
 const dbCore = require('../../../config/db/core');
 const dbKepegawaian = require('../../../config/db/kepegawaian');
 const dbAkademik = require('../../../config/db/akademik');
+const dbKeuangan = require('../../../config/db/keuangan');
+const ppdbBillingService = require('../../keuangan/ppdb-billing/service');
 const schoolUnitsService = require('../../core/school-units/service');
 const { sendToAkademikForVerification } = require('../services/akademikMock');
 
@@ -412,6 +414,26 @@ class PublicWebsiteService {
       occurred_at: db.fn.now()
     });
 
+    // 5. Otomatis terbitkan tagihan pendaftaran PPDB di Modul Keuangan (ppdb_registration_bills)
+    let keuanganBillId = null;
+    const unitId = Number(reg.school_unit_id) || 1;
+    const candidateName = reg.candidate_full_name || reg.full_name || 'Calon Santri Baru';
+
+    try {
+      const bill = await ppdbBillingService.createRegistrationBillFromPublic({
+        school_unit_id: unitId,
+        target_academic_year_id: 2,
+        psb_registrant_ref_id: intakeResult.academic_ref_id,
+        registrant_name_snapshot: candidateName,
+        registration_number_snapshot: intakeResult.registration_number,
+        amount: 350000.00,
+        notes: `Pendaftaran Online Website Utama (Ref: ${candidateName})`
+      });
+      keuanganBillId = bill ? bill.id : null;
+    } catch (billErr) {
+      console.warn('Auto create ppdb registration bill in Keuangan skipped/error:', billErr.message);
+    }
+
     const trackingCode = `PPDB-${reg.school_year.split('/')[0]}-${String(id).padStart(6, '0')}`;
 
     return {
@@ -420,9 +442,10 @@ class PublicWebsiteService {
       tracking_code: trackingCode,
       academic_ref_id: intakeResult.academic_ref_id,
       registration_number: intakeResult.registration_number,
+      keuangan_bill_id: keuanganBillId,
       username: intakeResult.username,
       password: intakeResult.password,
-      message: 'Pendaftaran berhasil diajukan dan tersinkronisasi ke modul Akademik.'
+      message: 'Pendaftaran berhasil diajukan dan tagihan pendaftaran telah diterbitkan.'
     };
   }
 
@@ -435,7 +458,8 @@ class PublicWebsiteService {
     return query.orderBy('test_date', 'asc');
   }
 
-  // #27 Pembayaran PPDB
+  // #27 Pembayaran PPDB (Manual Bank Transfer & Proof Upload ke Keuangan)
+  // Catatan Arsitektur: Tabel lokal ppdb_payments diarsipkan (deprecated), seluruh pencatatan kini ke ppdb_registration_bills di Keuangan.
   async initiatePayment(registrantId, payload = {}) {
     const reg = await db('ppdb_registrants').where({ id: registrantId }).first();
     if (!reg) {
@@ -444,46 +468,133 @@ class PublicWebsiteService {
       throw error;
     }
 
-    const amount = payload.amount || 350000.00;
-    const gatewayName = payload.payment_gateway_name || 'Midtrans / Virtual Account';
-    const gatewayRef = `TRX-PPDB-${registrantId}-${Date.now()}`;
+    const candidateName = reg.candidate_full_name || reg.full_name || 'Calon Santri Baru';
 
-    const [id] = await db('ppdb_payments').insert({
+    // Ambil atau pastikan tagihan ada di modul Keuangan
+    let bill = null;
+    if (reg.academic_ref_id) {
+      bill = await dbKeuangan('ppdb_registration_bills')
+        .where({ psb_registrant_ref_id: reg.academic_ref_id })
+        .first();
+    }
+    if (!bill) {
+      bill = await dbKeuangan('ppdb_registration_bills')
+        .where({ registrant_name_snapshot: candidateName })
+        .orderBy('id', 'desc')
+        .first();
+    }
+
+    if (!bill) {
+      bill = await ppdbBillingService.createRegistrationBillFromPublic({
+        school_unit_id: reg.school_unit_id || 1,
+        psb_registrant_ref_id: reg.academic_ref_id || registrantId,
+        registrant_name_snapshot: candidateName,
+        registration_number_snapshot: reg.registration_number || null,
+        amount: payload.amount || 350000.00
+      });
+    }
+
+    const bankAccounts = await ppdbBillingService.getPublicBankAccounts(reg.school_unit_id || 1);
+
+    return {
+      bill_id: bill.id,
       registrant_id: registrantId,
-      amount,
-      payment_status: 'pending',
-      payment_gateway_name: gatewayName,
-      payment_gateway_ref: gatewayRef,
-      created_at: db.fn.now(),
-      updated_at: db.fn.now()
+      amount: parseFloat(bill.amount),
+      status: bill.status,
+      bank_accounts: bankAccounts,
+      payment_method: 'bank_transfer_manual',
+      instructions: 'Silakan transfer ke salah satu rekening resmi di atas, kemudian unggah struk bukti transfer.'
+    };
+  }
+
+  async uploadPaymentProof(registrantId, payload = {}) {
+    const reg = await db('ppdb_registrants').where({ id: registrantId }).first();
+    if (!reg) {
+      const error = new Error('Data pendaftar tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const candidateName = reg.candidate_full_name || reg.full_name || 'Calon Santri Baru';
+
+    let bill = await dbKeuangan('ppdb_registration_bills')
+      .where({ psb_registrant_ref_id: reg.academic_ref_id || registrantId })
+      .first();
+
+    if (!bill) {
+      bill = await dbKeuangan('ppdb_registration_bills')
+        .where({ registrant_name_snapshot: candidateName })
+        .orderBy('id', 'desc')
+        .first();
+    }
+
+    if (!bill) {
+      const error = new Error('Tagihan pendaftaran belum diterbitkan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const proof = await ppdbBillingService.uploadPublicRegistrationProof(bill.id, {
+      proof_file_url: payload.proof_file_url,
+      transfer_amount: payload.transfer_amount,
+      transfer_date: payload.transfer_date,
+      bank_name: payload.bank_name,
+      sender_account_name: payload.sender_account_name,
+      target_cash_account_id: payload.target_cash_account_id
+    });
+
+    await db('ppdb_status_logs').insert({
+      registrant_id: registrantId,
+      status: 'payment_uploaded',
+      note: 'Bukti transfer pendaftaran telah diunggah dan menunggu verifikasi bendahara',
+      occurred_at: db.fn.now()
     });
 
     return {
-      payment_id: id,
-      registrant_id: registrantId,
-      amount,
-      payment_status: 'pending',
-      payment_gateway_name: gatewayName,
-      payment_gateway_ref: gatewayRef,
-      payment_url: `https://app.sandbox.midtrans.com/snap/v2/vtweb/${gatewayRef}`
+      message: 'Bukti transfer berhasil diunggah. Tim keuangan akan memverifikasi dalam 1x24 jam.',
+      proof
     };
   }
 
   async getPaymentStatus(registrantId) {
-    const payment = await db('ppdb_payments')
-      .where({ registrant_id: registrantId })
-      .orderBy('id', 'desc')
-      .first();
-
-    if (!payment) {
+    const reg = await db('ppdb_registrants').where({ id: registrantId }).first();
+    if (!reg) {
       return {
         registrant_id: registrantId,
         payment_status: 'unpaid',
-        message: 'Belum ada transaksi pembayaran yang dibuat'
+        message: 'Data pendaftar tidak ditemukan'
       };
     }
 
-    return payment;
+    const candidateName = reg.candidate_full_name || reg.full_name || 'Calon Santri Baru';
+
+    let bill = null;
+    if (reg.academic_ref_id) {
+      bill = await dbKeuangan('ppdb_registration_bills')
+        .where({ psb_registrant_ref_id: reg.academic_ref_id })
+        .first();
+    }
+    if (!bill) {
+      bill = await dbKeuangan('ppdb_registration_bills')
+        .where({ registrant_name_snapshot: candidateName })
+        .orderBy('id', 'desc')
+        .first();
+    }
+
+    if (!bill) {
+      return {
+        registrant_id: registrantId,
+        payment_status: 'unpaid',
+        message: 'Belum ada tagihan pendaftaran'
+      };
+    }
+
+    const statusData = await ppdbBillingService.getPublicBillStatus(bill.id);
+    return {
+      registrant_id: registrantId,
+      bill_id: bill.id,
+      ...statusData
+    };
   }
 
   // #28 Tracking Status PPDB

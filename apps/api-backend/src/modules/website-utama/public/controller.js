@@ -277,6 +277,20 @@ class PublicWebsiteController {
     }
   }
 
+  async uploadPaymentProof(req, res, next) {
+    try {
+      const data = await publicService.uploadPaymentProof(req.params.id, req.body);
+      res.status(201).json({
+        success: true,
+        data,
+        message: data.message || 'Bukti transfer berhasil diunggah',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getPaymentStatus(req, res, next) {
     try {
       const data = await publicService.getPaymentStatus(req.params.id);

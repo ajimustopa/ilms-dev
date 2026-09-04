@@ -274,6 +274,15 @@ class RipsController {
     }
   }
 
+  async moveProgram(req, res, next) {
+    try {
+      const data = await service.moveProgram(req.params.id, req.body);
+      res.json({ success: true, data, message: 'Program berhasil dipindahkan ke Sub-Bidang target', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async linkProgramGoals(req, res, next) {
     try {
       const { rips_goal_ids } = req.body;

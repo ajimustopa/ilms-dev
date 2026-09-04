@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import DatePickerField from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   Building2,
   School,
@@ -179,7 +180,7 @@ export default function InstitutionProfile() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header & Context Switcher */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -228,17 +229,15 @@ export default function InstitutionProfile() {
             {contextType === 'school_unit' && (
               <div className="flex items-center gap-1.5 pl-1 border-l border-slate-800">
                 <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Pilih Satuan:</span>
-                <select
+                <SearchableSelect
                   value={selectedUnitId}
-                  onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                  className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 font-bold"
-                >
-                  {schoolUnits?.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.level})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedUnitId(Number(val))}
+                  className="w-56"
+                  options={schoolUnits?.map((unit) => ({
+                    value: unit.id,
+                    label: `${unit.name} (${unit.level})`,
+                  })) || []}
+                />
               </div>
             )}
           </div>
@@ -335,7 +334,7 @@ export default function InstitutionProfile() {
       {/* TAB 1: PROFIL DASAR */}
       {activeTab === 'base_profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -396,7 +395,7 @@ export default function InstitutionProfile() {
           </div>
 
           {/* Quick Stats Summary Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 flex flex-col justify-between">
             <div>
               <h3 className="text-md font-bold text-white flex items-center gap-2 mb-4">
                 <Sparkles className="w-5 h-5 text-indigo-400" />
@@ -443,7 +442,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 2: DOKUMEN LEGALITAS */}
       {activeTab === 'legal_docs' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -584,7 +583,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 3: KOP SURAT */}
       {activeTab === 'letterheads' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -692,7 +691,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 4: CAP STEMPEL */}
       {activeTab === 'stamps' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -804,7 +803,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 5: TANDA TANGAN PEJABAT */}
       {activeTab === 'signatures' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -922,7 +921,7 @@ export default function InstitutionProfile() {
       {/* MODAL FORM */}
       {modalType && createPortal(
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 animate-scaleUp">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 animate-scaleUp">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingItem ? 'Edit Data' : 'Tambah Data'} -{' '}
@@ -947,19 +946,16 @@ export default function InstitutionProfile() {
               {modalType === 'doc' && (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Jenis Dokumen Legalitas</label>
-                    <select
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Jenis Dokumen Legalitas *</label>
+                    <SearchableSelect
                       value={formData.legal_document_type_id || ''}
-                      onChange={(e) => setFormData({ ...formData, legal_document_type_id: e.target.value })}
-                      required
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                    >
-                      {docTypes.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="-- Pilih Jenis Dokumen --"
+                      onChange={(val) => setFormData({ ...formData, legal_document_type_id: val })}
+                      options={docTypes.map((t) => ({
+                        value: t.id,
+                        label: t.name,
+                      }))}
+                    />
                   </div>
 
                   <div>
@@ -1004,15 +1000,15 @@ export default function InstitutionProfile() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">Status Dokumen</label>
-                    <select
+                    <SearchableSelect
                       value={formData.status || 'berlaku'}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                    >
-                      <option value="berlaku">Berlaku Aktif</option>
-                      <option value="kadaluarsa">Kadaluarsa</option>
-                      <option value="dalam_proses">Dalam Proses Perpanjangan</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, status: val })}
+                      options={[
+                        { value: 'berlaku', label: 'Berlaku Aktif' },
+                        { value: 'kadaluarsa', label: 'Kadaluarsa' },
+                        { value: 'dalam_proses', label: 'Dalam Proses Perpanjangan' },
+                      ]}
+                    />
                   </div>
 
                   <div>
@@ -1086,14 +1082,14 @@ export default function InstitutionProfile() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">Tipe Stempel</label>
-                    <select
+                    <SearchableSelect
                       value={formData.stamp_type || 'digital'}
-                      onChange={(e) => setFormData({ ...formData, stamp_type: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                    >
-                      <option value="digital">Digital (Transparan PNG)</option>
-                      <option value="basah">Basah (Scan Fisik)</option>
-                    </select>
+                      onChange={(val) => setFormData({ ...formData, stamp_type: val })}
+                      options={[
+                        { value: 'digital', label: 'Digital (Transparan PNG)' },
+                        { value: 'basah', label: 'Basah (Scan Fisik)' },
+                      ]}
+                    />
                   </div>
 
                   <div>
@@ -1127,7 +1123,7 @@ export default function InstitutionProfile() {
               {modalType === 'signature' && (
                 <>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Jabatan Tercetak</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Jabatan Proyeksi / Cetak</label>
                     <input
                       type="text"
                       value={formData.position_title || ''}
@@ -1140,18 +1136,18 @@ export default function InstitutionProfile() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">Pilih Pegawai Penandatangan (Opsional)</label>
-                    <select
+                    <SearchableSelect
                       value={formData.employee_id || ''}
-                      onChange={(e) => setFormData({ ...formData, employee_id: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
-                    >
-                      <option value="">-- Pilih Pegawai --</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name || emp.full_name} ({emp.nip || emp.id})
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="-- Pilih Pegawai --"
+                      onChange={(val) => setFormData({ ...formData, employee_id: val ? Number(val) : null })}
+                      options={[
+                        { value: '', label: '-- Pilih Pegawai --' },
+                        ...employees.map((emp) => ({
+                          value: emp.id,
+                          label: `${emp.name || emp.full_name} (${emp.nip || emp.id})`,
+                        })),
+                      ]}
+                    />
                   </div>
 
                   <div>

@@ -67,7 +67,9 @@ export default function AkademikLayout() {
     const fetchActiveMaster = async () => {
       try {
         const params = {};
-        if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
+        if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') {
+          params.satuan_pendidikan_id = activeSchoolUnit.id;
+        }
 
         const [yearsRes, semestersRes] = await Promise.all([
           api.get('/akademik/academic-years', { params }).catch(() => ({ data: { data: [] } })),

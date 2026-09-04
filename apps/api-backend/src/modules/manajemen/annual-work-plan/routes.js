@@ -86,6 +86,35 @@ router.get(
   controller.getPublications
 );
 
+// Program Management in RKT
+router.get(
+  '/annual-work-plans/:id/available-programs',
+  verifyJwt,
+  requirePermission('manajemen.planning.rkt.view'),
+  controller.getAvailableRipsPrograms
+);
+
+router.post(
+  '/annual-work-plans/:id/programs',
+  verifyJwt,
+  requirePermission('manajemen.planning.rkt.manage'),
+  controller.addProgramToRkt
+);
+
+router.post(
+  '/annual-work-plans/:id/programs/new',
+  verifyJwt,
+  requirePermission('manajemen.planning.rkt.manage'),
+  controller.createAndAttachProgramToRkt
+);
+
+router.delete(
+  '/annual-work-plans/:id/programs/:programId',
+  verifyJwt,
+  requirePermission('manajemen.planning.rkt.manage'),
+  controller.removeProgramFromRkt
+);
+
 // Work Plan Activities
 router.get(
   '/work-plan-activities',

@@ -24,6 +24,7 @@ module.exports = {
       password: dbPassword,
       database: dbName,
       charset: 'utf8mb4',
+      dateStrings: true,
       ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {
@@ -49,6 +50,7 @@ module.exports = {
       password: dbPassword,
       database: dbName,
       charset: 'utf8mb4',
+      dateStrings: true,
       ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {

@@ -184,6 +184,8 @@ class AnnualWorkPlanService {
 
     const targets = await targetQuery
       .leftJoin('rips_program_categories as pc', 'rips_programs.category_id', 'pc.id')
+      .leftJoin('rips_domains as direct_domain', 'rips_programs.domain_id', 'direct_domain.id')
+      .leftJoin('rips_subdomains as direct_subdomain', 'rips_programs.subdomain_id', 'direct_subdomain.id')
       .select(
         'annual_program_targets.id as target_id',
         'annual_program_targets.target_percent',
@@ -195,6 +197,10 @@ class AnnualWorkPlanService {
         'rips_programs.is_flagship',
         'rips_programs.status as program_status',
         'rips_programs.category_id',
+        'rips_programs.domain_id as direct_domain_id',
+        'rips_programs.subdomain_id as direct_subdomain_id',
+        'direct_domain.name as direct_domain_name',
+        'direct_subdomain.name as direct_subdomain_name',
         'pc.name as category_name',
         'pc.color as category_color',
         'pc.bg_color as category_bg_color',
@@ -297,10 +303,10 @@ class AnnualWorkPlanService {
 
       return {
         ...t,
-        domain_id: linked[0]?.domain_id || null,
-        domain_name: linked[0]?.domain_name || null,
-        subdomain_id: linked[0]?.subdomain_id || null,
-        subdomain_name: linked[0]?.subdomain_name || null,
+        domain_id: t.direct_domain_id || linked[0]?.domain_id || null,
+        domain_name: t.direct_domain_name || linked[0]?.domain_name || null,
+        subdomain_id: t.direct_subdomain_id || linked[0]?.subdomain_id || null,
+        subdomain_name: t.direct_subdomain_name || linked[0]?.subdomain_name || null,
         linked_goals: linked,
         activities: progActivities,
         committee: committeeWithMembers,
@@ -661,6 +667,344 @@ class AnnualWorkPlanService {
       })
       .orderBy('version_number', 'desc');
   }
+
+  // ==========================================
+  // 7. RKT PROGRAM MANAGEMENT (ADD FROM RIPS / CREATE NEW)
+  // ==========================================
+  async getAvailableRipsPrograms(annualWorkPlanId) {
+    const awp = await this.getAnnualWorkPlanById(annualWorkPlanId);
+
+    // 1. Temukan dokumen RIPS yang sesuai
+    let ripsDocQuery = db('rips_documents');
+    if (awp.school_unit_id) {
+      ripsDocQuery = ripsDocQuery.where('school_unit_id', awp.school_unit_id);
+    } else {
+      ripsDocQuery = ripsDocQuery.whereNull('school_unit_id');
+    }
+    let ripsDoc = await ripsDocQuery.first();
+    if (!ripsDoc) {
+      ripsDoc = await db('rips_documents').whereNull('school_unit_id').first() || await db('rips_documents').first();
+    }
+
+    if (!ripsDoc) return [];
+
+    // 2. Ambil ID program yang SUDAH masuk ke RKT terkait
+    let activeTargetsQuery = db('annual_program_targets')
+      .where('academic_year', awp.academic_year)
+      .where((builder) => {
+        builder.where('is_active', 1)
+          .orWhere((sub) => {
+            sub.whereNull('is_active').whereNotNull('target_percent');
+          });
+      });
+
+    if (awp.school_unit_id) {
+      activeTargetsQuery = activeTargetsQuery.where('school_unit_id', awp.school_unit_id);
+    } else {
+      activeTargetsQuery = activeTargetsQuery.whereNull('school_unit_id');
+    }
+
+    const activeTargets = await activeTargetsQuery.select('rips_program_id');
+    const existingProgramIds = activeTargets.map((t) => t.rips_program_id);
+
+    // 3. Ambil semua program di dokumen RIPS terkait yang BELUM masuk ke RKT ini
+    let progQuery = db('rips_programs as rp')
+      .leftJoin('rips_program_categories as pc', 'rp.category_id', 'pc.id')
+      .where('rp.rips_document_id', ripsDoc.id);
+
+    if (existingProgramIds.length > 0) {
+      progQuery = progQuery.whereNotIn('rp.id', existingProgramIds);
+    }
+
+    const availableProgs = await progQuery
+      .select(
+        'rp.*',
+        'pc.name as category_name',
+        'pc.color as category_color',
+        'pc.bg_color as category_bg_color',
+        'pc.border_color as category_border_color'
+      )
+      .orderBy('rp.order_index', 'asc')
+      .orderBy('rp.id', 'asc');
+
+    const progIds = availableProgs.map((p) => p.id);
+    if (progIds.length === 0) return [];
+
+    // Ambil info sasaran & bidang terkait
+    const goalLinks = await db('rips_program_goal_links as pgl')
+      .join('rips_goals as g', 'pgl.rips_goal_id', 'g.id')
+      .leftJoin('rips_domains as d', 'g.domain_id', 'd.id')
+      .leftJoin('rips_subdomains as sub', 'g.subdomain_id', 'sub.id')
+      .select(
+        'pgl.rips_program_id',
+        'g.id as goal_id',
+        'g.code as goal_code',
+        'g.title as goal_title',
+        'g.domain_id',
+        'd.name as domain_name',
+        'g.subdomain_id',
+        'sub.name as subdomain_name'
+      )
+      .whereIn('pgl.rips_program_id', progIds);
+
+    return availableProgs.map((p) => {
+      const linked = goalLinks.filter((gl) => gl.rips_program_id === p.id);
+      return {
+        ...p,
+        domain_name: linked[0]?.domain_name || null,
+        subdomain_name: linked[0]?.subdomain_name || null,
+        linked_goals: linked,
+      };
+    });
+  }
+
+  async addProgramToRkt(annualWorkPlanId, payload, user = null) {
+    const awp = await this.getAnnualWorkPlanById(annualWorkPlanId);
+    const { rips_program_id, target_percent, notes } = payload;
+
+    if (!rips_program_id) {
+      const error = new Error('rips_program_id wajib disertakan');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const prog = await db('rips_programs').where({ id: Number(rips_program_id) }).first();
+    if (!prog) {
+      const error = new Error('Program RIPS tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let targetQuery = db('annual_program_targets')
+      .where({
+        rips_program_id: Number(rips_program_id),
+        academic_year: awp.academic_year,
+      });
+
+    if (awp.school_unit_id) {
+      targetQuery = targetQuery.where('school_unit_id', awp.school_unit_id);
+    } else {
+      targetQuery = targetQuery.whereNull('school_unit_id');
+    }
+
+    let target = await targetQuery.first();
+
+    const targetVal = target_percent !== undefined && target_percent !== '' ? Number(target_percent) : 100;
+    const notesVal = notes !== undefined ? notes : null;
+
+    if (payload.subdomain_id || payload.domain_id) {
+      let subId = payload.subdomain_id ? Number(payload.subdomain_id) : null;
+      let domId = payload.domain_id ? Number(payload.domain_id) : null;
+      if (subId && !domId) {
+        const sub = await db('rips_subdomains').where({ id: subId }).first();
+        if (sub) domId = sub.domain_id;
+      }
+      const existingProg = await db('rips_programs').where({ id: Number(rips_program_id) }).first();
+      if (existingProg && (domId || subId)) {
+        await db('rips_programs').where({ id: Number(rips_program_id) }).update({
+          domain_id: domId || existingProg.domain_id,
+          subdomain_id: subId || existingProg.subdomain_id,
+          updated_at: db.fn.now(),
+        });
+      }
+    }
+
+    if (target) {
+      await db('annual_program_targets')
+        .where({ id: target.id })
+        .update({
+          is_active: 1,
+          target_percent: targetVal,
+          notes: notesVal,
+          updated_at: db.fn.now(),
+        });
+    } else {
+      const [newId] = await db('annual_program_targets').insert({
+        rips_program_id: Number(rips_program_id),
+        school_unit_id: awp.school_unit_id,
+        academic_year: awp.academic_year,
+        target_percent: targetVal,
+        notes: notesVal,
+        is_active: 1,
+        created_at: db.fn.now(),
+        updated_at: db.fn.now(),
+      });
+      target = await db('annual_program_targets').where({ id: newId }).first();
+    }
+
+    return target;
+  }
+
+  async createAndAttachProgramToRkt(annualWorkPlanId, payload, user = null) {
+    const awp = await this.getAnnualWorkPlanById(annualWorkPlanId);
+
+    if (!payload.name || !payload.name.trim()) {
+      const error = new Error('Nama program wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // 1. Temukan dokumen RIPS terkait
+    let ripsDocQuery = db('rips_documents');
+    if (awp.school_unit_id) {
+      ripsDocQuery = ripsDocQuery.where('school_unit_id', awp.school_unit_id);
+    } else {
+      ripsDocQuery = ripsDocQuery.whereNull('school_unit_id');
+    }
+    let ripsDoc = await ripsDocQuery.first();
+    if (!ripsDoc) {
+      ripsDoc = await db('rips_documents').whereNull('school_unit_id').first() || await db('rips_documents').first();
+    }
+
+    if (!ripsDoc) {
+      const error = new Error('Dokumen RIPS terkait tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // 2. Tentukan kode program jika tidak ada atau jika kode sudah terpakai (hindari duplicate entry)
+    let code = payload.code ? payload.code.trim() : '';
+    if (code) {
+      const existing = await db('rips_programs').where({ code }).first();
+      if (existing) {
+        code = '';
+      }
+    }
+    if (!code) {
+      const progs = await db('rips_programs').select('code');
+      let maxNum = 0;
+      progs.forEach((p) => {
+        const match = p.code?.match(/PRG-(?:UNG-)?(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      let nextNum = maxNum + 1;
+      code = `PRG-${String(nextNum).padStart(3, '0')}`;
+      while (await db('rips_programs').where({ code }).first()) {
+        nextNum++;
+        code = `PRG-${String(nextNum).padStart(3, '0')}`;
+      }
+    }
+
+    let subdomainId = payload.subdomain_id !== undefined && payload.subdomain_id !== '' && payload.subdomain_id !== null ? Number(payload.subdomain_id) : null;
+    let domainId = payload.domain_id !== undefined && payload.domain_id !== '' && payload.domain_id !== null ? Number(payload.domain_id) : null;
+
+    if (subdomainId && !domainId) {
+      const sub = await db('rips_subdomains').where({ id: subdomainId }).first();
+      if (sub) domainId = sub.domain_id;
+    }
+
+    const goalIds = Array.isArray(payload.linked_goal_ids) ? payload.linked_goal_ids : [];
+    if ((!domainId || !subdomainId) && goalIds.length > 0) {
+      const firstGoal = await db('rips_goals').where({ id: Number(goalIds[0]) }).first();
+      if (firstGoal) {
+        if (!domainId && firstGoal.domain_id) domainId = firstGoal.domain_id;
+        if (!subdomainId && firstGoal.subdomain_id) subdomainId = firstGoal.subdomain_id;
+      }
+    }
+
+    const [progId] = await db('rips_programs').insert({
+      rips_document_id: ripsDoc.id,
+      category_id: payload.category_id !== undefined && payload.category_id !== '' && payload.category_id !== null ? Number(payload.category_id) : null,
+      domain_id: domainId,
+      subdomain_id: subdomainId,
+      code,
+      name: payload.name.trim(),
+      description: payload.description || null,
+      is_flagship: payload.is_flagship ? 1 : 0,
+      order_index: payload.order_index !== undefined ? Number(payload.order_index) : 99,
+      status: payload.status || 'active',
+      created_at: db.fn.now(),
+      updated_at: db.fn.now(),
+    });
+
+    // 3. Link ke sasaran strategis RIPS
+    if (goalIds.length > 0) {
+      const cleanedGoalIds = goalIds.filter((gid) => gid !== null && gid !== undefined && gid !== '').map(Number);
+      if (cleanedGoalIds.length > 0) {
+        const validGoals = await db('rips_goals').whereIn('id', cleanedGoalIds).pluck('id');
+        if (validGoals.length > 0) {
+          const goalInserts = validGoals.map((gid) => ({
+            rips_program_id: progId,
+            rips_goal_id: Number(gid),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now(),
+          }));
+          await db('rips_program_goal_links').insert(goalInserts);
+        }
+      }
+    }
+
+    // 4. Link ke indikator spesifik
+    const indicatorIds = Array.isArray(payload.linked_indicator_ids) ? payload.linked_indicator_ids : [];
+    if (indicatorIds.length > 0) {
+      const cleanedIndIds = indicatorIds.filter((iid) => iid !== null && iid !== undefined && iid !== '').map(Number);
+      if (cleanedIndIds.length > 0) {
+        const validInds = await db('rips_goal_indicators').whereIn('id', cleanedIndIds).pluck('id');
+        if (validInds.length > 0) {
+          const indInserts = validInds.map((iid) => ({
+            rips_program_id: progId,
+            rips_goal_indicator_id: Number(iid),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now(),
+          }));
+          await db('rips_program_indicator_links').insert(indInserts);
+        }
+      }
+    }
+
+    // 5. Tambahkan target dan aktifkan di RKT terkait
+    const targetVal = payload.target_percent !== undefined && payload.target_percent !== '' ? Number(payload.target_percent) : 100;
+    await db('annual_program_targets').insert({
+      rips_program_id: progId,
+      school_unit_id: awp.school_unit_id,
+      academic_year: awp.academic_year,
+      target_percent: targetVal,
+      notes: payload.notes || null,
+      is_active: 1,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now(),
+    });
+
+    return await db('rips_programs').where({ id: progId }).first();
+  }
+
+  async removeProgramFromRkt(annualWorkPlanId, ripsProgramId) {
+    const awp = await this.getAnnualWorkPlanById(annualWorkPlanId);
+
+    const actCount = await db('work_plan_activities')
+      .where({
+        annual_work_plan_id: annualWorkPlanId,
+        rips_program_id: Number(ripsProgramId),
+      })
+      .count('* as total');
+
+    let targetQuery = db('annual_program_targets')
+      .where({
+        rips_program_id: Number(ripsProgramId),
+        academic_year: awp.academic_year,
+      });
+
+    if (awp.school_unit_id) {
+      targetQuery = targetQuery.where('school_unit_id', awp.school_unit_id);
+    } else {
+      targetQuery = targetQuery.whereNull('school_unit_id');
+    }
+
+    if (actCount[0].total > 0) {
+      await targetQuery.update({
+        is_active: 0,
+        updated_at: db.fn.now(),
+      });
+    } else {
+      await targetQuery.del();
+    }
+
+    return { success: true };
+  }
 }
 
 module.exports = AnnualWorkPlanService;
+

@@ -7,6 +7,7 @@
 const db = require('../../../config/db/akademik');
 const schoolUnitsService = require('../../core/school-units/service');
 const employeesService = require('../../kepegawaian/employees/service');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class CurriculumService {
   // ==========================================
@@ -14,8 +15,9 @@ class CurriculumService {
   // ==========================================
   async listAcademicYears(query = {}) {
     let baseQuery = db('academic_years');
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('satuan_pendidikan_id', unitId);
     }
     return baseQuery.orderBy('start_date', 'desc');
   }
@@ -118,8 +120,9 @@ class CurriculumService {
   // ==========================================
   async listCohorts(query = {}) {
     let baseQuery = db('cohorts');
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('satuan_pendidikan_id', unitId);
     }
     if (query.is_active !== undefined) {
       baseQuery = baseQuery.where('is_active', query.is_active === 'true' || query.is_active === true);
@@ -186,9 +189,10 @@ class CurriculumService {
   async listSemesters(query = {}) {
     let baseQuery = db('semesters');
 
-    if (query.satuan_pendidikan_id) {
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
       baseQuery = baseQuery.where(function() {
-        this.where('semesters.satuan_pendidikan_id', query.satuan_pendidikan_id)
+        this.where('semesters.satuan_pendidikan_id', unitId)
             .orWhereNull('semesters.satuan_pendidikan_id');
       });
     }
@@ -381,11 +385,12 @@ class CurriculumService {
         'subjects.code as subject_code'
       );
 
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('class_groups.satuan_pendidikan_id', unitId);
     }
     if (query.academic_year_id) {
-      if (!query.satuan_pendidikan_id) {
+      if (!unitId) {
         // Mode Semua Unit: Cari seluruh ID tahun ajaran dengan nama yang sama (misal 2026/2027)
         const refYear = await db('academic_years').where({ id: query.academic_year_id }).first();
         if (refYear && refYear.name) {
@@ -914,8 +919,9 @@ class CurriculumService {
         'parent_subjects.code as parent_subject_code'
       );
 
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('subjects.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('subjects.satuan_pendidikan_id', unitId);
     }
     if (query.grade_level_id) {
       baseQuery = baseQuery.where('subjects.grade_level_id', query.grade_level_id);

@@ -8,6 +8,7 @@ const coreDb = require('../../../config/db/core');
 const keuanganDb = require('../../../config/db/keuangan');
 const usersService = require('../../core/users/service');
 const { generateShortUsername } = require('../../../utils/usernameGenerator');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 class PsbService {
   // ============================================================
@@ -296,9 +297,10 @@ class PsbService {
     if (query.psb_process_id) {
       q = q.where('psb_process_id', query.psb_process_id);
     }
-    if (query.satuan_pendidikan_id) {
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
       q = q.where((b) => {
-        b.where('satuan_pendidikan_id', query.satuan_pendidikan_id)
+        b.where('satuan_pendidikan_id', unitId)
           .orWhereNull('satuan_pendidikan_id');
       });
     }
@@ -457,8 +459,9 @@ class PsbService {
     if (query.psb_process_id) {
       baseQuery = baseQuery.where('psb_registrants.psb_process_id', query.psb_process_id);
     }
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('psb_registrants.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('psb_registrants.satuan_pendidikan_id', unitId);
     }
     if (query.psb_group_id) {
       baseQuery = baseQuery.where('psb_registrants.psb_group_id', query.psb_group_id);
@@ -832,6 +835,18 @@ class PsbService {
         placed_nipd: nipd || assignedNis,
         updated_at: db.fn.now()
       });
+
+      // 5b. Tautkan linked_student_id ke modul Keuangan (ppdb_registration_bills)
+      try {
+        await keuanganDb('ppdb_registration_bills')
+          .where({ psb_registrant_ref_id: registrantId })
+          .update({
+            linked_student_id: studentId,
+            updated_at: keuanganDb.fn.now()
+          });
+      } catch (linkErr) {
+        console.warn('Sync linked_student_id to ppdb_registration_bills skipped or error:', linkErr.message);
+      }
 
       return {
         psb_registrant_id: Number(registrantId),

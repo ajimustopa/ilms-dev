@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   Compass,
   Building2,
@@ -134,7 +135,7 @@ export default function BalancedScorecard() {
   return (
     <div className="space-y-6 pb-16">
       {/* 1. HEADER CARD */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
@@ -180,45 +181,37 @@ export default function BalancedScorecard() {
               </button>
 
               {contextType === 'school_unit' && (
-                <select
+                <SearchableSelect
                   value={selectedUnitId}
-                  onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                  className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 outline-none font-medium"
-                >
-                  {schoolUnits?.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.level})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedUnitId(Number(val))}
+                  className="w-56"
+                  options={schoolUnits?.map((unit) => ({
+                    value: unit.id,
+                    label: `${unit.name} (${unit.level})`,
+                  })) || []}
+                />
               )}
             </div>
 
             {/* EVADIR Report Selector */}
             <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
               <span className="text-[11px] text-slate-400 font-semibold pl-2">Laporan:</span>
-              <select
+              <SearchableSelect
                 value={selectedReportId}
-                onChange={(e) => setSelectedReportId(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none font-medium"
-              >
-                {reportsList.length === 0 ? (
-                  <option value="">Belum ada laporan</option>
-                ) : (
-                  reportsList.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.period_label} ({new Date(r.evaluation_date).toLocaleDateString('id-ID')})
-                    </option>
-                  ))
-                )}
-              </select>
+                onChange={(val) => setSelectedReportId(val)}
+                className="w-64"
+                options={reportsList.length === 0 ? [{ value: '', label: 'Belum ada laporan' }] : reportsList.map((r) => ({
+                  value: r.id,
+                  label: `${r.period_label} (${new Date(r.evaluation_date).toLocaleDateString('id-ID')})`,
+                }))}
+              />
             </div>
           </div>
         </div>
       </div>
 
       {!dashboardData ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-3 shadow-xl">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-xl">
           <Compass className="w-12 h-12 text-slate-600 mx-auto" />
           <h4 className="text-sm font-bold text-white">Belum Ada Data Evaluasi Diri (EVADIR)</h4>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
@@ -230,7 +223,7 @@ export default function BalancedScorecard() {
           {/* 2. RADAR SPIDER CHART & EXECUTIVE SUMMARY */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* Radar Spider Chart (5 cols) */}
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-3">
+            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -348,7 +341,7 @@ export default function BalancedScorecard() {
                 <div
                   key={asp.aspect_id}
                   onClick={() => setSelectedAspectFilter(selectedAspectFilter === asp.aspect_name ? 'all' : asp.aspect_name)}
-                  className={`p-5 rounded-3xl border transition cursor-pointer space-y-3 ${
+                  className={`p-5 rounded-2xl border transition cursor-pointer space-y-3 ${
                     selectedAspectFilter === asp.aspect_name
                       ? 'bg-indigo-600/10 border-indigo-500 ring-1 ring-indigo-500 shadow-lg'
                       : 'bg-slate-900 border-slate-800 hover:border-slate-700'
@@ -387,7 +380,7 @@ export default function BalancedScorecard() {
 
           {/* 3. MULTI-LINE HISTORICAL TRENDS */}
           {trendData?.series?.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <LineChartIcon className="w-4 h-4 text-emerald-400" />
@@ -454,7 +447,7 @@ export default function BalancedScorecard() {
           )}
 
           {/* 4. DETAIL SASARAN STRATEGIS TABLE */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -470,18 +463,18 @@ export default function BalancedScorecard() {
 
               <div className="flex items-center gap-2">
                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <select
+                <SearchableSelect
                   value={selectedAspectFilter}
-                  onChange={(e) => setSelectedAspectFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none font-medium"
-                >
-                  <option value="all">Semua Aspek BSC</option>
-                  {dashboardData.aspects.map((a) => (
-                    <option key={a.aspect_id} value={a.aspect_name}>
-                      {a.aspect_name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedAspectFilter(val)}
+                  className="w-56"
+                  options={[
+                    { value: 'all', label: 'Semua Aspek BSC' },
+                    ...dashboardData.aspects.map((a) => ({
+                      value: a.aspect_name,
+                      label: a.aspect_name,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 

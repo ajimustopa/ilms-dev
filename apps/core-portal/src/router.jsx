@@ -441,6 +441,22 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/keuangan/pages/MasterData')),
           },
           {
+            path: 'fee-schemes',
+            element: lazyLoad(() => import('./apps/keuangan/pages/FeeSchemes')),
+          },
+          {
+            path: 'schemes',
+            element: lazyLoad(() => import('./apps/keuangan/pages/FeeSchemes')),
+          },
+          {
+            path: 'fee-assignments',
+            element: lazyLoad(() => import('./apps/keuangan/pages/StudentFeeAssignments')),
+          },
+          {
+            path: 'assignments',
+            element: lazyLoad(() => import('./apps/keuangan/pages/StudentFeeAssignments')),
+          },
+          {
             path: 'budget',
             element: lazyLoad(() => import('./apps/keuangan/pages/BudgetPlans')),
           },
@@ -449,8 +465,60 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/keuangan/pages/StudentBills')),
           },
           {
+            path: 'parent-facing/bills',
+            element: lazyLoad(() => import('./apps/keuangan/pages/ParentBills')),
+          },
+          {
+            path: 'portal-wali',
+            element: lazyLoad(() => import('./apps/keuangan/pages/ParentBills')),
+          },
+          {
+            path: 'tagihan-santri',
+            element: lazyLoad(() => import('./apps/keuangan/pages/ParentBills')),
+          },
+          {
+            path: 'ppdb-billing',
+            element: lazyLoad(() => import('./apps/keuangan/pages/RegistrationBilling')),
+          },
+          {
+            path: 'student-ledger',
+            element: lazyLoad(() => import('./apps/keuangan/pages/StudentPaymentCard')),
+          },
+          {
+            path: 'student-payment-card',
+            element: lazyLoad(() => import('./apps/keuangan/pages/StudentPaymentCard')),
+          },
+          {
+            path: 'legacy-migration',
+            element: lazyLoad(() => import('./apps/keuangan/pages/LegacyMigration')),
+          },
+          {
+            path: 'migrasi-historis',
+            element: lazyLoad(() => import('./apps/keuangan/pages/LegacyMigration')),
+          },
+          {
+            path: 'fund-balances',
+            element: lazyLoad(() => import('./apps/keuangan/pages/Reports')),
+          },
+          {
+            path: 'saldo-dana',
+            element: lazyLoad(() => import('./apps/keuangan/pages/Reports')),
+          },
+          {
             path: 'payments',
             element: lazyLoad(() => import('./apps/keuangan/pages/Payments')),
+          },
+          {
+            path: 'penerimaan',
+            element: lazyLoad(() => import('./apps/keuangan/pages/Payments')),
+          },
+          {
+            path: 'bank-statements',
+            element: lazyLoad(() => import('./apps/keuangan/pages/BankStatements')),
+          },
+          {
+            path: 'rekening-koran',
+            element: lazyLoad(() => import('./apps/keuangan/pages/BankStatements')),
           },
           {
             path: 'expenses',
@@ -458,18 +526,22 @@ export const router = createBrowserRouter([
           },
           {
             path: 'other-incomes',
-            element: lazyLoad(() => import('./apps/keuangan/pages/OtherIncomes')),
+            element: lazyLoad(() => import('./apps/keuangan/pages/Payments')),
           },
           {
             path: 'incomes',
-            element: lazyLoad(() => import('./apps/keuangan/pages/OtherIncomes')),
+            element: lazyLoad(() => import('./apps/keuangan/pages/Payments')),
           },
           {
             path: 'payroll',
-            element: lazyLoad(() => import('./apps/keuangan/pages/Payroll')),
+            element: lazyLoad(() => import('./apps/keuangan/pages/Expenses')),
           },
           {
             path: 'bookkeeping',
+            element: lazyLoad(() => import('./apps/keuangan/pages/Bookkeeping')),
+          },
+          {
+            path: 'accounting',
             element: lazyLoad(() => import('./apps/keuangan/pages/Bookkeeping')),
           },
           {
@@ -1095,6 +1167,27 @@ export const router = createBrowserRouter([
             element: <Navigate to="/calon-murid/test" replace />,
           },
         ],
+      },
+    ],
+  },
+  // Portal Orang Tua (Parent-Facing) Tagihan Biaya Pendidikan
+  {
+    path: '/portal-orangtua/tagihan',
+    element: <ProtectedRoute redirectTo="/login" />,
+    children: [
+      {
+        index: true,
+        element: lazyLoad(() => import('./apps/keuangan/pages/ParentBills')),
+      },
+    ],
+  },
+  {
+    path: '/orangtua/tagihan',
+    element: <ProtectedRoute redirectTo="/login" />,
+    children: [
+      {
+        index: true,
+        element: lazyLoad(() => import('./apps/keuangan/pages/ParentBills')),
       },
     ],
   },

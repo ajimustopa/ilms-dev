@@ -16,6 +16,14 @@ router.post(
   controller.recordBillPayment
 );
 
+// 1.1 Rekap Seluruh Penerimaan Kas Terpadu (Siswa, PPDB, Sumber Lain)
+router.get(
+  '/payments/all-inflows',
+  verifyJwt,
+  requirePermission('keuangan.payments.record', 'keuangan.reports.view'),
+  controller.getAllInflows
+);
+
 // 2. Edit & Riwayat Koreksi Pembayaran (Fitur #18)
 router.get(
   '/bill-payments/:id/history',
@@ -94,6 +102,18 @@ router.get(
   requirePermission('keuangan.payments.record'),
   controller.listPaymentProofs
 );
+router.get(
+  '/bill-payment-proofs/:id/allocations',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.getPaymentProofAllocations
+);
+router.post(
+  '/bill-payment-proofs/:id/allocations',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.savePaymentProofAllocations
+);
 router.patch(
   '/bill-payment-proofs/:id/verify',
   verifyJwt,
@@ -105,6 +125,14 @@ router.patch(
   verifyJwt,
   requirePermission('keuangan.payments.record'),
   controller.rejectPaymentProof
+);
+
+// 7. Pengembalian Kelebihan Bayar Siswa (Refund)
+router.post(
+  '/bill-payments/:id/refund',
+  verifyJwt,
+  requirePermission('keuangan.payments.correct'),
+  controller.refundPayment
 );
 
 module.exports = router;

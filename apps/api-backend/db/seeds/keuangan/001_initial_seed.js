@@ -71,17 +71,171 @@ exports.seed = async function (knex) {
       bank_account_number: '7123456789',
       bank_name: 'Bank Syariah Indonesia',
       is_active: true
+    },
+    {
+      id: 3,
+      school_unit_id: 1,
+      name: 'Kas Dana Kurban',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559566982',
+      is_active: true
+    },
+    {
+      id: 4,
+      school_unit_id: 1,
+      name: 'Kas PPDB',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857140424',
+      is_active: true
+    },
+    {
+      id: 5,
+      school_unit_id: 1,
+      name: 'Kas Operasional',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559557311',
+      is_active: true
+    },
+    {
+      id: 6,
+      school_unit_id: 1,
+      name: 'Kas Tabungan THR',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559422963',
+      is_active: true
+    },
+    {
+      id: 7,
+      school_unit_id: 1,
+      name: 'Kas Tahun Berjalan',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559456108',
+      is_active: true
+    },
+    {
+      id: 8,
+      school_unit_id: 1,
+      name: 'Kas Kantin',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559494315',
+      is_active: true
+    },
+    {
+      id: 9,
+      school_unit_id: 1,
+      name: 'Kas Sport Center',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559508828',
+      is_active: true
+    },
+    {
+      id: 10,
+      school_unit_id: 1,
+      name: 'Kas Bank #1',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559480459',
+      is_active: true
+    },
+    {
+      id: 11,
+      school_unit_id: 1,
+      name: 'Kas Bank #2',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559526575',
+      is_active: true
+    },
+    {
+      id: 12,
+      school_unit_id: 1,
+      name: 'Kas Bank #3',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559539437',
+      is_active: true
+    },
+    {
+      id: 13,
+      school_unit_id: 1,
+      name: 'Kas Bank #4',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1559548330',
+      is_active: true
+    },
+    {
+      id: 14,
+      school_unit_id: 1,
+      name: 'Kas Bank #5',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857137308',
+      is_active: true
+    },
+    {
+      id: 15,
+      school_unit_id: 1,
+      name: 'Kas Bank #6',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857138630',
+      is_active: true
+    },
+    {
+      id: 16,
+      school_unit_id: 1,
+      name: 'Kas Bank #7',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857140128',
+      is_active: true
+    },
+    {
+      id: 17,
+      school_unit_id: 1,
+      name: 'Kas Bank #8',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857140718',
+      is_active: true
+    },
+    {
+      id: 18,
+      school_unit_id: 1,
+      name: 'Kas Bank #9',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857141020',
+      is_active: true
+    },
+    {
+      id: 19,
+      school_unit_id: 1,
+      name: 'Kas Bank #10',
+      account_kind: 'bank',
+      bank_name: 'Bank Nasional Indonesia (BNI)',
+      bank_account_number: '1857141495',
+      is_active: true
     }
   ]);
 
-  // 2. Seed chart_of_accounts (Kolom: id, school_unit_id, account_code, account_name, account_group, parent_account_id, level, is_active)
+  // 2. Seed chart_of_accounts (Kolom: id, school_unit_id, account_code, account_name, account_group, normal_balance, parent_account_id, level, is_active)
   await knex('chart_of_accounts').insert([
     {
       id: 1,
       school_unit_id: 1,
       account_code: '1-000',
-      account_name: 'Aset',
-      account_group: 'asset',
+      account_name: 'Harta (Aset)',
+      account_group: 'harta',
+      normal_balance: 'debit',
       parent_account_id: null,
       level: 1,
       is_active: true
@@ -91,7 +245,8 @@ exports.seed = async function (knex) {
       school_unit_id: 1,
       account_code: '1-100',
       account_name: 'Kas & Bank',
-      account_group: 'asset',
+      account_group: 'harta',
+      normal_balance: 'debit',
       parent_account_id: 1,
       level: 2,
       is_active: true
@@ -99,9 +254,10 @@ exports.seed = async function (knex) {
     {
       id: 3,
       school_unit_id: 1,
-      account_code: '4-000',
-      account_name: 'Pendapatan',
-      account_group: 'revenue',
+      account_code: '3-000',
+      account_name: 'Modal & Ekuitas',
+      account_group: 'modal',
+      normal_balance: 'credit',
       parent_account_id: null,
       level: 1,
       is_active: true
@@ -109,9 +265,10 @@ exports.seed = async function (knex) {
     {
       id: 4,
       school_unit_id: 1,
-      account_code: '4-100',
-      account_name: 'Pendapatan SPP',
-      account_group: 'revenue',
+      account_code: '3-100',
+      account_name: 'Modal Awal / Saldo Awal Kas',
+      account_group: 'modal',
+      normal_balance: 'credit',
       parent_account_id: 3,
       level: 2,
       is_active: true
@@ -119,46 +276,72 @@ exports.seed = async function (knex) {
     {
       id: 5,
       school_unit_id: 1,
-      account_code: '4-200',
-      account_name: 'Pendapatan Lain / Non-SPP',
-      account_group: 'revenue',
-      parent_account_id: 3,
-      level: 2,
-      is_active: true
-    },
-    {
-      id: 6,
-      school_unit_id: 1,
-      account_code: '6-000',
-      account_name: 'Beban',
-      account_group: 'expense',
+      account_code: '4-000',
+      account_name: 'Pendapatan',
+      account_group: 'pendapatan',
+      normal_balance: 'credit',
       parent_account_id: null,
       level: 1,
       is_active: true
     },
     {
+      id: 6,
+      school_unit_id: 1,
+      account_code: '4-100',
+      account_name: 'Pendapatan SPP',
+      account_group: 'pendapatan',
+      normal_balance: 'credit',
+      parent_account_id: 5,
+      level: 2,
+      is_active: true
+    },
+    {
       id: 7,
       school_unit_id: 1,
-      account_code: '6-100',
-      account_name: 'Beban Operasional',
-      account_group: 'expense',
-      parent_account_id: 6,
+      account_code: '4-200',
+      account_name: 'Pendapatan Lain / Non-SPP',
+      account_group: 'pendapatan',
+      normal_balance: 'credit',
+      parent_account_id: 5,
       level: 2,
       is_active: true
     },
     {
       id: 8,
       school_unit_id: 1,
-      account_code: '6-200',
-      account_name: 'Beban Gaji & Honor Pegawai',
-      account_group: 'expense',
-      parent_account_id: 6,
+      account_code: '5-000',
+      account_name: 'Biaya & Beban',
+      account_group: 'biaya',
+      normal_balance: 'debit',
+      parent_account_id: null,
+      level: 1,
+      is_active: true
+    },
+    {
+      id: 9,
+      school_unit_id: 1,
+      account_code: '5-100',
+      account_name: 'Biaya Operasional',
+      account_group: 'biaya',
+      normal_balance: 'debit',
+      parent_account_id: 8,
+      level: 2,
+      is_active: true
+    },
+    {
+      id: 10,
+      school_unit_id: 1,
+      account_code: '5-200',
+      account_name: 'Biaya Gaji & Honor Pegawai',
+      account_group: 'biaya',
+      normal_balance: 'debit',
+      parent_account_id: 8,
       level: 2,
       is_active: true
     }
   ]);
 
-  // 3. Seed transaction_account_mappings untuk 4 Transaksi Wajib
+  // 3. Seed transaction_account_mappings untuk Transaksi Wajib
   // (Kolom: id, school_unit_id, transaction_code, transaction_label, debit_account_id, credit_account_id)
   await knex('transaction_account_mappings').insert([
     {
@@ -167,7 +350,7 @@ exports.seed = async function (knex) {
       transaction_code: 'student_bill_payment',
       transaction_label: 'Penerimaan Pembayaran SPP / Tagihan Siswa',
       debit_account_id: 2, // Kas & Bank
-      credit_account_id: 4 // Pendapatan SPP
+      credit_account_id: 6 // Pendapatan SPP
     },
     {
       id: 2,
@@ -175,14 +358,14 @@ exports.seed = async function (knex) {
       transaction_code: 'other_income',
       transaction_label: 'Penerimaan Pendapatan Lain / Non-SPP',
       debit_account_id: 2, // Kas & Bank
-      credit_account_id: 5 // Pendapatan Lain / Non-SPP
+      credit_account_id: 7 // Pendapatan Lain / Non-SPP
     },
     {
       id: 3,
       school_unit_id: 1,
       transaction_code: 'expense',
       transaction_label: 'Pengeluaran Operasional / Non-Gaji',
-      debit_account_id: 7, // Beban Operasional
+      debit_account_id: 9, // Biaya Operasional
       credit_account_id: 2 // Kas & Bank
     },
     {
@@ -190,8 +373,16 @@ exports.seed = async function (knex) {
       school_unit_id: 1,
       transaction_code: 'payroll_disbursement',
       transaction_label: 'Pencairan Gaji & Honor Pegawai',
-      debit_account_id: 8, // Beban Gaji & Honor Pegawai
+      debit_account_id: 10, // Biaya Gaji & Honor Pegawai
       credit_account_id: 2 // Kas & Bank
+    },
+    {
+      id: 5,
+      school_unit_id: 1,
+      transaction_code: 'opening_balance_entry',
+      transaction_label: 'Pencatatan Saldo Awal Kas & Bank',
+      debit_account_id: 2, // Kas & Bank
+      credit_account_id: 4 // Modal Awal / Saldo Awal Kas
     }
   ]);
 

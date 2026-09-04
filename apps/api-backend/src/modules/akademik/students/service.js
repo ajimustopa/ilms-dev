@@ -7,6 +7,7 @@ const db = require('../../../config/db/akademik');
 const schoolUnitsService = require('../../core/school-units/service');
 const usersService = require('../../core/users/service');
 const webhooksService = require('../../core/webhooks/service');
+const { parseUnitId } = require('../../../utils/parseUnitId');
 
 const DEFAULT_REPORT_RECAPS = [
   { grade_name: 'Kelas 7', semester: 'Semester 1' },
@@ -49,8 +50,9 @@ class StudentsService {
 
     let baseQuery = db('students');
 
-    if (query.satuan_pendidikan_id) {
-      baseQuery = baseQuery.where('students.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const unitId = parseUnitId(query.satuan_pendidikan_id);
+    if (unitId) {
+      baseQuery = baseQuery.where('students.satuan_pendidikan_id', unitId);
     }
     if (query.cohort_id) {
       baseQuery = baseQuery.where('students.cohort_id', query.cohort_id);

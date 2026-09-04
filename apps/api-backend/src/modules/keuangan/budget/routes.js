@@ -44,6 +44,13 @@ router.post(
   controller.createNewVersionFromPublished
 );
 
+router.patch(
+  '/budget-plans/:id/title',
+  verifyJwt,
+  requirePermission('keuangan.budget.manage'),
+  controller.updateBudgetPlanTitle
+);
+
 // Publish RAPBS (Fitur #11)
 router.patch(
   '/budget-plans/:id/publish',
@@ -53,6 +60,12 @@ router.patch(
 );
 
 // Item Rencana Pendapatan
+router.post(
+  '/budget-plans/:id/generate-income-from-fees',
+  verifyJwt,
+  requirePermission('keuangan.budget.manage'),
+  controller.generateIncomeFromFeeAssignments
+);
 router.post(
   '/budget-plans/:id/income-items',
   verifyJwt,

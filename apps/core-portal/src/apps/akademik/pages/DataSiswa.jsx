@@ -126,18 +126,18 @@ export default function DataSiswa() {
 
   const fetchCohorts = async () => {
     try {
-      const res = await api.get('/akademik/cohorts', {
-        params: { satuan_pendidikan_id: activeSchoolUnit?.id }
-      });
+      const params = {};
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
+      const res = await api.get('/akademik/cohorts', { params });
       setCohorts(res.data?.data || []);
     } catch (e) {}
   };
 
   const fetchAcademicYears = async () => {
     try {
-      const res = await api.get('/akademik/academic-years', {
-        params: { satuan_pendidikan_id: activeSchoolUnit?.id }
-      });
+      const params = {};
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
+      const res = await api.get('/akademik/academic-years', { params });
       const list = res.data?.data || [];
       setAcademicYears(list);
     } catch (e) {}
@@ -149,7 +149,7 @@ export default function DataSiswa() {
       const params = {
         per_page: 500 // Muat seluruh siswa untuk kelengkapan data
       };
-      if (activeSchoolUnit?.id) params.satuan_pendidikan_id = activeSchoolUnit.id;
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       if (cohortFilter) params.cohort_id = cohortFilter;

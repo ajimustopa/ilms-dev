@@ -612,6 +612,8 @@ class RipsService {
   async listPrograms(ripsDocumentId) {
     const programs = await db('rips_programs')
       .leftJoin('rips_program_categories', 'rips_programs.category_id', 'rips_program_categories.id')
+      .leftJoin('rips_domains as direct_domain', 'rips_programs.domain_id', 'direct_domain.id')
+      .leftJoin('rips_subdomains as direct_subdomain', 'rips_programs.subdomain_id', 'direct_subdomain.id')
       .where('rips_programs.rips_document_id', ripsDocumentId)
       .orderBy('rips_programs.order_index', 'asc')
       .orderBy('rips_programs.id', 'asc')
@@ -620,30 +622,50 @@ class RipsService {
         'rips_program_categories.name as category_name',
         'rips_program_categories.color as category_color',
         'rips_program_categories.bg_color as category_bg_color',
-        'rips_program_categories.border_color as category_border_color'
+        'rips_program_categories.border_color as category_border_color',
+        'direct_domain.name as direct_domain_name',
+        'direct_domain.order_index as direct_domain_order_index',
+        'direct_subdomain.name as direct_subdomain_name',
+        'direct_subdomain.order_index as direct_subdomain_order_index'
       );
 
     const programIds = programs.map((p) => p.id);
     let links = [];
     let indicatorsMap = new Map();
+    let progIndicatorLinksMap = new Map();
+
     if (programIds.length > 0) {
-      links = await db('rips_program_goal_links')
-        .join('rips_goals', 'rips_program_goal_links.rips_goal_id', 'rips_goals.id')
-        .leftJoin('rips_domains', 'rips_goals.domain_id', 'rips_domains.id')
-        .leftJoin('rips_subdomains', 'rips_goals.subdomain_id', 'rips_subdomains.id')
-        .whereIn('rips_program_goal_links.rips_program_id', programIds)
-        .select(
-          'rips_program_goal_links.rips_program_id',
-          'rips_goals.id as goal_id',
-          'rips_goals.code as goal_code',
-          'rips_goals.title as goal_title',
-          'rips_goals.domain_id',
-          'rips_domains.name as domain_name',
-          'rips_domains.order_index as domain_order_index',
-          'rips_goals.subdomain_id',
-          'rips_subdomains.name as subdomain_name',
-          'rips_subdomains.order_index as subdomain_order_index'
-        );
+      const [fetchedLinks, fetchedIndLinks] = await Promise.all([
+        db('rips_program_goal_links')
+          .join('rips_goals', 'rips_program_goal_links.rips_goal_id', 'rips_goals.id')
+          .leftJoin('rips_domains', 'rips_goals.domain_id', 'rips_domains.id')
+          .leftJoin('rips_subdomains', 'rips_goals.subdomain_id', 'rips_subdomains.id')
+          .whereIn('rips_program_goal_links.rips_program_id', programIds)
+          .select(
+            'rips_program_goal_links.rips_program_id',
+            'rips_goals.id as goal_id',
+            'rips_goals.code as goal_code',
+            'rips_goals.title as goal_title',
+            'rips_goals.domain_id',
+            'rips_domains.name as domain_name',
+            'rips_domains.order_index as domain_order_index',
+            'rips_goals.subdomain_id',
+            'rips_subdomains.name as subdomain_name',
+            'rips_subdomains.order_index as subdomain_order_index'
+          ),
+        db('rips_program_indicator_links')
+          .whereIn('rips_program_id', programIds)
+          .select('rips_program_id', 'rips_goal_indicator_id')
+      ]);
+
+      links = fetchedLinks;
+
+      for (const row of fetchedIndLinks) {
+        if (!progIndicatorLinksMap.has(row.rips_program_id)) {
+          progIndicatorLinksMap.set(row.rips_program_id, new Set());
+        }
+        progIndicatorLinksMap.get(row.rips_program_id).add(row.rips_goal_indicator_id);
+      }
 
       const linkedGoalIds = Array.from(new Set(links.map((l) => l.goal_id)));
       if (linkedGoalIds.length > 0) {
@@ -663,18 +685,33 @@ class RipsService {
     }
 
     return programs.map((p) => {
-      const pLinks = links.filter((l) => l.rips_program_id === p.id).map((l) => ({
-        ...l,
-        indicators: indicatorsMap.get(l.goal_id) || [],
-      }));
+      const explicitIndSet = progIndicatorLinksMap.get(p.id);
+      const hasExplicitIndSelection = explicitIndSet && explicitIndSet.size > 0;
 
-      // Primary domain and subdomain from the first linked goal
-      const primaryDomainId = pLinks[0]?.domain_id || null;
-      const primaryDomainName = pLinks[0]?.domain_name || 'Lainnya';
-      const primaryDomainOrder = pLinks[0]?.domain_order_index ?? 99;
-      const primarySubdomainId = pLinks[0]?.subdomain_id || null;
-      const primarySubdomainName = pLinks[0]?.subdomain_name || 'Umum / Lintas Sub-Bidang';
-      const primarySubdomainOrder = pLinks[0]?.subdomain_order_index ?? 99;
+      const pLinks = links.filter((l) => l.rips_program_id === p.id).map((l) => {
+        const allInds = indicatorsMap.get(l.goal_id) || [];
+        const activeInds = hasExplicitIndSelection
+          ? allInds.filter((ind) => explicitIndSet.has(ind.id))
+          : allInds;
+
+        return {
+          ...l,
+          indicators: activeInds,
+          all_indicators: allInds,
+        };
+      });
+
+      // Primary domain and subdomain: direct column assignment takes precedence, then linked goal fallback
+      const primaryDomainId = p.domain_id || pLinks[0]?.domain_id || null;
+      const primaryDomainName = p.direct_domain_name || pLinks[0]?.domain_name || 'Lainnya';
+      const primaryDomainOrder = p.direct_domain_order_index ?? pLinks[0]?.domain_order_index ?? 99;
+      const primarySubdomainId = p.subdomain_id || pLinks[0]?.subdomain_id || null;
+      const primarySubdomainName = p.direct_subdomain_name || pLinks[0]?.subdomain_name || 'Umum / Lintas Sub-Bidang';
+      const primarySubdomainOrder = p.direct_subdomain_order_index ?? pLinks[0]?.subdomain_order_index ?? 99;
+
+      const selectedIndicatorIds = hasExplicitIndSelection
+        ? Array.from(explicitIndSet)
+        : pLinks.flatMap((l) => (indicatorsMap.get(l.goal_id) || []).map((i) => i.id));
 
       return {
         ...p,
@@ -685,6 +722,8 @@ class RipsService {
         subdomain_name: primarySubdomainName,
         subdomain_order_index: primarySubdomainOrder,
         linked_goals: pLinks,
+        linked_goal_ids: pLinks.map((l) => l.goal_id),
+        linked_indicator_ids: selectedIndicatorIds,
       };
     });
   }
@@ -697,13 +736,43 @@ class RipsService {
     }
 
     let code = payload.code ? payload.code.trim() : null;
+    if (code) {
+      const existing = await db('rips_programs').where({ code }).first();
+      if (existing) {
+        code = null;
+      }
+    }
     if (!code) {
-      const count = await db('rips_programs').where({ rips_document_id: payload.rips_document_id }).count('* as total');
-      code = `PRG-${String(count[0].total + 1).padStart(3, '0')}`;
+      const progs = await db('rips_programs').select('code');
+      let maxNum = 0;
+      progs.forEach((p) => {
+        const match = p.code?.match(/PRG-(?:UNG-)?(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      let nextNum = maxNum + 1;
+      code = `PRG-${String(nextNum).padStart(3, '0')}`;
+      while (await db('rips_programs').where({ code }).first()) {
+        nextNum++;
+        code = `PRG-${String(nextNum).padStart(3, '0')}`;
+      }
+    }
+
+    let subdomainId = payload.subdomain_id !== undefined && payload.subdomain_id !== '' && payload.subdomain_id !== null ? Number(payload.subdomain_id) : null;
+    let domainId = payload.domain_id !== undefined && payload.domain_id !== '' && payload.domain_id !== null ? Number(payload.domain_id) : null;
+
+    if (subdomainId && !domainId) {
+      const sub = await db('rips_subdomains').where({ id: subdomainId }).first();
+      if (sub) domainId = sub.domain_id;
     }
 
     const [id] = await db('rips_programs').insert({
       rips_document_id: payload.rips_document_id,
+      category_id: payload.category_id !== undefined && payload.category_id !== '' && payload.category_id !== null ? Number(payload.category_id) : null,
+      domain_id: domainId,
+      subdomain_id: subdomainId,
       code,
       name: payload.name.trim(),
       description: payload.description || null,
@@ -715,7 +784,7 @@ class RipsService {
     });
 
     if (Array.isArray(payload.linked_goal_ids) && payload.linked_goal_ids.length > 0) {
-      await this.linkProgramGoals(id, payload.linked_goal_ids);
+      await this.linkProgramGoals(id, payload.linked_goal_ids, payload.linked_indicator_ids);
     }
 
     return db('rips_programs').where({ id }).first();
@@ -730,6 +799,19 @@ class RipsService {
     }
 
     const updateData = { updated_at: db.fn.now() };
+    if (payload.category_id !== undefined) {
+      updateData.category_id = payload.category_id !== '' && payload.category_id !== null ? Number(payload.category_id) : null;
+    }
+    if (payload.domain_id !== undefined) {
+      updateData.domain_id = payload.domain_id !== '' && payload.domain_id !== null ? Number(payload.domain_id) : null;
+    }
+    if (payload.subdomain_id !== undefined) {
+      updateData.subdomain_id = payload.subdomain_id !== '' && payload.subdomain_id !== null ? Number(payload.subdomain_id) : null;
+    }
+    if (updateData.subdomain_id && !updateData.domain_id) {
+      const sub = await db('rips_subdomains').where({ id: updateData.subdomain_id }).first();
+      if (sub) updateData.domain_id = sub.domain_id;
+    }
     if (payload.code) updateData.code = payload.code.trim();
     if (payload.name) updateData.name = payload.name.trim();
     if (payload.description !== undefined) updateData.description = payload.description;
@@ -740,8 +822,37 @@ class RipsService {
     await db('rips_programs').where({ id }).update(updateData);
 
     if (Array.isArray(payload.linked_goal_ids)) {
-      await this.linkProgramGoals(id, payload.linked_goal_ids);
+      await this.linkProgramGoals(id, payload.linked_goal_ids, payload.linked_indicator_ids);
     }
+
+    return db('rips_programs').where({ id }).first();
+  }
+
+  async moveProgram(id, payload) {
+    const program = await db('rips_programs').where({ id }).first();
+    if (!program) {
+      const error = new Error('Program RIPS tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let subdomainId = payload.subdomain_id !== undefined && payload.subdomain_id !== '' && payload.subdomain_id !== null
+      ? Number(payload.subdomain_id)
+      : null;
+    let domainId = payload.domain_id !== undefined && payload.domain_id !== '' && payload.domain_id !== null
+      ? Number(payload.domain_id)
+      : null;
+
+    if (subdomainId && !domainId) {
+      const sub = await db('rips_subdomains').where({ id: subdomainId }).first();
+      if (sub) domainId = sub.domain_id;
+    }
+
+    await db('rips_programs').where({ id }).update({
+      domain_id: domainId,
+      subdomain_id: subdomainId,
+      updated_at: db.fn.now(),
+    });
 
     return db('rips_programs').where({ id }).first();
   }
@@ -757,7 +868,7 @@ class RipsService {
     return { success: true };
   }
 
-  async linkProgramGoals(programId, ripsGoalIds = []) {
+  async linkProgramGoals(programId, ripsGoalIds = [], ripsGoalIndicatorIds = null) {
     const prog = await db('rips_programs').where({ id: programId }).first();
     if (!prog) {
       const error = new Error('Program RIPS tidak ditemukan');
@@ -767,19 +878,43 @@ class RipsService {
 
     // Clear old links
     await db('rips_program_goal_links').where({ rips_program_id: programId }).del();
+    await db('rips_program_indicator_links').where({ rips_program_id: programId }).del();
 
-    // Insert new links
-    if (ripsGoalIds.length > 0) {
-      const rows = ripsGoalIds.map((gId) => ({
-        rips_program_id: programId,
-        rips_goal_id: Number(gId),
-        created_at: db.fn.now(),
-        updated_at: db.fn.now(),
-      }));
-      await db('rips_program_goal_links').insert(rows);
+    // Insert new goal links (only for valid existing goals)
+    if (Array.isArray(ripsGoalIds) && ripsGoalIds.length > 0) {
+      const cleanedGoalIds = ripsGoalIds.filter((gid) => gid !== null && gid !== undefined && gid !== '').map(Number);
+      if (cleanedGoalIds.length > 0) {
+        const validGoals = await db('rips_goals').whereIn('id', cleanedGoalIds).pluck('id');
+        if (validGoals.length > 0) {
+          const rows = validGoals.map((gId) => ({
+            rips_program_id: programId,
+            rips_goal_id: Number(gId),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now(),
+          }));
+          await db('rips_program_goal_links').insert(rows);
+        }
+      }
     }
 
-    return { success: true, linked_count: ripsGoalIds.length };
+    // Insert new indicator links if provided (only for valid existing indicators)
+    if (Array.isArray(ripsGoalIndicatorIds) && ripsGoalIndicatorIds.length > 0) {
+      const cleanedIndIds = ripsGoalIndicatorIds.filter((iid) => iid !== null && iid !== undefined && iid !== '').map(Number);
+      if (cleanedIndIds.length > 0) {
+        const validInds = await db('rips_goal_indicators').whereIn('id', cleanedIndIds).pluck('id');
+        if (validInds.length > 0) {
+          const indRows = validInds.map((indId) => ({
+            rips_program_id: programId,
+            rips_goal_indicator_id: Number(indId),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now(),
+          }));
+          await db('rips_program_indicator_links').insert(indRows);
+        }
+      }
+    }
+
+    return { success: true };
   }
 
   // ==========================================

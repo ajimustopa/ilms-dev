@@ -5,6 +5,7 @@ import { useManajemenTheme } from '../theme';
 import api from '../../../shared/services/api';
 import GanttTimelineView from '../components/GanttTimelineView';
 import DatePickerField, { isoToDmy, dmyToIso } from '../components/shared/DatePickerField';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   CheckSquare,
   Briefcase,
@@ -58,335 +59,6 @@ const formatHumanDate = (dateVal) => {
   const year = d.getFullYear();
   return `${day} ${month} ${year}`;
 };
-
-// Custom Searchable Select Component with Live Search & Full Keyboard Navigation
-function SearchableSelect({
-  value,
-  onChange,
-  options = [],
-  placeholder = '-- Pilih --',
-  searchPlaceholder = 'Ketik untuk mencari...',
-  className = '',
-  disabled = false,
-  allowClear = true,
-  required = false,
-  isMulti = false,
-}) {
-  const { isDark } = useManajemenTheme();
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const containerRef = useRef(null);
-  const inputRef = useRef(null);
-  const triggerRef = useRef(null);
-  const listRef = useRef(null);
-  const optionRefs = useRef([]);
-
-  const selectedValues = useMemo(() => {
-    if (!isMulti) return value !== undefined && value !== null && value !== '' ? [String(value)] : [];
-    if (Array.isArray(value)) return value.map(String);
-    if (value !== undefined && value !== null && value !== '') return [String(value)];
-    return [];
-  }, [value, isMulti]);
-
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
-    const q = search.toLowerCase().trim();
-    return options.filter((o) => {
-      const matchLabel = o.label?.toLowerCase().includes(q);
-      const matchSub = o.sublabel?.toLowerCase().includes(q);
-      return matchLabel || matchSub;
-    });
-  }, [options, search]);
-
-  useEffect(() => {
-    setHighlightedIndex(0);
-  }, [filteredOptions.length, search]);
-
-  useEffect(() => {
-    if (isOpen && optionRefs.current[highlightedIndex]) {
-      optionRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
-    }
-  }, [highlightedIndex, isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  const handleSelectOption = (optVal) => {
-    const valStr = String(optVal);
-    if (!isMulti) {
-      onChange(optVal);
-      setIsOpen(false);
-      setSearch('');
-    } else {
-      let nextVals;
-      if (selectedValues.includes(valStr)) {
-        nextVals = selectedValues.filter((v) => v !== valStr);
-      } else {
-        nextVals = [...selectedValues, valStr];
-      }
-      onChange(nextVals);
-    }
-  };
-
-  const handleClearAll = (e) => {
-    e.stopPropagation();
-    onChange(isMulti ? [] : '');
-  };
-
-  const handleKeyDown = (e) => {
-    if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setIsOpen(true);
-      }
-      return;
-    }
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filteredOptions.length - 1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (filteredOptions.length > 0 && filteredOptions[highlightedIndex]) {
-        handleSelectOption(filteredOptions[highlightedIndex].value);
-      }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setIsOpen(false);
-      triggerRef.current?.focus();
-    }
-  };
-
-  const selectedOptionObjs = useMemo(() => {
-    return options.filter((o) => selectedValues.includes(String(o.value)));
-  }, [options, selectedValues]);
-
-  return (
-    <div ref={containerRef} className={`relative ${className}`} onKeyDown={handleKeyDown}>
-      <button
-        ref={triggerRef}
-        type="button"
-        disabled={disabled}
-        onClick={() => {
-          if (!disabled) {
-            setIsOpen(!isOpen);
-            setSearch('');
-          }
-        }}
-        className={`w-full min-h-[38px] rounded-xl px-3 py-1.5 text-xs text-left flex items-center justify-between gap-2 transition outline-none focus:border-indigo-500 shadow-xs border ${
-          isDark
-            ? 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-700'
-            : 'bg-slate-50 border-slate-300 text-slate-900 hover:border-slate-400'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-      >
-        <div className="flex-1 truncate">
-          {selectedOptionObjs.length === 0 ? (
-            <span className={`font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{placeholder}</span>
-          ) : isMulti ? (
-            <div className="flex flex-wrap gap-1 items-center">
-              {selectedOptionObjs.map((opt) => (
-                <span
-                  key={opt.value}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold shadow-xs border ${
-                    isDark
-                      ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500/40'
-                      : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                  }`}
-                >
-                  <span className="truncate max-w-[150px]">{opt.label}</span>
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectOption(opt.value);
-                    }}
-                    className={`rounded p-0.5 transition cursor-pointer font-bold leading-none ${
-                      isDark
-                        ? 'text-indigo-300 hover:text-white hover:bg-indigo-600/60'
-                        : 'text-indigo-600 hover:text-indigo-900 hover:bg-indigo-200/60'
-                    }`}
-                  >
-                    ✕
-                  </span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 truncate">
-              {selectedOptionObjs[0].badge && (
-                <span
-                  className={
-                    selectedOptionObjs[0].badgeClass ||
-                    (isDark
-                      ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                      : 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200')
-                  }
-                >
-                  {selectedOptionObjs[0].badge}
-                </span>
-              )}
-              <span className={`font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>
-                {selectedOptionObjs[0].label}
-              </span>
-              {selectedOptionObjs[0].sublabel && (
-                <span className={`text-[10px] shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  ({selectedOptionObjs[0].sublabel})
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0 text-slate-400">
-          {allowClear && selectedOptionObjs.length > 0 && !disabled && (
-            <span
-              onClick={handleClearAll}
-              className={`p-0.5 rounded transition cursor-pointer ${
-                isDark ? 'hover:text-white' : 'hover:text-slate-900'
-              }`}
-              title="Hapus Pilihan"
-            >
-              ✕
-            </span>
-          )}
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-            isOpen
-              ? isDark ? 'rotate-180 text-indigo-400' : 'rotate-180 text-indigo-600'
-              : ''
-          }`} />
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className={`absolute z-[99999] top-full mt-1.5 left-0 w-full min-w-[280px] rounded-2xl shadow-2xl overflow-hidden animate-fadeIn border ${
-          isDark
-            ? 'bg-slate-900 border-slate-700 text-white'
-            : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/60'
-        }`}>
-          <div className={`p-2 border-b space-y-1.5 ${
-            isDark ? 'border-slate-800 bg-slate-950/60' : 'border-slate-200 bg-slate-50'
-          }`}>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchPlaceholder}
-                className={`w-full rounded-xl pl-8 pr-3 py-1.5 text-xs outline-none focus:border-indigo-500 font-medium border ${
-                  isDark
-                    ? 'bg-slate-900 border-slate-800 text-slate-200 placeholder-slate-500'
-                    : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                }`}
-              />
-            </div>
-            <div className={`flex items-center justify-between text-[10px] px-1 ${
-              isDark ? 'text-slate-400' : 'text-slate-500'
-            }`}>
-              <span>Navigasi: ↑ / ↓ &amp; Enter</span>
-              {isMulti && (
-                <span className={`font-semibold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                  {selectedValues.length} dipilih
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div ref={listRef} className={`overflow-y-auto max-h-60 p-1 divide-y ${
-            isDark ? 'divide-slate-800/40' : 'divide-slate-100'
-          }`}>
-            {filteredOptions.length === 0 ? (
-              <div className="py-5 text-center text-xs text-slate-500">
-                Tidak ada pilihan yang cocok
-              </div>
-            ) : (
-              filteredOptions.map((opt, idx) => {
-                const isSelected = selectedValues.includes(String(opt.value));
-                const isHighlighted = idx === highlightedIndex;
-
-                return (
-                  <button
-                    key={opt.value}
-                    ref={(el) => (optionRefs.current[idx] = el)}
-                    type="button"
-                    onMouseEnter={() => setHighlightedIndex(idx)}
-                    onClick={() => handleSelectOption(opt.value)}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition cursor-pointer ${
-                      isHighlighted
-                        ? isDark
-                          ? 'bg-indigo-600/15 text-indigo-200 ring-1 ring-indigo-500/40 font-bold'
-                          : 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-400 font-bold'
-                        : isSelected
-                        ? isDark
-                          ? 'bg-indigo-500/10 text-indigo-300 font-semibold'
-                          : 'bg-indigo-50/70 text-indigo-800 font-semibold'
-                        : isDark
-                        ? 'text-slate-300 hover:bg-slate-800/50'
-                        : 'text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {isMulti && (
-                        <div
-                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                            isSelected
-                              ? 'bg-indigo-600 border-indigo-500 text-white'
-                              : isDark
-                              ? 'border-slate-700 bg-slate-950'
-                              : 'border-slate-300 bg-white'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-2.5 h-2.5" />}
-                        </div>
-                      )}
-                      {opt.badge && (
-                        <span
-                          className={
-                            opt.badgeClass ||
-                            (isDark
-                              ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0'
-                              : 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0')
-                          }
-                        >
-                          {opt.badge}
-                        </span>
-                      )}
-                      <span className={`truncate ${isSelected ? 'font-bold' : ''}`}>{opt.label}</span>
-                      {opt.sublabel && (
-                        <span className={`text-[10px] truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          &bull; {opt.sublabel}
-                        </span>
-                      )}
-                    </div>
-                    {!isMulti && isSelected && (
-                      <Check className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function TaskProjectHub() {
   const { user, schoolUnits, activeSchoolUnit } = useAuth();
@@ -1615,7 +1287,7 @@ export default function TaskProjectHub() {
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        <div className={`border rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
+        <div className={`border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-white'
             : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
@@ -2041,7 +1713,7 @@ export default function TaskProjectHub() {
         }}
       >
         <div
-          className={`border rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
+          className={`border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
             isDark
               ? 'bg-slate-900 border-slate-800 text-white'
               : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
@@ -2405,7 +2077,7 @@ export default function TaskProjectHub() {
   return (
     <div className="space-y-6 pb-16 mj-animate-fade-in">
       {/* 0. HEADER CONTEXT BANNER & ACADEMIC YEAR SELECTOR */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/50 shrink-0">
             <Kanban className="w-6 h-6" />
@@ -2456,43 +2128,38 @@ export default function TaskProjectHub() {
 
           {/* School Unit Selector */}
           {contextType === 'school_unit' && (
-            <div className="relative">
-              <select
-                value={selectedUnitId}
-                onChange={(e) => setSelectedUnitId(Number(e.target.value))}
-                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-medium"
-              >
-                {schoolUnits?.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.level})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              value={selectedUnitId}
+              onChange={(val) => setSelectedUnitId(Number(val))}
+              className="w-56"
+              options={schoolUnits?.map((u) => ({
+                value: u.id,
+                label: `${u.name} (${u.level})`,
+              })) || []}
+            />
           )}
 
           {/* Academic Year Selector */}
-          <div className="relative">
-            <select
-              value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 font-bold"
-            >
-              <option value="2025/2026">2025/2026</option>
-              <option value="2026/2027">2026/2027</option>
-              <option value="2027/2028">2027/2028</option>
-              <option value="2028/2029">2028/2029</option>
-              <option value="2029/2030">2029/2030</option>
-              <option value="2030/2031">2030/2031</option>
-            </select>
-          </div>
+          <SearchableSelect
+            value={academicYear}
+            onChange={(val) => setAcademicYear(val)}
+            className="w-36"
+            options={[
+              { value: '2025/2026', label: '2025/2026' },
+              { value: '2026/2027', label: '2026/2027' },
+              { value: '2027/2028', label: '2027/2028' },
+              { value: '2028/2029', label: '2028/2029' },
+              { value: '2029/2030', label: '2029/2030' },
+              { value: '2030/2031', label: '2030/2031' },
+            ]}
+          />
         </div>
       </div>
 
       {/* 1. TOP EXECUTIVE DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-1"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-1"
           style={{ borderTop: '3px solid var(--mj-primary)' }}
         >
           <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0">
@@ -2505,7 +2172,7 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-2"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-2"
           style={{ borderTop: '3px solid var(--mj-done)' }}
         >
           <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
@@ -2518,7 +2185,7 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-3"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-3"
           style={{ borderTop: '3px solid var(--mj-progress)' }}
         >
           <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
@@ -2531,7 +2198,7 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-4"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-4"
           style={{ borderTop: '3px solid var(--mj-risk)' }}
         >
           <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold shrink-0">
@@ -2544,7 +2211,7 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="col-span-2 lg:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-5"
+          className="col-span-2 lg:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-5"
           style={{ borderTop: '3px solid var(--mj-sky)' }}
         >
           <div className="w-10 h-10 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold shrink-0">
@@ -2566,7 +2233,7 @@ export default function TaskProjectHub() {
       </div>
 
       {/* 2. CONTEXT SELECTOR & VIEW MODE TOGGLE */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Source Switcher & Dropdown */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
@@ -2701,7 +2368,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'planned')}
-                className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2815,7 +2482,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'in_progress')}
-                className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2929,7 +2596,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'done')}
-                className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -3047,7 +2714,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'cancelled')}
-                className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -3167,7 +2834,7 @@ export default function TaskProjectHub() {
           {viewMode === 'bucket' && (
             <div className="space-y-4">
               {/* Header Bucket Toolbar */}
-              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-3xl border ${
+              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border ${
                 isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
               }`}>
                 <div className="flex items-center gap-2.5">
@@ -3192,7 +2859,7 @@ export default function TaskProjectHub() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Column 1: Overdue / Terlewat */}
-                <div className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-rose-500/30' : 'bg-white border-rose-200'
                 }`}>
                   <div className="space-y-3">
@@ -3292,7 +2959,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 2: Today / Hari Ini */}
-                <div className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-amber-500/30' : 'bg-white border-amber-200'
                 }`}>
                   <div className="space-y-3">
@@ -3392,7 +3059,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 3: Tomorrow / Besok */}
-                <div className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-indigo-500/30' : 'bg-white border-indigo-200'
                 }`}>
                   <div className="space-y-3">
@@ -3492,7 +3159,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 4: This Week / Pekan Ini & Mendatang */}
-                <div className={`border rounded-3xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-emerald-500/30' : 'bg-white border-emerald-200'
                 }`}>
                   <div className="space-y-3">
@@ -3596,7 +3263,7 @@ export default function TaskProjectHub() {
 
           {/* VIEW: LIST TABLE */}
           {viewMode === 'list' && (
-            <div className={`border rounded-3xl overflow-hidden shadow-xl ${
+            <div className={`border rounded-2xl overflow-hidden shadow-xl ${
               isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
             }`}>
               {/* Header List Toolbar */}

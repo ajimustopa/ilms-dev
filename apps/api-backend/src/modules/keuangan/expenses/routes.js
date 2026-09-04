@@ -38,5 +38,11 @@ router.delete(
   requirePermission('keuangan.expenses.manage'),
   controller.deleteExpense
 );
+router.patch(
+  '/expenses/:id/fund-source',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage'),
+  controller.reassignFundSource
+);
 
 module.exports = router;

@@ -45,4 +45,74 @@ router.get(
   controller.getBalanceSheet
 );
 
+// 7. Kartu Bayar Siswa & Rekap Kelas (Student Ledger)
+router.get(
+  '/reports/classes',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.listClassGroups
+);
+router.get(
+  '/reports/student-ledger/export/excel',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.exportClassStudentLedgerExcel
+);
+router.get(
+  '/reports/student-ledger/export/pdf',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.exportClassStudentLedgerPdf
+);
+router.post(
+  '/reports/student-ledger/:student_id/notify-overdue',
+  verifyJwt,
+  requirePermission('keuangan.bills.view'),
+  controller.notifyOverdueBill
+);
+router.get(
+  '/reports/student-ledger',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getClassStudentLedger
+);
+router.get(
+  '/reports/student-ledger/:student_id',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getStudentLedger
+);
+router.get(
+  '/reports/student-ledger/:student_id/pdf',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getStudentLedgerPdf
+);
+
+// 8. Laporan Eksekutif Manajerial (Non-Akuntan)
+router.get(
+  '/reports/executive-health',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getExecutiveHealth
+);
+router.get(
+  '/reports/financial-projection',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getFinancialProjection
+);
+router.get(
+  '/reports/fund-source-monthly-flow',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getFundSourceMonthlyFlow
+);
+router.get(
+  '/reports/program-expenses-matrix',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getProgramExpensesMatrix
+);
+
 module.exports = router;

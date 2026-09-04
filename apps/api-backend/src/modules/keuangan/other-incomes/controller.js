@@ -21,6 +21,14 @@ class OtherIncomesController {
     } catch (err) { next(err); }
   };
 
+  getRapbsIncomeSources = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await otherIncomesService.getRapbsIncomeSources(schoolUnitId, req.query.academic_year_id);
+      res.json({ success: true, data, message: 'Daftar pos sumber pendapatan RAPBS berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
   getOtherIncomeById = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);

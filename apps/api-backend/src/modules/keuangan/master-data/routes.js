@@ -105,13 +105,19 @@ router.patch(
 );
 
 // ============================================================
-// 4. TRANSACTION ACCOUNT MAPPINGS (Fitur #4)
+// 4. TRANSACTION ACCOUNT MAPPINGS / ATURAN TRANSAKSI (Fitur #4)
 // ============================================================
 router.get(
   '/transaction-account-mappings',
   verifyJwt,
   requirePermission('keuangan.master.coa.manage'),
   controller.listAccountMappings
+);
+router.get(
+  '/transaction-account-mappings/:id',
+  verifyJwt,
+  requirePermission('keuangan.master.coa.manage'),
+  controller.getAccountMappingById
 );
 router.post(
   '/transaction-account-mappings',
@@ -125,6 +131,24 @@ router.put(
   requirePermission('keuangan.master.coa.manage'),
   controller.updateAccountMapping
 );
+router.patch(
+  '/transaction-account-mappings/:id/status',
+  verifyJwt,
+  requirePermission('keuangan.master.coa.manage'),
+  controller.updateAccountMappingStatus
+);
+router.patch(
+  '/transaction-account-mappings/:id/system-override',
+  verifyJwt,
+  requirePermission('keuangan.transaction_rules.manage_system'),
+  controller.overrideSystemTransactionRule
+);
+router.delete(
+  '/transaction-account-mappings/:id',
+  verifyJwt,
+  requirePermission('keuangan.master.coa.manage'),
+  controller.deleteAccountMapping
+);
 
 // ============================================================
 // 5. FEE TYPES (Fitur #5)
@@ -132,7 +156,7 @@ router.put(
 router.get(
   '/fee-types',
   verifyJwt,
-  requirePermission('keuangan.master.fees.manage'),
+  requirePermission('keuangan.view'),
   controller.listFeeTypes
 );
 router.post(
@@ -245,6 +269,12 @@ router.get(
   requirePermission('keuangan.master.categories.manage'),
   controller.listCatalogItems
 );
+router.get(
+  '/catalog-items/:id',
+  verifyJwt,
+  requirePermission('keuangan.master.categories.manage'),
+  controller.getCatalogItemById
+);
 router.post(
   '/catalog-items',
   verifyJwt,
@@ -256,6 +286,18 @@ router.put(
   verifyJwt,
   requirePermission('keuangan.master.categories.manage'),
   controller.updateCatalogItem
+);
+router.patch(
+  '/catalog-items/:id/status',
+  verifyJwt,
+  requirePermission('keuangan.master.categories.manage'),
+  controller.updateCatalogItemStatus
+);
+router.get(
+  '/catalog-items/:id/price-history',
+  verifyJwt,
+  requirePermission('keuangan.master.categories.manage'),
+  controller.getCatalogItemPriceHistory
 );
 
 // ============================================================

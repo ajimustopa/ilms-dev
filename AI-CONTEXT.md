@@ -18,8 +18,8 @@
 | 02 | Website Utama & PPDB | `website-utama/` | `website-utama/` *(+ `apps/website-utama`)* | `website-utama/` | `jalan-produksi` | `ai-ref-website-utama.md` |
 | 03 | Akademik | `akademik/` | `akademik/` *(+ `guru/`)* | `akademik/` | `jalan-produksi` *(Dapodik master, TP Kurikulum Merdeka, 2-phase CSP + Simulated Annealing Timetable engine, PSB / Penerimaan Murid Baru, e-Rapor, Portal Guru)* | `ai-ref-akademik.md` |
 | 04 | Kepegawaian | `kepegawaian/` | `kepegawaian/` | `kepegawaian/` | `jalan-produksi` | `ai-ref-kepegawaian.md` |
-| 05 | Keuangan | `keuangan/` | `keuangan/` | `keuangan/` | `jalan-produksi` | `ai-ref-keuangan.md` |
-| 06 | Portal Orangtua | `-` *(endpoint tersebar di keuangan/perpus/akademik)* | `-` *(placeholder Launcher)* | `-` | `belum mulai` | `ai-ref-portal-orangtua.md` |
+| 05 | Keuangan | `keuangan/` | `keuangan/` | `keuangan/` | `jalan-produksi` *(Konteks Yayasan vs Satuan, Master Jenis Kas Tunai & Bank BNI, Kebijakan Non-Delete/Status Toggle, Wajib Catatan Perubahan & Audit Trail, Tombol Reload Database di seluruh halaman, RAPBS & Revisi Versi, Penetapan Tagihan Siswa Massal & Manual Ad-hoc, Approval Berjenjang Diskon Kasuistik 3 Tingkat dgn SK, Revisi Pasca-Terbit Safeguard Nominal Terbayar & Jurnal Penyesuaian, Scheduler Generator Bulanan Pola Hibrida, Kasir POS & Bukti Transfer Manual, Pengeluaran & Penerimaan Non-SPP, Pencairan Payroll, Jurnal Double-Entry, Tabungan, Tutup Buku, Laporan Standar Akuntansi, PPDB Aligned Lifecycle: Draf-Approval-Terbit-Revisi-Cicilan-Refund & Kontinuitas Kartu Bayar)* | `ai-ref-keuangan.md` |
+| 06 | Portal Orangtua | `-` *(endpoint tersebar di keuangan/perpus/akademik)* | `ParentBills.jsx` *(rute `/portal-orangtua/tagihan`, `/keuangan/portal-wali`)* | `-` | `jalan-sebagian` *(Parent-facing self-service tagihan & konfirmasi transfer aktif)* | `ai-ref-portal-orangtua.md` |
 | 07 | Sarpras | `sarpras/` | `sarpras/` | `sarpras/` | `jalan-produksi` | `ai-ref-sarpras.md` |
 | 08 | Kantin | `kantin/` | `kantin/` | `kantin/` | `jalan-produksi` | `ai-ref-kantin.md` |
 | 09 | Dapur | `dapur/` | `dapur/` | `dapur/` | `jalan-produksi` | `ai-ref-dapur.md` |
@@ -99,4 +99,4 @@
 
 ---
 
-<!-- updated: 2026-08-31 from commit 6c59b780c6049784a2139f77d1db1189e40a5a94 -->
+<!-- updated: 2026-09-03 - Modul Keuangan: Rekening Koran & Rekonsiliasi Bank Satu Arah (Shadow Statement), Migrasi 63, Import/Export Excel, Frontend BankStatements.jsx -->
