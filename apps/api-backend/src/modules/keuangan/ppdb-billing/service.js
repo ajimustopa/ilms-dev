@@ -282,6 +282,12 @@ class PpdbBillingService {
         });
 
       const updatedRow = await db('ppdb_registration_bills').where({ id: existing.id }).first();
+      try {
+        await crossModuleServices.syncPpdbBillToStudentBill(updatedRow);
+      } catch (sErr) {
+        console.warn('[createRegistrationBill] syncPpdbBillToStudentBill warning:', sErr.message);
+      }
+
       return {
         ...updatedRow,
         bill_date: formatDateOnly(updatedRow.bill_date),
@@ -368,6 +374,12 @@ class PpdbBillingService {
     });
 
     const createdRow = await db('ppdb_registration_bills').where({ id: actualId }).first();
+    try {
+      await crossModuleServices.syncPpdbBillToStudentBill(createdRow);
+    } catch (sErr) {
+      console.warn('[createRegistrationBill] syncPpdbBillToStudentBill warning:', sErr.message);
+    }
+
     return {
       ...createdRow,
       bill_date: formatDateOnly(createdRow.bill_date),
@@ -453,6 +465,14 @@ class PpdbBillingService {
         publishedResults.push({ id: bill.id, status: 'unpaid' });
       }
     });
+
+    for (const p of publishedResults) {
+      try {
+        await crossModuleServices.syncPpdbBillToStudentBill(p.id);
+      } catch (sErr) {
+        console.warn('[publishRegistrationBills] syncPpdbBillToStudentBill warning:', sErr.message);
+      }
+    }
 
     await logFinanceAudit({
       schoolUnitId,
@@ -708,6 +728,13 @@ class PpdbBillingService {
           version: (bill.version || 1) + 1,
           updated_at: trx.fn.now()
         });
+
+      // Sinkronisasikan ke student_bills jika ada
+      try {
+        await crossModuleServices.syncPpdbBillToStudentBill(id, trx);
+      } catch (sErr) {
+        console.warn('[reviseRegistrationBill] syncPpdbBillToStudentBill warning:', sErr.message);
+      }
 
       return {
         message: `Tagihan PPDB #${id} berhasil direvisi dari v${bill.version || 1} ke v${(bill.version || 1) + 1}`,
@@ -1271,6 +1298,13 @@ class PpdbBillingService {
           updated_at: trx.fn.now()
         });
 
+      // Sinkronisasikan ke student_bills jika ada
+      try {
+        await crossModuleServices.syncPpdbBillToStudentBill(bill.id, trx);
+      } catch (sErr) {
+        console.warn('[recordRegistrationPayment] syncPpdbBillToStudentBill warning:', sErr.message);
+      }
+
       // Jurnal Otomatis (ppdb_registration_income) Kas vs Piutang (atau Pendapatan jika cash basis)
       try {
         await recordJournal({
@@ -1364,6 +1398,18 @@ class PpdbBillingService {
         notes: reason ? `${bill.notes || ''} [Dibatalkan: ${reason}]`.trim() : bill.notes,
         updated_at: db.fn.now()
       });
+
+    // Batalkan juga di student_bills jika sudah tertaut
+    if (bill.linked_student_id) {
+      await db('student_bills')
+        .where({ student_id: bill.linked_student_id, fee_type_id: bill.fee_type_id })
+        .whereNot('status', 'cancelled')
+        .update({
+          status: 'cancelled',
+          edit_reason: reason ? `[Dibatalkan dari PPDB]: ${reason}` : 'Dibatalkan dari modul PPDB',
+          updated_at: db.fn.now()
+        });
+    }
 
     return { message: 'Tagihan pendaftaran berhasil dibatalkan' };
   }

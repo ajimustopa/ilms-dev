@@ -20,10 +20,23 @@ class PaymentsController {
       if (result.error === 'NOT_FOUND') {
         return res.status(404).json({ success: false, data: null, message: result.message, errors: null });
       }
-      if (result.error === 'CONFLICT') {
-        return res.status(409).json({ success: false, data: null, message: result.message, errors: null });
+      if (result.error === 'VALIDATION') {
+        return res.status(422).json({ success: false, data: null, message: result.message, errors: null });
       }
       res.status(201).json({ success: true, data: result.data, message: 'Pembayaran berhasil dicatat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  listBillPayments = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.listBillPayments(schoolUnitId, req.query);
+      res.json({
+        success: true,
+        data,
+        message: 'Daftar riwayat pembayaran tagihan siswa berhasil diambil',
+        errors: null
+      });
     } catch (err) { next(err); }
   };
 

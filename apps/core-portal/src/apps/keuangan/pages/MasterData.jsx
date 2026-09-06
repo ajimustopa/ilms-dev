@@ -60,38 +60,102 @@ const COA_GROUPS = {
 
 const RULE_SECTIONS = [
   {
-    key: 'student_receipts',
-    title: '1. Penerimaan dari Siswa',
-    desc: 'Aturan akuntansi penerbitan tagihan, pembayaran siswa, diskon beasiswa, penghapusan piutang & refund.',
-    codes: ['student_bill_issued', 'student_bill_payment', 'student_bill_discount', 'student_bill_write_off', 'student_bill_refund']
+    key: 'student_payments',
+    title: '1. Penerimaan & Pelunasan Tagihan Siswa (Per Pos Piutang)',
+    desc: 'Aturan akuntansi otomatis saat kasir menerima pembayaran tagihan siswa: mendebet Kas Bank Penerimaan dan mengkredit pos Piutang terkait sesuai pos tagihan.',
+    codes: [
+      'student_bill_payment',
+      'bill_payment_spp',
+      'bill_payment_pendaftaran',
+      'bill_payment_penunjang_pembelajaran',
+      'bill_payment_kegiatan',
+      'bill_payment_sarpras',
+      'bill_payment_seragam',
+      'bill_payment_pemeliharaan_sarpras',
+      'bill_payment_bangunan',
+      'bill_payment_kegiatan_akhir_jenjang',
+      'bill_payment_kelebihan_laundry',
+      'bill_payment_buku',
+      'bill_payment_tunggakan_tp_lalu'
+    ]
+  },
+  {
+    key: 'student_billings',
+    title: '2. Penerbitan Tagihan Siswa (Non-Kas: Piutang vs Pendapatan)',
+    desc: 'Aturan akuntansi non-kas saat tagihan diterbitkan/dibukukan ke siswa: mendebet pos Piutang dan mengkredit pos Pendapatan terkait.',
+    codes: [
+      'student_bill_issued',
+      'bill_issued_spp',
+      'bill_issued_pendaftaran',
+      'bill_issued_penunjang_pembelajaran',
+      'bill_issued_kegiatan',
+      'bill_issued_sarpras',
+      'bill_issued_seragam',
+      'bill_issued_pemeliharaan_sarpras',
+      'bill_issued_bangunan',
+      'bill_issued_kegiatan_akhir_jenjang',
+      'bill_issued_kelebihan_laundry',
+      'bill_issued_buku',
+      'bill_issued_tunggakan_tp_lalu'
+    ]
+  },
+  {
+    key: 'student_discounts',
+    title: '3. Diskon & Penyesuaian Tagihan Siswa',
+    desc: 'Aturan akuntansi diskon beasiswa, pemotongan tagihan, penghapusan piutang, dan pengembalian (refund).',
+    codes: [
+      'student_bill_discount',
+      'student_bill_write_off',
+      'student_bill_refund',
+      'bill_discount_spp',
+      'pay_discount_spp',
+      'bill_discount_pendaftaran',
+      'pay_discount_pendaftaran',
+      'bill_discount_penunjang_pembelajaran',
+      'pay_discount_penunjang_pembelajaran',
+      'bill_discount_kegiatan',
+      'pay_discount_kegiatan',
+      'bill_discount_sarpras',
+      'pay_discount_sarpras',
+      'bill_discount_seragam',
+      'pay_discount_seragam',
+      'bill_discount_pemeliharaan_sarpras',
+      'pay_discount_pemeliharaan_sarpras',
+      'bill_discount_bangunan',
+      'pay_discount_bangunan',
+      'bill_discount_kegiatan_akhir_jenjang',
+      'pay_discount_kegiatan_akhir_jenjang',
+      'bill_discount_kelebihan_laundry',
+      'pay_discount_kelebihan_laundry'
+    ]
   },
   {
     key: 'other_receipts',
-    title: '2. Penerimaan Lain',
-    desc: 'Aturan akuntansi donasi, infaq, sewa fasilitas, unit usaha, dan pendapatan non-SPP.',
+    title: '4. Penerimaan Kas Lain & RAPBS',
+    desc: 'Aturan akuntansi donasi, infaq, sewa fasilitas, unit usaha, dan pendapatan non-siswa.',
     codes: ['other_income_default']
   },
   {
     key: 'expenses',
-    title: '3. Pengeluaran Operasional',
+    title: '5. Pengeluaran Operasional & Belanja',
     desc: 'Aturan pembebanan anggaran operasional, belanja barang/jasa, dan kegiatan lembaga (RAPBS).',
     codes: ['expense_default']
   },
   {
     key: 'payroll_savings',
-    title: '4. Payroll & Tabungan',
-    desc: 'Aturan akuntansi pencairan gaji/honor GTK serta mutasi setor dan tarik tabungan siswa.',
+    title: '6. Payroll & Tabungan Siswa',
+    desc: 'Aturan akuntansi pencairan gaji/honor GTK serta mutasi setor dan tarik tabungan santri.',
     codes: ['payroll_disbursement', 'savings_deposit', 'savings_withdrawal']
   },
   {
     key: 'internal_cash',
-    title: '5. Kas Internal & Jurnal',
+    title: '7. Kas Internal, Saldo Awal & Jurnal',
     desc: 'Aturan mutasi transfer antar jenis kas lembaga, saldo awal cutover, dan jurnal penyesuaian manual.',
     codes: ['opening_balance_entry', 'internal_cash_transfer', 'manual_journal_entry']
   },
   {
     key: 'year_end_closing',
-    title: '6. Tutup Buku Tahunan',
+    title: '8. Tutup Buku Tahunan',
     desc: 'Aturan penihilan pendapatan/biaya dan pemindahan surplus/defisit tahunan ke saldo modal ditahan.',
     codes: ['fiscal_year_closing_revenue', 'fiscal_year_closing_expense', 'fiscal_year_closing_net']
   }
@@ -532,8 +596,16 @@ export default function MasterData() {
     );
   };
 
+  // COA Pengelolaan Umum (tanpa akun khusus SMP / SMA)
+  const cleanCoaList = useMemo(() => {
+    return coaList.filter((a) => {
+      const name = (a.account_name || '').toUpperCase();
+      return !name.includes('SMP') && !name.includes('SMA');
+    });
+  }, [coaList]);
+
   const filteredCashAccounts = filterList(cashAccounts, ['name', 'account_kind', 'bank_name', 'bank_account_number', 'account_code', 'account_name']);
-  const filteredCoa = filterList(coaList, ['account_code', 'account_name', 'account_group']);
+  const filteredCoa = filterList(cleanCoaList, ['account_code', 'account_name', 'account_group']);
   const filteredRules = useMemo(() => {
     let list = transactionRules;
     if (ruleTypeFilter) {
@@ -1810,7 +1882,7 @@ export default function MasterData() {
       {/* Modal Form Tambah / Edit (Wajib Catatan Perubahan saat Edit) */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150 overflow-hidden">
+          <div className={`bg-white rounded-2xl shadow-2xl ${activeTab === 'transaction_rules' || activeTab === 'fee_types' ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[90vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150 overflow-hidden`}>
             <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">
@@ -2113,11 +2185,11 @@ export default function MasterData() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">Akun Debit *</label>
                       <SearchableSelect
-                        options={coaList.map((a) => ({
+                        options={cleanCoaList.map((a) => ({
                           value: a.id,
                           label: `[${a.account_code}] ${a.account_name}`,
                           sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()} • Saldo: ${(a.normal_balance || 'debit').toUpperCase()}`
@@ -2126,12 +2198,13 @@ export default function MasterData() {
                         onChange={(val) => setFormData({ ...formData, debit_account_id: val ? Number(val) : '' })}
                         placeholder="-- Pilih Akun Debit --"
                         searchPlaceholder="Cari kode atau nama akun debit..."
+                        menuMinWidth="max(100%, 360px)"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">Akun Kredit *</label>
                       <SearchableSelect
-                        options={coaList.map((a) => ({
+                        options={cleanCoaList.map((a) => ({
                           value: a.id,
                           label: `[${a.account_code}] ${a.account_name}`,
                           sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()} • Saldo: ${(a.normal_balance || 'debit').toUpperCase()}`
@@ -2140,6 +2213,7 @@ export default function MasterData() {
                         onChange={(val) => setFormData({ ...formData, credit_account_id: val ? Number(val) : '' })}
                         placeholder="-- Pilih Akun Kredit --"
                         searchPlaceholder="Cari kode atau nama akun kredit..."
+                        menuMinWidth="max(100%, 360px)"
                       />
                     </div>
                   </div>
@@ -2165,6 +2239,7 @@ export default function MasterData() {
                           onChange={(val) => setFormData({ ...formData, default_cash_account_id: val ? Number(val) : '' })}
                           placeholder="-- Fleksibel --"
                           searchPlaceholder="Cari nama kas atau bank..."
+                          menuMinWidth="max(100%, 320px)"
                         />
                       </div>
                     ) : (
@@ -2193,6 +2268,7 @@ export default function MasterData() {
                           onChange={(val) => setFormData({ ...formData, related_fee_type_id: val ? Number(val) : '' })}
                           placeholder="-- Tidak Ada --"
                           searchPlaceholder="Cari jenis biaya..."
+                          menuMinWidth="max(100%, 320px)"
                         />
                       </div>
                     ) : (
@@ -2221,6 +2297,7 @@ export default function MasterData() {
                           onChange={(val) => setFormData({ ...formData, related_transaction_category_id: val ? Number(val) : '' })}
                           placeholder="-- Tidak Ada --"
                           searchPlaceholder="Cari kategori belanja..."
+                          menuMinWidth="max(100%, 320px)"
                         />
                       </div>
                     ) : (
@@ -2311,7 +2388,7 @@ export default function MasterData() {
                     <SearchableSelect
                       options={[
                         { value: '', label: '-- Default (SPP Siswa) --', sublabel: 'Gunakan akun pendapatan umum' },
-                        ...coaList
+                        ...cleanCoaList
                           .filter((a) => a.account_group === 'pendapatan' || a.account_group === 'revenue' || a.account_code?.startsWith('6'))
                           .map((a) => ({
                             value: a.id,
@@ -2460,7 +2537,7 @@ export default function MasterData() {
                     <SearchableSelect
                       options={[
                         { value: '', label: '-- Tidak Ada / Otomatis --', sublabel: 'Tanpa pemetaan akun khusus' },
-                        ...coaList.map((a) => ({
+                        ...cleanCoaList.map((a) => ({
                           value: a.id,
                           label: `[${a.account_code}] ${a.account_name}`,
                           sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()}`
@@ -2712,7 +2789,7 @@ export default function MasterData() {
                   <SearchableSelect
                     options={[
                       { value: '', label: '-- Akun Dinamis / Default --', sublabel: 'Mengikuti aturan bawaan sistem' },
-                      ...coaList.map((a) => ({
+                      ...cleanCoaList.map((a) => ({
                         value: a.id,
                         label: `[${a.account_code}] ${a.account_name}`,
                         sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()}`
@@ -2729,7 +2806,7 @@ export default function MasterData() {
                   <SearchableSelect
                     options={[
                       { value: '', label: '-- Akun Dinamis / Default --', sublabel: 'Mengikuti aturan bawaan sistem' },
-                      ...coaList.map((a) => ({
+                      ...cleanCoaList.map((a) => ({
                         value: a.id,
                         label: `[${a.account_code}] ${a.account_name}`,
                         sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()}`

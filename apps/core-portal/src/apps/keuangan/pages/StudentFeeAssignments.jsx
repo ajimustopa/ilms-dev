@@ -75,7 +75,7 @@ export default function StudentFeeAssignments() {
 
   // Modal State: History Audit
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historyItem, setHistoryItem] = useState(null);
+  const [historyStudent, setHistoryStudent] = useState(null);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -118,9 +118,18 @@ export default function StudentFeeAssignments() {
           ayParams.satuan_pendidikan_id = activeSchoolUnit.id;
         }
         const ayRes = await api.get('/akademik/academic-years', { params: ayParams });
-        yearsList = ayRes.data?.data || ayRes.data?.academic_years || [];
+        yearsList = ayRes.data?.data || ayRes.data?.academic_years || (Array.isArray(ayRes.data) ? ayRes.data : []);
       } catch (e) {
         console.error('Error fetching academic years:', e);
+      }
+
+      if (yearsList.length === 0) {
+        try {
+          const fallbackRes = await api.get('/keuangan/academic-years').catch(() => api.get('/keuangan/master-data/academic-years'));
+          yearsList = fallbackRes?.data?.data || [];
+        } catch (e) {
+          console.warn('Fallback AY error:', e);
+        }
       }
 
       // Deduplikasi berdasarkan nama dan sort descending
@@ -142,27 +151,43 @@ export default function StudentFeeAssignments() {
         yearsList = [
           { id: 2, name: '2026/2027', is_active: 1 },
           { id: 1, name: '2025/2026', is_active: 0 },
-          { id: 10, name: '2019/2020', is_active: 0 }
+          { id: 3, name: '2024/2025', is_active: 0 }
         ];
       }
       setAcademicYears(yearsList);
 
       const savedY = localStorage.getItem('keuangan_fee_assignments_selected_ay') || localStorage.getItem('keuangan_fee_schemes_selected_ay');
-      const matchedY = yearsList.find(y => String(y.id) === String(savedY));
-      if (matchedY) {
-        setSelectedYearId(String(matchedY.id));
-      } else if (!selectedYearId) {
+      const matchedCurrent = yearsList.find(y => String(y.id) === String(selectedYearId));
+      const matchedSaved = yearsList.find(y => String(y.id) === String(savedY));
+
+      let targetYearId = '';
+      if (matchedCurrent) {
+        targetYearId = String(matchedCurrent.id);
+      } else if (matchedSaved) {
+        targetYearId = String(matchedSaved.id);
+      } else {
         const activeY = yearsList.find(y => y.is_active) || yearsList[0];
         if (activeY) {
-          setSelectedYearId(String(activeY.id));
+          targetYearId = String(activeY.id);
         }
       }
 
-      // 2. Ambil Pos Biaya (Fee Types) dan urutkan: Sekali Bayar -> Tahunan -> Bulanan
+      if (targetYearId && String(targetYearId) !== String(selectedYearId)) {
+        setSelectedYearId(String(targetYearId));
+      }
+
+      // 2. Ambil Pos Biaya (Fee Types) dan urutkan: Tunggakan Tahun Lalu -> Sekali Bayar -> Tahunan -> Bulanan
       const feeTypesRes = await api.get('/keuangan/fee-types');
       const rawFeeTypes = feeTypesRes.data?.data || [];
       const sortedFeeTypes = [...rawFeeTypes].sort((a, b) => {
+        const isArrear = (ft) => {
+          const code = (ft.code || '').toLowerCase();
+          const name = (ft.name || '').toLowerCase();
+          return code === 'arrears_previous_year' || name.includes('tunggakan');
+        };
+
         const getRank = (ft) => {
+          if (isArrear(ft)) return 0; // Tunggakan tahun lalu di posisi paling awal (Rank 0)
           const bp = (ft.billing_pattern || '').toLowerCase();
           const name = (ft.name || '').toLowerCase();
           if (bp === 'monthly' || name.includes('spp')) return 3;
@@ -582,19 +607,23 @@ export default function StudentFeeAssignments() {
         {/* Filter Controls Bar */}
         <div className="mt-5 flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-4 border-t border-slate-100">
           {/* Selector Context Tahun Ajaran */}
-          <div className="w-full md:w-60">
+          <div className="w-full md:w-64">
             <SearchableSelect
               options={academicYears.map((ay) => ({
                 value: String(ay.id),
                 label: `T.A. ${ay.name} ${ay.is_active ? '(Aktif)' : ''}`,
                 sublabel: ay.is_active ? 'Tahun Ajaran Berjalan' : undefined
               }))}
-              value={String(selectedYearId)}
+              value={String(selectedYearId || '')}
               onChange={(val) => {
-                setSelectedYearId(val);
-                setSelectedClassId('');
-                setSelectedSchemeFilter('');
+                if (val) {
+                  setSelectedYearId(String(val));
+                  setSelectedClassId('');
+                  setSelectedSchemeFilter('');
+                  setSelectedStudentIds([]);
+                }
               }}
+              allowClear={false}
               placeholder="Pilih Tahun Ajaran..."
               searchPlaceholder="Cari tahun ajaran..."
             />
@@ -688,11 +717,30 @@ export default function StudentFeeAssignments() {
                   {/* Student Info */}
                   <th
                     onClick={() => handleSort('student_name')}
-                    className="px-4 py-3 min-w-[220px] cursor-pointer hover:bg-slate-100 transition group sticky left-10 bg-slate-50 z-20 shadow-[1px_0_0_0_#e2e8f0]"
+                    className="px-4 py-3 min-w-[200px] cursor-pointer hover:bg-slate-100 transition group sticky left-10 bg-slate-50 z-20 shadow-[1px_0_0_0_#e2e8f0]"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Santri (NIS / Nama)</span>
                       {sortConfig.key === 'student_name' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Rombel / Kelas */}
+                  <th
+                    onClick={() => handleSort('class_name')}
+                    className="px-3.5 py-3 min-w-[130px] cursor-pointer hover:bg-slate-100 transition group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Rombel</span>
+                      {sortConfig.key === 'class_name' ? (
                         sortConfig.direction === 'asc' ? (
                           <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
@@ -723,28 +771,41 @@ export default function StudentFeeAssignments() {
                     </div>
                   </th>
 
-                  {/* Dynamic Fee Type Columns */}
-                  {feeTypes.map((ft) => (
-                    <th
-                      key={ft.id}
-                      onClick={() => handleSort(`fee_type_${ft.id}`)}
-                      className="px-3 py-3 text-right min-w-[110px] cursor-pointer hover:bg-slate-100 transition group bg-slate-50/50"
-                      title={`Pos Biaya: ${ft.name}`}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="truncate max-w-[100px]">{ft.name}</span>
-                        {sortConfig.key === `fee_type_${ft.id}` ? (
-                          sortConfig.direction === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-emerald-600" />
+                  {/* Dynamic Fee Type Columns (Tunggakan di awal dengan warna khusus) */}
+                  {feeTypes.map((ft) => {
+                    const isArrears = (ft.code || '').toLowerCase() === 'arrears_previous_year' || (ft.name || '').toLowerCase().includes('tunggakan');
+
+                    return (
+                      <th
+                        key={ft.id}
+                        onClick={() => handleSort(`fee_type_${ft.id}`)}
+                        className={`px-3 py-3 text-right min-w-[125px] cursor-pointer transition group select-none ${
+                          isArrears
+                            ? 'bg-amber-100/90 hover:bg-amber-200/90 text-amber-950 font-bold border-x border-amber-300 shadow-2xs'
+                            : 'bg-slate-50/50 hover:bg-slate-100 text-slate-700 font-semibold'
+                        }`}
+                        title={isArrears ? `Pos Biaya Khusus Tunggakan: ${ft.name}` : `Pos Biaya: ${ft.name}`}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          {isArrears && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse mr-0.5" />
+                          )}
+                          <span className={`truncate max-w-[120px] ${isArrears ? 'text-amber-950 font-bold' : ''}`}>
+                            {isArrears ? 'Tunggakan T.A. Lalu' : ft.name}
+                          </span>
+                          {sortConfig.key === `fee_type_${ft.id}` ? (
+                            sortConfig.direction === 'asc' ? (
+                              <ArrowUp className={`w-3 h-3 ${isArrears ? 'text-amber-800' : 'text-emerald-600'}`} />
+                            ) : (
+                              <ArrowDown className={`w-3 h-3 ${isArrears ? 'text-amber-800' : 'text-emerald-600'}`} />
+                            )
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-emerald-600" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="w-2.5 h-2.5 text-slate-300 opacity-0 group-hover:opacity-100" />
-                        )}
-                      </div>
-                    </th>
-                  ))}
+                            <ArrowUpDown className={`w-2.5 h-2.5 opacity-0 group-hover:opacity-100 ${isArrears ? 'text-amber-700' : 'text-slate-300'}`} />
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
 
                   {/* Total Biaya + Aksi Penetapan (Selalu di Paling Kanan, Solid BG) */}
                   <th
@@ -781,18 +842,16 @@ export default function StudentFeeAssignments() {
                   // Calculate monthly and non-monthly totals
                   let stMonthly = 0;
                   let stNonMonthly = 0;
-                  if (isAssigned) {
-                    feeTypes.forEach((ft) => {
-                      const item = breakdown[ft.id];
-                      const amount = Number(item?.final_amount || 0);
-                      const isMonthly = ft.billing_pattern === 'monthly' || String(ft.name).toLowerCase().includes('spp') || String(ft.code || '').toLowerCase().includes('spp');
-                      if (isMonthly) {
-                        stMonthly += amount;
-                      } else {
-                        stNonMonthly += amount;
-                      }
-                    });
-                  }
+                  feeTypes.forEach((ft) => {
+                    const item = breakdown[ft.id];
+                    const amount = Number(item?.final_amount || 0);
+                    const isMonthly = ft.billing_pattern === 'monthly' || String(ft.name).toLowerCase().includes('spp') || String(ft.code || '').toLowerCase().includes('spp');
+                    if (isMonthly) {
+                      stMonthly += amount;
+                    } else {
+                      stNonMonthly += amount;
+                    }
+                  });
 
                   // Determine Siswa Baru vs Siswa Pindahan
                   const classNameStr = String(st.class_name || '').toLowerCase();
@@ -819,7 +878,7 @@ export default function StudentFeeAssignments() {
                         </button>
                       </td>
 
-                      {/* Student Info with "Siswa Baru" / "Siswa Pindahan" & Class Info (Solid BG) */}
+                      {/* Student Info with "Siswa Baru" / "Siswa Pindahan" (Solid BG) */}
                       <td className={`px-4 py-2.5 sticky left-10 z-10 shadow-[1px_0_0_0_#e2e8f0] ${isSelected ? 'bg-emerald-100' : 'bg-white'}`}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-semibold text-slate-800">{st.student_name}</span>
@@ -833,13 +892,19 @@ export default function StudentFeeAssignments() {
                         </div>
                         <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-0.5">
                           <span>NIS: {st.nis || '-'}</span>
-                          {st.class_name && (
-                            <>
-                              <span>•</span>
-                              <span className="text-slate-600 font-sans font-medium">{st.class_name}</span>
-                            </>
-                          )}
+                          {st.nisn && <span className="text-slate-300">/ {st.nisn}</span>}
                         </div>
+                      </td>
+
+                      {/* Rombel / Kelas Dedicated Column */}
+                      <td className="px-3.5 py-2.5">
+                        {st.class_name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            {st.class_name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">Tanpa Rombel</span>
+                        )}
                       </td>
 
                       {/* Scheme Column */}
@@ -865,23 +930,53 @@ export default function StudentFeeAssignments() {
                         )}
                       </td>
 
-                      {/* Dynamic Fee Type Columns Breakdown (Tanpa teks keterangan di bawah nominal) */}
+                      {/* Dynamic Fee Type Columns Breakdown (Tunggakan dengan highlight warna khusus) */}
                       {feeTypes.map((ft) => {
+                        const isArrears = (ft.code || '').toLowerCase() === 'arrears_previous_year' || (ft.name || '').toLowerCase().includes('tunggakan');
                         const item = breakdown[ft.id];
                         const amount = item ? item.final_amount : 0;
-                        const hasVal = isAssigned && amount > 0;
+                        const hasVal = Number(amount) > 0;
                         const isAdj = item?.has_adjustment;
+                        const isAuto = item?.is_auto_arrears;
 
                         return (
-                          <td key={ft.id} className="px-3 py-2.5 text-right font-mono text-[11px]">
-                            {!isAssigned ? (
+                          <td
+                            key={ft.id}
+                            className={`px-3 py-2.5 text-right font-mono text-[11px] ${
+                              isArrears
+                                ? `${isSelected ? 'bg-amber-100/80' : 'bg-amber-50/50'} border-x border-amber-200/70`
+                                : ''
+                            }`}
+                          >
+                            {!isAssigned && !hasVal ? (
                               <span className="text-slate-300">-</span>
                             ) : hasVal ? (
-                              <span className={`font-semibold ${isAdj ? 'text-purple-700' : 'text-slate-700'}`}>
-                                {formatRupiah(amount)}
-                              </span>
+                              <div className="flex flex-col items-end">
+                                <span
+                                  className={`font-bold ${
+                                    isArrears
+                                      ? 'text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded border border-amber-300 shadow-2xs'
+                                      : isAdj
+                                      ? 'text-purple-700'
+                                      : 'text-slate-700 font-semibold'
+                                  }`}
+                                  title={item?.adjustment_note || (isArrears && isAuto ? 'Sisa tunggakan tahun sebelumnya (Otomatis)' : '')}
+                                >
+                                  {formatRupiah(amount)}
+                                </span>
+                                {isArrears && isAuto && (
+                                  <span className="text-[9px] text-amber-700 font-sans font-medium">
+                                    (Otomatis)
+                                  </span>
+                                )}
+                                {isArrears && isAdj && (
+                                  <span className="text-[9px] text-purple-700 font-sans font-medium">
+                                    (Manual)
+                                  </span>
+                                )}
+                              </div>
                             ) : (
-                              <span className="text-slate-400">Rp 0</span>
+                              <span className={isArrears ? 'text-amber-700/50' : 'text-slate-400'}>Rp 0</span>
                             )}
                           </td>
                         );
@@ -892,7 +987,7 @@ export default function StudentFeeAssignments() {
                         <div className="flex items-center justify-between gap-3">
                           {/* Rincian Bulanan & Non-Bulanan */}
                           <div className="flex flex-col items-start text-left text-[11px] font-mono">
-                            {isAssigned ? (
+                            {isAssigned || (stMonthly + stNonMonthly > 0) ? (
                               <>
                                 <div className="flex items-center gap-1">
                                   <span className="text-[10px] font-sans text-slate-500 font-semibold">Bln:</span>
@@ -951,7 +1046,7 @@ export default function StudentFeeAssignments() {
               {/* Table Footer: Total Akumulasi Keseluruhan Santri (Selalu Sticky di Bawah) */}
               <tfoot className="bg-slate-100 text-slate-800 font-bold border-t-2 border-slate-300 select-none sticky bottom-0 z-30 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
                 <tr>
-                  <td colSpan={3} className="px-4 py-3 text-left sticky left-0 bg-slate-100 z-30 shadow-[1px_0_0_0_#cbd5e1]">
+                  <td colSpan={4} className="px-4 py-3 text-left sticky left-0 bg-slate-100 z-30 shadow-[1px_0_0_0_#cbd5e1]">
                     <div className="flex items-center gap-2">
                       <span className="uppercase text-[11px] tracking-wider text-slate-700 font-extrabold">
                         Total Akumulasi ({sortedAndFilteredStudents.length} Santri):
@@ -959,16 +1054,30 @@ export default function StudentFeeAssignments() {
                     </div>
                   </td>
 
-                  {/* Total per Pos Biaya */}
+                  {/* Total per Pos Biaya (Highlight khusus untuk Tunggakan) */}
                   {feeTypes.map((ft) => {
+                    const isArrears = (ft.code || '').toLowerCase() === 'arrears_previous_year' || (ft.name || '').toLowerCase().includes('tunggakan');
                     const colTotal = sortedAndFilteredStudents.reduce((sum, st) => {
                       const amount = st.assignment?.fee_breakdown?.[ft.id]?.final_amount || 0;
                       return sum + Number(amount);
                     }, 0);
 
                     return (
-                      <td key={ft.id} className="px-3 py-3 text-right font-mono text-[11px] text-slate-900 bg-slate-100 font-bold">
-                        {colTotal > 0 ? formatRupiah(colTotal) : <span className="text-slate-400">Rp 0</span>}
+                      <td
+                        key={ft.id}
+                        className={`px-3 py-3 text-right font-mono text-[11px] font-bold ${
+                          isArrears
+                            ? 'bg-amber-100 text-amber-950 border-x border-amber-300'
+                            : 'bg-slate-100 text-slate-900'
+                        }`}
+                      >
+                        {colTotal > 0 ? (
+                          <span className={isArrears ? 'text-amber-950 font-bold' : ''}>
+                            {formatRupiah(colTotal)}
+                          </span>
+                        ) : (
+                          <span className={isArrears ? 'text-amber-700/50' : 'text-slate-400'}>Rp 0</span>
+                        )}
                       </td>
                     );
                   })}
@@ -1245,33 +1354,49 @@ export default function StudentFeeAssignments() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {customItems.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/60 transition">
-                        <td className="px-4 py-2.5">
-                          <div className="font-semibold text-slate-800">{item.fee_type_name}</div>
-                          <div className="text-[10px] text-slate-400">ID Pos: #{item.fee_type_id}</div>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className="text-xs font-bold text-slate-400">Rp</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="1000"
-                                value={item.override_amount}
-                                onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
-                                placeholder="0"
-                                className="w-40 px-3 py-1.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-purple-500 rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 focus:ring-purple-200 outline-none transition"
-                              />
+                    {customItems.map((item, idx) => {
+                      const isArrears = item.fee_type_name?.toLowerCase().includes('tunggakan') || item.fee_type_id === 11;
+                      return (
+                        <tr key={idx} className={`transition ${isArrears ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500' : 'hover:bg-slate-50/60'}`}>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-800">{item.fee_type_name}</span>
+                              {isArrears && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                  Tunggakan TP Lalu (Sistem)
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[11px] font-mono font-bold text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded border border-purple-200/60 shadow-2xs">
-                              {Number(item.override_amount || 0).toLocaleString('id-ID')}
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {isArrears ? (
+                                <span className="text-amber-700 font-medium">Input manual total tunggakan tahun ajaran lampau santri</span>
+                              ) : (
+                                `ID Pos: #${item.fee_type_id}`
+                              )}
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <span className="text-xs font-bold text-slate-400">Rp</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1000"
+                                  value={item.override_amount}
+                                  onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
+                                  placeholder="0"
+                                  className={`w-40 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-200'}`}
+                                />
+                              </div>
+                              <div className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? 'text-amber-800 bg-amber-100/70 border-amber-300' : 'text-purple-700 bg-purple-50/80 border-purple-200/60'}`}>
+                                {Number(item.override_amount || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot className="bg-purple-50/60 border-t-2 border-purple-200 font-bold text-slate-900">
                     <tr>

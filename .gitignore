@@ -31,3 +31,10 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Scratch & Temporary test scripts
+scratch/
+apps/*/scratch/
+apps/*/scratch_*.js
+*.tmp
+

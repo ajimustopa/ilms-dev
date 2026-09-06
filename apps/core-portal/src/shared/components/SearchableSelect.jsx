@@ -253,6 +253,15 @@ export default function SearchableSelect({
       chevronOpen: effectiveDark ? 'text-violet-400 bg-violet-500/10' : 'bg-violet-50 text-violet-600',
       chip: effectiveDark ? 'bg-violet-600/20 text-violet-200 border-violet-500/30' : 'bg-violet-50 text-violet-800 border-violet-200',
     },
+    teal: {
+      ring: 'ring-teal-500/30 border-teal-500',
+      focusRing: 'focus:ring-teal-500/20 focus:border-teal-500',
+      selectedBg: effectiveDark ? 'bg-teal-950/70 text-teal-200 border-l-2 border-teal-500' : 'bg-teal-50 text-teal-900 border-l-3 border-teal-600',
+      selectedText: effectiveDark ? 'text-teal-200 font-bold' : 'text-teal-950 font-bold',
+      check: effectiveDark ? 'text-teal-400' : 'text-teal-600',
+      chevronOpen: effectiveDark ? 'text-teal-400 bg-teal-500/10' : 'bg-teal-50 text-teal-600',
+      chip: effectiveDark ? 'bg-teal-600/20 text-teal-200 border-teal-500/30' : 'bg-teal-50 text-teal-800 border-teal-200',
+    },
   }[accentColor] || {
     ring: 'ring-indigo-500/30 border-indigo-500',
     focusRing: 'focus:ring-indigo-500/20 focus:border-indigo-500',
@@ -345,7 +354,7 @@ export default function SearchableSelect({
                   </span>
                 )}
                 <span
-                  className={`text-xs truncate ${
+                  className={`text-xs break-words whitespace-normal text-left ${
                     effectiveDark ? 'font-semibold text-slate-100' : 'font-semibold text-slate-800'
                   }`}
                 >
@@ -354,7 +363,7 @@ export default function SearchableSelect({
               </div>
               {selectedOptionObjs[0].sublabel && (
                 <span
-                  className={`text-[10px] truncate leading-tight mt-0.5 ${
+                  className={`text-[10px] break-words whitespace-normal leading-tight mt-0.5 text-left ${
                     effectiveDark ? 'text-slate-400' : 'text-slate-500'
                   }`}
                 >
@@ -515,9 +524,9 @@ export default function SearchableSelect({
                       )}
 
                       <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`leading-snug truncate ${
+                            className={`leading-snug break-words whitespace-normal ${
                               isSelected
                                 ? accentClasses.selectedText
                                 : effectiveDark
@@ -542,14 +551,14 @@ export default function SearchableSelect({
                         </div>
                         {opt.sublabel && (
                           <span
-                            className={`text-[10px] leading-tight truncate mt-0.5 ${
+                            className={`text-[10px] leading-relaxed break-words whitespace-normal mt-0.5 ${
                               isSelected
                                 ? effectiveDark
                                   ? 'text-indigo-300'
                                   : 'text-indigo-700'
                                 : effectiveDark
                                 ? 'text-slate-400'
-                                : 'text-slate-400'
+                                : 'text-slate-500'
                             }`}
                           >
                             {opt.sublabel}

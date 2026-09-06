@@ -643,8 +643,121 @@ class BillsService {
       query = query.where('student_bills.school_unit_id', targetUnit);
     }
 
-    if (filters.academic_year_id) {
-      query = query.where('student_bills.academic_year_id', filters.academic_year_id);
+    if (filters.academic_year_id && filters.academic_year_id !== 'all') {
+      try {
+        const ay = await crossModuleServices.getAcademicYear(filters.academic_year_id);
+        if (ay) {
+          const allAYs = await crossModuleServices.listAcademicYears().catch(() => []);
+          const matchingAyIds = allAYs
+            .filter(item => item.id === Number(filters.academic_year_id) || (ay.name && item.name === ay.name))
+            .map(item => item.id);
+
+          const prevAys = allAYs.filter(y => y.start_date && ay.start_date && new Date(y.start_date) < new Date(ay.start_date));
+          const prevAyIds = prevAys.map(y => y.id);
+
+          const forPayments = filters.for_payments === 'true' || filters.for_payments === true || filters.include_previous_arrears === 'true' || filters.include_previous_arrears === true || filters.active_students_only === 'true' || filters.active_students_only === true;
+
+          if (forPayments) {
+            // Mode Pembayaran: Ambil siswa yang aktif di Tahun Ajaran terpilih
+            let enrQuery = dbAkademik('student_class_enrollments')
+              .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+              .whereIn('student_class_enrollments.academic_year_id', matchingAyIds)
+              .whereNotIn('student_class_enrollments.status', ['keluar', 'dibatalkan', 'batal'])
+              .where('class_groups.type', 'reguler');
+
+            if (targetUnit) {
+              enrQuery = enrQuery.where('class_groups.satuan_pendidikan_id', targetUnit);
+            }
+
+            const enrolledList = await enrQuery.select('student_class_enrollments.student_id');
+            const activeStudentIds = [...new Set(enrolledList.map(e => e.student_id))];
+
+            if (activeStudentIds.length === 0) {
+              return [];
+            }
+
+            query = query.whereIn('student_bills.student_id', activeStudentIds)
+              .whereNot('student_bills.status', 'cancelled')
+              .where(function () {
+                // 1. Seluruh tagihan pada tahun ajaran aktif terpilih
+                this.where(function () {
+                  this.whereIn('student_bills.academic_year_id', matchingAyIds);
+                }).orWhere(function () {
+                  // 2. Tagihan tahun ajaran sebelumnya yang belum lunas milik siswa aktif terkait
+                  this.where(function () {
+                    if (prevAyIds.length > 0) {
+                      this.whereIn('student_bills.academic_year_id', prevAyIds);
+                    } else {
+                      this.whereNull('student_bills.academic_year_id');
+                    }
+                  }).whereIn('student_bills.status', ['unpaid', 'partially_paid', 'draft']);
+                });
+              });
+          } else {
+            // Mode Riwayat Tagihan: Berdasarkan rentang waktu penerbitan di Tahun Ajaran terpilih
+            const yearParts = (ay.name || '').split('/').map(p => parseInt(p, 10)).filter(Boolean);
+            const startYear = yearParts[0] || (ay.start_date ? new Date(ay.start_date).getFullYear() : null);
+            const endYear = yearParts[1] || (ay.end_date ? new Date(ay.end_date).getFullYear() : (startYear ? startYear + 1 : null));
+
+            let startDate = startYear ? `${startYear}-07-01` : (ay.start_date ? formatDateOnly(ay.start_date) : null);
+            let endDate = endYear ? `${endYear}-06-30` : (ay.end_date ? formatDateOnly(ay.end_date) : null);
+
+            if (ay.start_date && ay.start_date < startDate) startDate = formatDateOnly(ay.start_date);
+            if (ay.end_date && ay.end_date > endDate) endDate = formatDateOnly(ay.end_date);
+
+            query = query.where(function () {
+              this.where(function () {
+                this.whereNotNull('student_bills.academic_year_id')
+                  .whereIn('student_bills.academic_year_id', matchingAyIds.length > 0 ? matchingAyIds : [Number(filters.academic_year_id)]);
+              }).orWhere(function () {
+                this.whereNull('student_bills.academic_year_id')
+                  .andWhere(function () {
+                    this.where(function () {
+                      this.whereNotNull('student_bills.bill_date')
+                        .andWhere('student_bills.bill_date', '>=', startDate)
+                        .andWhere('student_bills.bill_date', '<=', endDate);
+                    }).orWhere(function () {
+                      this.whereNull('student_bills.bill_date')
+                        .andWhere(function () {
+                          this.whereNotNull('student_bills.published_at')
+                            .andWhere(db.raw('DATE(student_bills.published_at)'), '>=', startDate)
+                            .andWhere(db.raw('DATE(student_bills.published_at)'), '<=', endDate);
+                        }).orWhere(function () {
+                          this.whereNull('student_bills.published_at')
+                            .andWhere(function () {
+                              if (startYear && endYear) {
+                                this.where(function () {
+                                  this.whereNotNull('student_bills.period_month')
+                                    .andWhere(function () {
+                                      this.where(function () {
+                                        this.whereIn('student_bills.period_month', [7, 8, 9, 10, 11, 12])
+                                          .andWhere('student_bills.period_year', startYear);
+                                      }).orWhere(function () {
+                                        this.whereIn('student_bills.period_month', [1, 2, 3, 4, 5, 6])
+                                          .andWhere('student_bills.period_year', endYear);
+                                      });
+                                    });
+                                }).orWhere(function () {
+                                  this.whereNull('student_bills.period_month')
+                                    .andWhere(db.raw('DATE(student_bills.created_at)'), '>=', startDate)
+                                    .andWhere(db.raw('DATE(student_bills.created_at)'), '<=', endDate);
+                                });
+                              } else {
+                                this.where(db.raw('DATE(student_bills.created_at)'), '>=', startDate)
+                                  .andWhere(db.raw('DATE(student_bills.created_at)'), '<=', endDate);
+                              }
+                            });
+                        });
+                    });
+                  });
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[listBills] Error resolving academic year date filter:', e.message);
+        query = query.where('student_bills.academic_year_id', filters.academic_year_id);
+      }
     }
     if (filters.status) {
       query = query.where('student_bills.status', filters.status);
@@ -664,19 +777,81 @@ class BillsService {
 
     const bills = await query.orderBy('student_bills.id', 'desc');
 
+    const billIds = bills.map(b => b.id);
+    const paymentsSummary = billIds.length > 0
+      ? await db('bill_payments')
+          .whereIn('student_bill_id', billIds)
+          .groupBy('student_bill_id')
+          .select('student_bill_id')
+          .sum('amount as total_paid')
+      : [];
+
+    const paymentsMap = {};
+    paymentsSummary.forEach(p => {
+      paymentsMap[p.student_bill_id] = parseFloat(p.total_paid || 0);
+    });
+
     const studentIds = [...new Set(bills.map(b => b.student_id))];
     const studentsMap = {};
     if (studentIds.length > 0) {
-      for (const sId of studentIds) {
-        const std = await crossModuleServices.getStudent(sId);
-        if (std) studentsMap[sId] = std;
+      try {
+        const targetAyId = (filters.academic_year_id && filters.academic_year_id !== 'all') ? filters.academic_year_id : null;
+        const batchStudents = await crossModuleServices.getStudentsByIds(studentIds, targetAyId);
+        batchStudents.forEach((std, sId) => {
+          studentsMap[sId] = std;
+        });
+      } catch (e) {
+        console.error('[listBills] Gagal batch getStudentsByIds:', e.message);
       }
     }
 
+    let ayMap = {};
+    try {
+      const allAYs = await crossModuleServices.listAcademicYears();
+      (allAYs || []).forEach(ay => {
+        if (ay && ay.id) ayMap[ay.id] = ay.name;
+      });
+    } catch (e) {
+      console.warn('[listBills] Error listing academic years:', e.message);
+    }
+
+    const MONTH_NAMES = {
+      1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+      5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+      9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
+    };
+
     let enrichedBills = bills.map(b => {
       const student = studentsMap[b.student_id];
+      const billAmount = parseFloat(b.amount || 0);
+      const paidAmount = paymentsMap[b.id] !== undefined ? paymentsMap[b.id] : (b.status === 'paid' ? billAmount : 0);
+      const remainingAmount = Math.max(0, billAmount - paidAmount);
+      const monthName = b.period_month ? (MONTH_NAMES[b.period_month] || '') : '';
+      
+      let ayName = (b.academic_year_id && ayMap[b.academic_year_id]) ? ayMap[b.academic_year_id] : null;
+      if (!ayName && b.period_year) {
+        if (b.period_month) {
+          ayName = b.period_month >= 7 
+            ? `${b.period_year}/${b.period_year + 1}` 
+            : `${b.period_year - 1}/${b.period_year}`;
+        } else {
+          ayName = `${b.period_year}/${b.period_year + 1}`;
+        }
+      }
+
+      const isMonthlyOrSpp = (b.fee_type_name && b.fee_type_name.toLowerCase().includes('spp')) || b.billing_pattern === 'monthly';
+      let componentDisplay = b.fee_type_name;
+      if (isMonthlyOrSpp && monthName) {
+        componentDisplay = ayName
+          ? `${b.fee_type_name} (${monthName} - T.A. ${ayName})`
+          : `${b.fee_type_name} (${monthName} ${b.period_year || ''})`.trim();
+      } else if (ayName) {
+        componentDisplay = `${b.fee_type_name} (T.A. ${ayName})`;
+      }
+
       return {
         ...b,
+        academic_year_name: ayName,
         bill_date: formatDateOnly(b.bill_date),
         due_date: formatDateOnly(b.due_date),
         created_at: formatDateOnly(b.created_at) || b.created_at,
@@ -684,9 +859,34 @@ class BillsService {
         nis: student?.nis || student?.nipd || '-',
         nipd: student?.nipd || student?.nis || '-',
         class_id: student?.class_id || student?.class_group_id || null,
-        class_name: student?.class_name || student?.class_group_name || student?.rombel_name || '-'
+        class_name: student?.class_name || student?.class_group_name || student?.rombel_name || '-',
+        total_paid: paidAmount,
+        remaining_amount: remainingAmount,
+        month_name: monthName,
+        component_display: componentDisplay
       };
     });
+
+    const forPayments = filters.for_payments === 'true' || filters.for_payments === true || filters.include_previous_arrears === 'true' || filters.include_previous_arrears === true || filters.active_students_only === 'true' || filters.active_students_only === true;
+    if (forPayments && filters.academic_year_id && filters.academic_year_id !== 'all') {
+      try {
+        const allAYs = await crossModuleServices.listAcademicYears().catch(() => []);
+        const targetAy = allAYs.find(y => String(y.id) === String(filters.academic_year_id));
+        if (targetAy && targetAy.start_date) {
+          const prevAyIds = allAYs.filter(y => y.start_date && new Date(y.start_date) < new Date(targetAy.start_date)).map(y => y.id);
+          if (prevAyIds.length > 0) {
+            enrichedBills = enrichedBills.filter(b => {
+              if (prevAyIds.includes(b.academic_year_id)) {
+                return b.status !== 'paid' && b.remaining_amount > 0;
+              }
+              return true;
+            });
+          }
+        }
+      } catch (e) {
+        // pass
+      }
+    }
 
     if (filters.class_id) {
       enrichedBills = enrichedBills.filter(b => String(b.class_id) === String(filters.class_id));
@@ -819,14 +1019,27 @@ class BillsService {
       }
 
       const updated = await trx('student_bills').where({ id }).first();
+      // Batalkan juga di ppdb_registration_bills jika ada tagihan terkait
+      await trx('ppdb_registration_bills')
+        .where(b => {
+          b.where({ linked_student_id: bill.student_id, fee_type_id: bill.fee_type_id })
+           .orWhere({ psb_registrant_ref_id: bill.student_id, fee_type_id: bill.fee_type_id });
+        })
+        .where('is_installment_parent', false)
+        .whereNot('status', 'cancelled')
+        .update({
+          status: 'cancelled',
+          updated_at: trx.fn.now()
+        });
+
       await logFinanceAudit({
-        schoolUnitId: bill.school_unit_id,
+        schoolUnitId: bill.school_unit_id || targetUnit || 1,
         userId,
-        action: 'CANCEL_BILL',
+        action: 'CANCEL_STUDENT_BILL',
         entityType: 'student_bills',
         entityId: id,
-        dataBefore: bill,
-        dataAfter: updated,
+        dataBefore: { status: bill.status },
+        dataAfter: { status: 'cancelled', cancel_reason: cancelReason, cancelled_at: cancelDateVal },
         trx
       });
 
@@ -1379,6 +1592,13 @@ class BillsService {
           })
         });
 
+      // Sinkronisasikan ke ppdb_registration_bills jika ada
+      try {
+        await crossModuleServices.syncStudentBillToPpdbBill(id, trx);
+      } catch (syncErr) {
+        console.warn('[reviseIssuedBill] Warning syncStudentBillToPpdbBill:', syncErr.message);
+      }
+
       await logFinanceAudit({
         schoolUnitId,
         userId,
@@ -1892,8 +2112,9 @@ class BillsService {
 
     const columns = [];
 
-    // A. Kolom Sekali Bayar
+    // A. Kolom Sekali Bayar & Tunggakan Lampau
     oneTimeFeeTypes.forEach(ft => {
+      const isArrears = ft.code === 'arrears_previous_year' || (ft.name && ft.name.toLowerCase().includes('tunggakan'));
       columns.push({
         key: `fee_${ft.id}`,
         fee_type_id: ft.id,
@@ -1904,9 +2125,9 @@ class BillsService {
         period_year: startYear,
         month_label: null,
         label: ft.name,
-        badge_type: 'one_time',
-        badge_text: 'Sekali Bayar',
-        badge_color: 'bg-cyan-50 text-cyan-700 border-cyan-200'
+        badge_type: isArrears ? 'arrears' : 'one_time',
+        badge_text: isArrears ? 'Tunggakan Lalu' : 'Sekali Bayar',
+        badge_color: isArrears ? 'bg-amber-50 text-amber-800 border-amber-300 font-bold' : 'bg-cyan-50 text-cyan-700 border-cyan-200'
       });
     });
 
@@ -1986,36 +2207,213 @@ class BillsService {
       adjustmentMap[adj.student_id][adj.fee_type_id] = adj;
     });
 
-    // 5. Ambil semua tagihan yang sudah ada di student_bills
+    // 5. Ambil data siswa & semua tagihan yang sudah ada di student_bills
+    const studentIds = students.map(s => s.id);
     let billsQuery = db('student_bills')
-      .where('academic_year_id', academicYearId)
+      .where(b => {
+        b.where('academic_year_id', academicYearId)
+         .orWhereIn('student_id', studentIds);
+      })
       .whereNot('status', 'cancelled');
     if (targetUnit) billsQuery = billsQuery.where('school_unit_id', targetUnit);
-    const existingBills = await billsQuery;
+    const existingBills = studentIds.length > 0 ? await billsQuery : [];
 
     const billsMap = {};
     existingBills.forEach(b => {
       const k = `${b.student_id}_${b.fee_type_id}_${b.period_month || 0}`;
-      billsMap[k] = b;
+      if (!billsMap[k] || b.academic_year_id === academicYearId) {
+        billsMap[k] = b;
+      }
     });
 
     // 5b. Ambil tagihan PPDB calon santri / siswa baru yang tertaut
-    const studentIds = students.map(s => s.id);
-    let ppdbBillsQuery = db('ppdb_registration_bills')
-      .whereIn('linked_student_id', studentIds)
-      .where('is_installment_parent', false)
-      .whereNot('status', 'cancelled');
-    if (academicYearId) {
-      ppdbBillsQuery = ppdbBillsQuery.where(b => {
-        b.where('target_academic_year_id', academicYearId)
-         .orWhere('academic_year_id', academicYearId);
-      });
-    }
-    const ppdbBills = studentIds.length > 0 ? await ppdbBillsQuery : [];
+    // Tagihan pendaftaran PPDB (uang pendaftaran, uang pangkal, seragam, dsb) ditautkan langsung ke data tagihan siswa di TP aktifnya
+    const ppdbBills = studentIds.length > 0
+      ? await db('ppdb_registration_bills')
+          .where(b => {
+            b.whereIn('linked_student_id', studentIds)
+             .orWhereIn('psb_registrant_ref_id', studentIds);
+          })
+          .where('is_installment_parent', false)
+          .whereNot('status', 'cancelled')
+      : [];
+
     const ppdbMap = {};
+    const ppdbFeeTypeMapByStudent = {};
     ppdbBills.forEach(pb => {
-      const k = `${pb.linked_student_id}_${pb.fee_type_id}`;
-      ppdbMap[k] = pb;
+      const studentKey = pb.linked_student_id || pb.psb_registrant_ref_id;
+      if (!ppdbFeeTypeMapByStudent[studentKey]) {
+        ppdbFeeTypeMapByStudent[studentKey] = new Set();
+      }
+      ppdbFeeTypeMapByStudent[studentKey].add(pb.fee_type_id);
+
+      const k = `${studentKey}_${pb.fee_type_id}`;
+      if (!ppdbMap[k]) {
+        ppdbMap[k] = pb;
+      } else {
+        const cur = ppdbMap[k];
+        cur.amount = parseFloat(cur.amount || 0) + parseFloat(pb.amount || 0);
+        cur.paid_amount = parseFloat(cur.paid_amount || 0) + parseFloat(pb.paid_amount || 0);
+        cur.discount_amount = parseFloat(cur.discount_amount || 0) + parseFloat(pb.discount_amount || 0);
+        if (cur.paid_amount >= cur.amount) {
+          cur.status = 'paid';
+        } else if (cur.paid_amount > 0) {
+          cur.status = 'partially_paid';
+        }
+      }
+    });
+
+    // 5c. Ambil tunggakan TP sebelumnya (Previous Academic Years Arrears)
+    // HANYA untuk tagihan berkala SPP/akademik masa lalu di student_bills (bukan tagihan pendaftaran PPDB siswa baru)
+    const allAcademicYears = await crossModuleServices.listAcademicYears().catch(() => []);
+    const currentStartDate = ay?.start_date ? new Date(ay.start_date) : null;
+    const prevYears = allAcademicYears.filter(y => {
+      if (y.id === academicYearId) return false;
+      if (currentStartDate && y.start_date) {
+        return new Date(y.start_date) < currentStartDate;
+      }
+      return y.id < academicYearId;
+    });
+    const prevAyIds = prevYears.map(y => y.id);
+
+    let prevBillsQuery = db('student_bills')
+      .whereIn('student_id', studentIds)
+      .whereNotIn('status', ['cancelled', 'written_off', 'paid'])
+      .where(function () {
+        if (prevAyIds.length > 0) {
+          this.whereIn('academic_year_id', prevAyIds)
+            .orWhere(function () {
+              this.whereNull('academic_year_id')
+                .andWhere('period_year', '<', startYear);
+            });
+        } else {
+          this.whereNull('academic_year_id')
+            .andWhere('period_year', '<', startYear);
+        }
+      });
+    if (targetUnit) prevBillsQuery = prevBillsQuery.where('school_unit_id', targetUnit);
+    const prevBills = studentIds.length > 0 ? await prevBillsQuery : [];
+
+    const prevArrearsMap = {};
+    prevBills.forEach(b => {
+      // Siswa yang ditagihkan melalui PPDB di tahun sebelumnya: tagihan PPDB tersebut BUKAN tunggakan TP lalu,
+      // melainkan tagihan penerimaan masuk siswa di TP aktifnya.
+      const isPpdbAdmissionBill = ppdbFeeTypeMapByStudent[b.student_id]?.has(b.fee_type_id);
+      if (isPpdbAdmissionBill) {
+        return; // Lewati tagihan PPDB agar tidak muncul sebagai tunggakan TP lalu
+      }
+
+      const remaining = Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0));
+      if (remaining > 0) {
+        if (!prevArrearsMap[b.student_id]) {
+          prevArrearsMap[b.student_id] = { total: 0, count: 0, items: [] };
+        }
+        prevArrearsMap[b.student_id].total += remaining;
+        prevArrearsMap[b.student_id].count += 1;
+        prevArrearsMap[b.student_id].items.push({
+          id: b.id,
+          fee_type_id: b.fee_type_id,
+          academic_year_id: b.academic_year_id,
+          period_month: b.period_month,
+          period_year: b.period_year,
+          amount: parseFloat(b.amount || 0),
+          paid: parseFloat(b.paid_amount || 0),
+          remaining: remaining,
+          status: b.status
+        });
+      }
+    });
+
+    // 5d. Integrasikan Tunggakan Manual (Manual Arrears dari student_fee_adjustments & bills arrears aktif)
+    const arrearsFeeTypes = feeTypes.filter(ft =>
+      ft.code === 'arrears_previous_year' ||
+      (ft.name && ft.name.toLowerCase().includes('tunggakan'))
+    );
+
+    students.forEach(st => {
+      const asg = assignmentMap[st.id] || null;
+      const studentSchemeItems = asg?.fee_scheme_id ? (schemeItemsMap[asg.fee_scheme_id] || {}) : {};
+      const studentAdjustments = adjustmentMap[st.id] || {};
+
+      arrearsFeeTypes.forEach(aft => {
+        const studentArrearBills = existingBills.filter(b => b.student_id === st.id && b.fee_type_id === aft.id);
+        if (studentArrearBills.length > 0) {
+          studentArrearBills.forEach(existingBill => {
+            const alreadyInPrev = prevArrearsMap[st.id]?.items?.some(it => String(it.id) === String(existingBill.id));
+            if (!alreadyInPrev && !['cancelled', 'written_off', 'paid'].includes(existingBill.status)) {
+              const remaining = Math.max(0, parseFloat(existingBill.amount || 0) - parseFloat(existingBill.discount_amount || 0) - parseFloat(existingBill.paid_amount || 0));
+              if (remaining > 0) {
+                if (!prevArrearsMap[st.id]) {
+                  prevArrearsMap[st.id] = { total: 0, count: 0, items: [] };
+                }
+                prevArrearsMap[st.id].total += remaining;
+                prevArrearsMap[st.id].count += 1;
+                prevArrearsMap[st.id].items.push({
+                  id: existingBill.id,
+                  fee_type_id: aft.id,
+                  fee_type_name: aft.name,
+                  academic_year_id: existingBill.academic_year_id || academicYearId,
+                  period_month: existingBill.period_month,
+                  period_year: existingBill.period_year || startYear,
+                  amount: parseFloat(existingBill.amount || 0),
+                  paid: parseFloat(existingBill.paid_amount || 0),
+                  remaining: remaining,
+                  status: existingBill.status,
+                  is_manual: true,
+                  notes: existingBill.edit_reason || 'Tagihan Tunggakan Manual'
+                });
+              }
+            }
+          });
+        } else {
+          // Belum diterbitkan ke student_bills: ambil dari student_fee_adjustments atau fee_scheme_items
+          const cItem = studentAdjustments[aft.id];
+          const sItem = studentSchemeItems[aft.id];
+
+          let manualNominal = 0;
+          let manualReason = '';
+          if (cItem) {
+            if (cItem.adjustment_kind === 'waiver') {
+              const discPct = parseFloat(cItem.waiver_percentage || 0);
+              const nominal = sItem ? parseFloat(sItem.value || 0) : 0;
+              manualNominal = Math.max(0, nominal - (nominal * discPct / 100));
+              manualReason = `Diskon ${cItem.waiver_type || ''} ${discPct}%`;
+            } else if (cItem.adjustment_kind === 'custom_amount' || cItem.adjustment_kind === 'override_amount') {
+              manualNominal = parseFloat(cItem.override_amount || 0);
+              manualReason = cItem.reason || 'Nominal Khusus Penetapan Tarif';
+            }
+          } else if (sItem) {
+            manualNominal = parseFloat(sItem.value || 0);
+            manualReason = 'Tarif Standar Skema Biaya';
+          }
+
+          if (manualNominal > 0) {
+            if (!prevArrearsMap[st.id]) {
+              prevArrearsMap[st.id] = { total: 0, count: 0, items: [] };
+            }
+            const manualId = `MANUAL-${st.id}-${aft.id}`;
+            const alreadyManual = prevArrearsMap[st.id].items?.some(it => it.id === manualId);
+            if (!alreadyManual) {
+              prevArrearsMap[st.id].total += manualNominal;
+              prevArrearsMap[st.id].count += 1;
+              prevArrearsMap[st.id].items.push({
+                id: manualId,
+                fee_type_id: aft.id,
+                fee_type_name: aft.name,
+                academic_year_id: academicYearId,
+                period_month: null,
+                period_year: startYear,
+                amount: manualNominal,
+                paid: 0,
+                remaining: manualNominal,
+                status: 'draft',
+                is_manual: true,
+                notes: manualReason
+              });
+            }
+          }
+        }
+      });
     });
 
     // 6. Bangun baris per siswa
@@ -2023,6 +2421,7 @@ class BillsService {
       const asg = assignmentMap[st.id] || null;
       const studentSchemeItems = asg?.fee_scheme_id ? (schemeItemsMap[asg.fee_scheme_id] || {}) : {};
       const studentAdjustments = adjustmentMap[st.id] || {};
+      const prevInfo = prevArrearsMap[st.id] || { total: 0, count: 0, items: [] };
 
       const cells = {};
 
@@ -2051,47 +2450,30 @@ class BillsService {
 
         const billKey = `${st.id}_${col.fee_type_id}_${col.period_month || 0}`;
         const bill = billsMap[billKey] || null;
-        const ppdbBill = ppdbMap[`${st.id}_${col.fee_type_id}`];
+        const ppdbBill = ppdbMap[`${st.id}_${col.fee_type_id}`] || null;
 
-        if (!bill && ppdbBill && !col.period_month) {
-          const ppdbPaid = parseFloat(ppdbBill.paid_amount || 0);
-          const ppdbAmt = parseFloat(ppdbBill.amount || 0);
-          const ppdbIsPaid = ppdbBill.status === 'paid' || (ppdbAmt > 0 && ppdbPaid >= ppdbAmt);
-          const ppdbIsPartiallyPaid = ppdbBill.status === 'partially_paid' || (ppdbPaid > 0 && ppdbPaid < ppdbAmt);
+        // Tentukan nilai terpadu (Unified Synchronization)
+        const effectiveBillDate = formatDateOnly(bill?.bill_date) || formatDateOnly(ppdbBill?.bill_date) || formatDateOnly(bill?.created_at) || formatDateOnly(ppdbBill?.created_at);
+        const fallbackDueDate = `${col.period_year}-${col.period_month ? String(col.period_month).padStart(2, '0') : '10'}-10`;
+        const effectiveDueDate = formatDateOnly(bill?.due_date) || formatDateOnly(ppdbBill?.due_date) || fallbackDueDate;
+        
+        const effectiveAmount = bill ? parseFloat(bill.amount) : (ppdbBill ? parseFloat(ppdbBill.amount) : baseAmount);
+        const effectivePaid = Math.max(parseFloat(bill?.paid_amount || 0), parseFloat(ppdbBill?.paid_amount || 0));
+        const effectiveDiscount = bill ? parseFloat(bill.discount_amount || 0) : (ppdbBill ? parseFloat(ppdbBill.discount_amount || 0) : 0);
+        const effectiveDiscountReason = bill?.discount_reason || ppdbBill?.discount_reason || null;
+        const effectiveNotes = bill?.edit_reason || ppdbBill?.notes || (ppdbBill ? '[PPDB]' : null);
 
-          cells[col.key] = {
-            key: col.key,
-            fee_type_id: col.fee_type_id,
-            fee_type_name: col.fee_type_name,
-            fee_type_code: col.fee_type_code,
-            billing_pattern: col.billing_pattern,
-            period_month: col.period_month,
-            period_year: col.period_year,
-            month_label: col.month_label,
-            base_amount: baseAmount || ppdbAmt,
-            is_custom: isCustom,
-            custom_note: customNote,
-            bill_id: `PPDB-${ppdbBill.id}`,
-            status: ppdbBill.status,
-            is_published: true,
-            is_paid: ppdbIsPaid,
-            is_partially_paid: ppdbIsPartiallyPaid,
-            is_overdue: false,
-            bill_date: formatDateOnly(ppdbBill.created_at),
-            due_date: formatDateOnly(ppdbBill.created_at) || `${col.period_year}-${col.period_month ? String(col.period_month).padStart(2, '0') : '10'}-10`,
-            amount: ppdbAmt,
-            paid_amount: ppdbPaid,
-            discount_amount: parseFloat(ppdbBill.discount_amount || 0),
-            discount_reason: ppdbBill.discount_reason || null,
-            notes: ppdbBill.notes ? `[PPDB] ${ppdbBill.notes}` : 'Dibayar pada masa PPDB (TA Sebelumnya)'
-          };
-          return;
+        let effectiveStatus = 'not_published';
+        if (bill) {
+          effectiveStatus = bill.status;
+        } else if (ppdbBill) {
+          effectiveStatus = ppdbBill.status;
         }
 
-        const isPublished = Boolean(bill && bill.status !== 'draft');
-        const isPaid = Boolean(bill && bill.status === 'paid');
-        const isPartiallyPaid = Boolean(bill && bill.status === 'partially_paid');
-        const isOverdue = Boolean(bill && bill.status === 'unpaid' && bill.due_date && new Date(bill.due_date) < new Date());
+        const isPublished = Boolean((bill && bill.status !== 'draft') || (ppdbBill && ppdbBill.status !== 'draft'));
+        const isPaid = Boolean(effectiveStatus === 'paid' || (effectiveAmount > 0 && effectivePaid >= effectiveAmount));
+        const isPartiallyPaid = Boolean(effectiveStatus === 'partially_paid' || (effectivePaid > 0 && effectivePaid < effectiveAmount));
+        const isOverdue = Boolean(effectiveStatus === 'unpaid' && effectiveDueDate && new Date(effectiveDueDate) < new Date());
 
         cells[col.key] = {
           key: col.key,
@@ -2102,22 +2484,22 @@ class BillsService {
           period_month: col.period_month,
           period_year: col.period_year,
           month_label: col.month_label,
-          base_amount: baseAmount,
+          base_amount: baseAmount || effectiveAmount,
           is_custom: isCustom,
           custom_note: customNote,
-          bill_id: bill ? bill.id : null,
-          status: bill ? bill.status : 'not_published',
+          bill_id: bill ? bill.id : (ppdbBill ? `PPDB-${ppdbBill.id}` : null),
+          status: isPaid ? 'paid' : (isPartiallyPaid ? 'partially_paid' : effectiveStatus),
           is_published: isPublished,
           is_paid: isPaid,
           is_partially_paid: isPartiallyPaid,
           is_overdue: isOverdue,
-          bill_date: formatDateOnly(bill?.bill_date),
-          due_date: formatDateOnly(bill?.due_date) || `${col.period_year}-${col.period_month ? String(col.period_month).padStart(2, '0') : '10'}-10`,
-          amount: bill ? parseFloat(bill.amount) : baseAmount,
-          paid_amount: bill ? parseFloat(bill.paid_amount || 0) : 0,
-          discount_amount: bill ? parseFloat(bill.discount_amount || 0) : 0,
-          discount_reason: bill?.discount_reason || null,
-          notes: bill?.edit_reason || null
+          bill_date: effectiveBillDate,
+          due_date: effectiveDueDate,
+          amount: effectiveAmount,
+          paid_amount: effectivePaid,
+          discount_amount: effectiveDiscount,
+          discount_reason: effectiveDiscountReason,
+          notes: effectiveNotes
         };
       });
 
@@ -2130,6 +2512,9 @@ class BillsService {
         class_id: st.class_id || st.class_group_id || null,
         class_name: st.class_name || st.class_group_name || st.rombel_name || 'Belum Ada Rombel',
         scheme_name: asg?.scheme_name || (asg?.is_custom ? 'Penetapan Khusus' : 'Belum Ditetapkan'),
+        previous_arrears: prevInfo.total,
+        previous_arrears_count: prevInfo.count,
+        previous_arrears_items: prevInfo.items,
         cells
       };
     });
@@ -2137,17 +2522,21 @@ class BillsService {
     let totalPublished = 0;
     let totalUnpaidAR = 0;
     let totalPaid = 0;
+    let totalPreviousArrears = 0;
 
-    existingBills.forEach(b => {
-      if (b.status !== 'draft') {
-        totalPublished++;
-        const amt = parseFloat(b.amount || 0);
-        const paid = parseFloat(b.paid_amount || 0);
-        totalPaid += paid;
-        if (b.status === 'unpaid' || b.status === 'partially_paid') {
-          totalUnpaidAR += (amt - paid);
+    rows.forEach(r => {
+      totalPreviousArrears += (r.previous_arrears || 0);
+      Object.values(r.cells || {}).forEach(c => {
+        if (c.is_published) {
+          totalPublished++;
+          const amt = parseFloat(c.amount || 0);
+          const paid = parseFloat(c.paid_amount || 0);
+          totalPaid += paid;
+          if (c.status === 'unpaid' || c.status === 'partially_paid') {
+            totalUnpaidAR += Math.max(0, amt - paid);
+          }
         }
-      }
+      });
     });
 
     return {
@@ -2165,7 +2554,8 @@ class BillsService {
         total_columns: columns.length,
         total_published_bills: totalPublished,
         total_unpaid_ar: totalUnpaidAR,
-        total_paid: totalPaid
+        total_paid: totalPaid,
+        total_previous_arrears: totalPreviousArrears
       }
     };
   }
@@ -2211,21 +2601,39 @@ class BillsService {
     return db.transaction(async (trx) => {
       let finalBillId = null;
 
+      // Cek apakah ada record ppdb_registration_bills untuk santri ini
+      const matchingPpdb = await trx('ppdb_registration_bills')
+        .where(b => {
+          b.where({ linked_student_id: studentId, fee_type_id: feeTypeId })
+           .orWhere({ psb_registrant_ref_id: studentId, fee_type_id: feeTypeId });
+        })
+        .where('is_installment_parent', false)
+        .whereNot('status', 'cancelled')
+        .first();
+
+      const initialPaidAmount = matchingPpdb ? parseFloat(matchingPpdb.paid_amount || 0) : 0.00;
+      const initialStatus = (initialPaidAmount >= amount && amount > 0) ? 'paid' : (initialPaidAmount > 0 ? 'partially_paid' : 'unpaid');
+
       if (existing) {
         finalBillId = existing.id;
+        const currentPaid = parseFloat(existing.paid_amount || 0) || initialPaidAmount;
+        const resolvedStatus = (currentPaid >= amount && amount > 0) ? 'paid' : (currentPaid > 0 ? 'partially_paid' : 'unpaid');
+
         await trx('student_bills')
           .where({ id: existing.id })
           .update({
             academic_year_id: academicYearId,
             amount: amount,
+            paid_amount: currentPaid,
             bill_date: billDate,
             due_date: dueDate,
             discount_amount: discountAmount,
             discount_reason: discountReason,
-            status: 'unpaid',
+            status: resolvedStatus,
             published_at: trx.fn.now(),
             published_by: userId,
-            edit_reason: notes
+            edit_reason: notes,
+            updated_at: trx.fn.now()
           });
       } else {
         const [insertedId] = await trx('student_bills').insert({
@@ -2236,18 +2644,27 @@ class BillsService {
           period_month: periodMonth,
           period_year: periodYear,
           amount: amount,
-          paid_amount: 0.00,
+          paid_amount: initialPaidAmount,
           discount_amount: discountAmount,
           discount_reason: discountReason,
           bill_date: billDate,
           due_date: dueDate,
           version: 1,
-          status: 'unpaid',
+          status: initialStatus,
           published_at: trx.fn.now(),
           published_by: userId,
-          edit_reason: notes
+          edit_reason: notes,
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now()
         });
         finalBillId = insertedId;
+      }
+
+      // Sinkronisasikan ke ppdb_registration_bills jika ada
+      try {
+        await crossModuleServices.syncStudentBillToPpdbBill(finalBillId, trx);
+      } catch (syncErr) {
+        console.warn('[publishCellBill] Warning syncStudentBillToPpdbBill:', syncErr.message);
       }
 
       // Record Piutang Journal (student_bill_issued) jika amount > 0
@@ -2422,6 +2839,18 @@ class BillsService {
           continue;
         }
 
+        const matchingPpdb = await trx('ppdb_registration_bills')
+          .where(b => {
+            b.where({ linked_student_id: st.id, fee_type_id: feeTypeId })
+             .orWhere({ psb_registrant_ref_id: st.id, fee_type_id: feeTypeId });
+          })
+          .where('is_installment_parent', false)
+          .whereNot('status', 'cancelled')
+          .first();
+
+        const initialPaid = matchingPpdb ? parseFloat(matchingPpdb.paid_amount || 0) : 0.00;
+        const initialStatus = (initialPaid >= baseAmount && baseAmount > 0) ? 'paid' : (initialPaid > 0 ? 'partially_paid' : 'unpaid');
+
         const [insertedId] = await trx('student_bills').insert({
           school_unit_id: targetUnit,
           student_id: st.id,
@@ -2430,17 +2859,26 @@ class BillsService {
           period_month: periodMonth,
           period_year: periodYear,
           amount: baseAmount,
-          paid_amount: 0.00,
+          paid_amount: initialPaid,
           discount_amount: discountAmount,
           discount_reason: discountReason,
           bill_date: billDate,
           due_date: dueDate,
           version: 1,
-          status: 'unpaid',
+          status: initialStatus,
           published_at: trx.fn.now(),
           published_by: userId,
-          edit_reason: notes
+          edit_reason: notes,
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now()
         });
+
+        // Sinkronisasikan ke ppdb_registration_bills jika ada
+        try {
+          await crossModuleServices.syncStudentBillToPpdbBill(insertedId, trx);
+        } catch (syncErr) {
+          console.warn('[publishBatchColumnBills] Warning syncStudentBillToPpdbBill:', syncErr.message);
+        }
 
         publishedIds.push(insertedId);
         publishedCount++;
@@ -2770,6 +3208,269 @@ class BillsService {
         ? `Selesai: ${totalProcessed} data diproses (${newCount} baru, ${updatedCount} ditimpa), ${unchangedCount} tidak berubah, ${skippedZeroCount} nominal 0 dilewati.` 
         : `Selesai: ${totalProcessed} data draf disimpan (${newCount} baru, ${updatedCount} ditimpa), ${unchangedCount} tidak berubah, ${skippedZeroCount} nominal 0 dilewati.`
     };
+  }
+
+  async getAlumniBills(schoolUnitId, query = {}) {
+    const targetUnit = isUnit(schoolUnitId) ? schoolUnitId : null;
+    const search = query.search ? String(query.search).trim() : '';
+    const cohortId = query.cohort_id ? Number(query.cohort_id) : null;
+    const academicYearId = query.academic_year_id ? Number(query.academic_year_id) : null;
+    const statusFilter = query.status || 'with_arrears'; // 'with_arrears' | 'all' | 'unpaid' | 'partially_paid' | 'paid'
+
+    // 1. Ambil daftar santri alumni dari crossModuleServices sesuai konteks Tahun Ajaran
+    const alumniStudents = await crossModuleServices.getAlumniStudents(targetUnit, {
+      academic_year_id: academicYearId,
+      cohort_id: cohortId,
+      search: search
+    });
+
+    const alumniIds = alumniStudents.map(a => a.id);
+    if (alumniIds.length === 0) {
+      return {
+        summary: {
+          total_alumni: 0,
+          total_alumni_with_arrears: 0,
+          total_arrears_amount: 0,
+          total_paid_amount: 0,
+          total_bills_amount: 0
+        },
+        cohorts: [],
+        alumni: []
+      };
+    }
+
+    // 2. Ambil seluruh tagihan student_bills untuk alumni terkait
+    let billsQuery = db('student_bills')
+      .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
+      .whereIn('student_bills.student_id', alumniIds)
+      .whereNot('student_bills.status', 'cancelled')
+      .select(
+        'student_bills.*',
+        'fee_types.name as fee_type_name',
+        'fee_types.code as fee_type_code',
+        'fee_types.billing_pattern'
+      );
+    if (targetUnit) {
+      billsQuery = billsQuery.where('student_bills.school_unit_id', targetUnit);
+    }
+    const rawBills = await billsQuery.orderBy('student_bills.id', 'asc');
+
+    // 2b. Ambil penyesuaian biaya / tunggakan manual dari student_fee_adjustments untuk alumni terkait
+    let adjQuery = db('student_fee_adjustments')
+      .join('fee_types', 'student_fee_adjustments.fee_type_id', 'fee_types.id')
+      .whereIn('student_fee_adjustments.student_id', alumniIds)
+      .where('student_fee_adjustments.status', 'approved')
+      .select(
+        'student_fee_adjustments.*',
+        'fee_types.name as fee_type_name',
+        'fee_types.code as fee_type_code',
+        'fee_types.billing_pattern'
+      );
+    if (targetUnit) {
+      adjQuery = adjQuery.where('student_fee_adjustments.school_unit_id', targetUnit);
+    }
+    const rawAdjustments = await adjQuery.orderBy('student_fee_adjustments.id', 'asc');
+
+    // Ambil info tahun ajaran untuk display
+    const allAYs = await crossModuleServices.listAcademicYears().catch(() => []);
+    const ayMap = {};
+    allAYs.forEach(y => { ayMap[y.id] = y.name; });
+
+    // Petakan tagihan per alumni
+    const alumniBillsMap = {};
+    rawBills.forEach(b => {
+      if (!alumniBillsMap[b.student_id]) alumniBillsMap[b.student_id] = [];
+      const amt = parseFloat(b.amount || 0);
+      const disc = parseFloat(b.discount_amount || 0);
+      const paid = parseFloat(b.paid_amount || 0);
+      const remaining = Math.max(0, amt - disc - paid);
+
+      alumniBillsMap[b.student_id].push({
+        id: b.id,
+        fee_type_id: b.fee_type_id,
+        fee_type_name: b.fee_type_name,
+        fee_type_code: b.fee_type_code,
+        academic_year_id: b.academic_year_id,
+        academic_year_name: ayMap[b.academic_year_id] || (b.period_year ? `T.A. ${b.period_year}` : '-'),
+        period_month: b.period_month,
+        period_year: b.period_year,
+        bill_date: formatDateOnly(b.bill_date) || formatDateOnly(b.created_at),
+        due_date: formatDateOnly(b.due_date),
+        amount: amt,
+        discount_amount: disc,
+        paid_amount: paid,
+        remaining_amount: remaining,
+        status: remaining === 0 && amt > 0 ? 'paid' : (paid > 0 ? 'partially_paid' : b.status),
+        notes: b.edit_reason || b.notes || null
+      });
+    });
+
+    // Integrasikan tunggakan manual dari student_fee_adjustments yang belum diterbitkan ke student_bills
+    rawAdjustments.forEach(adj => {
+      let adjAmount = 0;
+      if (adj.adjustment_kind === 'custom_amount' || adj.adjustment_kind === 'override_amount') {
+        adjAmount = parseFloat(adj.override_amount || adj.custom_amount || 0);
+      } else if (adj.adjustment_kind === 'fixed_amount') {
+        adjAmount = parseFloat(adj.fixed_amount || adj.custom_amount || 0);
+      } else if (adj.override_amount) {
+        adjAmount = parseFloat(adj.override_amount);
+      }
+
+      if (adjAmount > 0) {
+        const alreadyBilled = rawBills.some(b => b.student_id === adj.student_id && b.fee_type_id === adj.fee_type_id && !['cancelled', 'written_off'].includes(b.status));
+        if (!alreadyBilled) {
+          if (!alumniBillsMap[adj.student_id]) alumniBillsMap[adj.student_id] = [];
+          alumniBillsMap[adj.student_id].push({
+            id: `manual-adj-${adj.id}`,
+            fee_type_id: adj.fee_type_id,
+            fee_type_name: adj.fee_type_name || 'Tunggakan Tahun Ajaran Sebelumnya',
+            fee_type_code: adj.fee_type_code || 'arrears_previous_year',
+            academic_year_id: null,
+            academic_year_name: 'Tunggakan TP Sebelumnya',
+            period_month: null,
+            period_year: null,
+            bill_date: formatDateOnly(adj.approved_at || adj.created_at),
+            due_date: null,
+            amount: adjAmount,
+            discount_amount: 0,
+            paid_amount: 0,
+            remaining_amount: adjAmount,
+            status: 'unpaid',
+            is_manual: true,
+            notes: adj.reason || 'Tunggakan tahun ajaran sebelumnya (Input Manual)'
+          });
+        }
+      }
+    });
+
+    // 3. Bangun data alumni & kalkulasi akumulasi
+    let totalAlumniWithArrears = 0;
+    let totalArrearsAmount = 0;
+    let totalPaidAmount = 0;
+    let totalBillsAmount = 0;
+
+    let alumniList = alumniStudents.map(st => {
+      const studentBills = alumniBillsMap[st.id] || [];
+      const totalBills = studentBills.reduce((acc, b) => acc + b.amount, 0);
+      const totalPaid = studentBills.reduce((acc, b) => acc + b.paid_amount, 0);
+      const totalRemaining = studentBills.reduce((acc, b) => acc + b.remaining_amount, 0);
+      const unpaidBillsCount = studentBills.filter(b => b.remaining_amount > 0).length;
+
+      let status = 'no_bills';
+      if (studentBills.length > 0) {
+        if (totalRemaining === 0) status = 'paid';
+        else if (totalPaid > 0) status = 'partially_paid';
+        else status = 'unpaid';
+      }
+
+      if (totalRemaining > 0) {
+        totalAlumniWithArrears++;
+        totalArrearsAmount += totalRemaining;
+      }
+      totalPaidAmount += totalPaid;
+      totalBillsAmount += totalBills;
+
+      // Ringkasan komponen pos yang menunggak
+      const arrearsFeeTypes = [...new Set(studentBills.filter(b => b.remaining_amount > 0).map(b => b.fee_type_name))];
+
+      return {
+        ...st,
+        total_bills: totalBills,
+        total_paid: totalPaid,
+        total_remaining: totalRemaining,
+        unpaid_bills_count: unpaidBillsCount,
+        status,
+        has_arrears: totalRemaining > 0,
+        arrears_fee_types: arrearsFeeTypes,
+        bills: studentBills
+      };
+    });
+
+    // 4. Filter status jika diminta
+    if (statusFilter === 'with_arrears' || statusFilter === 'unpaid_all') {
+      alumniList = alumniList.filter(a => a.total_remaining > 0);
+    } else if (statusFilter === 'unpaid') {
+      alumniList = alumniList.filter(a => a.status === 'unpaid');
+    } else if (statusFilter === 'partially_paid') {
+      alumniList = alumniList.filter(a => a.status === 'partially_paid');
+    } else if (statusFilter === 'paid') {
+      alumniList = alumniList.filter(a => a.status === 'paid' || (!a.has_arrears && a.total_bills > 0));
+    }
+
+    // Ambil daftar unik cohort/angkatan untuk filter dropdown
+    const cohorts = await crossModuleServices.listCohorts(targetUnit).catch(() => []);
+
+    return {
+      summary: {
+        total_alumni: alumniStudents.length,
+        total_alumni_with_arrears: totalAlumniWithArrears,
+        total_arrears_amount: totalArrearsAmount,
+        total_paid_amount: totalPaidAmount,
+        total_bills_amount: totalBillsAmount
+      },
+      cohorts,
+      alumni: alumniList
+    };
+  }
+
+  async createAlumniManualBill(schoolUnitId, data, userId = null) {
+    const studentId = Number(data.student_id);
+    const amount = parseFloat(data.amount || 0);
+    if (!studentId || isNaN(amount) || amount <= 0) {
+      const err = new Error('ID Santri Alumni dan Nominal Tunggakan (lebih dari 0) wajib diisi');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const targetUnit = isUnit(schoolUnitId) ? schoolUnitId : 1;
+
+    // Cari fee type Tunggakan Tahun Ajaran Sebelumnya atau yang ditentukan
+    let feeTypeId = data.fee_type_id ? Number(data.fee_type_id) : null;
+    if (!feeTypeId) {
+      const defaultArrearsFt = await db('fee_types')
+        .where({ code: 'arrears_previous_year' })
+        .orWhere('name', 'like', '%Tunggakan Tahun Ajaran Sebelumnya%')
+        .first();
+      feeTypeId = defaultArrearsFt ? defaultArrearsFt.id : 11;
+    }
+
+    const billDate = data.bill_date || new Date().toISOString().slice(0, 10);
+    const dueDate = data.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const academicYearId = data.academic_year_id ? Number(data.academic_year_id) : null;
+    const periodYear = data.period_year ? Number(data.period_year) : new Date().getFullYear();
+    const notes = data.notes || 'Pencatatan tunggakan manual alumni';
+
+    const [id] = await db('student_bills').insert({
+      school_unit_id: targetUnit,
+      student_id: studentId,
+      fee_type_id: feeTypeId,
+      academic_year_id: academicYearId,
+      period_month: null,
+      period_year: periodYear,
+      amount: amount,
+      paid_amount: 0.00,
+      discount_amount: 0.00,
+      due_date: dueDate,
+      bill_date: billDate,
+      version: 1,
+      status: 'unpaid',
+      edit_reason: notes,
+      published_at: db.fn.now(),
+      published_by: userId
+    });
+
+    const bill = await db('student_bills').where({ id }).first();
+
+    await logFinanceAudit({
+      schoolUnitId: targetUnit,
+      userId,
+      action: 'CREATE_ALUMNI_MANUAL_BILL',
+      entityType: 'student_bills',
+      entityId: id,
+      dataAfter: bill
+    });
+
+    return bill;
   }
 }
 

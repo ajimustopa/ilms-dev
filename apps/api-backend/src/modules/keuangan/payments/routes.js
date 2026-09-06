@@ -15,6 +15,12 @@ router.post(
   requirePermission('keuangan.payments.record'),
   controller.recordBillPayment
 );
+router.get(
+  '/bill-payments',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.listBillPayments
+);
 
 // 1.1 Rekap Seluruh Penerimaan Kas Terpadu (Siswa, PPDB, Sumber Lain)
 router.get(

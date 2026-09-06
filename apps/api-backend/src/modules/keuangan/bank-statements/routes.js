@@ -28,6 +28,13 @@ router.post(
   controller.importBankStatements
 );
 
+router.post(
+  '/bank-statements/bulk-delete',
+  verifyJwt,
+  requirePermission('keuangan.bank_statement.manage', 'keuangan.payments.delete', 'keuangan.master.manage'),
+  controller.bulkDeleteBankStatements
+);
+
 router.get(
   '/bank-statements/:id/reconcile-candidates',
   verifyJwt,

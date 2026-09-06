@@ -77,31 +77,77 @@ async function listAcademicYears(query = {}) {
  * @param {number|string} studentId
  * @returns {Promise<Object|null>}
  */
-async function getStudent(studentId) {
+async function getStudent(studentId, academicYearId = null) {
   const id = Number(studentId);
   if (!id) return null;
 
   try {
     const student = await dbAkademik('students')
       .where({ id })
-      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id')
+      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id', 'enrolled_at')
       .first()
       .timeout(5000, { cancel: true });
 
     if (!student) return null;
 
-    // Ambil rombel dan grade level aktif saat ini
-    const activeEnrollment = await dbAkademik('student_class_enrollments')
+    let matchingAyIds = [];
+    let currentAyObj = null;
+    if (academicYearId && academicYearId !== 'all') {
+      try {
+        const ayRow = await dbAkademik('academic_years').where('id', Number(academicYearId)).first();
+        if (ayRow) {
+          currentAyObj = ayRow;
+          const sameAys = await dbAkademik('academic_years').where('name', ayRow.name);
+          matchingAyIds = sameAys.map(a => a.id);
+        }
+      } catch (e) {
+        console.warn('[getStudent] Could not resolve matching AY IDs:', e.message);
+      }
+    }
+
+    const enrollments = await dbAkademik('student_class_enrollments')
       .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
-      .where({ 'student_class_enrollments.student_id': id, 'student_class_enrollments.status': 'aktif' })
+      .where({ 'student_class_enrollments.student_id': id })
+      .where('class_groups.type', 'reguler')
       .select(
-        'class_groups.id as class_group_id',
+        'student_class_enrollments.class_group_id',
         'class_groups.name as class_group_name',
         'class_groups.grade_level_id',
-        'student_class_enrollments.academic_year_id'
+        'student_class_enrollments.academic_year_id',
+        'student_class_enrollments.status as enrollment_status'
       )
-      .first()
       .timeout(5000, { cancel: true });
+
+    let activeEnrollment = null;
+    if (matchingAyIds.length > 0) {
+      activeEnrollment = enrollments.find(e => matchingAyIds.includes(e.academic_year_id) && e.enrollment_status !== 'keluar');
+    } else {
+      activeEnrollment = enrollments.find(e => e.enrollment_status === 'aktif') || enrollments[0];
+    }
+
+    let className = activeEnrollment?.class_group_name || null;
+    if (!className) {
+      let isFutureStudent = false;
+      if (currentAyObj) {
+        const ayEndDate = currentAyObj.end_date ? new Date(currentAyObj.end_date) : null;
+        const enrolledDate = student.enrolled_at ? new Date(student.enrolled_at) : null;
+        if (enrolledDate && ayEndDate && enrolledDate > ayEndDate) {
+          isFutureStudent = true;
+        } else {
+          const hasFutureEnrollment = enrollments.some(e => e.academic_year_id > (currentAyObj.id || 0));
+          if (hasFutureEnrollment) isFutureStudent = true;
+        }
+      }
+      if (isFutureStudent) {
+        className = 'Calon Siswa Baru';
+      } else if (student.status === 'lulus') {
+        className = 'Alumni';
+      } else if (student.status === 'keluar') {
+        className = 'Keluar / Mutasi';
+      } else {
+        className = '-';
+      }
+    }
 
     return {
       id: student.id,
@@ -118,7 +164,7 @@ async function getStudent(studentId) {
       current_grade_level_id: activeEnrollment?.grade_level_id || 1,
       class_id: activeEnrollment?.class_group_id || null,
       current_class_id: activeEnrollment?.class_group_id || null,
-      class_name: activeEnrollment?.class_group_name || null,
+      class_name: className,
       academic_year_id: activeEnrollment?.academic_year_id || null
     };
   } catch (err) {
@@ -131,9 +177,10 @@ async function getStudent(studentId) {
  * Mendapatkan data batch Siswa dari modul Akademik beserta rombel aktifnya dalam 1 query batch
  * Menghilangkan anti-pattern N+1 query loop
  * @param {Array<number|string>} studentIds
+ * @param {number|string|null} academicYearId
  * @returns {Promise<Map<number, Object>>} Map keyed by student.id
  */
-async function getStudentsByIds(studentIds = []) {
+async function getStudentsByIds(studentIds = [], academicYearId = null) {
   if (!Array.isArray(studentIds) || studentIds.length === 0) return new Map();
   const validIds = [...new Set(studentIds.map(Number).filter(Boolean))];
   if (validIds.length === 0) return new Map();
@@ -141,32 +188,82 @@ async function getStudentsByIds(studentIds = []) {
   try {
     const students = await dbAkademik('students')
       .whereIn('id', validIds)
-      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id')
+      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id', 'enrolled_at')
       .timeout(10000, { cancel: true });
 
-    const enrollments = await dbAkademik('student_class_enrollments')
+    let matchingAyIds = [];
+    let currentAyObj = null;
+    if (academicYearId && academicYearId !== 'all') {
+      try {
+        const ayRow = await dbAkademik('academic_years').where('id', Number(academicYearId)).first();
+        if (ayRow) {
+          currentAyObj = ayRow;
+          const sameAys = await dbAkademik('academic_years').where('name', ayRow.name);
+          matchingAyIds = sameAys.map(a => a.id);
+        }
+      } catch (e) {
+        console.warn('[getStudentsByIds] Could not resolve matching AY IDs:', e.message);
+      }
+    }
+
+    const allEnrollments = await dbAkademik('student_class_enrollments')
       .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
       .whereIn('student_class_enrollments.student_id', validIds)
-      .where('student_class_enrollments.status', 'aktif')
+      .where('class_groups.type', 'reguler')
       .select(
         'student_class_enrollments.student_id',
         'class_groups.id as class_group_id',
         'class_groups.name as class_group_name',
         'class_groups.grade_level_id',
-        'student_class_enrollments.academic_year_id'
+        'student_class_enrollments.academic_year_id',
+        'student_class_enrollments.status as enrollment_status'
       )
       .timeout(10000, { cancel: true });
 
     const enrollmentMap = new Map();
-    enrollments.forEach(en => {
-      if (!enrollmentMap.has(en.student_id)) {
-        enrollmentMap.set(en.student_id, en);
+    validIds.forEach(sId => {
+      const studentEns = allEnrollments.filter(e => e.student_id === sId);
+      if (matchingAyIds.length > 0) {
+        const matched = studentEns.find(e => matchingAyIds.includes(e.academic_year_id) && e.enrollment_status !== 'keluar');
+        enrollmentMap.set(sId, matched || null);
+      } else {
+        const activeEn = studentEns.find(e => e.enrollment_status === 'aktif') || studentEns[0];
+        enrollmentMap.set(sId, activeEn || null);
       }
     });
 
     const resultMap = new Map();
     students.forEach(s => {
-      const activeEnrollment = enrollmentMap.get(s.id);
+      const matchedEnrollment = enrollmentMap.get(s.id);
+      let className = matchedEnrollment?.class_group_name || null;
+      let classId = matchedEnrollment?.class_group_id || null;
+      let gradeLevelId = matchedEnrollment?.grade_level_id || null;
+
+      if (!className) {
+        let isFutureStudent = false;
+        if (currentAyObj) {
+          const ayEndDate = currentAyObj.end_date ? new Date(currentAyObj.end_date) : null;
+          const enrolledDate = s.enrolled_at ? new Date(s.enrolled_at) : null;
+          if (enrolledDate && ayEndDate && enrolledDate > ayEndDate) {
+            isFutureStudent = true;
+          } else {
+            const studentEns = allEnrollments.filter(e => e.student_id === s.id);
+            const hasFutureEnrollment = studentEns.some(e => e.academic_year_id > (currentAyObj.id || 0));
+            if (hasFutureEnrollment) isFutureStudent = true;
+          }
+        }
+
+        if (isFutureStudent) {
+          className = 'Calon Siswa Baru';
+        } else if (s.status === 'lulus') {
+          className = 'Alumni';
+        } else if (s.status === 'keluar') {
+          className = 'Keluar / Mutasi';
+        } else {
+          className = '-';
+        }
+      }
+
       resultMap.set(s.id, {
         id: s.id,
         school_unit_id: s.satuan_pendidikan_id,
@@ -178,12 +275,12 @@ async function getStudentsByIds(studentIds = []) {
         status: s.status,
         user_id: s.user_id,
         cohort_id: s.cohort_id,
-        grade_level_id: activeEnrollment?.grade_level_id || 1,
-        current_grade_level_id: activeEnrollment?.grade_level_id || 1,
-        class_id: activeEnrollment?.class_group_id || null,
-        current_class_id: activeEnrollment?.class_group_id || null,
-        class_name: activeEnrollment?.class_group_name || null,
-        academic_year_id: activeEnrollment?.academic_year_id || null
+        grade_level_id: gradeLevelId || 1,
+        current_grade_level_id: gradeLevelId || 1,
+        class_id: classId,
+        current_class_id: classId,
+        class_name: className,
+        academic_year_id: matchedEnrollment?.academic_year_id || null
       });
     });
 
@@ -202,7 +299,7 @@ async function getStudentsByIds(studentIds = []) {
  */
 async function listClassGroups(schoolUnitId, academicYearId = null) {
   try {
-    let q = dbAkademik('class_groups');
+    let q = dbAkademik('class_groups').where('type', 'reguler');
     if (schoolUnitId) {
       q = q.where('satuan_pendidikan_id', Number(schoolUnitId));
     }
@@ -368,15 +465,13 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
     let targetYearIds = [];
     if (targetYearId) {
       targetYearIds.push(targetYearId);
-      // Jika mode semua unit / yayasan, sertakan seluruh ID tahun ajaran dengan nama yang sama (misal 2026/2027)
-      if (!targetUnitId) {
-        const refYear = await dbAkademik('academic_years').where({ id: targetYearId }).first();
-        if (refYear && refYear.name) {
-          const matchingYears = await dbAkademik('academic_years').where({ name: refYear.name });
-          matchingYears.forEach(y => {
-            if (!targetYearIds.includes(y.id)) targetYearIds.push(y.id);
-          });
-        }
+      // Cari seluruh ID tahun ajaran dengan nama yang sama (misal 2026/2027) agar sinkron lintas satuan pendidikan
+      const refYear = await dbAkademik('academic_years').where({ id: targetYearId }).first();
+      if (refYear && refYear.name) {
+        const matchingYears = await dbAkademik('academic_years').where({ name: refYear.name });
+        matchingYears.forEach(y => {
+          if (!targetYearIds.includes(y.id)) targetYearIds.push(y.id);
+        });
       }
     }
 
@@ -524,11 +619,12 @@ async function listClassGroups(query = {}) {
 async function listCohorts(query = {}) {
   try {
     let q = dbAkademik('cohorts');
-    if (query.satuan_pendidikan_id) {
-      q = q.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
+    const qObj = typeof query === 'object' && query !== null ? query : (query ? { satuan_pendidikan_id: query } : {});
+    if (qObj.satuan_pendidikan_id) {
+      q = q.where('satuan_pendidikan_id', qObj.satuan_pendidikan_id);
     }
-    if (query.year) {
-      q = q.where('year', query.year);
+    if (qObj.year) {
+      q = q.where('year', qObj.year);
     }
     const list = await q.select('id', 'satuan_pendidikan_id', 'name', 'year')
       .orderBy('year', 'desc')
@@ -1055,7 +1151,20 @@ async function onStudentPlaced(registrantId, studentId, targetAcademicYearId = n
     }
   }
 
-  console.log(`[Placement Hook] Berhasil menautkan ${updatedCount} tagihan PPDB (Registrant #${regId}) ke Siswa Aktif #${sId} (Auto-Assignment TA ${effectiveAyId}: ${createdAssignment ? 'Yes' : 'Existing'})`);
+  // 4. Sinkronisasikan seluruh tagihan PPDB siswa ke tabel student_bills
+  const ppdbBills = await dbKeuangan('ppdb_registration_bills')
+    .where({ psb_registrant_ref_id: regId, is_installment_parent: false })
+    .whereNot('status', 'cancelled');
+
+  for (const pb of ppdbBills) {
+    try {
+      await syncPpdbBillToStudentBill(pb, dbKeuangan);
+    } catch (sErr) {
+      console.warn(`[onStudentPlaced] Warning sync tagihan PPDB #${pb.id} ke student_bills:`, sErr.message);
+    }
+  }
+
+  console.log(`[Placement Hook] Berhasil menautkan & menyinkronkan ${updatedCount} tagihan PPDB (Registrant #${regId}) ke Siswa Aktif #${sId} (Auto-Assignment TA ${effectiveAyId}: ${createdAssignment ? 'Yes' : 'Existing'})`);
   return {
     registrant_id: regId,
     student_id: sId,
@@ -1063,6 +1172,319 @@ async function onStudentPlaced(registrantId, studentId, targetAcademicYearId = n
     linked_bills_count: updatedCount,
     fee_scheme_assigned: createdAssignment
   };
+}
+
+function formatDateOnly(d) {
+  if (!d) return null;
+  if (typeof d === 'string') {
+    const clean = d.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(clean)) return clean.slice(0, 10);
+    const parsed = new Date(clean);
+    if (!isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear();
+      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return clean;
+  }
+  if (d instanceof Date) {
+    if (isNaN(d.getTime())) return null;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+}
+
+/**
+ * Sinkronisasi Tagihan PPDB (ppdb_registration_bills) ke Tagihan Siswa (student_bills)
+ * Menjamin tanggal tagihan, jatuh tempo, nominal kotor/bersih, diskon, dan status lunas/terbayar 100% identik
+ */
+async function syncPpdbBillToStudentBill(ppdbBillOrId, dbTrx = null) {
+  const dbKeuangan = dbTrx || require('../../../config/db/keuangan');
+  let pb = typeof ppdbBillOrId === 'object' && ppdbBillOrId !== null ? ppdbBillOrId : null;
+  if (!pb || !pb.id) {
+    pb = await dbKeuangan('ppdb_registration_bills').where({ id: Number(ppdbBillOrId) }).first();
+  }
+  if (!pb) return null;
+
+  let sId = pb.linked_student_id ? Number(pb.linked_student_id) : null;
+  if (!sId && pb.psb_registrant_ref_id) {
+    try {
+      const std = await getStudent(pb.psb_registrant_ref_id);
+      if (std) {
+        sId = std.id;
+        await dbKeuangan('ppdb_registration_bills').where({ id: pb.id }).update({ linked_student_id: sId });
+      }
+    } catch (_) {}
+  }
+  if (!sId) return null;
+
+  const schoolUnitId = Number(pb.school_unit_id) || 1;
+  const academicYearId = Number(pb.target_academic_year_id || pb.academic_year_id || 1);
+  const feeTypeId = Number(pb.fee_type_id);
+  const billDate = formatDateOnly(pb.bill_date || pb.created_at);
+  const dueDate = formatDateOnly(pb.due_date || pb.created_at);
+  const amount = parseFloat(pb.amount || 0);
+  const paidAmount = parseFloat(pb.paid_amount || 0);
+  const discountAmount = parseFloat(pb.discount_amount || 0);
+  const discountReason = pb.discount_reason || null;
+  const status = pb.status || 'unpaid';
+  const notes = pb.notes ? `[PPDB] ${pb.notes}` : 'Tagihan Penerimaan Santri Baru (PPDB)';
+
+  const existing = await dbKeuangan('student_bills')
+    .where({
+      student_id: sId,
+      fee_type_id: feeTypeId
+    })
+    .whereNull('period_month')
+    .whereNot('status', 'cancelled')
+    .first();
+
+  if (existing) {
+    await dbKeuangan('student_bills')
+      .where({ id: existing.id })
+      .update({
+        school_unit_id: schoolUnitId,
+        academic_year_id: academicYearId,
+        amount: amount,
+        paid_amount: paidAmount,
+        discount_amount: discountAmount,
+        discount_reason: discountReason,
+        bill_date: billDate,
+        due_date: dueDate,
+        status: status,
+        edit_reason: notes,
+        updated_at: dbKeuangan.fn.now()
+      });
+    return dbKeuangan('student_bills').where({ id: existing.id }).first();
+  } else if (status !== 'cancelled') {
+    let periodYear = new Date().getFullYear();
+    if (pb.due_date) periodYear = new Date(pb.due_date).getFullYear();
+    else if (pb.bill_date) periodYear = new Date(pb.bill_date).getFullYear();
+
+    const [insertedId] = await dbKeuangan('student_bills').insert({
+      school_unit_id: schoolUnitId,
+      academic_year_id: academicYearId,
+      student_id: sId,
+      fee_type_id: feeTypeId,
+      period_month: null,
+      period_year: periodYear,
+      amount: amount,
+      paid_amount: paidAmount,
+      discount_amount: discountAmount,
+      discount_reason: discountReason,
+      bill_date: billDate,
+      due_date: dueDate,
+      version: 1,
+      status: status,
+      published_at: pb.created_at || dbKeuangan.fn.now(),
+      edit_reason: notes,
+      created_at: pb.created_at || dbKeuangan.fn.now(),
+      updated_at: dbKeuangan.fn.now()
+    });
+    return dbKeuangan('student_bills').where({ id: insertedId }).first();
+  }
+  return null;
+}
+
+/**
+ * Sinkronisasi Tagihan Siswa (student_bills) ke Tagihan PPDB (ppdb_registration_bills)
+ * Bila dilakukan perubahan/pengisian dari /keuangan/bills
+ */
+async function syncStudentBillToPpdbBill(studentBillOrId, dbTrx = null) {
+  const dbKeuangan = dbTrx || require('../../../config/db/keuangan');
+  let sb = typeof studentBillOrId === 'object' && studentBillOrId !== null ? studentBillOrId : null;
+  if (!sb || !sb.id) {
+    sb = await dbKeuangan('student_bills').where({ id: Number(studentBillOrId) }).first();
+  }
+  if (!sb) return null;
+
+  const sId = Number(sb.student_id);
+  const feeTypeId = Number(sb.fee_type_id);
+
+  const existingPpdb = await dbKeuangan('ppdb_registration_bills')
+    .where(b => {
+      b.where({ linked_student_id: sId, fee_type_id: feeTypeId })
+       .orWhere({ psb_registrant_ref_id: sId, fee_type_id: feeTypeId });
+    })
+    .where('is_installment_parent', false)
+    .whereNot('status', 'cancelled')
+    .first();
+
+  if (existingPpdb) {
+    const billDate = formatDateOnly(sb.bill_date || existingPpdb.bill_date || sb.created_at);
+    const dueDate = formatDateOnly(sb.due_date || existingPpdb.due_date);
+    const amount = parseFloat(sb.amount || 0);
+    const paidAmount = parseFloat(sb.paid_amount || existingPpdb.paid_amount || 0);
+    const discountAmount = parseFloat(sb.discount_amount || 0);
+    const discountReason = sb.discount_reason || null;
+    const status = sb.status;
+    const notes = sb.edit_reason || sb.notes || existingPpdb.notes || null;
+
+    await dbKeuangan('ppdb_registration_bills')
+      .where({ id: existingPpdb.id })
+      .update({
+        amount: amount,
+        paid_amount: paidAmount,
+        discount_amount: discountAmount,
+        discount_reason: discountReason,
+        bill_date: billDate,
+        due_date: dueDate,
+        status: status,
+        notes: notes,
+        updated_at: dbKeuangan.fn.now()
+      });
+
+    return dbKeuangan('ppdb_registration_bills').where({ id: existingPpdb.id }).first();
+  }
+  return null;
+}
+
+/**
+ * Mendapatkan daftar Siswa Alumni / Lulus dari modul Akademik
+ * Sesuai konteks Tahun Ajaran: Santri yang aktif di kelas pada tahun ajaran tersebut
+ * diklasifikasikan sebagai Siswa Aktif (Tab 1), dan hanya menjadi Alumni (Tab 2)
+ * pada tahun-tahun ajaran setelah kelulusannya.
+ * @param {number|string} schoolUnitId
+ * @param {Object} filters (academic_year_id, cohort_id, search)
+ * @returns {Promise<Array>}
+ */
+async function getAlumniStudents(schoolUnitId, filters = {}) {
+  try {
+    const targetUnitId = schoolUnitId && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0 ? Number(schoolUnitId) : null;
+    const targetAyId = filters.academic_year_id && filters.academic_year_id !== 'all' ? Number(filters.academic_year_id) : null;
+
+    let targetAy = null;
+    let targetAyIds = [];
+    if (targetAyId) {
+      targetAy = await dbAkademik('academic_years').where({ id: targetAyId }).first();
+      if (targetAy && targetAy.name) {
+        const matchingYears = await dbAkademik('academic_years').where({ name: targetAy.name });
+        targetAyIds = matchingYears.map(y => y.id);
+      } else if (targetAy) {
+        targetAyIds = [targetAy.id];
+      }
+    }
+
+    // Identifikasi siswa yang aktif / terdaftar dalam rombel pada Tahun Ajaran konteks
+    let activeStudentIdsInTargetAy = new Set();
+    if (targetAyIds.length > 0) {
+      const enrolledIds = await dbAkademik('student_class_enrollments')
+        .whereIn('academic_year_id', targetAyIds)
+        .whereNotIn('status', ['dibatalkan', 'batal'])
+        .pluck('student_id');
+      const histIds = await dbAkademik('student_class_history')
+        .whereIn('academic_year_id', targetAyIds)
+        .pluck('student_id');
+      activeStudentIdsInTargetAy = new Set([...enrolledIds, ...histIds]);
+    }
+
+    let q = dbAkademik('students')
+      .whereIn('students.status', ['lulus', 'alumni', 'keluar', 'mutasi', 'drop_out', 'non_aktif']);
+
+    if (targetUnitId) {
+      q = q.where('students.satuan_pendidikan_id', targetUnitId);
+    }
+    if (filters.cohort_id) {
+      q = q.where('students.cohort_id', Number(filters.cohort_id));
+    }
+    if (filters.search && String(filters.search).trim()) {
+      const s = String(filters.search).trim();
+      q = q.where(function() {
+        this.where('students.full_name', 'like', `%${s}%`)
+          .orWhere('students.nis', 'like', `%${s}%`)
+          .orWhere('students.nipd', 'like', `%${s}%`)
+          .orWhere('students.nisn', 'like', `%${s}%`);
+      });
+    }
+
+    const students = await q.select(
+      'students.id',
+      'students.satuan_pendidikan_id as school_unit_id',
+      'students.nis',
+      'students.nipd',
+      'students.nisn',
+      'students.full_name',
+      'students.gender',
+      'students.status as student_status',
+      'students.cohort_id',
+      'students.cohort_name',
+      'students.created_at'
+    ).orderBy('students.full_name', 'asc');
+
+    if (students.length === 0) return [];
+
+    const studentIds = students.map(s => s.id);
+
+    // Ambil riwayat kelas terakhir & tahun kelulusan
+    const histories = await dbAkademik('student_class_history')
+      .join('class_groups', 'student_class_history.class_group_id', 'class_groups.id')
+      .join('academic_years', 'student_class_history.academic_year_id', 'academic_years.id')
+      .whereIn('student_class_history.student_id', studentIds)
+      .select(
+        'student_class_history.student_id',
+        'student_class_history.class_group_id',
+        'student_class_history.academic_year_id',
+        'student_class_history.decision',
+        'class_groups.name as class_name',
+        'class_groups.grade_level_id',
+        'academic_years.name as academic_year_name',
+        'academic_years.start_date'
+      )
+      .orderBy('academic_years.start_date', 'desc');
+
+    const lastClassMap = {};
+    histories.forEach(h => {
+      if (!lastClassMap[h.student_id]) {
+        lastClassMap[h.student_id] = h;
+      }
+    });
+
+    return students.filter(st => {
+      // 1. Jika pada tahun ajaran target siswa masih aktif di rombel kelas, jangan masukkan ke alumni/keluar (karena berada di Tab 1 Tagihan Siswa Aktif)
+      if (activeStudentIdsInTargetAy.has(st.id)) {
+        return false;
+      }
+      // 2. Jika tahun ajaran kelulusan terjadi SETELAH atau SAMA DENGAN tahun ajaran target, pada tahun tersebut siswa belum lulus
+      if (targetAy && targetAy.start_date) {
+        const last = lastClassMap[st.id];
+        if (last && last.start_date && new Date(last.start_date) >= new Date(targetAy.start_date)) {
+          return false;
+        }
+      }
+      return true;
+    }).map(st => {
+      const last = lastClassMap[st.id] || {};
+      const isExited = ['keluar', 'mutasi', 'drop_out', 'non_aktif'].includes(st.student_status);
+      let lastClass = last.class_name || (isExited ? 'Keluar / Mutasi' : 'Kelas 9 / 12');
+      let gradAyName = last.academic_year_name
+        ? (isExited ? `Keluar T.A. ${last.academic_year_name}` : `Lulus T.A. ${last.academic_year_name}`)
+        : (isExited ? 'Siswa Keluar / Non-Aktif' : 'Alumni');
+
+      return {
+        id: st.id,
+        school_unit_id: st.school_unit_id,
+        nis: st.nis || st.nipd || '-',
+        nipd: st.nipd || st.nis || '-',
+        nisn: st.nisn || '-',
+        full_name: st.full_name,
+        gender: st.gender,
+        student_status: st.student_status,
+        cohort_id: st.cohort_id,
+        cohort_name: st.cohort_name || '-',
+        last_class_id: last.class_group_id || null,
+        last_class_name: lastClass,
+        graduation_academic_year_id: last.academic_year_id || null,
+        graduation_academic_year_name: gradAyName
+      };
+    });
+  } catch (err) {
+    console.error('[Keuangan CrossModule] Gagal mengambil data santri alumni:', err.message);
+    throw new Error(`Gagal terhubung ke data Akademik (Alumni): ${err.message}`);
+  }
 }
 
 module.exports = {
@@ -1076,6 +1498,7 @@ module.exports = {
   getAllActiveStudents,
   getStudentsByClass,
   getStudentsByAcademicYear,
+  getAlumniStudents,
   listClassGroups,
   listCohorts,
   listGradeLevels,
@@ -1085,6 +1508,10 @@ module.exports = {
   listWorkPlanPrograms,
   getPsbRegistrant,
   listPsbRegistrants,
-  onStudentPlaced
+  onStudentPlaced,
+  syncPpdbBillToStudentBill,
+  syncStudentBillToPpdbBill,
+  formatDateOnly
 };
+
 

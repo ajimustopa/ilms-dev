@@ -5,12 +5,21 @@ const billsService = require('./service');
 
 class BillsController {
   getSchoolUnitId(req) {
-    return req.headers['x-school-unit-id'] ||
-           req.query.school_unit_id ||
-           req.params.school_unit_id ||
-           req.body?.school_unit_id ||
-           req.user?.school_units?.[0]?.id ||
-           1;
+    const raw = req.headers['x-school-unit-id'] ||
+                req.query.school_unit_id ||
+                req.params.school_unit_id ||
+                req.body?.school_unit_id ||
+                req.user?.school_units?.[0]?.id ||
+                1;
+    if (typeof raw === 'string') {
+      const lower = raw.toLowerCase().trim();
+      if (lower === 'smp') return 1;
+      if (lower === 'sma') return 2;
+      if (lower === 'all' || lower === 'foundation') return null;
+      const num = parseInt(raw, 10);
+      if (!isNaN(num)) return num;
+    }
+    return raw;
   }
 
   previewBillGeneration = async (req, res, next) => {
@@ -237,6 +246,22 @@ class BillsController {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await billsService.importColumnBills(schoolUnitId, req.body, req.user?.id);
       res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getAlumniBills = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.getAlumniBills(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Daftar tagihan alumni berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  createAlumniManualBill = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await billsService.createAlumniManualBill(schoolUnitId, req.body, req.user?.id);
+      res.status(201).json({ success: true, data, message: 'Tunggakan manual alumni berhasil dicatat', errors: null });
     } catch (err) { next(err); }
   };
 }

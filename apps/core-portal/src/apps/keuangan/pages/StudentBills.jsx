@@ -57,7 +57,13 @@ import {
   Save,
   FileUp,
   FileDown,
-  HelpCircle
+  HelpCircle,
+  GraduationCap,
+  CreditCard,
+  Plus,
+  Phone,
+  Share2,
+  Wallet
 } from 'lucide-react';
 
 export default function StudentBills() {
@@ -67,7 +73,7 @@ export default function StudentBills() {
   // ------------------------------------------------------------
   // 1. GLOBAL CONTEXT & TABS
   // ------------------------------------------------------------
-  const [activeTab, setActiveTab] = useState('matrix'); // 'matrix' | 'history' | 'reminders'
+  const [activeTab, setActiveTab] = useState('matrix'); // 'matrix' | 'alumni' | 'history' | 'reminders'
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(() => {
     try {
@@ -80,6 +86,7 @@ export default function StudentBills() {
   const [classGroups, setClassGroups] = useState([]);
   const [feeTypes, setFeeTypes] = useState([]);
   const [coasList, setCoasList] = useState([]);
+  const [cashAccounts, setCashAccounts] = useState([]);
   const [transactionRules, setTransactionRules] = useState([]);
 
   // ------------------------------------------------------------
@@ -90,6 +97,47 @@ export default function StudentBills() {
   const [matrixFilterClassId, setMatrixFilterClassId] = useState('');
   const [matrixSearch, setMatrixSearch] = useState('');
   const [selectedRowStudentIds, setSelectedRowStudentIds] = useState(new Set());
+  const [matrixSortConfig, setMatrixSortConfig] = useState({ key: 'name', direction: 'asc' });
+
+  // ------------------------------------------------------------
+  // 2.5 TAB 2: TAGIHAN PEMBAYARAN ALUMNI STATE
+  // ------------------------------------------------------------
+  const [alumniData, setAlumniData] = useState({ summary: {}, cohorts: [], alumni: [] });
+  const [alumniLoading, setAlumniLoading] = useState(false);
+  const [alumniSearch, setAlumniSearch] = useState('');
+  const [alumniFilterCohortId, setAlumniFilterCohortId] = useState('');
+  const [alumniFilterStatus, setAlumniFilterStatus] = useState('with_arrears'); // 'with_arrears' | 'all' | 'unpaid' | 'partially_paid' | 'paid'
+  const [alumniSortConfig, setAlumniSortConfig] = useState({ key: 'total_remaining', direction: 'desc' });
+
+  // Modal Rincian Tagihan Alumni
+  const [selectedAlumnusDetail, setSelectedAlumnusDetail] = useState(null);
+  const [alumniDetailModalOpen, setAlumniDetailModalOpen] = useState(false);
+
+  // Modal Catat Tunggakan Manual Alumni
+  const [manualArrearModalOpen, setManualArrearModalOpen] = useState(false);
+  const [manualArrearForm, setManualArrearForm] = useState({
+    student_id: '',
+    fee_type_id: '',
+    academic_year_id: '',
+    period_year: new Date().getFullYear(),
+    amount: '',
+    bill_date: new Date().toISOString().slice(0, 10),
+    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    notes: ''
+  });
+  const [submittingManualArrear, setSubmittingManualArrear] = useState(false);
+
+  // Modal Bayar Tagihan Santri Alumni
+  const [payAlumniModalOpen, setPayAlumniModalOpen] = useState(false);
+  const [payingAlumnus, setPayingAlumnus] = useState(null);
+  const [alumniPaymentForm, setAlumniPaymentForm] = useState({
+    paid_at: new Date().toISOString().slice(0, 10),
+    payment_method: 'cash',
+    cash_account_id: '',
+    notes: '',
+    allocations: {}
+  });
+  const [submittingAlumniPayment, setSubmittingAlumniPayment] = useState(false);
 
   // Modal Penerbitan / Edit Sel Matrix
   const [cellModalOpen, setCellModalOpen] = useState(false);
@@ -176,6 +224,7 @@ export default function StudentBills() {
   const [reminderLogs, setReminderLogs] = useState([]);
   const [reminderLogsLoading, setReminderLogsLoading] = useState(false);
   const [reminderSearch, setReminderSearch] = useState('');
+  const [reminderSortConfig, setReminderSortConfig] = useState({ key: 'sent_at', direction: 'desc' });
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
   const [broadcastFilterMode, setBroadcastFilterMode] = useState('overdue'); // 'overdue' | 'unpaid_all' | 'selected'
   const [broadcastSelectedBillIds, setBroadcastSelectedBillIds] = useState([]);
@@ -186,7 +235,7 @@ export default function StudentBills() {
   const [sendingSingleReminderId, setSendingSingleReminderId] = useState(null);
 
   // ============================================================
-  // LOAD MASTER CONTEXT (Academic Years, Classes, Fee Types)
+  // LOAD MASTER CONTEXT (Academic Years, Classes, Fee Types, Cash Accounts)
   // ============================================================
   useEffect(() => {
     const fetchMasterContext = async () => {
@@ -196,12 +245,13 @@ export default function StudentBills() {
           ayParams.satuan_pendidikan_id = activeSchoolUnit.id;
         }
 
-        const [ayRes, clsRes, ftRes, coaRes, trRes] = await Promise.allSettled([
+        const [ayRes, clsRes, ftRes, coaRes, trRes, cashRes] = await Promise.allSettled([
           api.get('/akademik/academic-years', { params: ayParams }),
           api.get('/akademik/class-groups'),
           api.get('/keuangan/fee-types'),
           api.get('/keuangan/chart-of-accounts'),
-          api.get('/keuangan/transaction-account-mappings')
+          api.get('/keuangan/transaction-account-mappings'),
+          api.get('/keuangan/cash-accounts')
         ]);
 
         let yearsList = [];
@@ -257,6 +307,9 @@ export default function StudentBills() {
         if (trRes.status === 'fulfilled' && trRes.value.data?.data) {
           setTransactionRules(trRes.value.data.data);
         }
+        if (cashRes.status === 'fulfilled' && cashRes.value.data?.data) {
+          setCashAccounts(cashRes.value.data.data);
+        }
       } catch (err) {
         console.error('Error fetching master context:', err);
       }
@@ -300,6 +353,24 @@ export default function StudentBills() {
     }
   };
 
+  const fetchAlumniData = async () => {
+    setAlumniLoading(true);
+    try {
+      const params = {};
+      if (selectedAcademicYearId) params.academic_year_id = selectedAcademicYearId;
+      if (alumniFilterCohortId) params.cohort_id = alumniFilterCohortId;
+      if (alumniFilterStatus) params.status = alumniFilterStatus;
+      if (alumniSearch.trim()) params.search = alumniSearch.trim();
+
+      const res = await api.get('/keuangan/student-bills/alumni', { params });
+      setAlumniData(res.data?.data || { summary: {}, cohorts: [], alumni: [] });
+    } catch (err) {
+      console.error('Error loading alumni bills:', err);
+    } finally {
+      setAlumniLoading(false);
+    }
+  };
+
   const fetchHistoryBills = async () => {
     setHistoryLoading(true);
     try {
@@ -334,12 +405,14 @@ export default function StudentBills() {
   useEffect(() => {
     if (activeTab === 'matrix') {
       fetchMatrixData();
+    } else if (activeTab === 'alumni') {
+      fetchAlumniData();
     } else if (activeTab === 'history') {
       fetchHistoryBills();
     } else if (activeTab === 'reminders') {
       fetchReminderLogs();
     }
-  }, [activeTab, selectedAcademicYearId, matrixFilterClassId, historyFilterClassId, historyFilterFeeTypeId, historyFilterStatus]);
+  }, [activeTab, selectedAcademicYearId, matrixFilterClassId, alumniFilterCohortId, alumniFilterStatus, historyFilterClassId, historyFilterFeeTypeId, historyFilterStatus, activeSchoolUnit]);
 
   // Debounced search for matrix
   useEffect(() => {
@@ -349,6 +422,396 @@ export default function StudentBills() {
     }, 350);
     return () => clearTimeout(timer);
   }, [matrixSearch]);
+
+  // Debounced search for alumni
+  useEffect(() => {
+    if (activeTab !== 'alumni') return;
+    const timer = setTimeout(() => {
+      fetchAlumniData();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [alumniSearch]);
+
+  // ============================================================
+  // TAB 2: ALUMNI ACTIONS & HANDLERS
+  // ============================================================
+  const handleSortAlumni = (key) => {
+    setAlumniSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortedAlumniList = useMemo(() => {
+    let list = [...(alumniData.alumni || [])];
+    if (alumniSortConfig.key) {
+      list.sort((a, b) => {
+        let aVal = a[alumniSortConfig.key];
+        let bVal = b[alumniSortConfig.key];
+
+        if (['total_remaining', 'total_paid', 'total_bills', 'unpaid_bills_count'].includes(alumniSortConfig.key)) {
+          aVal = parseFloat(aVal || 0);
+          bVal = parseFloat(bVal || 0);
+        } else if (typeof aVal === 'string') {
+          return alumniSortConfig.direction === 'asc'
+            ? aVal.localeCompare(bVal || '')
+            : (bVal || '').localeCompare(aVal);
+        }
+
+        if (aVal < bVal) return alumniSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return alumniSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return list;
+  }, [alumniData.alumni, alumniSortConfig]);
+
+  // Open Detail Rincian Tagihan Modal
+  const handleOpenAlumniDetailModal = (alumnus) => {
+    setSelectedAlumnusDetail(alumnus);
+    setAlumniDetailModalOpen(true);
+  };
+
+  // Open Catat Tunggakan Manual Modal
+  const handleOpenManualArrearModal = (alumnus = null) => {
+    // Cari fee type Tunggakan Tahun Ajaran Sebelumnya atau buat default
+    const defaultArrearsFt = feeTypes.find(
+      (ft) => ft.code === 'arrears_previous_year' || ft.name?.toLowerCase().includes('tunggakan tahun ajaran sebelumnya')
+    );
+    const resolvedFtId = defaultArrearsFt ? String(defaultArrearsFt.id) : (feeTypes[0] ? String(feeTypes[0].id) : '11');
+
+    setManualArrearForm({
+      student_id: alumnus ? String(alumnus.id) : '',
+      fee_type_id: resolvedFtId,
+      academic_year_id: alumnus?.graduation_academic_year_id ? String(alumnus.graduation_academic_year_id) : (selectedAcademicYearId || ''),
+      period_year: new Date().getFullYear(),
+      amount: '',
+      bill_date: new Date().toISOString().slice(0, 10),
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      notes: alumnus ? `Pencatatan tunggakan manual alumni: ${alumnus.full_name}` : 'Pencatatan tunggakan manual alumni'
+    });
+    setManualArrearModalOpen(true);
+  };
+
+  const handleSaveManualArrear = async (e) => {
+    e.preventDefault();
+    if (!manualArrearForm.student_id) {
+      alert('Pilih santri alumni terlebih dahulu');
+      return;
+    }
+    const amt = parseFloat(manualArrearForm.amount || 0);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Nominal tunggakan harus berupa angka valid lebih dari 0');
+      return;
+    }
+
+    setSubmittingManualArrear(true);
+    try {
+      await api.post('/keuangan/student-bills/alumni/manual-arrear', {
+        student_id: Number(manualArrearForm.student_id),
+        fee_type_id: manualArrearForm.fee_type_id ? Number(manualArrearForm.fee_type_id) : null,
+        academic_year_id: manualArrearForm.academic_year_id ? Number(manualArrearForm.academic_year_id) : null,
+        period_year: manualArrearForm.period_year ? Number(manualArrearForm.period_year) : new Date().getFullYear(),
+        amount: amt,
+        bill_date: manualArrearForm.bill_date,
+        due_date: manualArrearForm.due_date,
+        notes: manualArrearForm.notes.trim() || undefined
+      });
+
+      alert('Tunggakan manual alumni berhasil dicatat dan diterbitkan.');
+      setManualArrearModalOpen(false);
+      fetchAlumniData();
+      if (activeTab === 'history') fetchHistoryBills();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mencatat tunggakan manual alumni');
+    } finally {
+      setSubmittingManualArrear(false);
+    }
+  };
+
+  // Open Bayar Tagihan Santri Alumni Modal
+  const handleOpenPayAlumniModal = (alumnus) => {
+    setPayingAlumnus(alumnus);
+
+    // Siapkan default alokasi untuk seluruh tagihan yang belum lunas
+    const initialAllocations = {};
+    if (alumnus.bills && alumnus.bills.length > 0) {
+      alumnus.bills.forEach((b) => {
+        if (b.remaining_amount > 0) {
+          initialAllocations[b.id] = b.remaining_amount;
+        }
+      });
+    }
+
+    const defaultCashAcc = cashAccounts[0]?.id ? String(cashAccounts[0].id) : '1';
+
+    setAlumniPaymentForm({
+      paid_at: new Date().toISOString().slice(0, 10),
+      payment_method: 'cash',
+      cash_account_id: defaultCashAcc,
+      notes: `Pelunasan tagihan santri alumni: ${alumnus.full_name}`,
+      allocations: initialAllocations
+    });
+    setPayAlumniModalOpen(true);
+  };
+
+  const handleAlumniAllocationChange = (billId, val) => {
+    setAlumniPaymentForm((prev) => ({
+      ...prev,
+      allocations: {
+        ...prev.allocations,
+        [billId]: val === '' ? '' : parseFloat(val || 0)
+      }
+    }));
+  };
+
+  const handleExecuteAlumniPayment = async (e) => {
+    e.preventDefault();
+    if (!payingAlumnus) return;
+
+    const allocations = Object.entries(alumniPaymentForm.allocations)
+      .map(([billId, amount]) => ({
+        student_bill_id: Number(billId),
+        amount: parseFloat(amount || 0)
+      }))
+      .filter((a) => a.amount > 0);
+
+    if (allocations.length === 0) {
+      alert('Isi minimal 1 nominal pembayaran tagihan alumni');
+      return;
+    }
+
+    setSubmittingAlumniPayment(true);
+    try {
+      const res = await api.post('/keuangan/payments/bill-payments', {
+        allocations,
+        paid_at: alumniPaymentForm.paid_at,
+        payment_method: alumniPaymentForm.payment_method,
+        cash_account_id: alumniPaymentForm.cash_account_id ? Number(alumniPaymentForm.cash_account_id) : undefined,
+        notes: alumniPaymentForm.notes.trim() || undefined
+      });
+
+      const receipt = res.data?.data?.receipt || res.data?.data;
+      alert(`Pembayaran tunggakan alumni sebesar Rp ${allocations.reduce((a, c) => a + c.amount, 0).toLocaleString('id-ID')} berhasil dicatat & masuk ke Buku Kas.`);
+
+      setPayAlumniModalOpen(false);
+      setPayingAlumnus(null);
+      fetchAlumniData();
+      if (activeTab === 'history') fetchHistoryBills();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memproses pembayaran tunggakan alumni');
+    } finally {
+      setSubmittingAlumniPayment(false);
+    }
+  };
+
+  // Cetak Surat Tagihan / Keterangan Tunggakan Santri Alumni
+  const handlePrintAlumniStatement = (alumnus) => {
+    if (!alumnus) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Pop-up terblokir oleh browser. Izinkan pop-up untuk mencetak surat tagihan.');
+      return;
+    }
+
+    const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const bills = alumnus.bills || [];
+    const unitName = activeSchoolUnit?.name || 'Satuan Pendidikan Aldepos';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Surat Rincian Tunggakan Alumni - ${alumnus.full_name}</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; color: #1e293b; padding: 24px; }
+          .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 36px; border: 1px solid #e2e8f0; border-radius: 16px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; }
+          .brand h1 { font-size: 18px; font-weight: 800; color: #0f172a; text-transform: uppercase; }
+          .brand p { font-size: 11px; color: #64748b; margin-top: 2px; }
+          .badge-title { font-size: 14px; font-weight: 800; color: #b91c1c; text-align: right; }
+          .badge-date { font-size: 11px; color: #64748b; text-align: right; margin-top: 2px; }
+          
+          .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 12px; }
+          .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .meta-row { display: flex; }
+          .meta-label { width: 120px; color: #64748b; font-weight: 600; }
+          .meta-val { font-weight: 700; color: #0f172a; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11.5px; }
+          th { background: #f1f5f9; color: #334155; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 2px solid #cbd5e1; }
+          td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+          .text-right { text-align: right; }
+          .total-row td { font-weight: 800; font-size: 12.5px; background: #fef2f2; color: #991b1b; border-top: 2px solid #f87171; }
+
+          .note-box { background: #eff6ff; border: 1px dashed #93c5fd; border-radius: 10px; padding: 12px 16px; font-size: 11px; color: #1e40af; margin-bottom: 24px; line-height: 1.5; }
+          
+          .signature-section { display: flex; justify-content: space-between; margin-top: 30px; font-size: 11.5px; }
+          .sign-box { text-align: center; width: 220px; }
+          .sign-line { border-bottom: 1px solid #0f172a; margin-top: 55px; }
+
+          .print-btn-bar { margin-top: 24px; text-align: center; }
+          .btn { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+          .btn-primary { background: #0284c7; color: #fff; margin-right: 8px; }
+          .btn-secondary { background: #e2e8f0; color: #334155; }
+          @media print { .print-btn-bar { display: none; } body { padding: 0; background: #fff; } .container { border: none; padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="brand">
+              <h1>ALDEPOS ISLAMIC SCHOOL</h1>
+              <p>${unitName} - Divisi Keuangan & Administrasi Santri</p>
+            </div>
+            <div>
+              <div class="badge-title">SURAT RINCIAN TUNGGAKAN ALUMNI</div>
+              <div class="badge-date">Bogor, ${todayStr}</div>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-grid">
+              <div class="meta-row"><span class="meta-label">Nama Santri:</span><span class="meta-val">${alumnus.full_name}</span></div>
+              <div class="meta-row"><span class="meta-label">NIS / NISN:</span><span class="meta-val">${alumnus.nis || '-'} / ${alumnus.nisn || '-'}</span></div>
+              <div class="meta-row"><span class="meta-label">Status Akademik:</span><span class="meta-val">ALUMNI / LULUS</span></div>
+              <div class="meta-row"><span class="meta-label">Kelas Terakhir:</span><span class="meta-val">${alumnus.last_class_name || '-'} (T.A. ${alumnus.graduation_academic_year_name || '-'})</span></div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30px;">No</th>
+                <th>Komponen Biaya</th>
+                <th>Periode / T.A.</th>
+                <th>Jatuh Tempo</th>
+                <th class="text-right">Tagihan</th>
+                <th class="text-right">Terbayar</th>
+                <th class="text-right">Sisa Tunggakan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bills.map((b, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td style="font-weight: 600;">${b.fee_type_name}</td>
+                  <td>${b.period_month ? `Bulan ${b.period_month}/${b.period_year}` : (b.academic_year_name || `T.A. ${b.period_year}`)}</td>
+                  <td>${b.due_date ? String(b.due_date).slice(0, 10) : '-'}</td>
+                  <td class="text-right font-mono">Rp ${b.amount.toLocaleString('id-ID')}</td>
+                  <td class="text-right font-mono">Rp ${b.paid_amount.toLocaleString('id-ID')}</td>
+                  <td class="text-right font-mono" style="font-weight: 700; color: ${b.remaining_amount > 0 ? '#b91c1c' : '#047857'};">
+                    Rp ${b.remaining_amount.toLocaleString('id-ID')}
+                  </td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td colspan="6" style="text-align: right; text-transform: uppercase;">Total Sisa Tunggakan yang Harus Dilunasi:</td>
+                <td class="text-right font-mono">Rp ${alumnus.total_remaining.toLocaleString('id-ID')}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="note-box">
+            <b>Informasi Pembayaran & Rekening Resmi:</b><br/>
+            Pembayaran dapat dilakukan melalui transfer rekening resmi Bank Syariah Indonesia (BSI) atas nama <b>Yayasan Aldepos</b> atau datang langsung ke Kasir Keuangan Sekolah. Mohon konfirmasi bukti transfer ke Admin Keuangan setelah melakukan pembayaran.
+          </div>
+
+          <div class="signature-section">
+            <div class="sign-box">
+              <div>Mengetahui,</div>
+              <div style="font-weight: 700; margin-top: 4px;">Orang Tua / Wali Santri</div>
+              <div class="sign-line"></div>
+              <div style="margin-top: 4px; font-size: 10px; color: #64748b;">(Nama Terang & Tanda Tangan)</div>
+            </div>
+            <div class="sign-box">
+              <div>Bogor, ${todayStr}</div>
+              <div style="font-weight: 700; margin-top: 4px;">Bendahara / Bagian Keuangan</div>
+              <div class="sign-line"></div>
+              <div style="margin-top: 4px; font-weight: 700;">${activeSchoolUnit?.name || 'Satuan Pendidikan Aldepos'}</div>
+            </div>
+          </div>
+
+          <div class="print-btn-bar">
+            <button class="btn btn-primary" onclick="window.print()">&#128424; Cetak / Simpan PDF</button>
+            <button class="btn btn-secondary" onclick="window.close()">Tutup Jendela</button>
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  // WhatsApp Pengingat Tagihan Alumni
+  const handleSendWhatsAppAlumni = (alumnus) => {
+    if (!alumnus) return;
+
+    const unitName = activeSchoolUnit?.name || 'Aldepos Islamic School';
+    let msg = `*PEMBERITAHUAN TUNGGAKAN ALUMNI - ${unitName.toUpperCase()}*\n\n`;
+    msg += `Assalamu'alaikum Wr. Wb.\n`;
+    msg += `Yth. Orang Tua / Wali dari Santri Alumni:\n`;
+    msg += `Nama: *${alumnus.full_name}*\n`;
+    msg += `NIS: ${alumnus.nis || '-'}\n`;
+    msg += `Lulusan: ${alumnus.last_class_name || 'Kelas Akhir'} (T.A. ${alumnus.graduation_academic_year_name || '-'})\n\n`;
+    msg += `Kami menginformasikan bahwa santri yang bersangkutan masih memiliki catatan administrasi tunggakan alumni sebagai berikut:\n`;
+
+    const unpaidBills = (alumnus.bills || []).filter((b) => b.remaining_amount > 0);
+    unpaidBills.forEach((b, idx) => {
+      const periodLabel = b.period_month ? `Bulan ${b.period_month}/${b.period_year}` : (b.academic_year_name || `T.A. ${b.period_year}`);
+      msg += `${idx + 1}. ${b.fee_type_name} (${periodLabel}): Rp ${b.remaining_amount.toLocaleString('id-ID')}\n`;
+    });
+
+    msg += `\n*TOTAL SISA TUNGGAKAN: Rp ${alumnus.total_remaining.toLocaleString('id-ID')}*\n\n`;
+    msg += `Pembayaran dapat diselesaikan melalui transfer atau datang langsung ke Kasir Keuangan Sekolah.\n`;
+    msg += `Terima kasih atas perhatian dan kerja samanya.\nWassalamu'alaikum Wr. Wb.\n\n`;
+    msg += `_Divisi Keuangan ${unitName}_`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // Ekspor Excel Tagihan Alumni
+  const handleExportAlumniExcel = () => {
+    if (!alumniData.alumni || alumniData.alumni.length === 0) {
+      alert('Tidak ada data alumni untuk diekspor');
+      return;
+    }
+
+    const rows = sortedAlumniList.map((a, idx) => ({
+      No: idx + 1,
+      'Nama Santri Alumni': a.full_name,
+      NIS: a.nis,
+      NISN: a.nisn,
+      'Kelas Kelulusan': a.last_class_name || '-',
+      'Tahun Ajaran Kelulusan': a.graduation_academic_year_name || '-',
+      Angkatan: a.cohort_name || '-',
+      'Total Tagihan (Rp)': a.total_bills,
+      'Total Terbayar (Rp)': a.total_paid,
+      'Sisa Tunggakan (Rp)': a.total_remaining,
+      'Pos Tunggakan': (a.arrears_fee_types || []).join(', ') || '-',
+      'Jumlah Tagihan Belum Lunas': a.unpaid_bills_count,
+      'Status Tagihan': a.status === 'paid' ? 'Lunas' : a.status === 'partially_paid' ? 'Sebagian' : a.status === 'unpaid' ? 'Belum Lunas' : 'Tidak Ada Tagihan'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Tunggakan_Alumni');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Daftar_Tunggakan_Alumni_${activeSchoolUnit?.name || 'Aldepos'}_${dateStr}.xlsx`);
+  };
 
   // ============================================================
   // TAB 1: MATRIX ACTIONS & HANDLERS
@@ -1022,6 +1485,75 @@ export default function StudentBills() {
   };
 
   // ============================================================
+  // TAB 1: MATRIX SORTING & FILTERING
+  // ============================================================
+  const handleSortMatrix = (key) => {
+    setMatrixSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const filteredAndSortedMatrixRows = useMemo(() => {
+    let list = Array.isArray(matrixData.rows) ? [...matrixData.rows] : [];
+
+    // Filter pencarian
+    if (matrixSearch.trim()) {
+      const q = matrixSearch.toLowerCase();
+      list = list.filter((r) => {
+        const name = (r.name || '').toLowerCase();
+        const nipd = (r.nipd || '').toLowerCase();
+        const nis = (r.nis || '').toLowerCase();
+        const rombel = (r.class_name || '').toLowerCase();
+        const scheme = (r.scheme_name || '').toLowerCase();
+        return name.includes(q) || nipd.includes(q) || nis.includes(q) || rombel.includes(q) || scheme.includes(q);
+      });
+    }
+
+    // Filter rombel/kelas
+    if (matrixFilterClassId) {
+      list = list.filter((r) => String(r.class_id || r.class_group_id) === String(matrixFilterClassId));
+    }
+
+    // Sorting
+    if (matrixSortConfig.key) {
+      list.sort((a, b) => {
+        let aVal = a[matrixSortConfig.key];
+        let bVal = b[matrixSortConfig.key];
+
+        // Jika sort berdasarkan kolom matrix dinamis (misal 'col_...')
+        if (matrixSortConfig.key.startsWith('col_') || matrixData.columns.some((c) => c.key === matrixSortConfig.key)) {
+          const colKey = matrixSortConfig.key;
+          const aCell = a.cells?.[colKey];
+          const bCell = b.cells?.[colKey];
+          aVal = parseFloat(aCell?.amount || 0);
+          bVal = parseFloat(bCell?.amount || 0);
+          if (aVal === bVal) {
+            const statusOrder = { paid: 3, partially_paid: 2, unpaid: 1, draft: 0 };
+            const aStat = statusOrder[aCell?.status] || 0;
+            const bStat = statusOrder[bCell?.status] || 0;
+            return matrixSortConfig.direction === 'asc' ? aStat - bStat : bStat - aStat;
+          }
+        } else if (typeof aVal === 'string') {
+          return matrixSortConfig.direction === 'asc'
+            ? aVal.localeCompare(bVal || '')
+            : (bVal || '').localeCompare(aVal);
+        }
+
+        aVal = parseFloat(aVal || 0);
+        bVal = parseFloat(bVal || 0);
+        if (aVal < bVal) return matrixSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return matrixSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [matrixData.rows, matrixSearch, matrixFilterClassId, matrixSortConfig, matrixData.columns]);
+
+  // ============================================================
   // TAB 2: RIWAYAT PENAGIHAN (HISTORY) HANDLERS & SORTING
   // ============================================================
   const handleSortHistory = (key) => {
@@ -1042,18 +1574,45 @@ export default function StudentBills() {
         (b) =>
           b.student_name?.toLowerCase().includes(q) ||
           String(b.student_id).includes(q) ||
+          b.nis?.toLowerCase().includes(q) ||
+          b.class_name?.toLowerCase().includes(q) ||
           b.fee_type_name?.toLowerCase().includes(q) ||
-          String(b.id).includes(q)
+          b.academic_year_name?.toLowerCase().includes(q) ||
+          b.component_display?.toLowerCase().includes(q) ||
+          String(b.id).includes(q) ||
+          b.notes?.toLowerCase().includes(q) ||
+          b.discount_reason?.toLowerCase().includes(q) ||
+          b.edit_reason?.toLowerCase().includes(q)
       );
+    }
+
+    if (historyFilterClassId) {
+      result = result.filter((b) => String(b.class_id) === String(historyFilterClassId));
+    }
+    if (historyFilterFeeTypeId) {
+      result = result.filter((b) => String(b.fee_type_id) === String(historyFilterFeeTypeId));
+    }
+    if (historyFilterStatus) {
+      result = result.filter((b) => b.status === historyFilterStatus);
     }
 
     result.sort((a, b) => {
       let aVal = a[historySortConfig.key];
       let bVal = b[historySortConfig.key];
 
-      if (historySortConfig.key === 'amount' || historySortConfig.key === 'discount_amount' || historySortConfig.key === 'paid_amount') {
+      if (historySortConfig.key === 'gross_amount') {
+        aVal = parseFloat(a.amount || 0) + parseFloat(a.discount_amount || 0);
+        bVal = parseFloat(b.amount || 0) + parseFloat(b.discount_amount || 0);
+      } else if (historySortConfig.key === 'amount' || historySortConfig.key === 'discount_amount' || historySortConfig.key === 'paid_amount') {
         aVal = parseFloat(aVal || 0);
         bVal = parseFloat(bVal || 0);
+      } else if (historySortConfig.key === 'created_at' || historySortConfig.key === 'bill_date' || historySortConfig.key === 'due_date') {
+        aVal = new Date(aVal || 0).getTime();
+        bVal = new Date(bVal || 0).getTime();
+      } else if (typeof aVal === 'string') {
+        return historySortConfig.direction === 'asc'
+          ? aVal.localeCompare(bVal || '')
+          : (bVal || '').localeCompare(aVal);
       }
 
       if (aVal < bVal) return historySortConfig.direction === 'asc' ? -1 : 1;
@@ -1062,7 +1621,7 @@ export default function StudentBills() {
     });
 
     return result;
-  }, [historyBills, historySearch, historySortConfig]);
+  }, [historyBills, historySearch, historyFilterClassId, historyFilterFeeTypeId, historyFilterStatus, historySortConfig]);
 
   // Open Detail Bill Modal
   const handleOpenDetailModal = async (bill) => {
@@ -1171,17 +1730,58 @@ export default function StudentBills() {
     }
   };
 
-  const filteredReminderLogs = useMemo(() => {
-    if (!reminderSearch.trim()) return reminderLogs;
-    const q = reminderSearch.toLowerCase();
-    return reminderLogs.filter(
-      (l) =>
-        l.student_name?.toLowerCase().includes(q) ||
-        l.recipient_name?.toLowerCase().includes(q) ||
-        l.fee_type_name?.toLowerCase().includes(q) ||
-        l.message?.toLowerCase().includes(q)
-    );
-  }, [reminderLogs, reminderSearch]);
+  // ============================================================
+  // TAB 3: REMINDER LOGS SORTING & FILTERING
+  // ============================================================
+  const handleSortReminders = (key) => {
+    setReminderSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const filteredAndSortedReminderLogs = useMemo(() => {
+    let list = [...reminderLogs];
+    if (reminderSearch.trim()) {
+      const q = reminderSearch.toLowerCase();
+      list = list.filter(
+        (l) =>
+          l.student_name?.toLowerCase().includes(q) ||
+          l.recipient_name?.toLowerCase().includes(q) ||
+          l.fee_type_name?.toLowerCase().includes(q) ||
+          l.message?.toLowerCase().includes(q) ||
+          l.class_name?.toLowerCase().includes(q) ||
+          l.nis?.toLowerCase().includes(q)
+      );
+    }
+
+    if (reminderSortConfig.key) {
+      list.sort((a, b) => {
+        let aVal = a[reminderSortConfig.key];
+        let bVal = b[reminderSortConfig.key];
+
+        if (reminderSortConfig.key === 'sent_at' || reminderSortConfig.key === 'created_at') {
+          aVal = new Date(aVal || 0).getTime();
+          bVal = new Date(bVal || 0).getTime();
+        } else if (reminderSortConfig.key === 'bill_amount') {
+          aVal = parseFloat(aVal || 0);
+          bVal = parseFloat(bVal || 0);
+        } else if (typeof aVal === 'string') {
+          return reminderSortConfig.direction === 'asc'
+            ? aVal.localeCompare(bVal || '')
+            : (bVal || '').localeCompare(aVal);
+        }
+
+        if (aVal < bVal) return reminderSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return reminderSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [reminderLogs, reminderSearch, reminderSortConfig]);
 
   // Current active AY object
   const activeAY = academicYears.find((a) => String(a.id) === String(selectedAcademicYearId)) || academicYears[0];
@@ -1191,7 +1791,7 @@ export default function StudentBills() {
       {/* ------------------------------------------------------------ */}
       {/* HEADER UTAMA & KONTROL TAHUN AJARAN */}
       {/* ------------------------------------------------------------ */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-xs relative z-40">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
             <Receipt className="w-6 h-6" />
@@ -1210,9 +1810,9 @@ export default function StudentBills() {
         </div>
 
         {/* Global Academic Year Switcher */}
-        <div className="flex items-center gap-2.5 self-stretch sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-2.5 self-stretch sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200 relative z-40">
           <Calendar className="w-4 h-4 text-slate-400 ml-1.5 shrink-0" />
-          <div className="min-w-[200px]">
+          <div className="min-w-[240px] relative z-40">
             <SearchableSelect
               options={academicYears.map((ay) => ({
                 value: String(ay.id),
@@ -1223,12 +1823,16 @@ export default function StudentBills() {
               onChange={(val) => setSelectedAcademicYearId(String(val))}
               placeholder="Pilih Tahun Ajaran"
               allowClear={false}
+              menuMinWidth="280px"
+              dropdownPosition="down"
+              dropdownAlign="right"
             />
           </div>
           <button
             type="button"
             onClick={() => {
               if (activeTab === 'matrix') fetchMatrixData();
+              else if (activeTab === 'alumni') fetchAlumniData();
               else if (activeTab === 'history') fetchHistoryBills();
               else if (activeTab === 'reminders') fetchReminderLogs();
             }}
@@ -1241,14 +1845,15 @@ export default function StudentBills() {
       </div>
 
       {/* ------------------------------------------------------------ */}
+      {/* ------------------------------------------------------------ */}
       {/* 3 TAB NAVIGATION */}
       {/* ------------------------------------------------------------ */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-1">
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => setActiveTab('matrix')}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
               activeTab === 'matrix'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -1265,15 +1870,33 @@ export default function StudentBills() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('alumni')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
+              activeTab === 'alumni'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>2. Tagihan Santri Alumni</span>
+            {(alumniData.summary?.total_alumni_with_arrears !== undefined || alumniData.alumni?.length > 0) && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'alumni' ? 'bg-emerald-700 text-white' : 'bg-rose-100 text-rose-700 border border-rose-200/60'}`}>
+                {alumniData.summary?.total_alumni_with_arrears || alumniData.alumni?.length || 0} Alumni
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
               activeTab === 'history'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <History className="w-4 h-4" />
-            <span>2. Riwayat Tagihan</span>
+            <span>3. Riwayat Tagihan</span>
             {historyBills.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'history' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {historyBills.length}
@@ -1284,14 +1907,14 @@ export default function StudentBills() {
           <button
             type="button"
             onClick={() => setActiveTab('reminders')}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
               activeTab === 'reminders'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Bell className="w-4 h-4" />
-            <span>3. Reminder Tagihan (Portal Ortu)</span>
+            <span>4. Reminder Tagihan (Portal Ortu)</span>
             {reminderLogs.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'reminders' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {reminderLogs.length} Log
@@ -1301,16 +1924,18 @@ export default function StudentBills() {
         </div>
 
         {/* Tab-specific top right actions */}
-        {activeTab === 'reminders' && (
-          <button
-            type="button"
-            onClick={handleOpenBroadcastModal}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Kirim Reminder Massal</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          {activeTab === 'reminders' && (
+            <button
+              type="button"
+              onClick={handleOpenBroadcastModal}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Kirim Reminder Massal</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ============================================================ */}
@@ -1319,10 +1944,10 @@ export default function StudentBills() {
       {activeTab === 'matrix' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Summary & KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Siswa Terdaftar</p>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Siswa</p>
                 <p className="text-xl font-black text-slate-800 mt-1">{matrixData.summary?.total_students || 0} Santri</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">Konteks T.A. {activeAY?.name || '-'}</p>
               </div>
@@ -1333,9 +1958,20 @@ export default function StudentBills() {
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
               <div>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tunggakan TP Lalu</p>
+                <p className="text-xl font-black text-amber-700 mt-1">Rp {(matrixData.summary?.total_previous_arrears || 0).toLocaleString('id-ID')}</p>
+                <p className="text-[10px] text-amber-600 mt-0.5">Akumulasi sisa T.P. sebelumnya</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <History className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+              <div>
                 <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tagihan Diterbitkan</p>
                 <p className="text-xl font-black text-emerald-700 mt-1">{matrixData.summary?.total_published_bills || 0} Tagihan</p>
-                <p className="text-[10px] text-emerald-600 mt-0.5">Sudah tercatat di Piutang</p>
+                <p className="text-[10px] text-emerald-600 mt-0.5">Tercatat di Piutang T.A. ini</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                 <FileCheck className="w-5 h-5" />
@@ -1344,7 +1980,7 @@ export default function StudentBills() {
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Piutang Belum Lunas</p>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sisa Piutang T.A. Ini</p>
                 <p className="text-xl font-black text-rose-700 mt-1">Rp {(matrixData.summary?.total_unpaid_ar || 0).toLocaleString('id-ID')}</p>
                 <p className="text-[10px] text-rose-500 mt-0.5">Sisa tagihan aktif santri</p>
               </div>
@@ -1355,7 +1991,7 @@ export default function StudentBills() {
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Pembayaran Masuk</p>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Pembayaran Masuk</p>
                 <p className="text-xl font-black text-teal-700 mt-1">Rp {(matrixData.summary?.total_paid || 0).toLocaleString('id-ID')}</p>
                 <p className="text-[10px] text-teal-600 mt-0.5">Kas/Bank telah diterima</p>
               </div>
@@ -1366,7 +2002,7 @@ export default function StudentBills() {
           </div>
 
           {/* Matrix Controls & Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative z-20">
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1445,32 +2081,100 @@ export default function StudentBills() {
                       </th>
 
                       {/* Fixed Left Header 2: Nama Siswa (260px, left: 44px) */}
-                      <th className="p-3 w-[260px] min-w-[260px] max-w-[260px] text-left sticky left-[44px] z-30 bg-slate-100 border-r border-b border-slate-200 font-bold text-slate-800">
-                        Nama Santri
+                      <th
+                        onClick={() => handleSortMatrix('name')}
+                        className="p-3 w-[260px] min-w-[260px] max-w-[260px] text-left sticky left-[44px] z-30 bg-slate-100 border-r border-b border-slate-200 font-bold text-slate-800 cursor-pointer hover:bg-slate-200/90 transition select-none group"
+                        title="Klik untuk mengurutkan berdasarkan nama santri"
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Nama Santri</span>
+                          {matrixSortConfig.key === 'name' ? (
+                            matrixSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                          )}
+                        </div>
                       </th>
 
-                      {/* Fixed Left Header 3: Rombel (110px, left: 304px) */}
-                      <th className="p-3 w-[110px] min-w-[110px] max-w-[110px] text-left sticky left-[304px] z-30 bg-slate-100 border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)]">
-                        Rombel
+                      {/* Fixed Left Header 3: Rombel (100px, left: 304px) */}
+                      <th
+                        onClick={() => handleSortMatrix('class_name')}
+                        className="p-3 w-[100px] min-w-[100px] max-w-[100px] text-left sticky left-[304px] z-30 bg-slate-100 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-200/90 transition select-none group"
+                        title="Klik untuk mengurutkan berdasarkan rombel"
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Rombel</span>
+                          {matrixSortConfig.key === 'class_name' ? (
+                            matrixSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                          )}
+                        </div>
+                      </th>
+
+                      {/* Fixed Left Header 4: Tunggakan TP Sebelumnya (145px, left: 404px) */}
+                      <th
+                        onClick={() => handleSortMatrix('previous_arrears')}
+                        className="p-3 w-[145px] min-w-[145px] max-w-[145px] text-right sticky left-[404px] z-30 bg-slate-100 border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] cursor-pointer hover:bg-slate-200/90 transition select-none group"
+                        title="Klik untuk mengurutkan berdasarkan sisa tunggakan tahun pelajaran sebelumnya"
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex flex-col text-left">
+                            <span className="text-[11px] font-bold text-slate-800 leading-tight">Tunggakan TP</span>
+                            <span className="text-[10px] text-slate-500 font-normal">Sebelumnya</span>
+                          </div>
+                          {matrixSortConfig.key === 'previous_arrears' ? (
+                            matrixSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                          )}
+                        </div>
                       </th>
 
                       {/* Dynamic Columns: Sekali Bayar, Tahunan, Bulanan (Juli-Juni) */}
                       {matrixData.columns.map((col) => (
                         <th
                           key={col.key}
-                          className="p-3 min-w-[145px] text-center border-r border-b border-slate-200 align-top group hover:bg-slate-100/80 transition"
+                          className="p-3 min-w-[155px] text-center border-r border-b border-slate-200 align-top group hover:bg-slate-100/90 transition"
                         >
                           <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-1">
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase ${col.badge_color}`}>
-                                {col.badge_text}
-                              </span>
-                              {col.semester && (
-                                <span className="text-[9px] text-slate-400 font-medium">({col.semester})</span>
-                              )}
+                            <div
+                              onClick={() => handleSortMatrix(col.key)}
+                              className="w-full flex flex-col items-center cursor-pointer select-none rounded-lg p-1 hover:bg-slate-200/60 transition group/sort"
+                              title={`Klik untuk mengurutkan santri berdasarkan kolom ${col.fee_type_name}`}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase ${col.badge_color}`}>
+                                  {col.badge_text}
+                                </span>
+                                {col.semester && (
+                                  <span className="text-[9px] text-slate-400 font-medium">({col.semester})</span>
+                                )}
+                                {matrixSortConfig.key === col.key ? (
+                                  matrixSortConfig.direction === 'asc' ? (
+                                    <ArrowUp className="w-3 h-3 text-emerald-600 ml-0.5" />
+                                  ) : (
+                                    <ArrowDown className="w-3 h-3 text-emerald-600 ml-0.5" />
+                                  )
+                                ) : (
+                                  <ArrowUpDown className="w-2.5 h-2.5 text-slate-300 group-hover/sort:text-slate-600 ml-0.5" />
+                                )}
+                              </div>
+                              <span className="font-semibold text-slate-800 text-[11px] mt-0.5 text-center line-clamp-1">{col.fee_type_name}</span>
+                              <span className="text-[10px] text-slate-500 font-normal">T.A. {col.period_year}</span>
                             </div>
-                            <span className="font-semibold text-slate-800 text-[11px]">{col.fee_type_name}</span>
-                            <span className="text-[10px] text-slate-500 font-normal">T.A. {col.period_year}</span>
 
                             {/* Tombol Aksi Kolom: Terbitkan & Import Excel */}
                             <div className="mt-1.5 w-full flex items-center gap-1">
@@ -1500,7 +2204,7 @@ export default function StudentBills() {
                   </thead>
 
                   <tbody className="divide-y divide-slate-100">
-                    {matrixData.rows.map((row, rIdx) => {
+                    {filteredAndSortedMatrixRows.map((row, rIdx) => {
                       const isRowSelected = selectedRowStudentIds.has(row.student_id);
                       const stickyBg = isRowSelected
                         ? 'bg-[#ecfdf5]'
@@ -1543,10 +2247,37 @@ export default function StudentBills() {
                           </td>
 
                           {/* Sticky Cell 3: Rombel */}
-                          <td className={`p-3 w-[110px] min-w-[110px] max-w-[110px] text-slate-600 sticky left-[304px] z-10 ${stickyBg} border-r border-slate-200 text-[11px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)]`}>
+                          <td className={`p-3 w-[100px] min-w-[100px] max-w-[100px] text-slate-600 sticky left-[304px] z-10 ${stickyBg} border-r border-slate-200 text-[11px]`}>
                             <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
                               {row.class_name}
                             </span>
+                          </td>
+
+                          {/* Sticky Cell 4: Tunggakan TP Sebelumnya */}
+                          <td
+                            className={`p-3 w-[145px] min-w-[145px] max-w-[145px] sticky left-[404px] z-10 ${stickyBg} border-r border-slate-200 text-right text-xs shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)]`}
+                            title={
+                              row.previous_arrears > 0
+                                ? `Total Tunggakan TP Sebelumnya: Rp ${Number(row.previous_arrears || 0).toLocaleString('id-ID')} (${row.previous_arrears_count || 0} tagihan)\n${(row.previous_arrears_items || []).map(it => `• ${it.fee_type_name || (it.is_ppdb ? 'PPDB' : 'Tagihan')}: Rp ${Number(it.remaining || 0).toLocaleString('id-ID')} (${it.notes || (it.is_manual ? 'Manual' : it.status) || ''})`).join('\n')}`
+                                : 'Tidak ada tunggakan tahun pelajaran sebelumnya'
+                            }
+                          >
+                            {row.previous_arrears > 0 ? (
+                              <div className="flex flex-col items-end">
+                                <span className="font-black text-rose-700 text-xs tracking-tight">
+                                  Rp {Number(row.previous_arrears).toLocaleString('id-ID')}
+                                </span>
+                                <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-0.5 mt-0.5 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200/60">
+                                  <AlertCircle className="w-2.5 h-2.5 shrink-0 text-rose-500" />
+                                  {row.previous_arrears_count} tagihan
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                Lunas
+                              </span>
+                            )}
                           </td>
 
                           {/* Dynamic Matrix Cells */}
@@ -1615,12 +2346,313 @@ export default function StudentBills() {
       )}
 
       {/* ============================================================ */}
-      {/* TAB 2: RIWAYAT PENAGIHAN (AUDIT TRAIL & LIST) */}
+      {/* TAB 2: TAGIHAN SANTRI ALUMNI (READ-ONLY / DISPLAY ONLY) */}
+      {/* ============================================================ */}
+      {activeTab === 'alumni' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Header & Status Banner */}
+          <div className="p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm font-bold">Data Piutang &amp; Sisa Tunggakan Alumni</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    Mode Pemantauan (Display Only)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Menampilkan saldo tunggakan historis santri yang telah lulus. Tidak ada proses penagihan karena sudah ditagihkan saat santri masih aktif.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Santri Alumni Menunggak</p>
+                <h3 className="text-xl font-black text-rose-600 mt-0.5">
+                  {alumniData.summary?.total_alumni_with_arrears || 0}
+                  <span className="text-xs font-normal text-slate-400 ml-1">orang</span>
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold border border-rose-200/60">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Total Sisa Tunggakan Alumni</p>
+                <h3 className="text-xl font-black text-rose-700 mt-0.5 tracking-tight">
+                  Rp {(alumniData.summary?.total_arrears_amount || 0).toLocaleString('id-ID')}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center font-bold border border-rose-300/80">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Total Tagihan Dilunasi</p>
+                <h3 className="text-xl font-black text-emerald-700 mt-0.5 tracking-tight">
+                  Rp {(alumniData.summary?.total_paid_amount || 0).toLocaleString('id-ID')}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold border border-emerald-200/60">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-slate-500 font-medium">Total Keseluruhan Piutang</p>
+                <h3 className="text-xl font-black text-slate-800 mt-0.5 tracking-tight">
+                  Rp {(alumniData.summary?.total_bills_amount || 0).toLocaleString('id-ID')}
+                </h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold border border-blue-200/60">
+                <Receipt className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-20">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari nama alumni, NIS, NIPD..."
+                value={alumniSearch}
+                onChange={(e) => setAlumniSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
+              />
+            </div>
+
+            <div>
+              <SearchableSelect
+                options={[
+                  { value: '', label: '-- Semua Angkatan / Cohort --' },
+                  ...(alumniData.cohorts || []).map((co) => ({
+                    value: String(co.id),
+                    label: co.name || `Angkatan ${co.id}`
+                  }))
+                ]}
+                value={alumniFilterCohortId}
+                onChange={(val) => setAlumniFilterCohortId(val)}
+                placeholder="Filter Angkatan"
+              />
+            </div>
+
+            <div>
+              <SearchableSelect
+                options={[
+                  { value: 'with_arrears', label: 'Hanya yang Menunggak', sublabel: 'Memiliki sisa tagihan > 0' },
+                  { value: 'all', label: 'Semua Status Alumni', sublabel: 'Tampilkan semua data' },
+                  { value: 'unpaid', label: 'Belum Bayar Sama Sekali', sublabel: 'Belum ada pembayaran' },
+                  { value: 'partially_paid', label: 'Sebagian Terbayar', sublabel: 'Sudah mencicil sebagian' },
+                  { value: 'paid', label: 'Lunas', sublabel: 'Telah selesai seluruhnya' }
+                ]}
+                value={alumniFilterStatus}
+                onChange={(val) => setAlumniFilterStatus(val)}
+                placeholder="Filter Status Tunggakan"
+              />
+            </div>
+          </div>
+
+          {/* Table Data Tagihan Alumni */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            {alumniLoading ? (
+              <div className="p-16 text-center text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-2" />
+                <p className="text-xs font-medium">Memuat data tagihan alumni...</p>
+              </div>
+            ) : sortedAlumniList.length === 0 ? (
+              <div className="p-16 text-center text-slate-400">
+                <GraduationCap className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-700">Tidak ada data tagihan alumni</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {alumniFilterStatus === 'with_arrears'
+                    ? 'Alhamdulillah, tidak ada santri alumni yang memiliki sisa tunggakan untuk kriteria filter ini.'
+                    : 'Tidak ada data alumni ditemukan dengan filter yang dipilih.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-[700px]">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
+                    <tr>
+                      <th className="p-3.5 w-12 text-center">No</th>
+                      <th
+                        onClick={() => handleSortAlumni('full_name')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group min-w-[220px]"
+                        title="Klik untuk mengurutkan nama"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Identitas Santri Alumni</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                        </div>
+                      </th>
+                      <th className="p-3.5 min-w-[150px]">Tahun Lulus / Rombel</th>
+                      <th className="p-3.5 min-w-[180px]">Pos Biaya Menunggak</th>
+                      <th
+                        onClick={() => handleSortAlumni('total_bills')}
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Total Tagihan</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortAlumni('total_paid')}
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Terbayar</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortAlumni('total_remaining')}
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[130px]"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Sisa Tunggakan</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                        </div>
+                      </th>
+                      <th className="p-3.5 text-center min-w-[110px]">Status</th>
+                      <th className="p-3.5 text-center w-24">Rincian</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {sortedAlumniList.map((alumnus, idx) => {
+                      const hasArrears = alumnus.total_remaining > 0;
+                      return (
+                        <tr key={alumnus.id} className="hover:bg-slate-50/80 transition">
+                          <td className="p-3.5 text-center text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="p-3.5">
+                            <div className="font-bold text-slate-800">{alumnus.full_name}</div>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500">
+                              <span className="font-mono bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                                NIS: {alumnus.nis || alumnus.nipd || '-'}
+                              </span>
+                              {alumnus.cohort_name && alumnus.cohort_name !== '-' && (
+                                <span className="text-slate-400">• Angkatan {alumnus.cohort_name}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3.5 text-slate-600">
+                            <div className="font-semibold text-slate-700 text-xs">
+                              {alumnus.graduation_academic_year_name !== '-' ? `Lulus ${alumnus.graduation_academic_year_name}` : 'Alumni'}
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {alumnus.last_class_name || 'Alumni'}
+                            </div>
+                          </td>
+                          <td className="p-3.5">
+                            {alumnus.arrears_fee_types && alumnus.arrears_fee_types.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {alumnus.arrears_fee_types.map((ftName, fIdx) => (
+                                  <span
+                                    key={fIdx}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+                                  >
+                                    {ftName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-emerald-600 font-medium">Tidak ada tunggakan</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right font-mono text-slate-700">
+                            Rp {(alumnus.total_bills || 0).toLocaleString('id-ID')}
+                          </td>
+                          <td className="p-3.5 text-right font-mono text-emerald-700 font-medium">
+                            Rp {(alumnus.total_paid || 0).toLocaleString('id-ID')}
+                          </td>
+                          <td className="p-3.5 text-right font-mono font-bold">
+                            {hasArrears ? (
+                              <span className="text-rose-700">
+                                Rp {(alumnus.total_remaining || 0).toLocaleString('id-ID')}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">Rp 0</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-center">
+                            {alumnus.status === 'paid' || (!hasArrears && alumnus.total_bills > 0) ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                Lunas
+                              </span>
+                            ) : alumnus.status === 'partially_paid' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                <RotateCw className="w-3 h-3 text-teal-600" />
+                                Sebagian ({alumnus.unpaid_bills_count} sisa)
+                              </span>
+                            ) : hasArrears ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                <AlertCircle className="w-3 h-3 text-rose-600" />
+                                Menunggak ({alumnus.unpaid_bills_count} item)
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400">Tanpa Tagihan</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAlumniDetailModal(alumnus)}
+                              title="Lihat rincian riwayat tagihan & tunggakan alumni"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 transition"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
+                    <tr>
+                      <td colSpan={4} className="p-3.5 text-right text-slate-600">
+                        Total ({sortedAlumniList.length} alumni)
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-slate-800">
+                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_bills || 0), 0).toLocaleString('id-ID')}
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-emerald-800">
+                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_paid || 0), 0).toLocaleString('id-ID')}
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-rose-800">
+                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_remaining || 0), 0).toLocaleString('id-ID')}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB 3: RIWAYAT PENAGIHAN (AUDIT TRAIL & LIST) */}
       {/* ============================================================ */}
       {activeTab === 'history' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-20">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1687,74 +2719,189 @@ export default function StudentBills() {
               </div>
             ) : (
               <div className="overflow-x-auto max-h-[700px]">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
                     <tr>
                       <th
                         onClick={() => handleSortHistory('created_at')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan tanggal terbit"
                       >
                         <div className="flex items-center gap-1.5">
                           <span>Tanggal Terbit</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'created_at' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
                       <th
                         onClick={() => handleSortHistory('student_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan nama santri"
                       >
                         <div className="flex items-center gap-1.5">
                           <span>Santri (Nama / ID)</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'student_name' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortHistory('class_name')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan rombel / kelas"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Rombel</span>
+                          {historySortConfig.key === 'class_name' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
                       <th
                         onClick={() => handleSortHistory('fee_type_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan jenis biaya"
                       >
                         <div className="flex items-center gap-1.5">
                           <span>Jenis Biaya &amp; Periode</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'fee_type_name' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
                       <th
-                        onClick={() => handleSortHistory('amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition"
+                        onClick={() => handleSortHistory('gross_amount')}
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan nominal kotor"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Nominal Kotor</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'gross_amount' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
                       <th
                         onClick={() => handleSortHistory('discount_amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan diskon"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Diskon</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'discount_amount' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
                       <th
                         onClick={() => handleSortHistory('amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan nominal bersih"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Nominal Bersih</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'amount' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
-                      <th className="p-3.5 max-w-xs">Catatan</th>
+                      <th
+                        onClick={() => handleSortHistory('notes')}
+                        className="p-3.5 max-w-xs cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan catatan"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Catatan</span>
+                          {historySortConfig.key === 'notes' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
                       <th
                         onClick={() => handleSortHistory('due_date')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan tanggal jatuh tempo"
                       >
                         <div className="flex items-center gap-1.5">
                           <span>Jatuh Tempo</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                          {historySortConfig.key === 'due_date' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
                         </div>
                       </th>
-                      <th className="p-3.5">Status</th>
+                      <th
+                        onClick={() => handleSortHistory('status')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan status"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Status</span>
+                          {historySortConfig.key === 'status' ? (
+                            historySortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
                       <th className="p-3.5 text-right">Aksi</th>
                     </tr>
                   </thead>
@@ -1779,13 +2926,28 @@ export default function StudentBills() {
 
                           <td className="p-3.5 font-bold text-slate-800">
                             <div>{b.student_name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">ID Siswa: {b.student_id}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              NIS: {b.nis || '-'} • ID: {b.student_id}
+                            </div>
+                          </td>
+
+                          <td className="p-3.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                              {b.class_name || '-'}
+                            </span>
                           </td>
 
                           <td className="p-3.5">
                             <div className="font-semibold text-slate-800">{b.fee_type_name}</div>
                             <div className="text-[10px] text-slate-500 font-medium">
-                              {b.period_month ? `Bulan ke-${b.period_month} / ` : ''}T.A. {b.period_year || '-'}
+                              {b.period_month ? `Bulan ke-${b.period_month} • ` : ''}
+                              {b.academic_year_name
+                                ? `T.A. ${b.academic_year_name}`
+                                : (b.period_year
+                                    ? (b.period_month
+                                        ? (b.period_month >= 7 ? `T.A. ${b.period_year}/${b.period_year + 1}` : `T.A. ${b.period_year - 1}/${b.period_year}`)
+                                        : `T.A. ${b.period_year}/${b.period_year + 1}`)
+                                    : '-')}
                             </div>
                           </td>
 
@@ -1929,7 +3091,7 @@ export default function StudentBills() {
               />
             </div>
             <div className="text-xs text-slate-500 font-medium">
-              Total {filteredReminderLogs.length} pengiriman tercatat
+              Total {filteredAndSortedReminderLogs.length} pengiriman tercatat
             </div>
           </div>
 
@@ -1940,7 +3102,7 @@ export default function StudentBills() {
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-600 mb-2" />
                 <p className="text-xs font-medium">Memuat riwayat pengiriman reminder...</p>
               </div>
-            ) : filteredReminderLogs.length === 0 ? (
+            ) : filteredAndSortedReminderLogs.length === 0 ? (
               <div className="p-16 text-center text-slate-400">
                 <Bell className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                 <p className="text-xs font-bold text-slate-700">Belum ada pengiriman reminder</p>
@@ -1949,19 +3111,138 @@ export default function StudentBills() {
             ) : (
               <div className="overflow-x-auto max-h-[650px]">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs">
+                  <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
                     <tr>
-                      <th className="p-3.5">Waktu Kirim</th>
-                      <th className="p-3.5">Santri &amp; Rombel</th>
-                      <th className="p-3.5">Penerima (Wali Murid)</th>
-                      <th className="p-3.5">Tagihan Terkait</th>
-                      <th className="p-3.5 max-w-md">Isi Pesan Notifikasi</th>
-                      <th className="p-3.5">Kanal Media</th>
-                      <th className="p-3.5">Status Pengiriman</th>
+                      <th
+                        onClick={() => handleSortReminders('sent_at')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan waktu kirim"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Waktu Kirim</span>
+                          {reminderSortConfig.key === 'sent_at' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('student_name')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan nama santri"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Santri &amp; Rombel</span>
+                          {reminderSortConfig.key === 'student_name' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('recipient_name')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan penerima"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Penerima (Wali Murid)</span>
+                          {reminderSortConfig.key === 'recipient_name' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('fee_type_name')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan tagihan terkait"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Tagihan Terkait</span>
+                          {reminderSortConfig.key === 'fee_type_name' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('message')}
+                        className="p-3.5 max-w-md cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan isi notifikasi"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Isi Pesan Notifikasi</span>
+                          {reminderSortConfig.key === 'message' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('channel')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan kanal"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Kanal Media</span>
+                          {reminderSortConfig.key === 'channel' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortReminders('status')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        title="Klik untuk mengurutkan status pengiriman"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Status Pengiriman</span>
+                          {reminderSortConfig.key === 'status' ? (
+                            reminderSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-orange-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-orange-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredReminderLogs.map((log) => (
+                    {filteredAndSortedReminderLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-slate-50/70 transition">
                         <td className="p-3.5 font-mono text-[11px] text-slate-600">
                           {new Date(log.sent_at || log.created_at).toLocaleString('id-ID')}
@@ -3683,6 +4964,177 @@ export default function StudentBills() {
                   <span>Kirim ke {broadcastSelectedBillIds.length} Santri</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: RINCIAN TAGIHAN SANTRI ALUMNI (READ-ONLY) */}
+      {/* ============================================================ */}
+      {alumniDetailModalOpen && selectedAlumnusDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-900 to-indigo-950 text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 font-bold">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Rincian Tagihan Santri Alumni</h3>
+                  <p className="text-[11px] text-slate-300">
+                    {selectedAlumnusDetail.full_name} • NIS: {selectedAlumnusDetail.nis || selectedAlumnusDetail.nipd || '-'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAlumniDetailModalOpen(false)}
+                className="p-1.5 text-white/80 hover:text-white rounded-lg transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+              {/* Profile & Arrears Banner */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Status &amp; Angkatan</p>
+                  <p className="font-semibold text-slate-800 mt-0.5">
+                    {selectedAlumnusDetail.graduation_academic_year_name !== '-' ? `Lulus ${selectedAlumnusDetail.graduation_academic_year_name}` : 'Alumni'}
+                    {selectedAlumnusDetail.cohort_name && selectedAlumnusDetail.cohort_name !== '-' ? ` (${selectedAlumnusDetail.cohort_name})` : ''}
+                  </p>
+                  <p className="text-[11px] text-slate-500">{selectedAlumnusDetail.last_class_name || 'Alumni'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Riwayat Tagihan</p>
+                  <p className="font-mono font-bold text-slate-800 text-sm mt-0.5">
+                    Rp {Number(selectedAlumnusDetail.total_bills || 0).toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium">
+                    Terbayar: Rp {Number(selectedAlumnusDetail.total_paid || 0).toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sisa Tunggakan</p>
+                  <p className="font-mono font-black text-rose-700 text-sm mt-0.5">
+                    Rp {Number(selectedAlumnusDetail.total_remaining || 0).toLocaleString('id-ID')}
+                  </p>
+                  <span className={`inline-block mt-0.5 px-2 py-0.2 rounded text-[10px] font-bold ${
+                    selectedAlumnusDetail.total_remaining > 0 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {selectedAlumnusDetail.total_remaining > 0 ? `${selectedAlumnusDetail.unpaid_bills_count} tagihan belum lunas` : 'Lunas Sepenuhnya'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Table Breakdown Tagihan */}
+              <div>
+                <h4 className="font-bold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Daftar Rincian Seluruh Tagihan</span>
+                </h4>
+                {(!selectedAlumnusDetail.bills || selectedAlumnusDetail.bills.length === 0) ? (
+                  <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                    Tidak ada rincian tagihan tercatat untuk alumni ini.
+                  </div>
+                ) : (
+                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <tr>
+                          <th className="p-2.5 text-center w-10">No</th>
+                          <th className="p-2.5">Pos Biaya &amp; Periode</th>
+                          <th className="p-2.5">T.A. Asal</th>
+                          <th className="p-2.5 text-right">Nominal</th>
+                          <th className="p-2.5 text-right">Diskon</th>
+                          <th className="p-2.5 text-right">Terbayar</th>
+                          <th className="p-2.5 text-right">Sisa</th>
+                          <th className="p-2.5 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {selectedAlumnusDetail.bills.map((bill, bIdx) => (
+                          <tr key={bill.id || bIdx} className="hover:bg-slate-50/80 transition">
+                            <td className="p-2.5 text-center text-slate-400 font-mono text-[11px]">{bIdx + 1}</td>
+                            <td className="p-2.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-800">{bill.fee_type_name}</span>
+                                {bill.is_manual && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    Input Manual
+                                  </span>
+                                )}
+                              </div>
+                              {bill.period_month && (
+                                <span className="text-[10px] text-slate-500 block">
+                                  Bulan {bill.period_month} / {bill.period_year}
+                                </span>
+                              )}
+                              {bill.notes && (
+                                <span className="text-[10px] text-slate-500 italic block mt-0.5">
+                                  Catatan: {bill.notes}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-slate-600 font-medium">
+                              {bill.academic_year_name || `T.A. ${bill.period_year || '-'}`}
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-slate-700">
+                              Rp {Number(bill.amount || 0).toLocaleString('id-ID')}
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-amber-600">
+                              {bill.discount_amount > 0 ? `Rp ${Number(bill.discount_amount).toLocaleString('id-ID')}` : '-'}
+                            </td>
+                            <td className="p-2.5 text-right font-mono text-emerald-700">
+                              Rp {Number(bill.paid_amount || 0).toLocaleString('id-ID')}
+                            </td>
+                            <td className="p-2.5 text-right font-mono font-bold">
+                              {bill.remaining_amount > 0 ? (
+                                <span className="text-rose-700">Rp {Number(bill.remaining_amount).toLocaleString('id-ID')}</span>
+                              ) : (
+                                <span className="text-slate-400">Rp 0</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              {bill.status === 'paid' || bill.remaining_amount === 0 ? (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                                  Lunas
+                                </span>
+                              ) : bill.status === 'partially_paid' || (bill.paid_amount > 0 && bill.remaining_amount > 0) ? (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-teal-100 text-teal-800">
+                                  Sebagian
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800">
+                                  Belum Bayar
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+              <span className="text-[11px] text-slate-400 italic">
+                * Halaman tampilan data riwayat tagihan &amp; tunggakan alumni (Read-Only).
+              </span>
+              <button
+                type="button"
+                onClick={() => setAlumniDetailModalOpen(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-xs"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

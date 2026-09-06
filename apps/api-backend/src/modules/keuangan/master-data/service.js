@@ -36,7 +36,11 @@ class MasterDataService {
       );
 
     if (isUnit(schoolUnitId)) {
-      query = query.where('cash_accounts.school_unit_id', schoolUnitId);
+      query = query.where(function() {
+        this.where('cash_accounts.school_unit_id', schoolUnitId).orWhere('cash_accounts.school_unit_id', 0);
+      });
+    } else if (filters.school_unit_id && isUnit(filters.school_unit_id)) {
+      query = query.where('cash_accounts.school_unit_id', Number(filters.school_unit_id));
     }
     if (filters.is_active !== undefined) {
       const isActive = filters.is_active === 'true' || filters.is_active === true;

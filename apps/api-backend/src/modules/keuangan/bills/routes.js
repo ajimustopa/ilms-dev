@@ -62,6 +62,20 @@ router.post(
   controller.broadcastReminders
 );
 
+// Tagihan Pembayaran Alumni (Tab 2)
+router.get(
+  '/student-bills/alumni',
+  verifyJwt,
+  requirePermission('keuangan.bills.view'),
+  controller.getAlumniBills
+);
+router.post(
+  '/student-bills/alumni/manual-arrear',
+  verifyJwt,
+  requirePermission('keuangan.bills.generate'),
+  controller.createAlumniManualBill
+);
+
 // Reminder Tagihan (Fitur #16)
 router.post(
   '/student-bills/:id/reminders',

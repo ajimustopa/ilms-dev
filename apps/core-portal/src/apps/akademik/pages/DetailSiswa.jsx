@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import DatePickerField from '../../../shared/components/DatePickerField';
 import {
   ArrowLeft,
   Save,
@@ -729,11 +730,10 @@ export default function DetailSiswa() {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tanggal Lahir</label>
-                <input
-                  type="date"
-                  value={formData.birth_date}
-                  onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                <DatePickerField
+                  value={formData.birth_date || ''}
+                  onChange={(isoVal) => setFormData({ ...formData, birth_date: isoVal })}
+                  placeholder="DD/MM/YYYY"
                 />
               </div>
 
@@ -1318,24 +1318,22 @@ export default function DetailSiswa() {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tanggal Masuk Sekolah</label>
-                <input
-                  type="date"
-                  value={formData.admission.admission_date}
-                  onChange={(e) => setFormData({
+                <DatePickerField
+                  value={formData.admission?.admission_date || ''}
+                  onChange={(isoVal) => setFormData({
                     ...formData,
-                    admission: { ...formData.admission, admission_date: e.target.value }
+                    admission: { ...formData.admission, admission_date: isoVal }
                   })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  placeholder="DD/MM/YYYY"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tanggal Terdaftar Sistem</label>
-                <input
-                  type="date"
-                  value={formData.enrolled_at}
-                  onChange={(e) => setFormData({ ...formData, enrolled_at: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                <DatePickerField
+                  value={formData.enrolled_at || ''}
+                  onChange={(isoVal) => setFormData({ ...formData, enrolled_at: isoVal })}
+                  placeholder="DD/MM/YYYY"
                 />
               </div>
 
@@ -2038,12 +2036,11 @@ export default function DetailSiswa() {
             <form onSubmit={handleSavePeriodic} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tanggal Pemeriksaan *</label>
-                <input
-                  type="date"
+                <DatePickerField
                   required
-                  value={newPeriodic.record_date}
-                  onChange={(e) => setNewPeriodic({ ...newPeriodic, record_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  value={newPeriodic.record_date || ''}
+                  onChange={(isoVal) => setNewPeriodic({ ...newPeriodic, record_date: isoVal })}
+                  placeholder="DD/MM/YYYY"
                 />
               </div>
 
@@ -2207,11 +2204,10 @@ export default function DetailSiswa() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Tanggal Lahir</label>
-                  <input
-                    type="date"
-                    value={guardianForm.birth_date}
-                    onChange={(e) => setGuardianForm({ ...guardianForm, birth_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  <DatePickerField
+                    value={guardianForm.birth_date || ''}
+                    onChange={(isoVal) => setGuardianForm({ ...guardianForm, birth_date: isoVal })}
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
 
@@ -2334,12 +2330,11 @@ export default function DetailSiswa() {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tanggal Penetapan *</label>
-                <input
-                  type="date"
+                <DatePickerField
                   required
-                  value={mutationForm.mutation_date}
-                  onChange={(e) => setMutationForm({ ...mutationForm, mutation_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  value={mutationForm.mutation_date || ''}
+                  onChange={(isoVal) => setMutationForm({ ...mutationForm, mutation_date: isoVal })}
+                  placeholder="DD/MM/YYYY"
                 />
               </div>
 

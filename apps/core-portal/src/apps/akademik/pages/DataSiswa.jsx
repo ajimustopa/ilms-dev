@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
+import DatePickerField from '../../../shared/components/DatePickerField';
 import {
   GraduationCap,
   Plus,
@@ -33,7 +35,11 @@ export default function DataSiswa() {
   const [students, setStudents] = useState([]);
   const [cohorts, setCohorts] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
+  const [gradeLevels, setGradeLevels] = useState([]);
   const [academicYearFilter, setAcademicYearFilter] = useState('all');
+  const [rombelFilter, setRombelFilter] = useState('');
+  const [registrationTypeFilter, setRegistrationTypeFilter] = useState('');
+  const [classGroupsFilter, setClassGroupsFilter] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -79,6 +85,8 @@ export default function DataSiswa() {
   const [targetAcademicYearClassGroups, setTargetAcademicYearClassGroups] = useState([]);
   const [savingPromote, setSavingPromote] = useState(false);
 
+  const [studentEnrollmentsHistory, setStudentEnrollmentsHistory] = useState([]);
+
   // Form State Siswa
   const [formData, setFormData] = useState({
     satuan_pendidikan_id: activeSchoolUnit?.id || 1,
@@ -87,6 +95,7 @@ export default function DataSiswa() {
     academic_year_id: '',
     class_group_id: '',
     registration_type: 'Siswa Baru',
+    initial_grade_level_id: '',
     previous_school_name: '',
     previous_school_address: '',
     nis: '',
@@ -118,11 +127,16 @@ export default function DataSiswa() {
   useEffect(() => {
     fetchCohorts();
     fetchAcademicYears();
+    fetchGradeLevels();
   }, [activeSchoolUnit]);
 
   useEffect(() => {
+    fetchFilterClassGroups();
+  }, [activeSchoolUnit, academicYearFilter]);
+
+  useEffect(() => {
     fetchStudents();
-  }, [search, statusFilter, cohortFilter, academicYearFilter, activeSchoolUnit]);
+  }, [search, statusFilter, cohortFilter, academicYearFilter, rombelFilter, registrationTypeFilter, activeSchoolUnit]);
 
   const fetchCohorts = async () => {
     try {
@@ -133,12 +147,55 @@ export default function DataSiswa() {
     } catch (e) {}
   };
 
+  const fetchGradeLevels = async () => {
+    try {
+      const params = {};
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
+      const res = await api.get('/akademik/grade-levels', { params });
+      setGradeLevels(res.data?.data || []);
+    } catch (e) {}
+  };
+
+  const fetchFilterClassGroups = async () => {
+    try {
+      const params = {};
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
+      if (academicYearFilter && academicYearFilter !== 'all') params.academic_year_id = academicYearFilter;
+      const res = await api.get('/akademik/class-groups', { params });
+      const rawList = res.data?.data || [];
+      const regulerList = rawList.filter(cg => !cg.type || cg.type === 'reguler');
+      const uniqueNames = [];
+      const seen = new Set();
+      for (const cg of regulerList) {
+        if (cg.name && !seen.has(cg.name)) {
+          seen.add(cg.name);
+          uniqueNames.push(cg);
+        }
+      }
+      uniqueNames.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true }));
+      setClassGroupsFilter(uniqueNames);
+    } catch (e) {
+      setClassGroupsFilter([]);
+    }
+  };
+
   const fetchAcademicYears = async () => {
     try {
       const params = {};
       if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') params.satuan_pendidikan_id = activeSchoolUnit.id;
       const res = await api.get('/akademik/academic-years', { params });
-      const list = res.data?.data || [];
+      const rawList = res.data?.data || [];
+      const uniqueMap = new Map();
+      rawList.forEach((ay) => {
+        const nameKey = (ay.name || '').trim();
+        const existing = uniqueMap.get(nameKey);
+        if (!existing) {
+          uniqueMap.set(nameKey, ay);
+        } else if (ay.is_active && !existing.is_active) {
+          uniqueMap.set(nameKey, ay);
+        }
+      });
+      const list = Array.from(uniqueMap.values()).sort((a, b) => (b.name || '').localeCompare(a.name || ''));
       setAcademicYears(list);
     } catch (e) {}
   };
@@ -154,6 +211,8 @@ export default function DataSiswa() {
       if (statusFilter) params.status = statusFilter;
       if (cohortFilter) params.cohort_id = cohortFilter;
       if (academicYearFilter && academicYearFilter !== 'all') params.academic_year_id = academicYearFilter;
+      if (rombelFilter && rombelFilter !== 'all') params.class_group_name = rombelFilter;
+      if (registrationTypeFilter && registrationTypeFilter !== 'all') params.registration_type = registrationTypeFilter;
 
       const res = await api.get('/akademik/students', { params });
       const rawList = res.data?.data?.items || (Array.isArray(res.data?.data) ? res.data.data : []);
@@ -168,15 +227,18 @@ export default function DataSiswa() {
 
   const handleOpenAddModal = async () => {
     setEditingStudent(null);
-    const activeYear = academicYears.find((y) => y.is_active);
+    setStudentEnrollmentsHistory([]);
+    const activeYear = academicYears.find((y) => y.is_active) || academicYears[0];
     const defaultYearId = academicYearFilter !== 'all' && academicYearFilter ? academicYearFilter : (activeYear?.id || '');
+    const defaultUnitId = (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') ? Number(activeSchoolUnit.id) : 1;
     setFormData({
-      satuan_pendidikan_id: activeSchoolUnit?.id || 1,
+      satuan_pendidikan_id: defaultUnitId,
       cohort_id: '',
       cohort_name: '',
-      academic_year_id: defaultYearId,
+      academic_year_id: defaultYearId ? String(defaultYearId) : '',
       class_group_id: '',
       registration_type: 'Siswa Baru',
+      initial_grade_level_id: '',
       previous_school_name: '',
       previous_school_address: '',
       nis: '',
@@ -191,23 +253,35 @@ export default function DataSiswa() {
     });
     setErrorMsg('');
     try {
-      const res = await api.get('/akademik/class-groups', {
-        params: { satuan_pendidikan_id: activeSchoolUnit?.id, academic_year_id: defaultYearId }
-      });
-      setAvailableClassGroups(res.data?.data || []);
+      if (defaultYearId) {
+        const res = await api.get('/akademik/class-groups', {
+          params: { satuan_pendidikan_id: activeSchoolUnit?.id, academic_year_id: defaultYearId }
+        });
+        setAvailableClassGroups(res.data?.data || []);
+      } else {
+        setAvailableClassGroups([]);
+      }
     } catch (e) {}
     setModalOpen(true);
   };
 
-  const handleOpenEditModal = (student) => {
+  const handleOpenEditModal = async (student) => {
     setEditingStudent(student);
+    const activeYear = academicYears.find((y) => y.is_active) || academicYears[0];
+    const targetYearId = (academicYearFilter && academicYearFilter !== 'all')
+      ? String(academicYearFilter)
+      : String(student.academic_year_id || activeYear?.id || '');
+
+    const initialClassGroupId = (String(student.academic_year_id) === String(targetYearId) ? student.class_group_id : '') || '';
+
     setFormData({
-      satuan_pendidikan_id: student.satuan_pendidikan_id || 1,
+      satuan_pendidikan_id: student.satuan_pendidikan_id || activeSchoolUnit?.id || 1,
       cohort_id: student.cohort_id || '',
       cohort_name: student.cohort_name || '',
-      academic_year_id: student.academic_year_id || academicYearFilter || '',
-      class_group_id: student.class_group_id || '',
-      registration_type: student.registration_type || 'Siswa Baru',
+      academic_year_id: targetYearId,
+      class_group_id: initialClassGroupId ? String(initialClassGroupId) : '',
+      registration_type: (student.registration_type || '').toLowerCase().includes('pindah') ? 'Siswa Pindahan' : 'Siswa Baru',
+      initial_grade_level_id: student.initial_grade_level_id ? String(student.initial_grade_level_id) : '',
       previous_school_name: student.previous_school_name || '',
       previous_school_address: student.previous_school_address || '',
       nis: student.nis || '',
@@ -218,10 +292,45 @@ export default function DataSiswa() {
       birth_date: student.birth_date ? student.birth_date.split('T')[0] : '',
       address: student.address || '',
       status: student.status || 'aktif',
-      enrolled_at: student.enrolled_at ? student.enrolled_at.split('T')[0] : new Date().toISOString().split('T')[0]
+      enrolled_at: student.enrolled_at ? student.enrolled_at.split('T')[0] : (student.admission_date ? student.admission_date.split('T')[0] : new Date().toISOString().split('T')[0])
     });
     setErrorMsg('');
     setModalOpen(true);
+
+    try {
+      const [classGroupsRes, studentDetailRes] = await Promise.all([
+        targetYearId ? api.get('/akademik/class-groups', {
+          params: { satuan_pendidikan_id: activeSchoolUnit?.id || student.satuan_pendidikan_id, academic_year_id: targetYearId }
+        }) : Promise.resolve({ data: { data: [] } }),
+        api.get(`/akademik/students/${student.id}`)
+      ]);
+
+      const groups = classGroupsRes.data?.data || [];
+      setAvailableClassGroups(groups);
+
+      const fullDetail = studentDetailRes.data?.data || {};
+      const enrollments = fullDetail.enrollments || [];
+      setStudentEnrollmentsHistory(enrollments);
+
+      // Cari rombel aktif di targetYearId
+      const matchingEnrollment = enrollments.find(e => String(e.academic_year_id) === String(targetYearId));
+      const resolvedClassGroupId = matchingEnrollment
+        ? String(matchingEnrollment.class_group_id)
+        : (initialClassGroupId ? String(initialClassGroupId) : '');
+
+      setFormData(prev => ({
+        ...prev,
+        academic_year_id: targetYearId,
+        class_group_id: resolvedClassGroupId,
+        initial_grade_level_id: fullDetail.admission?.initial_grade_level_id ? String(fullDetail.admission.initial_grade_level_id) : (prev.initial_grade_level_id || ''),
+        enrolled_at: fullDetail.enrolled_at ? fullDetail.enrolled_at.split('T')[0] : (fullDetail.admission?.admission_date ? fullDetail.admission.admission_date.split('T')[0] : prev.enrolled_at),
+        registration_type: fullDetail.admission?.registration_type ? (String(fullDetail.admission.registration_type).toLowerCase().includes('pindah') ? 'Siswa Pindahan' : 'Siswa Baru') : prev.registration_type,
+        previous_school_name: fullDetail.admission?.previous_school_name || prev.previous_school_name,
+        previous_school_address: fullDetail.admission?.previous_school_address || prev.previous_school_address
+      }));
+    } catch (err) {
+      console.warn('Error loading student edit details:', err);
+    }
   };
 
   const handleSaveStudent = async (e) => {
@@ -230,12 +339,21 @@ export default function DataSiswa() {
     setErrorMsg('');
 
     try {
+      const resolvedUnitId = (formData.satuan_pendidikan_id && formData.satuan_pendidikan_id !== 'all')
+        ? Number(formData.satuan_pendidikan_id)
+        : ((activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') ? Number(activeSchoolUnit.id) : 1);
+
       const payload = {
         ...formData,
+        satuan_pendidikan_id: resolvedUnitId,
+        nis: formData.nis ? String(formData.nis).trim() : '',
+        nisn: formData.nisn ? String(formData.nisn).trim() : null,
+        enrolled_at: formData.enrolled_at,
         admission: {
           registration_type: formData.registration_type,
-          previous_school_name: formData.previous_school_name,
-          previous_school_address: formData.previous_school_address,
+          initial_grade_level_id: formData.registration_type.includes('Pindah') ? (formData.initial_grade_level_id ? Number(formData.initial_grade_level_id) : null) : null,
+          previous_school_name: formData.previous_school_name || null,
+          previous_school_address: formData.previous_school_address || null,
           admission_date: formData.enrolled_at
         }
       };
@@ -481,24 +599,70 @@ export default function DataSiswa() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {/* Filter Tahun Ajaran (Periodik) */}
-          <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-200 px-3 py-1.5 rounded-xl">
-            <Calendar className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-            <span className="text-[11px] font-bold text-teal-900 shrink-0">TA:</span>
-            <select
-              value={academicYearFilter}
-              onChange={(e) => setAcademicYearFilter(e.target.value)}
-              className="text-xs bg-transparent font-bold text-teal-900 focus:outline-none cursor-pointer"
-            >
-              <option value="all">Semua Tahun Ajaran</option>
-              {academicYears.map((ay) => (
-                <option key={ay.id} value={ay.id}>
-                  TA {ay.name} {ay.is_active ? '(Aktif)' : ''}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center bg-teal-50/80 hover:bg-teal-50 border border-teal-200/90 rounded-2xl p-1 shadow-2xs transition">
+            <div className="flex items-center gap-1.5 pl-2.5 pr-1 text-teal-900 font-bold text-xs shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-teal-600" />
+              <span className="hidden sm:inline">T.A.:</span>
+            </div>
+            <div className="min-w-[190px] sm:min-w-[215px]">
+              <SearchableSelect
+                options={[
+                  {
+                    value: 'all',
+                    label: 'Semua Tahun Ajaran',
+                    sublabel: 'Tampilkan seluruh siswa tanpa filter periode'
+                  },
+                  ...academicYears.map((ay) => ({
+                    value: String(ay.id),
+                    label: `T.A. ${ay.name}`,
+                    sublabel: ay.is_active ? 'Tahun Ajaran Berjalan (Aktif)' : 'Tahun Ajaran Arsip',
+                    badge: ay.is_active ? 'Aktif' : undefined,
+                    badgeClass: ay.is_active ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : undefined
+                  }))
+                ]}
+                value={String(academicYearFilter || 'all')}
+                onChange={(val) => {
+                  setAcademicYearFilter(val || 'all');
+                  setRombelFilter('');
+                }}
+                placeholder="Pilih Tahun Ajaran"
+                searchPlaceholder="Cari tahun ajaran..."
+                accentColor="teal"
+                allowClear={false}
+                variant="header-white"
+                menuMinWidth="230px"
+              />
+            </div>
           </div>
+
+          {/* Filter Rombel */}
+          <select
+            value={rombelFilter}
+            onChange={(e) => setRombelFilter(e.target.value)}
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
+            title="Filter Berdasarkan Rombongan Belajar (Rombel)"
+          >
+            <option value="">Semua Rombel</option>
+            {classGroupsFilter.map((cg) => (
+              <option key={cg.id || cg.name} value={cg.name}>
+                Rombel {cg.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Filter Jenis Pendaftaran */}
+          <select
+            value={registrationTypeFilter}
+            onChange={(e) => setRegistrationTypeFilter(e.target.value)}
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
+            title="Filter Berdasarkan Jenis Pendaftaran"
+          >
+            <option value="">Semua Jenis Pendaftaran</option>
+            <option value="siswa_baru">Siswa Baru</option>
+            <option value="pindahan">Siswa Pindahan</option>
+          </select>
 
           <select
             value={cohortFilter}
@@ -587,6 +751,19 @@ export default function DataSiswa() {
                   </div>
                 </th>
                 <th
+                  onClick={() => handleSort('registration_type')}
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Jenis Pendaftaran</span>
+                    {sortField === 'registration_type' ? (
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-40" />
+                    )}
+                  </div>
+                </th>
+                <th
                   onClick={() => handleSort('birth_date')}
                   className="py-3.5 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
                 >
@@ -631,14 +808,14 @@ export default function DataSiswa() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
                     <span>Memuat data siswa...</span>
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-400">
+                  <td colSpan={9} className="py-10 text-center text-slate-400">
                     Tidak ada data siswa yang sesuai filter.
                   </td>
                 </tr>
@@ -664,7 +841,9 @@ export default function DataSiswa() {
                       <div className="text-[10px] text-slate-400 truncate max-w-xs">{student.address || '-'}</div>
                     </td>
                     <td className="py-3 px-4">
-                      {student.class_group_name ? (
+                      {academicYearFilter === 'all' || !academicYearFilter ? (
+                        <span className="text-slate-400 font-mono text-xs font-semibold">-</span>
+                      ) : student.class_group_name ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-teal-50 text-teal-800 border border-teal-200/90 shadow-2xs">
                             <Layers className="w-3 h-3 text-teal-600 shrink-0" />
@@ -700,6 +879,22 @@ export default function DataSiswa() {
                       }`}>
                         {student.gender === 'L' ? 'Laki-Laki' : 'Perempuan'}
                       </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                          (student.registration_type || '').toLowerCase().includes('pindah')
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {student.registration_type || 'Siswa Baru'}
+                        </span>
+                        {(student.registration_type || '').toLowerCase().includes('pindah') && student.initial_grade_name && (
+                          <span className="inline-flex items-center text-[9px] font-bold text-amber-900 bg-amber-100/70 border border-amber-200/80 px-1.5 py-0.5 rounded">
+                            Masuk: {student.initial_grade_name}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-slate-600 text-xs">
                       {student.birth_place ? `${student.birth_place}, ` : ''}
@@ -892,7 +1087,12 @@ export default function DataSiswa() {
                     value={formData.academic_year_id || ''}
                     onChange={async (e) => {
                       const yId = e.target.value;
-                      setFormData({ ...formData, academic_year_id: yId, class_group_id: '' });
+                      let enrolledCgId = '';
+                      if (editingStudent && studentEnrollmentsHistory && studentEnrollmentsHistory.length > 0) {
+                        const found = studentEnrollmentsHistory.find(en => String(en.academic_year_id) === String(yId));
+                        if (found) enrolledCgId = String(found.class_group_id);
+                      }
+                      setFormData(prev => ({ ...prev, academic_year_id: yId, class_group_id: enrolledCgId || '' }));
                       if (yId) {
                         try {
                           const res = await api.get('/akademik/class-groups', {
@@ -933,8 +1133,8 @@ export default function DataSiswa() {
                 </div>
               </div>
 
-              {/* Jenis Registrasi Siswa */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+              {/* Data Registrasi & Masuk Siswa */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
@@ -949,32 +1149,80 @@ export default function DataSiswa() {
                       <option value="Siswa Pindahan">Siswa Pindahan</option>
                     </select>
                   </div>
+
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Nama Asal Sekolah {formData.registration_type === 'Siswa Pindahan' ? '*' : '(Opsional)'}
+                      Tanggal Awal Masuk *
                     </label>
-                    <input
-                      type="text"
-                      required={formData.registration_type === 'Siswa Pindahan'}
-                      value={formData.previous_school_name}
-                      onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                      placeholder="Contoh: SDN 01 Depok / SMP Negeri 1..."
+                    <DatePickerField
+                      required
+                      value={formData.enrolled_at || ''}
+                      onChange={(isoVal) => setFormData({ ...formData, enrolled_at: isoVal })}
+                      placeholder="DD/MM/YYYY"
                     />
                   </div>
                 </div>
 
                 {formData.registration_type === 'Siswa Pindahan' && (
-                  <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Kelas Pertama Masuk (Pindahan) *
+                      </label>
+                      <select
+                        required
+                        value={formData.initial_grade_level_id || ''}
+                        onChange={(e) => setFormData({ ...formData, initial_grade_level_id: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-semibold text-slate-800"
+                      >
+                        <option value="">-- Pilih Kelas Masuk --</option>
+                        {gradeLevels.map((gl) => (
+                          <option key={gl.id} value={gl.id}>
+                            {gl.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Nama Asal Sekolah (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.previous_school_name}
+                        onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                        placeholder="Contoh: SMP Negeri 1 / MTs..."
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Alamat Sekolah Asal (Pindahan)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.previous_school_address}
+                        onChange={(e) => setFormData({ ...formData, previous_school_address: e.target.value })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                        placeholder="Alamat sekolah asal siswa pindahan..."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {formData.registration_type !== 'Siswa Pindahan' && (
+                  <div className="pt-2 border-t border-slate-200/80">
                     <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Alamat Sekolah Asal (Pindahan)
+                      Nama Asal Sekolah (Opsional)
                     </label>
                     <input
                       type="text"
-                      value={formData.previous_school_address}
-                      onChange={(e) => setFormData({ ...formData, previous_school_address: e.target.value })}
+                      value={formData.previous_school_name}
+                      onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
                       className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-                      placeholder="Alamat sekolah asal siswa pindahan..."
+                      placeholder="Contoh: SDN 01 Depok / MI..."
                     />
                   </div>
                 )}
@@ -996,11 +1244,10 @@ export default function DataSiswa() {
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Tanggal Lahir
                   </label>
-                  <input
-                    type="date"
-                    value={formData.birth_date}
-                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  <DatePickerField
+                    value={formData.birth_date || ''}
+                    onChange={(isoVal) => setFormData({ ...formData, birth_date: isoVal })}
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
               </div>

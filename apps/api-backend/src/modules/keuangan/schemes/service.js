@@ -21,8 +21,19 @@ class FeeSchemesService {
     if (isUnit(schoolUnitId)) {
       query = query.where('fee_schemes.school_unit_id', schoolUnitId);
     }
-    if (filters.academic_year_id) {
-      query = query.where('fee_schemes.academic_year_id', filters.academic_year_id);
+    if (filters.academic_year_id && filters.academic_year_id !== 'all') {
+      const ayId = Number(filters.academic_year_id);
+      let matchedAyIds = [ayId];
+      try {
+        const refAy = await crossModuleServices.getAcademicYear(ayId);
+        if (refAy && refAy.name) {
+          const allAys = await crossModuleServices.listAcademicYears();
+          allAys.filter(y => y.name === refAy.name).forEach(y => {
+            if (!matchedAyIds.includes(y.id)) matchedAyIds.push(y.id);
+          });
+        }
+      } catch (e) {}
+      query = query.whereIn('fee_schemes.academic_year_id', matchedAyIds);
     }
     if (filters.is_active !== undefined) {
       const isActive = filters.is_active === 'true' || filters.is_active === true;
@@ -442,7 +453,18 @@ class FeeSchemesService {
       asgQuery = asgQuery.where('student_fee_scheme_assignments.school_unit_id', targetUnit);
     }
     if (academic_year_id && academic_year_id !== 'all') {
-      asgQuery = asgQuery.where('student_fee_scheme_assignments.academic_year_id', academic_year_id);
+      const ayId = Number(academic_year_id);
+      let matchedAyIds = [ayId];
+      try {
+        const refAy = await crossModuleServices.getAcademicYear(ayId);
+        if (refAy && refAy.name) {
+          const allAys = await crossModuleServices.listAcademicYears();
+          allAys.filter(y => y.name === refAy.name).forEach(y => {
+            if (!matchedAyIds.includes(y.id)) matchedAyIds.push(y.id);
+          });
+        }
+      } catch (e) {}
+      asgQuery = asgQuery.whereIn('student_fee_scheme_assignments.academic_year_id', matchedAyIds);
     }
 
     const assignments = await asgQuery;
@@ -484,7 +506,58 @@ class FeeSchemesService {
       });
     }
 
-    // 5. Gabungkan dan filter
+    // 5. Cari fee_type untuk Tunggakan Tahun Ajaran Sebelumnya & hitung sisa tunggakan dari tahun ajaran lampau
+    const arrearsFeeType = await db('fee_types')
+      .where(function() {
+        this.where('code', 'arrears_previous_year')
+          .orWhereRaw("LOWER(name) LIKE '%tunggakan%'");
+      })
+      .first();
+    const arrearsFtId = arrearsFeeType ? arrearsFeeType.id : 11;
+
+    let studentArrearsMap = {};
+    try {
+      const allAys = await crossModuleServices.listAcademicYears();
+      const currentAy = allAys.find(y => y.id === Number(academic_year_id));
+      let prevAyIds = [];
+      if (currentAy) {
+        prevAyIds = allAys
+          .filter(y => {
+            if (currentAy.start_date && y.start_date) {
+              return new Date(y.start_date) < new Date(currentAy.start_date);
+            }
+            return Number(y.id) < Number(currentAy.id);
+          })
+          .map(y => y.id);
+      } else if (academic_year_id && academic_year_id !== 'all') {
+        prevAyIds = allAys
+          .filter(y => Number(y.id) < Number(academic_year_id))
+          .map(y => y.id);
+      }
+
+      const studentIds = students.map(s => s.id);
+      if (studentIds.length > 0 && prevAyIds.length > 0) {
+        let arrearsQuery = db('student_bills')
+          .whereIn('student_id', studentIds)
+          .whereIn('academic_year_id', prevAyIds)
+          .whereIn('status', ['unpaid', 'partially_paid', 'draft'])
+          .groupBy('student_id')
+          .select('student_id', db.raw('SUM(amount - paid_amount) as total_arrears'));
+
+        if (targetUnit) {
+          arrearsQuery = arrearsQuery.where('school_unit_id', targetUnit);
+        }
+
+        const arrearsRows = await arrearsQuery;
+        arrearsRows.forEach(r => {
+          studentArrearsMap[r.student_id] = parseFloat(r.total_arrears || 0);
+        });
+      }
+    } catch (e) {
+      console.error('Error fetching student previous arrears:', e);
+    }
+
+    // 6. Gabungkan dan filter
     let results = students.map(st => {
       const asg = assignmentMap[st.id] || null;
       const customItems = adjustmentMap[st.id] || [];
@@ -492,7 +565,6 @@ class FeeSchemesService {
       // Hitung rincian nominal fee per fee_type
       const feeBreakdown = {};
       let totalAssignedAmount = 0;
-      let monthlyAssignedAmount = 0;
 
       const studentSchemeItems = asg?.fee_scheme_id ? (schemeItemsMap[asg.fee_scheme_id] || {}) : {};
       const customItemsByFeeType = {};
@@ -506,12 +578,22 @@ class FeeSchemesService {
         ...Object.keys(customItemsByFeeType)
       ]);
 
+      const autoArrears = studentArrearsMap[st.id] || 0;
+      const hasManualArrears = customItemsByFeeType[arrearsFtId] !== undefined;
+
+      if (autoArrears > 0 && arrearsFtId) {
+        allFeeTypeIds.add(String(arrearsFtId));
+      }
+
       allFeeTypeIds.forEach(ftId => {
         const sItem = studentSchemeItems[ftId];
         const cItem = customItemsByFeeType[ftId];
+        const isArrearsPos = String(ftId) === String(arrearsFtId);
+
         let baseAmount = sItem ? parseFloat(sItem.value || 0) : 0;
         let finalAmount = baseAmount;
         let note = '';
+        let isAutoArrears = false;
 
         if (cItem) {
           if (cItem.adjustment_kind === 'override_amount') {
@@ -523,12 +605,19 @@ class FeeSchemesService {
             finalAmount = Math.max(0, baseAmount - disc);
             note = `Diskon ${pct}%`;
           }
+        } else if (isArrearsPos && autoArrears > 0) {
+          // Otomatis terisi sisa tunggakan tahun ajaran sebelumnya jika tidak diinput manual
+          baseAmount = autoArrears;
+          finalAmount = autoArrears;
+          isAutoArrears = true;
+          note = 'Otomatis Sisa Tunggakan Lalu';
         }
 
         feeBreakdown[ftId] = {
           base_amount: baseAmount,
           final_amount: finalAmount,
           has_adjustment: Boolean(cItem),
+          is_auto_arrears: isAutoArrears,
           adjustment_note: note
         };
 
@@ -561,8 +650,8 @@ class FeeSchemesService {
           is_custom: false,
           assigned_at: null,
           reason: null,
-          total_amount: 0,
-          fee_breakdown: {},
+          total_amount: totalAssignedAmount,
+          fee_breakdown: feeBreakdown,
           previous_data: null
         },
         custom_adjustments: customItems

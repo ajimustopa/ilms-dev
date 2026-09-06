@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import {
@@ -46,11 +46,22 @@ export function isoToDmy(isoStr) {
 export function dmyToIso(dmyStr) {
   if (!dmyStr) return '';
   const clean = String(dmyStr).trim();
-  // Format YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
-    return clean;
+  
+  // Pisahkan komponen tanggal dan jam jika ada (misal: "01/07/2024 6:01:48" atau "01/07/2024 06:01")
+  const spaceIdx = clean.indexOf(' ');
+  let datePart = clean;
+  let timePart = '';
+  if (spaceIdx !== -1) {
+    datePart = clean.slice(0, spaceIdx).trim();
+    timePart = clean.slice(spaceIdx + 1).trim();
   }
-  const parts = clean.split(/[-/.]/);
+
+  // Format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart;
+  }
+  
+  const parts = datePart.split(/[-/.]/);
   if (parts.length === 3) {
     if (parts[0].length === 4) {
       // YYYY/MM/DD or YYYY-MM-DD or YYYY.MM.DD
@@ -77,21 +88,21 @@ export function dmyToIso(dmyStr) {
     }
   }
   // 8 digits without separator: e.g. 10072024 or 20240710
-  if (/^\d{8}$/.test(clean)) {
-    const first4 = Number(clean.slice(0, 4));
+  if (/^\d{8}$/.test(datePart)) {
+    const first4 = Number(datePart.slice(0, 4));
     if (first4 >= 1900 && first4 <= 2100) {
-      const y = clean.slice(0, 4);
-      const m = clean.slice(4, 6);
-      const d = clean.slice(6, 8);
+      const y = datePart.slice(0, 4);
+      const m = datePart.slice(4, 6);
+      const d = datePart.slice(6, 8);
       const monNum = Number(m);
       const dayNum = Number(d);
       if (monNum >= 1 && monNum <= 12 && dayNum >= 1 && dayNum <= 31) {
         return `${y}-${m}-${d}`;
       }
     } else {
-      const d = clean.slice(0, 2);
-      const m = clean.slice(2, 4);
-      const y = clean.slice(4, 8);
+      const d = datePart.slice(0, 2);
+      const m = datePart.slice(2, 4);
+      const y = datePart.slice(4, 8);
       const dayNum = Number(d);
       const monNum = Number(m);
       const yearNum = Number(y);
@@ -103,15 +114,38 @@ export function dmyToIso(dmyStr) {
   return '';
 }
 
+// Ekstrak time string format HH:mm atau HH:mm:ss dari berbagai format input (misal "6:01:48", "17.49.54", "06:01", "17.49")
+export function extractTimeFromInput(inputStr) {
+  if (!inputStr) return '';
+  const clean = String(inputStr).trim();
+  const spaceIdx = clean.indexOf(' ');
+  const tStr = spaceIdx !== -1 ? clean.slice(spaceIdx + 1).trim() : clean;
+  // Match HH:mm:ss atau HH.mm.ss atau HH:mm atau HH.mm
+  const timeMatch = tStr.match(/(\d{1,2})[:.](\d{1,2})(?:[:.](\d{1,2}))?/);
+  if (timeMatch) {
+    const hh = String(timeMatch[1]).padStart(2, '0');
+    const mm = String(timeMatch[2]).padStart(2, '0');
+    const ss = timeMatch[3] !== undefined ? String(timeMatch[3]).padStart(2, '0') : null;
+    return ss ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
+  }
+  return '';
+}
+
 function parseIsoToDate(isoStr) {
   if (!isoStr) return undefined;
   try {
     const clean = String(isoStr).trim();
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
-      const parsed = parse(clean, 'dd/MM/yyyy', new Date());
+    const spaceIdx = clean.indexOf(' ');
+    const datePart = spaceIdx !== -1 ? clean.slice(0, spaceIdx).trim() : clean;
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(datePart)) {
+      const parts = datePart.split('/');
+      const d = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      const y = parts[2];
+      const parsed = parse(`${d}/${m}/${y}`, 'dd/MM/yyyy', new Date());
       return isValid(parsed) ? parsed : undefined;
     }
-    const isoClean = clean.slice(0, 10);
+    const isoClean = datePart.slice(0, 10);
     const parsed = typeof isoClean === 'string' ? parse(isoClean, 'yyyy-MM-dd', new Date()) : new Date(isoClean);
     return isValid(parsed) ? parsed : undefined;
   } catch (e) {
@@ -121,10 +155,12 @@ function parseIsoToDate(isoStr) {
 
 /**
  * Reusable DatePickerField component using react-day-picker + date-fns + createPortal
+ * Diposisikan secara akurat tepat di bawah inputan teks tanpa menghalangi input field dan tanpa flicker di sudut kiri atas.
  */
 export default function DatePickerField({
   value, // 'YYYY-MM-DD'
   onChange, // callback(isoString, dateObj)
+  onTimeExtracted, // optional callback(timeStr "HH:mm" atau "HH:mm:ss")
   placeholder = 'DD/MM/YYYY',
   label,
   disabled = false,
@@ -142,7 +178,7 @@ export default function DatePickerField({
   const selectedDate = useMemo(() => parseIsoToDate(value), [value]);
   const [textValue, setTextValue] = useState(() => isoToDmy(value));
   const [currentMonth, setCurrentMonth] = useState(() => selectedDate || new Date());
-  const [popoverCoords, setPopoverCoords] = useState({ top: 0, left: 0 });
+  const [popoverCoords, setPopoverCoords] = useState(null);
 
   useEffect(() => {
     if (!isTypingRef.current) {
@@ -156,24 +192,24 @@ export default function DatePickerField({
     }
   }, [selectedDate]);
 
-  // Update floating popover position relative to viewport
-  const updatePosition = useCallback(() => {
-    if (!containerRef.current) return;
+  // Hitung posisi tepat di bawah inputan tanpa menghalangi input text
+  const calculateCoords = useCallback(() => {
+    if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
 
-    const popoverHeight = 360;
+    const popoverHeight = 350;
     const popoverWidth = 290;
 
     const spaceBelow = viewportHeight - rect.bottom;
-    const shouldOpenAbove = spaceBelow < popoverHeight && rect.top > popoverHeight;
+    const spaceAbove = rect.top;
 
-    let top = shouldOpenAbove ? rect.top - popoverHeight - 6 : rect.bottom + 6;
-    if (top < 8) top = 8;
-    if (top + popoverHeight > viewportHeight - 8) {
-      top = Math.max(8, viewportHeight - popoverHeight - 8);
-    }
+    // Prioritas utama: tepat di bawah input field (rect.bottom + 4px)
+    // Hanya buka di atas jika ruang bawah sangat sempit (< 310px) dan ruang atas cukup lega
+    const shouldOpenAbove = spaceBelow < 310 && spaceAbove > 330;
+
+    let top = shouldOpenAbove ? (rect.top - popoverHeight - 4) : (rect.bottom + 4);
 
     let left = rect.left;
     if (align === 'right' || (align !== 'left' && rect.left + popoverWidth > viewportWidth - 12)) {
@@ -181,14 +217,38 @@ export default function DatePickerField({
     }
     if (left < 12) left = 12;
     if (left + popoverWidth > viewportWidth - 12) {
-      left = viewportWidth - popoverWidth - 12;
+      left = Math.max(12, viewportWidth - popoverWidth - 12);
     }
 
-    setPopoverCoords({ top, left });
+    return { top: Math.round(top), left: Math.round(left) };
   }, [align]);
+
+  const openCalendar = useCallback(() => {
+    if (disabled) return;
+    const coords = calculateCoords();
+    if (coords) {
+      setPopoverCoords(coords);
+    }
+    if (selectedDate) {
+      setCurrentMonth(selectedDate);
+    }
+    setIsOpen(true);
+  }, [disabled, calculateCoords, selectedDate]);
+
+  // Pastikan posisi terhitung sebelum browser painting (mencegah muncul di 0,0)
+  useLayoutEffect(() => {
+    if (isOpen) {
+      const coords = calculateCoords();
+      if (coords) {
+        setPopoverCoords(coords);
+      }
+    }
+  }, [isOpen, calculateCoords]);
 
   // Handle outside click & update position on scroll/resize
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleOutsideClick = (e) => {
       if (
         containerRef.current &&
@@ -211,24 +271,22 @@ export default function DatePickerField({
     };
 
     const handleScrollOrResize = () => {
-      if (isOpen) {
-        updatePosition();
+      const coords = calculateCoords();
+      if (coords) {
+        setPopoverCoords(coords);
       }
     };
 
-    if (isOpen) {
-      updatePosition();
-      document.addEventListener('mousedown', handleOutsideClick);
-      window.addEventListener('resize', handleScrollOrResize);
-      window.addEventListener('scroll', handleScrollOrResize, true);
-    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
 
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
       window.removeEventListener('resize', handleScrollOrResize);
       window.removeEventListener('scroll', handleScrollOrResize, true);
     };
-  }, [isOpen, textValue, value, allowClear, updatePosition]);
+  }, [isOpen, textValue, value, allowClear, calculateCoords]);
 
   const handleSelectDay = (day) => {
     isTypingRef.current = false;
@@ -250,6 +308,13 @@ export default function DatePickerField({
     isTypingRef.current = true;
     const raw = e.target.value;
     setTextValue(raw);
+    
+    // Auto-extract time jika user menempelkan string datetime lengkap
+    const extractedTime = extractTimeFromInput(raw);
+    if (extractedTime && onTimeExtracted) {
+      onTimeExtracted(extractedTime);
+    }
+
     const iso = dmyToIso(raw);
     if (iso) {
       const parsed = parseIsoToDate(iso);
@@ -260,7 +325,13 @@ export default function DatePickerField({
 
   const handleInputBlur = () => {
     isTypingRef.current = false;
-    const iso = dmyToIso(textValue);
+    const raw = textValue;
+    const extractedTime = extractTimeFromInput(raw);
+    if (extractedTime && onTimeExtracted) {
+      onTimeExtracted(extractedTime);
+    }
+
+    const iso = dmyToIso(raw);
     if (iso) {
       const parsed = parseIsoToDate(iso);
       setTextValue(isoToDmy(iso));
@@ -281,7 +352,13 @@ export default function DatePickerField({
       e.preventDefault();
       e.stopPropagation();
       isTypingRef.current = false;
-      const iso = dmyToIso(textValue);
+      const raw = textValue;
+      const extractedTime = extractTimeFromInput(raw);
+      if (extractedTime && onTimeExtracted) {
+        onTimeExtracted(extractedTime);
+      }
+
+      const iso = dmyToIso(raw);
       if (iso) {
         const parsed = parseIsoToDate(iso);
         setTextValue(isoToDmy(iso));
@@ -325,10 +402,11 @@ export default function DatePickerField({
             disabled={disabled}
             onClick={() => {
               if (!disabled) {
-                if (!isOpen && selectedDate) {
-                  setCurrentMonth(selectedDate);
+                if (isOpen) {
+                  setIsOpen(false);
+                } else {
+                  openCalendar();
                 }
-                setIsOpen(!isOpen);
               }
             }}
             className="text-emerald-600 hover:text-emerald-700 p-0.5 rounded cursor-pointer shrink-0"
@@ -344,8 +422,7 @@ export default function DatePickerField({
             onBlur={handleInputBlur}
             onFocus={() => {
               if (!disabled && !isOpen) {
-                if (selectedDate) setCurrentMonth(selectedDate);
-                setIsOpen(true);
+                openCalendar();
               }
             }}
             placeholder={placeholder}
@@ -368,7 +445,7 @@ export default function DatePickerField({
         </div>
       </div>
 
-      {isOpen &&
+      {isOpen && popoverCoords && (
         createPortal(
           <div
             ref={popoverRef}
@@ -401,7 +478,7 @@ export default function DatePickerField({
                 </button>
               </div>
 
-              {/* Dropdown Pilihan Tahun Cepat */}
+              {/* Dropdown Pilihan Tahun Cepat (1950 - 2040) */}
               <div className="flex items-center gap-1">
                 <select
                   value={currentYear}
@@ -412,7 +489,7 @@ export default function DatePickerField({
                   className="px-2 py-1 text-xs font-bold text-emerald-950 bg-emerald-50 border border-emerald-200 rounded-lg outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer font-mono"
                   title="Pilih Tahun Secara Cepat"
                 >
-                  {Array.from({ length: 31 }, (_, i) => 2015 + i).map((y) => (
+                  {Array.from({ length: 91 }, (_, i) => 1950 + i).map((y) => (
                     <option key={y} value={y}>Tahun {y}</option>
                   ))}
                 </select>
@@ -446,8 +523,8 @@ export default function DatePickerField({
               month={currentMonth}
               onMonthChange={setCurrentMonth}
               captionLayout="dropdown"
-              startMonth={new Date(2015, 0)}
-              endMonth={new Date(2045, 11)}
+              startMonth={new Date(1950, 0)}
+              endMonth={new Date(2040, 11)}
               className="m-0 text-slate-700 text-xs"
               modifiersClassNames={{
                 selected: 'bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700',
@@ -477,7 +554,8 @@ export default function DatePickerField({
             </div>
           </div>,
           document.body
-        )}
+        )
+      )}
     </div>
   );
 }

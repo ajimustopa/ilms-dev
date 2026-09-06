@@ -86,6 +86,20 @@ class BankStatementsController {
     } catch (err) { next(err); }
   };
 
+  bulkDeleteBankStatements = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const { ids } = req.body;
+      const data = await service.bulkDeleteBankStatements(schoolUnitId, ids, req.user?.id);
+      res.json({
+        success: true,
+        data,
+        message: `Berhasil menghapus ${data.deleted_count} baris mutasi rekening koran (${data.reconciled_count} tertaut, ${data.unreconciled_count} belum tertaut)`,
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
   reconcileStatement = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -102,11 +116,12 @@ class BankStatementsController {
   unreconcileStatement = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
-      const data = await service.unreconcileStatement(schoolUnitId, req.params.id, req.user?.id);
+      const referenceSubId = req.body?.reference_record_id || req.query?.reference_record_id || req.body?.reference_id;
+      const data = await service.unreconcileStatement(schoolUnitId, req.params.id, req.user?.id, referenceSubId);
       res.json({
         success: true,
         data,
-        message: 'Rujukan rekonsiliasi berhasil dilepas',
+        message: referenceSubId ? '1 Rujukan rekonsiliasi berhasil dilepas' : 'Seluruh rujukan rekonsiliasi berhasil dilepas',
         errors: null
       });
     } catch (err) { next(err); }

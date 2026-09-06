@@ -65,12 +65,74 @@ class StudentsService {
     }
 
     // Filter per Tahun Ajaran (Periodik)
+    let matchingAyIds = [];
     if (query.academic_year_id && query.academic_year_id !== 'all') {
+      const targetAy = await db('academic_years').where('id', Number(query.academic_year_id)).first();
+      matchingAyIds = [Number(query.academic_year_id)];
+      if (targetAy && targetAy.name) {
+        const sameAys = await db('academic_years').where('name', targetAy.name).pluck('id');
+        if (sameAys.length > 0) matchingAyIds = sameAys;
+      }
+
       baseQuery = baseQuery.whereIn('students.id', function() {
         this.select('student_class_enrollments.student_id')
           .from('student_class_enrollments')
-          .where('student_class_enrollments.academic_year_id', query.academic_year_id)
+          .whereIn('student_class_enrollments.academic_year_id', matchingAyIds)
           .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal']);
+      });
+    }
+
+    // Filter per Rombongan Belajar (Rombel)
+    const rombelFilter = query.class_group_id || query.class_group_name || query.rombel;
+    if (rombelFilter && rombelFilter !== 'all' && rombelFilter !== '') {
+      baseQuery = baseQuery.whereIn('students.id', function() {
+        let enrQuery = this.select('student_class_enrollments.student_id')
+          .from('student_class_enrollments')
+          .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+          .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+          .where(function() {
+            this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
+          });
+
+        if (matchingAyIds.length > 0) {
+          enrQuery = enrQuery.whereIn('student_class_enrollments.academic_year_id', matchingAyIds);
+        }
+
+        if (!isNaN(rombelFilter) && String(Number(rombelFilter)) === String(rombelFilter).trim()) {
+          enrQuery = enrQuery.where(function() {
+            this.where('student_class_enrollments.class_group_id', Number(rombelFilter))
+              .orWhereIn('class_groups.name', function() {
+                this.select('name').from('class_groups').where('id', Number(rombelFilter));
+              });
+          });
+        } else {
+          enrQuery = enrQuery.where('class_groups.name', rombelFilter);
+        }
+      });
+    }
+
+    // Filter per Jenis Pendaftaran (Siswa Baru / Pindahan)
+    const regTypeFilter = query.registration_type || query.jenis_pendaftaran;
+    if (regTypeFilter && regTypeFilter !== 'all' && regTypeFilter !== '') {
+      const regType = String(regTypeFilter).trim().toLowerCase();
+      const isPindahan = regType.includes('pindah');
+
+      baseQuery = baseQuery.whereIn('students.id', function() {
+        if (isPindahan) {
+          this.select('student_admissions.student_id')
+            .from('student_admissions')
+            .where('student_admissions.registration_type', 'like', '%pindah%');
+        } else {
+          this.select('students.id')
+            .from('students')
+            .leftJoin('student_admissions', 'student_admissions.student_id', 'students.id')
+            .where(function() {
+              this.whereNull('student_admissions.registration_type')
+                .orWhere('student_admissions.registration_type', '')
+                .orWhere('student_admissions.registration_type', 'like', '%baru%')
+                .orWhereNot('student_admissions.registration_type', 'like', '%pindah%');
+            });
+        }
       });
     }
 
@@ -93,24 +155,19 @@ class StudentsService {
       .limit(limit)
       .offset(offset);
 
-    // Attach active enrollment & class_group information (Khusus Rombel Reguler)
+    // Attach active enrollment & class_group information HANYA ketika tahun ajaran tertentu dipilih
     const studentIds = rawData.map(s => s.id);
     let enrollmentsMap = {};
-    if (studentIds.length > 0) {
-      let enrQuery = db('student_class_enrollments')
+    if (matchingAyIds.length > 0 && studentIds.length > 0) {
+      const enrollments = await db('student_class_enrollments')
         .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
         .leftJoin('academic_years', 'student_class_enrollments.academic_year_id', 'academic_years.id')
         .whereIn('student_class_enrollments.student_id', studentIds)
+        .whereIn('student_class_enrollments.academic_year_id', matchingAyIds)
         .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
         .where(function() {
           this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
-        });
-
-      if (query.academic_year_id && query.academic_year_id !== 'all') {
-        enrQuery = enrQuery.where('student_class_enrollments.academic_year_id', query.academic_year_id);
-      }
-
-      const enrollments = await enrQuery
+        })
         .select(
           'student_class_enrollments.id as enrollment_id',
           'student_class_enrollments.student_id',
@@ -120,7 +177,6 @@ class StudentsService {
           'academic_years.name as academic_year_name',
           'academic_years.is_active as is_year_active'
         )
-        .orderBy('academic_years.is_active', 'desc')
         .orderBy('student_class_enrollments.id', 'desc');
 
       for (const enr of enrollments) {
@@ -130,11 +186,52 @@ class StudentsService {
       }
     }
 
+    // Attach student_admissions (Jenis Pendaftaran, Asal Sekolah, & Kelas Pertama Masuk)
+    let admissionsMap = {};
+    if (studentIds.length > 0) {
+      try {
+        const admissions = await db('student_admissions')
+          .leftJoin('grade_levels', 'student_admissions.initial_grade_level_id', 'grade_levels.id')
+          .whereIn('student_admissions.student_id', studentIds)
+          .select(
+            'student_admissions.student_id',
+            'student_admissions.registration_type',
+            'student_admissions.previous_school_name',
+            'student_admissions.previous_school_address',
+            'student_admissions.initial_grade_level_id',
+            'student_admissions.admission_date',
+            'grade_levels.name as initial_grade_name'
+          );
+        admissions.forEach(a => {
+          admissionsMap[a.student_id] = a;
+        });
+      } catch (e) {
+        console.warn('[listStudents] Error fetching student admissions:', e.message);
+      }
+    }
+
     const privileged = isPrivilegedUser(user);
     const data = rawData.map(item => {
       const enr = enrollmentsMap[item.id] || null;
+      const adm = admissionsMap[item.id] || null;
+      let regTypeDisplay = 'Siswa Baru';
+      const rawRegType = String(adm?.registration_type || item.registration_type || '').toLowerCase();
+      if (rawRegType.includes('pindah')) {
+        regTypeDisplay = 'Pindahan';
+      } else if (rawRegType.includes('baru') || rawRegType === 'siswa_baru' || !rawRegType) {
+        regTypeDisplay = 'Siswa Baru';
+      } else {
+        regTypeDisplay = adm?.registration_type || item.registration_type;
+      }
+
       const baseItem = {
         ...item,
+        registration_type: regTypeDisplay,
+        previous_school_name: adm?.previous_school_name || null,
+        previous_school_address: adm?.previous_school_address || null,
+        initial_grade_level_id: adm?.initial_grade_level_id || null,
+        initial_grade_name: adm?.initial_grade_name || null,
+        admission_date: adm?.admission_date || item.enrolled_at || null,
         class_group_id: enr?.class_group_id || null,
         class_group_name: enr?.class_group_name || null,
         enrollment_id: enr?.enrollment_id || null,
@@ -247,6 +344,30 @@ class StudentsService {
       .where({ student_id: id })
       .orderBy('id', 'desc');
 
+    // 9. Riwayat Penempatan Kelas / Rombel (1:N)
+    const enrollments = await db('student_class_enrollments')
+      .leftJoin('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+      .leftJoin('academic_years', 'student_class_enrollments.academic_year_id', 'academic_years.id')
+      .where('student_class_enrollments.student_id', id)
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+      .where(function() {
+        this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
+      })
+      .select(
+        'student_class_enrollments.id as enrollment_id',
+        'student_class_enrollments.student_id',
+        'student_class_enrollments.class_group_id',
+        'student_class_enrollments.academic_year_id',
+        'student_class_enrollments.status as enrollment_status',
+        'student_class_enrollments.created_at as enrollment_date',
+        'class_groups.name as class_group_name',
+        'academic_years.name as academic_year_name',
+        'academic_years.is_active as is_year_active'
+      )
+      .orderBy('student_class_enrollments.id', 'desc');
+
+    const activeEnrollment = enrollments.find(e => e.is_year_active) || enrollments[0] || null;
+
     return {
       ...student,
       family_card_number: privileged ? student.family_card_number : maskPii(student.family_card_number),
@@ -258,7 +379,11 @@ class StudentsService {
       document_checklist: documentChecklist || null,
       guardians: guardians || [],
       report_card_recaps: reportCardRecaps || [],
-      mutations: mutations || []
+      mutations: mutations || [],
+      enrollments: enrollments || [],
+      class_group_id: activeEnrollment?.class_group_id || null,
+      class_group_name: activeEnrollment?.class_group_name || null,
+      academic_year_id: activeEnrollment?.academic_year_id || null
     };
   }
 
@@ -288,40 +413,85 @@ class StudentsService {
       ambition,
       photo_url,
       status,
+      data_entry_mode,
       dapodik_status,
       dapodik_notes,
       enrolled_at,
+      address,
       student_address,
       physical_data,
       admission,
       document_checklist
     } = payload;
 
-    if (!satuan_pendidikan_id || !nis || !full_name || !gender) {
+    const unitId = parseUnitId(satuan_pendidikan_id) || 1;
+
+    if (!unitId || !nis || !full_name || !gender) {
       const error = new Error('Field satuan_pendidikan_id, nis, full_name, dan gender wajib diisi');
       error.statusCode = 422;
       throw error;
     }
 
-    // Cek duplikasi NIS
+    const cleanNis = String(nis).trim();
+    const cleanNisn = (nisn && String(nisn).trim()) ? String(nisn).trim() : null;
+    const cleanNipd = (nipd && String(nipd).trim()) ? String(nipd).trim() : null;
+    const cleanNik = (nik && String(nik).trim()) ? String(nik).trim() : null;
+
+    // 1. Cek duplikasi NIS pada satuan pendidikan yang sama
     const existingNis = await db('students')
-      .where({ satuan_pendidikan_id, nis: nis.trim() })
+      .where({ satuan_pendidikan_id: unitId, nis: cleanNis })
       .first();
     if (existingNis) {
-      const error = new Error(`NIS ${nis} sudah terdaftar pada Satuan Pendidikan ini`);
+      const error = new Error(`NIS "${cleanNis}" telah terinput atas nama "${existingNis.full_name}" di satuan pendidikan ini.`);
       error.statusCode = 409;
       throw error;
     }
 
+    // 2. Cek duplikasi NISN (harus unik global di sistem)
+    if (cleanNisn) {
+      const existingNisn = await db('students')
+        .where({ nisn: cleanNisn })
+        .first();
+      if (existingNisn) {
+        const error = new Error(`NISN "${cleanNisn}" telah terinput atas nama "${existingNisn.full_name}" (NIS: ${existingNisn.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    // 3. Cek duplikasi NIPD jika diisi
+    if (cleanNipd) {
+      const existingNipd = await db('students')
+        .where({ satuan_pendidikan_id: unitId, nipd: cleanNipd })
+        .first();
+      if (existingNipd) {
+        const error = new Error(`NIPD "${cleanNipd}" telah terinput atas nama "${existingNipd.full_name}" (NIS: ${existingNipd.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    // 4. Cek duplikasi NIK jika diisi
+    if (cleanNik) {
+      const existingNik = await db('students')
+        .where({ nik: cleanNik })
+        .first();
+      if (existingNik) {
+        const error = new Error(`NIK "${cleanNik}" telah terinput atas nama "${existingNik.full_name}" (NIS: ${existingNik.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
     const [studentId] = await db('students').insert({
-      satuan_pendidikan_id,
+      satuan_pendidikan_id: unitId,
       cohort_id: payload.cohort_id || null,
       cohort_name: payload.cohort_name || null,
-      nis: nis.trim(),
-      nisn: nisn ? nisn.trim() : null,
-      nipd: nipd ? nipd.trim() : null,
-      family_card_number: family_card_number ? family_card_number.trim() : null,
-      nik: nik ? nik.trim() : null,
+      nis: cleanNis,
+      nisn: cleanNisn,
+      nipd: nipd ? String(nipd).trim() : null,
+      family_card_number: family_card_number ? String(family_card_number).trim() : null,
+      nik: cleanNik,
       full_name: full_name.trim(),
       nickname: nickname ? nickname.trim() : null,
       gender,
@@ -338,7 +508,7 @@ class StudentsService {
       primary_language: primary_language || null,
       hobby: hobby || null,
       ambition: ambition || null,
-      address: student_address?.full_address || student_address?.street_address || null,
+      address: address || student_address?.full_address || student_address?.street_address || null,
       photo_url: photo_url || null,
       status: status || 'aktif',
       data_entry_mode: data_entry_mode || 'lengkap',
@@ -353,7 +523,7 @@ class StudentsService {
     if (student_address) {
       await db('student_addresses').insert({
         student_id: studentId,
-        street_address: student_address.street_address || null,
+        street_address: student_address.street_address || student_address.full_address || address || null,
         rt: student_address.rt || null,
         rw: student_address.rw || null,
         hamlet: student_address.hamlet || null,
@@ -361,6 +531,13 @@ class StudentsService {
         district: student_address.district || null,
         postal_code: student_address.postal_code || null,
         email: student_address.email || null,
+        created_at: db.fn.now(),
+        updated_at: db.fn.now()
+      });
+    } else if (address) {
+      await db('student_addresses').insert({
+        student_id: studentId,
+        street_address: address,
         created_at: db.fn.now(),
         updated_at: db.fn.now()
       });
@@ -384,19 +561,23 @@ class StudentsService {
     }
 
     // 3. Simpan student_admissions
-    if (admission) {
-      await db('student_admissions').insert({
-        student_id: studentId,
-        initial_grade_level_id: admission.initial_grade_level_id || null,
-        initial_class_group_id: admission.initial_class_group_id || null,
-        registration_type: admission.registration_type || 'siswa_baru',
-        admission_date: admission.admission_date || new Date().toISOString().split('T')[0],
-        previous_school_name: admission.previous_school_name || null,
-        previous_school_address: admission.previous_school_address || null,
-        created_at: db.fn.now(),
-        updated_at: db.fn.now()
-      });
+    const admData = admission || {};
+    let regType = 'siswa_baru';
+    const rawReg = String(admData.registration_type || payload.registration_type || '').toLowerCase();
+    if (rawReg.includes('pindah')) {
+      regType = 'pindahan';
     }
+    await db('student_admissions').insert({
+      student_id: studentId,
+      initial_grade_level_id: admData.initial_grade_level_id ? Number(admData.initial_grade_level_id) : (payload.initial_grade_level_id ? Number(payload.initial_grade_level_id) : null),
+      initial_class_group_id: admData.initial_class_group_id ? Number(admData.initial_class_group_id) : null,
+      registration_type: regType,
+      admission_date: admData.admission_date || payload.admission_date || enrolled_at || new Date().toISOString().split('T')[0],
+      previous_school_name: admData.previous_school_name || payload.previous_school_name || null,
+      previous_school_address: admData.previous_school_address || payload.previous_school_address || null,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    });
 
     // 4. Simpan student_document_checklists
     if (document_checklist) {
@@ -570,6 +751,58 @@ class StudentsService {
       throw error;
     }
 
+    if (payload.nis && String(payload.nis).trim()) {
+      const cleanNis = String(payload.nis).trim();
+      const existingNis = await db('students')
+        .where({ satuan_pendidikan_id: student.satuan_pendidikan_id, nis: cleanNis })
+        .whereNot({ id })
+        .first();
+      if (existingNis) {
+        const error = new Error(`NIS "${cleanNis}" telah terinput atas nama "${existingNis.full_name}" di satuan pendidikan ini.`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    if (payload.nisn && String(payload.nisn).trim()) {
+      const cleanNisn = String(payload.nisn).trim();
+      const existingNisn = await db('students')
+        .where({ nisn: cleanNisn })
+        .whereNot({ id })
+        .first();
+      if (existingNisn) {
+        const error = new Error(`NISN "${cleanNisn}" telah terinput atas nama "${existingNisn.full_name}" (NIS: ${existingNisn.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    if (payload.nipd && String(payload.nipd).trim()) {
+      const cleanNipd = String(payload.nipd).trim();
+      const existingNipd = await db('students')
+        .where({ satuan_pendidikan_id: student.satuan_pendidikan_id, nipd: cleanNipd })
+        .whereNot({ id })
+        .first();
+      if (existingNipd) {
+        const error = new Error(`NIPD "${cleanNipd}" telah terinput atas nama "${existingNipd.full_name}" (NIS: ${existingNipd.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
+    if (payload.nik && String(payload.nik).trim()) {
+      const cleanNik = String(payload.nik).trim();
+      const existingNik = await db('students')
+        .where({ nik: cleanNik })
+        .whereNot({ id })
+        .first();
+      if (existingNik) {
+        const error = new Error(`NIK "${cleanNik}" telah terinput atas nama "${existingNik.full_name}" (NIS: ${existingNik.nis || '-'}).`);
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+
     const updateData = { updated_at: db.fn.now() };
     const allowed = [
       'cohort_id',
@@ -622,6 +855,54 @@ class StudentsService {
     }
     if (payload.document_checklist) {
       await this.updateDocumentChecklist(id, payload.document_checklist);
+    }
+
+    // Hubungkan / Sinkronisasi Tahun Ajaran & Rombel jika disertakan
+    if (payload.academic_year_id && payload.class_group_id !== undefined) {
+      const targetAyId = Number(payload.academic_year_id);
+      const targetCgId = payload.class_group_id ? Number(payload.class_group_id) : null;
+
+      const existingEnrollment = await db('student_class_enrollments')
+        .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+        .where({
+          'student_class_enrollments.student_id': id,
+          'student_class_enrollments.academic_year_id': targetAyId
+        })
+        .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+        .where(function() {
+          this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
+        })
+        .select('student_class_enrollments.id')
+        .first();
+
+      if (targetCgId) {
+        if (existingEnrollment) {
+          await db('student_class_enrollments')
+            .where({ id: existingEnrollment.id })
+            .update({
+              class_group_id: targetCgId,
+              status: 'aktif',
+              updated_at: db.fn.now()
+            });
+        } else {
+          await db('student_class_enrollments').insert({
+            satuan_pendidikan_id: student.satuan_pendidikan_id || payload.satuan_pendidikan_id || 1,
+            student_id: id,
+            academic_year_id: targetAyId,
+            class_group_id: targetCgId,
+            status: 'aktif',
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+        }
+      } else if (existingEnrollment) {
+        await db('student_class_enrollments')
+          .where({ id: existingEnrollment.id })
+          .update({
+            status: 'dibatalkan',
+            updated_at: db.fn.now()
+          });
+      }
     }
 
     return this.getStudentById(id, user);
@@ -706,6 +987,71 @@ class StudentsService {
     }
 
     return db('student_physical_data').where({ student_id: studentId }).first();
+  }
+
+  // ==========================================
+  // 3b. Data Pendaftaran & Asal Sekolah (student_admissions)
+  // ==========================================
+  async updateAdmission(studentId, payload) {
+    if (!payload) return null;
+    const existing = await db('student_admissions').where({ student_id: studentId }).first();
+
+    let regType = undefined;
+    if (payload.registration_type !== undefined) {
+      regType = 'siswa_baru';
+      const rawReg = String(payload.registration_type || '').toLowerCase();
+      if (rawReg.includes('pindah')) {
+        regType = 'pindahan';
+      }
+    }
+
+    const fields = {
+      initial_grade_level_id: payload.initial_grade_level_id !== undefined ? (payload.initial_grade_level_id ? Number(payload.initial_grade_level_id) : null) : undefined,
+      initial_class_group_id: payload.initial_class_group_id !== undefined ? (payload.initial_class_group_id ? Number(payload.initial_class_group_id) : null) : undefined,
+      registration_type: regType,
+      admission_date: payload.admission_date !== undefined ? payload.admission_date : undefined,
+      previous_school_name: payload.previous_school_name !== undefined ? (payload.previous_school_name || null) : undefined,
+      previous_school_address: payload.previous_school_address !== undefined ? (payload.previous_school_address || null) : undefined,
+      updated_at: db.fn.now()
+    };
+    Object.keys(fields).forEach(k => fields[k] === undefined && delete fields[k]);
+
+    if (existing) {
+      await db('student_admissions').where({ student_id: studentId }).update(fields);
+    } else {
+      await db('student_admissions').insert({
+        student_id: studentId,
+        ...fields,
+        created_at: db.fn.now()
+      });
+    }
+
+    return db('student_admissions').where({ student_id: studentId }).first();
+  }
+
+  // ==========================================
+  // 3c. Checklist Dokumen (student_document_checklists)
+  // ==========================================
+  async updateDocumentChecklist(studentId, payload) {
+    if (!payload) return null;
+    const existing = await db('student_document_checklists').where({ student_id: studentId }).first();
+    const fields = {
+      ...payload,
+      updated_at: db.fn.now()
+    };
+    Object.keys(fields).forEach(k => fields[k] === undefined && delete fields[k]);
+
+    if (existing) {
+      await db('student_document_checklists').where({ student_id: studentId }).update(fields);
+    } else {
+      await db('student_document_checklists').insert({
+        student_id: studentId,
+        ...fields,
+        created_at: db.fn.now()
+      });
+    }
+
+    return db('student_document_checklists').where({ student_id: studentId }).first();
   }
 
   async savePeriodicPhysical(studentId, payload) {
@@ -859,10 +1205,18 @@ class StudentsService {
   // ==========================================
   async updateAdmission(studentId, payload) {
     const existing = await db('student_admissions').where({ student_id: studentId }).first();
+    let regType = 'siswa_baru';
+    const rawReg = String(payload.registration_type || '').toLowerCase();
+    if (rawReg.includes('pindah')) {
+      regType = 'pindahan';
+    } else {
+      regType = 'siswa_baru';
+    }
+
     const fields = {
       initial_grade_level_id: payload.initial_grade_level_id || null,
       initial_class_group_id: payload.initial_class_group_id || null,
-      registration_type: payload.registration_type || 'siswa_baru',
+      registration_type: regType,
       admission_date: payload.admission_date || new Date().toISOString().split('T')[0],
       previous_school_name: payload.previous_school_name || null,
       previous_school_address: payload.previous_school_address || null,
