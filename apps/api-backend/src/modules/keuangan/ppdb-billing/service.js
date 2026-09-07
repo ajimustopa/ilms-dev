@@ -439,6 +439,7 @@ class PpdbBillingService {
           try {
             await recordJournal({
               schoolUnitId,
+              academicYearId: Number(bill.academic_year_id || bill.target_academic_year_id || 2),
               transactionCode: 'ppdb_bill_issued',
               amount: bill.amount,
               sourceType: 'ppdb_registration_bill',
@@ -644,6 +645,7 @@ class PpdbBillingService {
             const feeType = await trx('fee_types').where({ id: bill.fee_type_id }).first();
             const jrn = await recordJournal({
               schoolUnitId,
+              academicYearId: Number(bill.academic_year_id || bill.target_academic_year_id || 2),
               transactionCode: 'student_bill_discount',
               amount: amountDiff,
               sourceType: 'ppdb_bill_revision',
@@ -664,6 +666,7 @@ class PpdbBillingService {
             const feeType = await trx('fee_types').where({ id: bill.fee_type_id }).first();
             const jrn = await recordJournal({
               schoolUnitId,
+              academicYearId: Number(bill.academic_year_id || bill.target_academic_year_id || 2),
               transactionCode: 'ppdb_bill_issued',
               amount: Math.abs(amountDiff),
               sourceType: 'ppdb_bill_revision',
@@ -1052,6 +1055,7 @@ class PpdbBillingService {
         try {
           await recordJournal({
             schoolUnitId,
+            academicYearId: Number(bill.target_academic_year_id || bill.academic_year_id || 2),
             transactionCode: 'ppdb_refund_issued',
             amount: netRefund,
             sourceType: 'ppdb_registration_refund',
@@ -1309,6 +1313,7 @@ class PpdbBillingService {
       try {
         await recordJournal({
           schoolUnitId,
+          academicYearId: Number(bill.target_academic_year_id || bill.academic_year_id || 2),
           transactionCode: 'ppdb_registration_income',
           amount: amountPaid,
           sourceType: 'ppdb_registration_payment',
@@ -2442,6 +2447,7 @@ class PpdbBillingService {
       try {
         await recordJournal({
           schoolUnitId,
+          academicYearId: targetAyId,
           transactionCode: 'ppdb_expense_issued',
           amount: amount,
           sourceType: 'ppdb_expense',

@@ -68,6 +68,7 @@ async function generateJournalNumber(trx, journalDate = null) {
  */
 async function recordJournal({
   schoolUnitId,
+  academicYearId = null,
   transactionCode,
   mappingId = null,
   amount,
@@ -104,6 +105,18 @@ async function recordJournal({
   }
 
   const executeInTransaction = async (activeTrx) => {
+    // 0. Resolusi academic_year_id peruntukan transaksi
+    let resolvedAcademicYearId = academicYearId ? Number(academicYearId) : null;
+    if (!resolvedAcademicYearId) {
+      try {
+        const activeAy = await activeTrx('academic_years').where({ is_active: 1 }).first();
+        if (activeAy) resolvedAcademicYearId = activeAy.id;
+      } catch (e) {}
+    }
+    if (!resolvedAcademicYearId) {
+      resolvedAcademicYearId = 2; // default active fallback
+    }
+
     // 1. Ambil pemetaan akun debit dan kredit dari transaction_account_mappings
     let mapping = null;
     if (mappingId) {
@@ -178,10 +191,10 @@ async function recordJournal({
         }
       } else if (transactionCode === 'student_bill_issued' || transactionCode === 'other_income_default') {
         const revCoa = await activeTrx('chart_of_accounts')
-          .where({ account_group: 'pendapatan' })
+          .where(b => b.where('account_group', 'pendapatan').orWhere('account_group', 'revenue'))
           .orderBy('id', 'asc')
           .first();
-        appliedCreditAccountId = revCoa ? revCoa.id : 2;
+        appliedCreditAccountId = revCoa ? revCoa.id : 4;
       } else {
         const defaultCredit = await activeTrx('chart_of_accounts')
           .where({ normal_balance: 'credit' })
@@ -191,16 +204,18 @@ async function recordJournal({
       }
     }
 
-    const formattedDate = typeof journalDate === 'string'
-      ? journalDate.slice(0, 10)
-      : journalDate.toISOString().slice(0, 10);
+    // Buat nomor jurnal berurutan
+    const journalNumber = await generateJournalNumber(activeTrx, journalDate);
+    const formattedDate = journalDate
+      ? (typeof journalDate === 'string' ? journalDate.slice(0, 10) : new Date(journalDate).toISOString().slice(0, 10))
+      : new Date().toISOString().slice(0, 10);
 
-    const journalNumber = await generateJournalNumber(activeTrx, formattedDate);
-    const journalDescription = description || mapping.transaction_label;
+    const journalDescription = description || (mapping ? mapping.description : `Jurnal otomatis transaksi ${transactionCode}`);
 
-    // 2. Buat header jurnal (journal_entries)
+    // 2. Buat header jurnal (journal_entries) dengan academic_year_id peruntukan
     const [journalId] = await activeTrx('journal_entries').insert({
       school_unit_id: schoolUnitId,
+      academic_year_id: resolvedAcademicYearId,
       journal_number: journalNumber,
       journal_date: formattedDate,
       source_type: sourceType,

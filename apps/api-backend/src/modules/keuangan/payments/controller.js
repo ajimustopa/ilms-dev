@@ -53,6 +53,15 @@ class PaymentsController {
     } catch (err) { next(err); }
   };
 
+  getPaymentById = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.getPaymentById(schoolUnitId, req.params.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Pembayaran tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Data pembayaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
   getPaymentHistory = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);

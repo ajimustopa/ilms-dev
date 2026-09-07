@@ -624,11 +624,16 @@ class FeeSchemesService {
         totalAssignedAmount += finalAmount;
       });
 
+      const isTransfer = st.registration_type === 'pindahan' || st.entry_type === 'pindahan' || String(st.registration_type_display || '').toLowerCase().includes('pindah');
       return {
         student_id: st.id,
         student_name: st.full_name,
         nis: st.nis || '-',
         nisn: st.nisn || '-',
+        registration_type: isTransfer ? 'pindahan' : 'siswa_baru',
+        registration_type_display: isTransfer ? 'Siswa Pindahan' : 'Siswa Baru',
+        entry_type: isTransfer ? 'pindahan' : 'reguler',
+        is_transfer_student: isTransfer,
         current_grade_level_id: st.current_grade_level_id || st.grade_level_id || 1,
         class_name: st.class_name || '-',
         assignment: asg ? {
@@ -664,6 +669,10 @@ class FeeSchemesService {
     if (is_custom !== null && is_custom !== undefined) {
       const customBool = is_custom === 'true' || is_custom === true;
       results = results.filter(r => r.assignment?.is_custom === customBool);
+    }
+    if (filters.registration_type && filters.registration_type !== 'all') {
+      const wantPindahan = filters.registration_type === 'pindahan' || String(filters.registration_type).toLowerCase().includes('pindah');
+      results = results.filter(r => (r.registration_type === 'pindahan') === wantPindahan);
     }
 
     return results;
@@ -892,13 +901,38 @@ class FeeSchemesService {
             })
             .first();
 
-          if (adjExisting) {
-            await trx('student_fee_adjustments')
-              .where({ id: adjExisting.id })
-              .update({
+          // Jika override_amount kosong (string kosong / null / undefined), hapus penyesuaian manual agar kembali otomatis ke hitungan sistem
+          const isOverrideEmpty = item.override_amount === '' || item.override_amount === null || item.override_amount === undefined;
+
+          if (isOverrideEmpty) {
+            if (adjExisting) {
+              await trx('student_fee_adjustments').where({ id: adjExisting.id }).del();
+            }
+          } else {
+            const numericOverride = parseFloat(item.override_amount || 0);
+            if (adjExisting) {
+              await trx('student_fee_adjustments')
+                .where({ id: adjExisting.id })
+                .update({
+                  assignment_id: assignmentId,
+                  adjustment_kind: item.adjustment_kind || 'override_amount',
+                  override_amount: numericOverride,
+                  waiver_type: item.waiver_type || 'Dispensasi Khusus',
+                  waiver_percentage: item.waiver_percentage !== undefined ? item.waiver_percentage : null,
+                  waiver_amount: item.waiver_amount !== undefined ? item.waiver_amount : null,
+                  reason: item.reason || reason,
+                  status: 'approved',
+                  approved_by: userId,
+                  approved_at: trx.fn.now()
+                });
+            } else {
+              await trx('student_fee_adjustments').insert({
+                school_unit_id: targetUnit,
+                student_id,
                 assignment_id: assignmentId,
-                adjustment_kind: item.adjustment_kind || 'waiver',
-                override_amount: item.override_amount !== undefined ? item.override_amount : null,
+                fee_type_id: item.fee_type_id,
+                adjustment_kind: item.adjustment_kind || 'override_amount',
+                override_amount: numericOverride,
                 waiver_type: item.waiver_type || 'Dispensasi Khusus',
                 waiver_percentage: item.waiver_percentage !== undefined ? item.waiver_percentage : null,
                 waiver_amount: item.waiver_amount !== undefined ? item.waiver_amount : null,
@@ -907,22 +941,7 @@ class FeeSchemesService {
                 approved_by: userId,
                 approved_at: trx.fn.now()
               });
-          } else {
-            await trx('student_fee_adjustments').insert({
-              school_unit_id: targetUnit,
-              student_id,
-              assignment_id: assignmentId,
-              fee_type_id: item.fee_type_id,
-              adjustment_kind: item.adjustment_kind || 'waiver',
-              override_amount: item.override_amount !== undefined ? item.override_amount : null,
-              waiver_type: item.waiver_type || 'Dispensasi Khusus',
-              waiver_percentage: item.waiver_percentage !== undefined ? item.waiver_percentage : null,
-              waiver_amount: item.waiver_amount !== undefined ? item.waiver_amount : null,
-              reason: item.reason || reason,
-              status: 'approved',
-              approved_by: userId,
-              approved_at: trx.fn.now()
-            });
+            }
           }
         }
       }

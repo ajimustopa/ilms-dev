@@ -21,7 +21,7 @@ class ReportsService {
   // ============================================================
 
   async getGeneralLedger(schoolUnitId, filters = {}) {
-    const { account_code, period_from, period_to } = filters;
+    const { account_code, period_from, period_to, academic_year_id } = filters;
 
     let accountQuery = db('chart_of_accounts').where('school_unit_id', schoolUnitId);
     if (account_code) {
@@ -48,6 +48,9 @@ class ReportsService {
           'journal_entry_lines.amount'
         );
 
+      if (academic_year_id && academic_year_id !== 'all') {
+        linesQuery = linesQuery.where('journal_entries.academic_year_id', Number(academic_year_id));
+      }
       if (period_from) linesQuery = linesQuery.where('journal_entries.journal_date', '>=', period_from);
       if (period_to) linesQuery = linesQuery.where('journal_entries.journal_date', '<=', period_to);
 
@@ -135,13 +138,8 @@ class ReportsService {
       linesQuery = linesQuery.where('journal_entries.school_unit_id', targetUnit);
     }
 
-    if (academicYearId) {
-      const ay = await crossModuleServices.getAcademicYear(academicYearId);
-      if (ay?.start_date && ay?.end_date) {
-        const startMonthFirstDay = ay.start_date.slice(0, 7) + '-01';
-        linesQuery = linesQuery.where('journal_entries.journal_date', '>=', startMonthFirstDay)
-                               .where('journal_entries.journal_date', '<=', ay.end_date);
-      }
+    if (academicYearId && academicYearId !== 'all') {
+      linesQuery = linesQuery.where('journal_entries.academic_year_id', Number(academicYearId));
     } else if (period) {
       linesQuery = linesQuery.where('journal_entries.journal_date', 'like', `${period}%`);
     }
@@ -251,13 +249,8 @@ class ReportsService {
       query = query.where('journal_entries.school_unit_id', targetUnit);
     }
 
-    if (academicYearId) {
-      const ay = await crossModuleServices.getAcademicYear(academicYearId);
-      if (ay?.start_date && ay?.end_date) {
-        const startMonthFirstDay = ay.start_date.slice(0, 7) + '-01';
-        query = query.where('journal_entries.journal_date', '>=', startMonthFirstDay)
-                     .where('journal_entries.journal_date', '<=', ay.end_date);
-      }
+    if (academicYearId && academicYearId !== 'all') {
+      query = query.where('journal_entries.academic_year_id', Number(academicYearId));
     } else if (period) {
       query = query.where('journal_entries.journal_date', 'like', `${period}%`);
     }
@@ -371,7 +364,27 @@ class ReportsService {
       throw err;
     }
 
-    const student = await crossModuleServices.getStudent(sId);
+    const isUnit = (val) => val && val !== 'all' && val !== 'foundation' && !isNaN(Number(val)) && Number(val) > 0;
+    const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
+    const isAllYears = filters.all_years === 'true' || filters.all_years === true;
+    let academicYearId = filters.academic_year_id ? Number(filters.academic_year_id) : null;
+
+    let matchingAyIds = [];
+    if (academicYearId) {
+      matchingAyIds.push(academicYearId);
+      try {
+        const ayRow = await crossModuleServices.getAcademicYear(academicYearId);
+        if (ayRow && ayRow.name) {
+          const sameAys = await crossModuleServices.listAcademicYears();
+          sameAys.filter(y => y.name === ayRow.name).forEach(y => {
+            if (!matchingAyIds.includes(y.id)) matchingAyIds.push(y.id);
+          });
+        }
+      } catch (e) {}
+    }
+
+    const targetAy = isAllYears ? 'all' : (academicYearId || null);
+    const student = await crossModuleServices.getStudent(sId, targetAy);
     if (!student) {
       const err = new Error(`Data siswa dengan ID ${sId} tidak ditemukan`);
       err.statusCode = 404;
@@ -380,26 +393,27 @@ class ReportsService {
 
     let billsQuery = db('student_bills')
       .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
-      .where({
-        'student_bills.school_unit_id': schoolUnitId,
-        'student_bills.student_id': sId
-      })
-      .whereNotIn('student_bills.status', ['draft', 'cancelled'])
+      .where('student_bills.student_id', sId)
+      .whereNotIn('student_bills.status', ['cancelled'])
       .select(
         'student_bills.*',
         'fee_types.name as fee_type_name',
         'fee_types.billing_pattern'
       );
 
-    if (filters.all_years === 'true' || filters.all_years === true) {
+    if (targetUnit) {
+      billsQuery = billsQuery.where('student_bills.school_unit_id', targetUnit);
+    }
+
+    if (isAllYears) {
       // Riwayat Penuh: tidak batasi tahun ajaran
-    } else if (filters.academic_year_id) {
-      billsQuery = billsQuery.where('student_bills.academic_year_id', Number(filters.academic_year_id));
+    } else if (matchingAyIds.length > 0) {
+      billsQuery = billsQuery.whereIn('student_bills.academic_year_id', matchingAyIds);
     } else if (filters.period_year) {
       billsQuery = billsQuery.where('student_bills.period_year', filters.period_year);
     }
     if (filters.fee_type_id) {
-      billsQuery = billsQuery.where('student_bills.fee_type_id', filters.fee_type_id);
+      billsQuery = billsQuery.where('student_bills.fee_type_id', Number(filters.fee_type_id));
     }
 
     const bills = await billsQuery.orderBy([
@@ -440,6 +454,10 @@ class ReportsService {
     let totalPaid = 0;
     let totalRemaining = 0;
 
+    const allAcademicYears = await crossModuleServices.listAcademicYears().catch(() => []);
+    const ayMap = {};
+    (allAcademicYears || []).forEach(ay => { ayMap[ay.id] = ay.name; });
+
     const items = bills.map(b => {
       const billAmount = parseFloat(b.amount || 0);
       const discountAmount = parseFloat(b.discount_amount || 0);
@@ -456,8 +474,12 @@ class ReportsService {
         ? `${String(b.period_month).padStart(2, '0')}/${b.period_year}`
         : `${b.period_year}`;
 
+      const resolvedAyName = ayMap[b.academic_year_id] || (b.period_year ? (b.period_month && b.period_month <= 6 ? `${b.period_year - 1}/${b.period_year}` : `${b.period_year}/${b.period_year + 1}`) : '-');
+
       return {
         bill_id: b.id,
+        academic_year_id: b.academic_year_id,
+        academic_year_name: resolvedAyName,
         fee_type_id: b.fee_type_id,
         fee_type_name: b.fee_type_name,
         billing_pattern: b.billing_pattern,
@@ -527,10 +549,14 @@ class ReportsService {
       const phaseLabel = b.billing_phase === 'enrollment_fee' ? 'Uang Pangkal / Daftar Ulang' : 'Pendaftaran PPDB';
       const installmentLabel = b.installment_number ? ` (Termin ${b.installment_number}/${b.installment_total})` : '';
 
+      const resolvedPpdbAyName = ayMap[b.target_academic_year_id] || (b.target_academic_year_id ? `T.A. ${b.target_academic_year_id}` : '-');
+
       return {
         bill_id: `PPDB-${b.id}`,
         raw_bill_id: b.id,
         is_ppdb: true,
+        academic_year_id: b.target_academic_year_id,
+        academic_year_name: resolvedPpdbAyName,
         fee_type_id: b.fee_type_id,
         fee_type_name: `${b.fee_type_name || phaseLabel}${installmentLabel}`,
         billing_phase: b.billing_phase,
@@ -592,13 +618,15 @@ class ReportsService {
   }
 
   async getClassStudentLedger(schoolUnitId, filters = {}) {
+    const isUnit = (val) => val && val !== 'all' && val !== 'foundation' && !isNaN(Number(val)) && Number(val) > 0;
+    const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
     const isAllYears = filters.all_years === 'true' || filters.all_years === true;
     let academicYearId = filters.academic_year_id ? Number(filters.academic_year_id) : null;
     let academicYearInfo = null;
 
     if (!isAllYears && !academicYearId) {
       try {
-        const activeYears = await crossModuleServices.listAcademicYears({ satuan_pendidikan_id: schoolUnitId, is_active: true });
+        const activeYears = await crossModuleServices.listAcademicYears(targetUnit ? { satuan_pendidikan_id: targetUnit, is_active: true } : { is_active: true });
         if (activeYears && activeYears.length > 0) {
           academicYearId = activeYears[0].id;
           academicYearInfo = activeYears[0];
@@ -614,14 +642,30 @@ class ReportsService {
       }
     }
 
+    let matchingAyIds = [];
+    if (academicYearId) {
+      matchingAyIds.push(academicYearId);
+      if (academicYearInfo?.name) {
+        try {
+          const sameAys = await crossModuleServices.listAcademicYears();
+          sameAys.filter(y => y.name === academicYearInfo.name).forEach(y => {
+            if (!matchingAyIds.includes(y.id)) matchingAyIds.push(y.id);
+          });
+        } catch (e) {}
+      }
+    }
+
     // 1. Query student_bills
     let billsQuery = db('student_bills')
       .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
-      .where('student_bills.school_unit_id', schoolUnitId)
-      .whereNotIn('student_bills.status', ['draft', 'cancelled']);
+      .whereNotIn('student_bills.status', ['cancelled']);
 
-    if (!isAllYears && academicYearId) {
-      billsQuery = billsQuery.where('student_bills.academic_year_id', academicYearId);
+    if (targetUnit) {
+      billsQuery = billsQuery.where('student_bills.school_unit_id', targetUnit);
+    }
+
+    if (!isAllYears && matchingAyIds.length > 0) {
+      billsQuery = billsQuery.whereIn('student_bills.academic_year_id', matchingAyIds);
     }
     if (filters.fee_type_id) {
       billsQuery = billsQuery.where('student_bills.fee_type_id', Number(filters.fee_type_id));
@@ -649,17 +693,21 @@ class ReportsService {
     // 2. Query bill_payments for actual cash collection
     let allPayments = [];
     if (billIds.length > 0) {
-      allPayments = await db('bill_payments')
+      let payQuery = db('bill_payments')
         .join('student_bills', 'bill_payments.student_bill_id', 'student_bills.id')
-        .where('student_bills.school_unit_id', schoolUnitId)
-        .whereIn('bill_payments.student_bill_id', billIds)
-        .select(
-          'bill_payments.id',
-          'bill_payments.student_bill_id',
-          'bill_payments.amount',
-          'bill_payments.paid_at',
-          'student_bills.student_id'
-        );
+        .whereIn('bill_payments.student_bill_id', billIds);
+
+      if (targetUnit) {
+        payQuery = payQuery.where('student_bills.school_unit_id', targetUnit);
+      }
+
+      allPayments = await payQuery.select(
+        'bill_payments.id',
+        'bill_payments.student_bill_id',
+        'bill_payments.amount',
+        'bill_payments.paid_at',
+        'student_bills.student_id'
+      );
     }
 
     // 3. Unique student IDs
@@ -669,24 +717,28 @@ class ReportsService {
     let ppdbBills = [];
     if (isAllYears && studentIds.length > 0) {
       try {
-        ppdbBills = await db('ppdb_registration_bills')
+        let ppdbQ = db('ppdb_registration_bills')
           .leftJoin('fee_types', 'ppdb_registration_bills.fee_type_id', 'fee_types.id')
-          .where('ppdb_registration_bills.school_unit_id', schoolUnitId)
           .whereIn('ppdb_registration_bills.linked_student_id', studentIds)
-          .whereNotIn('ppdb_registration_bills.status', ['draft', 'cancelled'])
-          .where('ppdb_registration_bills.is_installment_parent', false)
-          .select(
-            'ppdb_registration_bills.*',
-            'fee_types.name as fee_type_name',
-            'fee_types.billing_pattern'
-          );
+          .whereNotIn('ppdb_registration_bills.status', ['cancelled'])
+          .where('ppdb_registration_bills.is_installment_parent', false);
+
+        if (targetUnit) {
+          ppdbQ = ppdbQ.where('ppdb_registration_bills.school_unit_id', targetUnit);
+        }
+
+        ppdbBills = await ppdbQ.select(
+          'ppdb_registration_bills.*',
+          'fee_types.name as fee_type_name',
+          'fee_types.billing_pattern'
+        );
       } catch (e) {
         console.warn('Gagal memuat tagihan PPDB:', e.message);
       }
     }
 
     // 4. BATCH INGEST STUDENTS (NO N+1 QUERY LOOP!)
-    const studentMap = await crossModuleServices.getStudentsByIds(studentIds);
+    const studentMap = await crossModuleServices.getStudentsByIds(studentIds, isAllYears ? 'all' : academicYearId);
 
     // 5. Academic Year Month Order (Juli -> Juni)
     const monthOrder = [

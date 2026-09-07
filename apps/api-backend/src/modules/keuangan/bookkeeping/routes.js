@@ -88,12 +88,24 @@ router.get(
   controller.listAuditLogs
 );
 
-// 5. Saldo per Sumber Dana (Kantong Dana & Opening Pool)
+// 5. Saldo per Sumber Dana (Pos Alokasi Dana & Opening Pool)
 router.get(
   '/fund-balances',
   verifyJwt,
   requirePermission('keuangan.bookkeeping.view', 'keuangan.reports.view', 'keuangan.expenses.manage'),
   controller.listFundBalances
+);
+router.get(
+  '/fund-balances/available-sources',
+  verifyJwt,
+  requirePermission('keuangan.bookkeeping.view', 'keuangan.reports.view', 'keuangan.expenses.manage'),
+  controller.getAvailableFundSources
+);
+router.get(
+  '/fund-balances/multi-year-trajectory',
+  verifyJwt,
+  requirePermission('keuangan.bookkeeping.view', 'keuangan.reports.view', 'keuangan.expenses.manage'),
+  controller.getMultiYearTrajectory
 );
 router.get(
   '/fund-balances/academic-year-loans-summary',

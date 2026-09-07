@@ -44,6 +44,7 @@ export default function SearchableSelect({
   isMulti = false,
   allowClear = true,
   required = false,
+  onDisabledSelect = null,
 }) {
   const isDarkMode = useIsDarkMode();
   const isMultiMode = Boolean(multiple || isMulti);
@@ -92,16 +93,71 @@ export default function SearchableSelect({
     }
   }, [open, dropdownPosition, dropdownAlign]);
 
-  // Filter options berdasarkan live search (label, sublabel, badge, value)
+  // Filter options berdasarkan live search: Setiap kata kunci / token harus benar-benar cocok
   const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
-    const q = search.toLowerCase().trim();
+    if (!search || !search.trim()) return options;
+    const rawQ = search.trim().toLowerCase();
+    const tokens = rawQ.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return options;
+
     return options.filter((opt) => {
-      const labelMatch = String(opt.label || '').toLowerCase().includes(q);
-      const subMatch = String(opt.sublabel || '').toLowerCase().includes(q);
-      const badgeMatch = String(opt.badge || '').toLowerCase().includes(q);
-      const valMatch = String(opt.value || '').toLowerCase().includes(q);
-      return labelMatch || subMatch || badgeMatch || valMatch;
+      // Kumpulkan seluruh data teks unik dan spesifik dari opt
+      const parts = [
+        opt.label,
+        opt.sublabel,
+        opt.badge,
+        opt.value,
+        opt.desc,
+        opt.description,
+        opt.refNo,
+        opt.reference,
+        opt.reference_number,
+        opt.journal_number,
+        opt.notes,
+        opt.batch,
+        opt.code,
+        opt.nis,
+        opt.nisn,
+        opt.name
+      ];
+
+      if (Array.isArray(opt.searchTerms)) {
+        parts.push(...opt.searchTerms);
+      } else if (opt.searchTerms) {
+        parts.push(opt.searchTerms);
+      }
+
+      if (opt.searchText) parts.push(opt.searchText);
+      if (opt.keywords) parts.push(opt.keywords);
+
+      const fullText = parts.filter(p => p !== null && p !== undefined).map(String).join(' ').toLowerCase();
+      const normFull = fullText.replace(/[^a-z0-9]/gi, ' ');
+      const fullDigits = fullText.replace(/[^0-9]/g, '');
+
+      // 1. Direct exact phrase match
+      if (fullText.includes(rawQ)) return true;
+      const normQ = rawQ.replace(/[^a-z0-9]/gi, ' ').replace(/\s+/g, ' ').trim();
+      if (normQ && normFull.includes(normQ)) return true;
+
+      // 2. Token-based multi-keyword match (SEMUA token yang diketik pengguna HARUS cocok)
+      return tokens.every((tok) => {
+        // Direct match in full text (misal "ft24355hfhjz", "bni", "2.250.000")
+        if (fullText.includes(tok)) return true;
+
+        // Normalized alphanumeric match (mengabaikan spasi / tanda baca seperti garis miring, strip, titik)
+        const normTok = tok.replace(/[^a-z0-9]/gi, '');
+        if (normTok) {
+          const strippedFull = fullText.replace(/[^a-z0-9]/gi, '');
+          if (strippedFull.includes(normTok)) return true;
+        }
+
+        // HANYA jika token yang diketik adalah MURNI ANGKA (misal user mengetik "2250000" untuk nominal "Rp 2.250.000")
+        if (/^\d+$/.test(tok) && tok.length >= 3 && fullDigits.includes(tok)) {
+          return true;
+        }
+
+        return false;
+      });
     });
   }, [options, search]);
 
@@ -139,6 +195,15 @@ export default function SearchableSelect({
 
   // Handle seleksi opsi (Single atau Toggle Multi)
   const handleSelect = (opt) => {
+    if (opt?.disabled) {
+      if (typeof onDisabledSelect === 'function') {
+        onDisabledSelect(opt);
+      } else if (opt.disabledReason) {
+        alert(opt.disabledReason);
+      }
+      return;
+    }
+
     if (!onChange) return;
     const optVal = opt.value;
     const valStr = String(optVal);
@@ -486,6 +551,7 @@ export default function SearchableSelect({
               filteredOptions.map((opt, idx) => {
                 const isSelected = selectedValues.includes(String(opt.value));
                 const isHighlighted = idx === highlightIndex;
+                const isDisabled = Boolean(opt.disabled);
 
                 return (
                   <button
@@ -495,17 +561,21 @@ export default function SearchableSelect({
                     onClick={() => handleSelect(opt)}
                     onMouseEnter={() => setHighlightIndex(idx)}
                     className={`
-                      w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between gap-2 transition cursor-pointer
+                      w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between gap-2 transition
                       ${
-                        isSelected
+                        isDisabled
+                          ? effectiveDark
+                            ? 'opacity-70 bg-slate-900/60 hover:bg-rose-950/30 text-slate-400 cursor-not-allowed border border-dashed border-slate-800'
+                            : 'opacity-80 bg-slate-50/90 hover:bg-rose-50/80 text-slate-500 cursor-not-allowed border border-dashed border-slate-200'
+                          : isSelected
                           ? accentClasses.selectedBg
                           : isHighlighted
                           ? effectiveDark
-                            ? 'bg-slate-800/90 text-white'
-                            : 'bg-slate-100/90 text-slate-900'
+                            ? 'bg-slate-800/90 text-white cursor-pointer'
+                            : 'bg-slate-100/90 text-slate-900 cursor-pointer'
                           : effectiveDark
-                          ? 'hover:bg-slate-800 text-slate-300'
-                          : 'hover:bg-slate-50 text-slate-700'
+                          ? 'hover:bg-slate-800 text-slate-300 cursor-pointer'
+                          : 'hover:bg-slate-50 text-slate-700 cursor-pointer'
                       }
                     `}
                   >
@@ -514,6 +584,7 @@ export default function SearchableSelect({
                         <input
                           type="checkbox"
                           checked={isSelected}
+                          disabled={isDisabled}
                           readOnly
                           className={`w-3.5 h-3.5 rounded focus:ring-0 shrink-0 pointer-events-none ${
                             effectiveDark

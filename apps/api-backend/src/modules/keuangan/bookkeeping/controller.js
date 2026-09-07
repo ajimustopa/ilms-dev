@@ -125,12 +125,28 @@ class BookkeepingController {
     } catch (err) { next(err); }
   };
 
-  // 5. Saldo per Sumber Dana (Kantong Dana & Opening Pool)
+  // 5. Saldo per Sumber Dana (Pos Alokasi Dana & Opening Pool)
   listFundBalances = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await fundBalanceEngine.listFundBalances(schoolUnitId, req.query.academic_year_id);
-      res.json({ success: true, data, message: 'Daftar saldo sumber dana berhasil diambil', errors: null });
+      res.json({ success: true, data, message: 'Daftar saldo pos alokasi dana berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getAvailableFundSources = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.getAvailableFundSources(schoolUnitId, req.query.academic_year_id);
+      res.json({ success: true, data, message: 'Pilihan pos alokasi sumber dana berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getMultiYearTrajectory = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await fundBalanceEngine.getMultiYearTrajectory(schoolUnitId);
+      res.json({ success: true, data, message: 'Matriks saldo akumulasi lintas tahun ajaran berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 

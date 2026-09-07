@@ -174,6 +174,14 @@ class ReportsController {
     } catch (err) { next(err); }
   };
 
+  listAcademicYears = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const ays = await crossModuleServices.listAcademicYears({ satuan_pendidikan_id: schoolUnitId });
+      res.json({ success: true, data: ays, message: 'Daftar tahun ajaran berhasil dimuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
   listClassGroups = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);

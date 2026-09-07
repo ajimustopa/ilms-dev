@@ -6,10 +6,12 @@ const db = require('../config/db/core');
 
 /**
  * Middleware factory untuk pengecekan permission
- * @param {string} permissionCode - Kode izin (mis. 'kepegawaian.employees.view', 'core.users.view', 'akademik.scores.create')
+ * @param {...(string|string[])} permissionCodes - Kode izin (mis. 'kepegawaian.employees.view', 'core.users.view', 'akademik.scores.create')
  * @returns {Function} Express middleware
  */
-function requirePermission(permissionCode) {
+function requirePermission(...permissionCodes) {
+  const codes = permissionCodes.flat().filter(Boolean);
+
   return async (req, res, next) => {
     try {
       if (!req.user || !req.user.id) {
@@ -24,11 +26,27 @@ function requirePermission(permissionCode) {
       const userId = req.user.id;
 
       // 1. Tentukan konteks Satuan Pendidikan aktif dari header, query, params, atau body
-      const schoolUnitId = req.headers['x-school-unit-id'] ||
-                           req.query.school_unit_id ||
-                           req.params.school_unit_id ||
-                           req.body?.school_unit_id ||
-                           null;
+      const rawSchoolUnitId = req.headers['x-school-unit-id'] ||
+                              req.headers['x-school-unit-id'.toLowerCase()] ||
+                              req.query.school_unit_id ||
+                              req.params.school_unit_id ||
+                              req.body?.school_unit_id ||
+                              null;
+
+      let validSchoolUnitId = null;
+      if (
+        rawSchoolUnitId !== null &&
+        rawSchoolUnitId !== undefined &&
+        rawSchoolUnitId !== '' &&
+        rawSchoolUnitId !== 'all' &&
+        rawSchoolUnitId !== 'null' &&
+        rawSchoolUnitId !== 'undefined'
+      ) {
+        const num = Number(rawSchoolUnitId);
+        if (!isNaN(num) && num > 0) {
+          validSchoolUnitId = num;
+        }
+      }
 
       // 2. Ambil seluruh role yang dimiliki user
       const userRoles = await db('user_school_roles')
@@ -46,43 +64,44 @@ function requirePermission(permissionCode) {
         return next();
       }
 
-      // Role HRD memiliki akses penuh ke seluruh fitur dan data Kepegawaian (semua unit sekolah)
-      if (permissionCode.startsWith('kepegawaian.') && roleNames.includes('hrd')) {
+      // Role HRD / Kepegawaian memiliki akses penuh ke seluruh fitur dan data Kepegawaian
+      if (codes.some(c => c.startsWith('kepegawaian.')) && (roleNames.includes('hrd') || roleNames.includes('kepegawaian'))) {
         return next();
       }
 
       // Role Keuangan memiliki akses penuh ke seluruh fitur Keuangan
-      if (permissionCode.startsWith('keuangan.') && roleNames.includes('keuangan')) {
+      if (codes.some(c => c.startsWith('keuangan.')) && roleNames.includes('keuangan')) {
         return next();
       }
 
-      // Role Admin Satuan Pendidikan memiliki akses penuh ke modul satuan pendidikan
+      // Role Admin Satuan Pendidikan / Kepala Sekolah memiliki akses penuh ke modul satuan pendidikan
       if (
-        (permissionCode.startsWith('akademik.') || permissionCode.startsWith('kesiswaan.')) &&
-        roleNames.includes('admin_satuan_pendidikan')
+        codes.some(c => c.startsWith('akademik.') || c.startsWith('kesiswaan.')) &&
+        (roleNames.includes('admin_satuan_pendidikan') || roleNames.includes('admin_satuan') || roleNames.includes('kepala_sekolah'))
       ) {
-        // Cek jika dibatasi school_unit_id
-        if (!schoolUnitId) return next();
+        if (!validSchoolUnitId) return next();
         const hasMatchingUnit = userRoles.some(
-          (r) => r.role_name === 'admin_satuan_pendidikan' && (!r.school_unit_id || String(r.school_unit_id) === String(schoolUnitId))
+          (r) => (r.role_name === 'admin_satuan_pendidikan' || r.role_name === 'admin_satuan' || r.role_name === 'kepala_sekolah') &&
+                 (!r.school_unit_id || String(r.school_unit_id) === String(validSchoolUnitId))
         );
         if (hasMatchingUnit) return next();
       }
 
       // 3. Pengecekan berbasis Granular Permissions di database
-      const [moduleName] = permissionCode.split('.');
-      const acceptableCodes = [
-        permissionCode,
-        `${moduleName}.manage`
-      ];
-
-      // Jika operasi view/read/get, module.view juga memberi izin
-      if (
-        permissionCode.includes('.view') ||
-        permissionCode.includes('.read') ||
-        req.method === 'GET'
-      ) {
-        acceptableCodes.push(`${moduleName}.view`);
+      const acceptableCodes = new Set();
+      for (const code of codes) {
+        acceptableCodes.add(code);
+        const [moduleName] = code.split('.');
+        if (moduleName) {
+          acceptableCodes.add(`${moduleName}.manage`);
+          if (
+            code.includes('.view') ||
+            code.includes('.read') ||
+            req.method === 'GET'
+          ) {
+            acceptableCodes.add(`${moduleName}.view`);
+          }
+        }
       }
 
       let query = db('user_school_roles')
@@ -90,11 +109,11 @@ function requirePermission(permissionCode) {
         .join('role_permissions', 'roles.id', 'role_permissions.role_id')
         .join('permissions', 'role_permissions.permission_id', 'permissions.id')
         .where('user_school_roles.user_id', userId)
-        .whereIn('permissions.code', acceptableCodes);
+        .whereIn('permissions.code', Array.from(acceptableCodes));
 
-      if (schoolUnitId) {
+      if (validSchoolUnitId) {
         query = query.where((builder) => {
-          builder.where('user_school_roles.school_unit_id', Number(schoolUnitId))
+          builder.where('user_school_roles.school_unit_id', validSchoolUnitId)
             .orWhereNull('user_school_roles.school_unit_id');
         });
       }
@@ -105,7 +124,7 @@ function requirePermission(permissionCode) {
         return res.status(403).json({
           success: false,
           data: null,
-          message: `Akses ditolak. Anda tidak memiliki izin '${permissionCode}'${schoolUnitId ? ` pada Satuan Pendidikan ID ${schoolUnitId}` : ''}`,
+          message: `Akses ditolak. Anda tidak memiliki izin '${codes.join(', ')}'${validSchoolUnitId ? ` pada Satuan Pendidikan ID ${validSchoolUnitId}` : ''}`,
           errors: null
         });
       }
@@ -118,3 +137,4 @@ function requirePermission(permissionCode) {
 }
 
 module.exports = requirePermission;
+

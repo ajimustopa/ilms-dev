@@ -482,14 +482,17 @@ export default function StudentBills() {
     );
     const resolvedFtId = defaultArrearsFt ? String(defaultArrearsFt.id) : (feeTypes[0] ? String(feeTypes[0].id) : '11');
 
+    const targetAY = alumnus?.graduation_academic_year_id ? String(alumnus.graduation_academic_year_id) : (selectedAcademicYearId || '');
+    const defaultDates = computeDefaultBillAndDueDates({ fee_type_id: resolvedFtId }, targetAY);
+
     setManualArrearForm({
       student_id: alumnus ? String(alumnus.id) : '',
       fee_type_id: resolvedFtId,
-      academic_year_id: alumnus?.graduation_academic_year_id ? String(alumnus.graduation_academic_year_id) : (selectedAcademicYearId || ''),
+      academic_year_id: targetAY,
       period_year: new Date().getFullYear(),
       amount: '',
-      bill_date: new Date().toISOString().slice(0, 10),
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      bill_date: defaultDates.billDate,
+      due_date: defaultDates.dueDate,
       notes: alumnus ? `Pencatatan tunggakan manual alumni: ${alumnus.full_name}` : 'Pencatatan tunggakan manual alumni'
     });
     setManualArrearModalOpen(true);
@@ -835,6 +838,65 @@ export default function StudentBills() {
     });
   };
 
+  // Helper: Menghitung Tanggal Tagihan dan Tanggal Jatuh Tempo default sesuai aturan bisnis
+  // 1. Tagihan SPP (Bulanan): Tanggal 01 di bulan tersebut & Jatuh tempo akhir bulan tersebut
+  // 2. Tagihan Laundry (Bulanan): Tanggal 01 di bulan selanjutnya & Jatuh tempo akhir bulan selanjutnya
+  // 3. Tagihan Non-Bulanan: Tanggal 01 bulan Juni tahun ajaran sebelumnya & Jatuh tempo 31 Agustus tahun ajaran tersebut
+  const computeDefaultBillAndDueDates = (target, ayId = selectedAcademicYearId) => {
+    const ayObj = academicYears.find((a) => String(a.id) === String(ayId));
+    let startYear = 2024;
+    let endYear = 2025;
+
+    if (ayObj?.name && ayObj.name.includes('/')) {
+      const parts = ayObj.name.split('/');
+      startYear = parseInt(parts[0], 10) || 2024;
+      endYear = parseInt(parts[1], 10) || startYear + 1;
+    } else if (ayObj?.start_date) {
+      const dt = new Date(ayObj.start_date);
+      startYear = dt.getFullYear();
+      endYear = startYear + 1;
+    }
+
+    const ftId = target.fee_type_id;
+    const ft = feeTypes.find((f) => f.id === ftId);
+    const targetName = String(target.fee_type_name || target.label || ft?.name || '').toLowerCase();
+    const isLaundry = targetName.includes('laundry');
+    const isMonthly = Boolean(target.period_month || target.is_monthly || ft?.fee_type === 'monthly');
+
+    // 1. Tagihan Non-Bulanan (Sekali bayar / tahunan / pendaftaran / tunggakan TP sebelumnya)
+    if (!isMonthly) {
+      const billDate = `${startYear}-06-01`;
+      const dueDate = `${startYear}-08-31`;
+      return { billDate, dueDate };
+    }
+
+    // 2. Tagihan Bulanan (SPP & Laundry)
+    const month = parseInt(target.period_month, 10) || 7;
+    let year = target.period_year ? parseInt(target.period_year, 10) : (month >= 7 ? startYear : endYear);
+
+    if (isLaundry) {
+      // Khusus Laundry: Tanggal 01 di bulan selanjutnya & Jatuh tempo akhir bulan selanjutnya
+      let nextMonth = month + 1;
+      let nextYear = year;
+      if (nextMonth > 12) {
+        nextMonth = 1;
+        nextYear = year + 1;
+      }
+      const mStr = String(nextMonth).padStart(2, '0');
+      const lastDay = new Date(nextYear, nextMonth, 0).getDate();
+      const billDate = `${nextYear}-${mStr}-01`;
+      const dueDate = `${nextYear}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+      return { billDate, dueDate };
+    } else {
+      // Khusus SPP / Bulanan Biasa: Tanggal 01 di bulan tersebut & Jatuh tempo akhir bulan tersebut
+      const mStr = String(month).padStart(2, '0');
+      const lastDay = new Date(year, month, 0).getDate();
+      const billDate = `${year}-${mStr}-01`;
+      const dueDate = `${year}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+      return { billDate, dueDate };
+    }
+  };
+
   // Open Cell Modal
   const handleOpenCellModal = (row, cell) => {
     setSelectedCellInfo({ row, cell });
@@ -848,10 +910,12 @@ export default function StudentBills() {
     const currentDiscount = cell.discount_amount || 0;
     const computedPct = baseNominal > 0 && currentDiscount > 0 ? ((currentDiscount / baseNominal) * 100).toFixed(1) : 0;
 
+    const defaultDates = computeDefaultBillAndDueDates(cell, selectedAcademicYearId);
+
     setCellFormData({
       amount: baseNominal,
-      bill_date: cell.bill_date || new Date().toISOString().slice(0, 10),
-      due_date: cell.due_date || `${cell.period_year}-${cell.period_month ? String(cell.period_month).padStart(2, '0') : '10'}-10`,
+      bill_date: cell.bill_date ? String(cell.bill_date).slice(0, 10) : defaultDates.billDate,
+      due_date: cell.due_date ? String(cell.due_date).slice(0, 10) : defaultDates.dueDate,
       has_discount: Boolean(currentDiscount > 0),
       discount_type: 'amount',
       discount_amount: currentDiscount,
@@ -868,11 +932,29 @@ export default function StudentBills() {
     setCellModalOpen(true);
   };
 
+  // Helper: Mendapatkan tanggal akhir bulan dari format YYYY-MM-DD
+  const getEndOfMonthForDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 2) return dateStr;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return dateStr;
+    const lastDay = new Date(y, m, 0).getDate();
+    return `${parts[0]}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  };
+
   const handleCellBillDateChange = (val) => {
     setCellFormData((prev) => {
+      const cell = selectedCellInfo?.cell;
+      const ft = feeTypes.find((f) => f.id === cell?.fee_type_id);
+      const isMonthly = Boolean(cell?.period_month || cell?.is_monthly || ft?.fee_type === 'monthly');
+
       let updatedDueDate = prev.due_date;
-      // Jika due_date kosong atau due_date < val, otomatis ubah due_date = val
-      if (val && (!updatedDueDate || updatedDueDate < val)) {
+      if (isMonthly && val) {
+        // Tagihan bulanan (SPP & Laundry): otomatis di akhir bulan dari Tanggal Tagihan
+        updatedDueDate = getEndOfMonthForDate(val);
+      } else if (val && (!updatedDueDate || updatedDueDate < val)) {
         updatedDueDate = val;
       }
       return {
@@ -966,12 +1048,11 @@ export default function StudentBills() {
     const defaultRuleId = ft?.billing_account_mapping_id ? String(ft.billing_account_mapping_id) : '';
     const defaultDiscountRuleId = ft?.billing_discount_account_mapping_id ? String(ft.billing_discount_account_mapping_id) : '';
 
-    const defaultDueDate = `${col.period_year}-${col.period_month ? String(col.period_month).padStart(2, '0') : '10'}-10`;
-    const defaultBillDate = new Date().toISOString().slice(0, 10);
+    const defaultDates = computeDefaultBillAndDueDates(col, selectedAcademicYearId);
 
     setColumnPublishFormData({
-      bill_date: defaultBillDate,
-      due_date: defaultDueDate,
+      bill_date: defaultDates.billDate,
+      due_date: defaultDates.dueDate,
       notes: `Penerbitan massal tagihan kolom ${col.label}`,
       has_discount: false,
       discount_type: 'amount',
@@ -988,8 +1069,15 @@ export default function StudentBills() {
 
   const handleColumnBillDateChange = (val) => {
     setColumnPublishFormData((prev) => {
+      const col = targetColumnInfo;
+      const ft = feeTypes.find((f) => f.id === col?.fee_type_id);
+      const isMonthly = Boolean(col?.period_month || col?.is_monthly || ft?.fee_type === 'monthly');
+
       let updatedDueDate = prev.due_date;
-      if (val && (!updatedDueDate || updatedDueDate < val)) {
+      if (isMonthly && val) {
+        // Tagihan bulanan (SPP & Laundry): otomatis di akhir bulan dari Tanggal Tagihan
+        updatedDueDate = getEndOfMonthForDate(val);
+      } else if (val && (!updatedDueDate || updatedDueDate < val)) {
         updatedDueDate = val;
       }
       return {
@@ -1129,8 +1217,9 @@ export default function StudentBills() {
       ['No', 'NIS / NIPD', 'Nama Siswa', 'Kelas / Rombel', 'Nominal Tagihan (Rp)', 'Tanggal Penagihan (DD/MM/YYYY)', 'Tanggal Jatuh Tempo (DD/MM/YYYY)', 'Catatan']
     ];
 
-    const defaultDueDateStr = `${col.period_year}-${col.period_month ? String(col.period_month).padStart(2, '0') : '10'}-10`;
-    const defaultBillDateStr = new Date().toISOString().slice(0, 10);
+    const defaultDates = computeDefaultBillAndDueDates(col, selectedAcademicYearId);
+    const defaultDueDateStr = defaultDates.dueDate;
+    const defaultBillDateStr = defaultDates.billDate;
 
     const studentDataRows = (matrixData.rows || []).map((row, idx) => {
       const cell = row.cells?.[col.key] || {};
@@ -2054,6 +2143,33 @@ export default function StudentBills() {
 
           {/* Matrix Table with Horizontal & Vertical Scroll and Sticky Frozen Columns */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden relative">
+            {/* Status Legend Bar */}
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 flex-wrap text-[11px] text-slate-600">
+              <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                <span>🎨 Status Sel:</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Lunas
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-900 border border-blue-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Terbit
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 text-teal-900 border border-teal-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span> Sebagian
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span> Jatuh Tempo
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-950 border border-amber-300 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Belum Ditagihkan (&gt; Rp 0)
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Rp 0
+                </span>
+              </div>
+            </div>
+
             {matrixLoading ? (
               <div className="p-16 text-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-2" />
@@ -2287,27 +2403,41 @@ export default function StudentBills() {
                             const isPaid = cell.is_paid;
                             const isPart = cell.is_partially_paid;
                             const isOver = cell.is_overdue;
+                            const cellNominal = cell.amount !== undefined && cell.amount !== null ? Number(cell.amount) : Number(cell.base_amount || 0);
 
                             let cellStyle = 'bg-white text-slate-700 hover:border-emerald-400 border-slate-200';
                             let badgeText = 'Draf / Acuan';
                             let badgeClass = 'bg-slate-100 text-slate-500';
 
                             if (isPaid) {
-                              cellStyle = 'bg-emerald-50/80 text-emerald-900 border-emerald-300 font-bold';
+                              cellStyle = 'bg-emerald-50/90 text-emerald-950 border-emerald-300 font-bold';
                               badgeText = 'Lunas';
-                              badgeClass = 'bg-emerald-100 text-emerald-800';
+                              badgeClass = 'bg-emerald-100 text-emerald-800 font-bold';
                             } else if (isPart) {
-                              cellStyle = 'bg-teal-50/80 text-teal-900 border-teal-300 font-bold';
+                              cellStyle = 'bg-teal-50/90 text-teal-950 border-teal-300 font-bold';
                               badgeText = 'Sebagian';
-                              badgeClass = 'bg-teal-100 text-teal-800';
+                              badgeClass = 'bg-teal-100 text-teal-800 font-bold';
                             } else if (isOver) {
-                              cellStyle = 'bg-rose-50/90 text-rose-900 border-rose-300 font-bold';
+                              cellStyle = 'bg-rose-50/90 text-rose-950 border-rose-300 font-bold';
                               badgeText = 'Jatuh Tempo';
-                              badgeClass = 'bg-rose-100 text-rose-800 animate-pulse';
+                              badgeClass = 'bg-rose-100 text-rose-800 font-bold animate-pulse';
                             } else if (isPub) {
-                              cellStyle = 'bg-blue-50/80 text-blue-900 border-blue-300 font-bold';
+                              cellStyle = 'bg-blue-50/80 text-blue-950 border-blue-300 font-bold';
                               badgeText = 'Terbit';
-                              badgeClass = 'bg-blue-100 text-blue-800';
+                              badgeClass = 'bg-blue-100 text-blue-800 font-bold';
+                            } else {
+                              // Belum ditagihkan / belum diterbitkan (Draf Acuan)
+                              if (cellNominal > 0) {
+                                // Memiliki nominal > 0: Diberi warna lembut (soft amber tint)
+                                cellStyle = 'bg-amber-50/80 text-amber-950 border-amber-200/90 hover:border-amber-400 hover:bg-amber-100/70 font-semibold';
+                                badgeText = 'Belum Terbit';
+                                badgeClass = 'bg-amber-100 text-amber-900 border border-amber-200/70 font-semibold';
+                              } else {
+                                // Nominal 0: Netral redup
+                                cellStyle = 'bg-slate-50/50 text-slate-400 border-slate-200/60 hover:border-slate-300 opacity-60';
+                                badgeText = 'Rp 0';
+                                badgeClass = 'bg-slate-100 text-slate-400 font-normal';
+                              }
                             }
 
                             return (
@@ -2320,10 +2450,10 @@ export default function StudentBills() {
                                   className={`p-2 rounded-xl border text-center transition-all shadow-2xs group-hover:shadow-md group-hover:scale-[1.02] ${cellStyle}`}
                                 >
                                   <div className="font-mono text-xs">
-                                    Rp {(cell.amount !== undefined ? cell.amount : cell.base_amount || 0).toLocaleString('id-ID')}
+                                    Rp {cellNominal.toLocaleString('id-ID')}
                                   </div>
                                   <div className="flex items-center justify-center gap-1 mt-1">
-                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${badgeClass}`}>
+                                    <span className={`px-1.5 py-0.2 rounded text-[9px] ${badgeClass}`}>
                                       {badgeText}
                                     </span>
                                     {cell.is_custom && (

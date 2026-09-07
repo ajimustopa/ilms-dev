@@ -68,7 +68,7 @@ class QualityService {
         'sg.perspective as strategic_goal_perspective'
       );
 
-    if (schoolUnitId) {
+    if (schoolUnitId && schoolUnitId !== 'all' && !isNaN(Number(schoolUnitId))) {
       q = q.where(function () {
         this.where('qi.school_unit_id', Number(schoolUnitId)).orWhereNull('qi.school_unit_id');
       });
@@ -443,7 +443,7 @@ class QualityService {
         'qi.direction as indicator_direction'
       );
 
-    if (schoolUnitId) {
+    if (schoolUnitId && schoolUnitId !== 'all' && !isNaN(Number(schoolUnitId))) {
       q = q.where(function () {
         this.where('qg.school_unit_id', Number(schoolUnitId)).orWhereNull('qg.school_unit_id');
       });

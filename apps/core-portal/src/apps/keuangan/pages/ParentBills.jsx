@@ -281,12 +281,19 @@ export default function ParentBills() {
                   return (
                     <tr key={bill.id} className="hover:bg-slate-50/60 transition">
                       <td className="py-3.5 px-4 font-semibold text-slate-800">
-                        <div>{bill.fee_type_name || 'Tagihan Pendidikan'}</div>
-                        {bill.version > 1 && (
-                          <span className="inline-flex items-center text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded font-medium mt-0.5">
-                            Revisi v{bill.version}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{bill.fee_type_name || 'Tagihan Pendidikan'}</span>
+                          {bill.academic_year_name && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              T.A. {bill.academic_year_name}
+                            </span>
+                          )}
+                          {bill.version > 1 && (
+                            <span className="inline-flex items-center text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded font-medium">
+                              Revisi v{bill.version}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-slate-600">
                         {bill.period_month ? `Bulan ${bill.period_month}/${bill.period_year}` : `Tahun ${bill.period_year}`}
@@ -316,19 +323,19 @@ export default function ParentBills() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                             <span>Lunas</span>
                           </span>
                         ) : isPartiallyPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                             <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Lunas Sebagian</span>
+                            <span>Sebagian</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
                             <AlertCircle className="w-3 h-3 text-rose-600" />
-                            <span>Belum Lunas</span>
+                            <span>Belum Bayar</span>
                           </span>
                         )}
                       </td>
@@ -337,8 +344,8 @@ export default function ParentBills() {
                           <button
                             type="button"
                             onClick={() => handleOpenDetail(bill.id)}
-                            className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
-                            title="Lihat Detail Tagihan"
+                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                            title="Lihat Rincian"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -346,10 +353,10 @@ export default function ParentBills() {
                             <button
                               type="button"
                               onClick={() => handleOpenProofModal(bill)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-2xs transition"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-[11px] shadow-2xs transition"
                             >
                               <Upload className="w-3 h-3" />
-                              <span>Konfirmasi Bayar</span>
+                              <span>Bayar</span>
                             </button>
                           )}
                         </div>
@@ -393,6 +400,12 @@ export default function ParentBills() {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Nama Santri</span>
                       <span className="font-bold text-slate-800">{selectedBill.student_name || `Santri #${studentId}`}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tahun Ajaran</span>
+                      <span className="font-bold text-indigo-700 font-mono">
+                        {selectedBill.academic_year_name ? `T.A. ${selectedBill.academic_year_name}` : '-'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Jenis Biaya</span>

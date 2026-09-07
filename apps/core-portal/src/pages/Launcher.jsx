@@ -7,709 +7,776 @@ import {
   GraduationCap,
   Users2,
   Wallet,
-  HeartHandshake,
   Building,
   Utensils,
   ChefHat,
   BookOpen,
   FileCheck2,
-  BellRing,
-  BookMarked,
+  Activity,
+  Compass,
   BarChart3,
-  ExternalLink,
-  Lock,
+  BookMarked,
   ArrowRight,
   LogOut,
-  User,
   Sparkles,
   Search,
   X,
-  Sun,
-  Moon,
-  CheckCircle2,
-  Layers,
+  Cpu,
+  Shield,
+  Clock,
+  ChevronDown,
+  Building2,
+  ExternalLink,
   Zap,
+  Lock,
+  Terminal,
+  Radio,
+  Sliders,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
+
+/**
+ * Pemetaan role standar untuk setiap modul aplikasi
+ */
+const MODULE_ACCESS_MAP = {
+  core: ['super_admin', 'admin_yayasan', 'developer'],
+  keuangan: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  kepegawaian: ['super_admin', 'admin_yayasan', 'kepegawaian', 'hrd', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staff_payroll', 'staf'],
+  akademik: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'wali_kelas', 'guru_bk', 'pelatih_ekskul', 'guru_tamu', 'tu'],
+  kesiswaan: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'wali_kelas', 'pelatih_ekskul', 'tu'],
+  sarpras: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staf'],
+  perpustakaan: ['super_admin', 'admin_yayasan', 'pustakawan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'guru', 'tu', 'staf'],
+  cbt: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'tu'],
+  cbe: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'tu'],
+  bk: ['super_admin', 'admin_yayasan', 'guru_bk', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'wali_kelas'],
+  alumni: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staf'],
+  ppdb: ['super_admin', 'admin_yayasan', 'panitia_ppdb', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  'calon-murid': ['super_admin', 'admin_yayasan', 'panitia_ppdb', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  alquran: ['super_admin', 'admin_yayasan', 'guru', 'wali_kelas', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  al_quran: ['super_admin', 'admin_yayasan', 'guru', 'wali_kelas', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  manajemen: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'hrd', 'kepegawaian', 'keuangan', 'sarpras_manager'],
+  'website-utama': ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'panitia_ppdb', 'tu'],
+  guru: ['super_admin', 'admin_yayasan', 'guru', 'wali_kelas', 'waka_kurikulum', 'guru_bk', 'pelatih_ekskul', 'guru_tamu'],
+  kantin: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'staf', 'tu'],
+  dapur: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'staf', 'tu']
+};
 
 export default function Launcher() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const {
+    isAuthenticated,
+    user,
+    logout,
+    schoolUnits,
+    activeSchoolUnit,
+    changeActiveSchoolUnit
+  } = useAuth();
 
-  // Dual Theme State (Mode Terang & Mode Gelap Lembut)
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('aldepos_portal_theme');
-    if (saved) return saved === 'dark';
-    return false; // Default: Soft clean light mode for pristine readability
-  });
-
-  const toggleTheme = () => {
-    setIsDark((prev) => {
-      const next = !prev;
-      localStorage.setItem('aldepos_portal_theme', next ? 'dark' : 'light');
-      return next;
-    });
-  };
-
-  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentTime, setCurrentTime] = useState('');
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
 
-  const handleAppClick = (app) => {
-    if (app.isExternal) {
-      window.open(app.url, '_blank');
-      return;
+  // Update clock every 10 seconds
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options = {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      setCurrentTime(new Intl.DateTimeFormat('id-ID', options).format(now));
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true });
     }
+  }, [isAuthenticated, navigate]);
 
-    if (app.id === 'core' || app.id === 'website-utama') {
-      if (isAuthenticated) {
-        navigate(`/${app.id}/dashboard`);
-      } else {
-        navigate('/core/login');
-      }
-      return;
-    }
-
-    // Untuk modul-modul lain yang ready
-    if (app.available) {
-      if (isAuthenticated) {
-        navigate(`/${app.id}/dashboard`);
-      } else {
-        navigate(`/${app.id}/login`);
-      }
-    }
-  };
-
-  const apps = useMemo(
+  // Master Ecosystem Apps Definition
+  const allApps = useMemo(
     () => [
       {
         id: 'core',
-        name: 'Administrasi Sistem',
-        moduleName: 'Core Service',
-        description: 'Pusat otentikasi SSO, manajemen pengguna, role izin, profil yayasan, satuan pendidikan & webhook.',
+        code: 'CORE-01',
+        name: 'Administrasi Sistem & RBAC',
+        moduleName: 'Core Management',
+        description: 'Pusat otentikasi SSO, manajemen akun, role izin RBAC, profil yayasan, satuan pendidikan & webhook log.',
         icon: ShieldCheck,
-        color: 'from-emerald-500 to-teal-700',
-        iconBg: isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-cyan-500 to-blue-600',
+        glowColor: 'cyan',
         category: 'Utilitas & Fondasi',
-      },
-      {
-        id: 'website-utama',
-        name: 'Website Utama (CMS)',
-        moduleName: 'CMS Website & PPDB',
-        description: 'Panel administrasi konten website resmi sekolah, publikasi berita, galeri, PPDB online & layanan konsultasi.',
-        icon: Globe,
-        color: 'from-blue-500 to-indigo-700',
-        iconBg: isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-50 text-blue-600 border-blue-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
         available: true,
-        category: 'Publik & Portal',
-      },
-      {
-        id: 'kepegawaian',
-        name: 'SDM & Kepegawaian',
-        moduleName: 'Kepegawaian',
-        description: 'Data induk pegawai, presensi harian, pengajuan cuti, struktur organisasi & slip gaji.',
-        icon: Users2,
-        color: 'from-indigo-500 to-violet-700',
-        iconBg: isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
-        category: 'Operasional Sekolah',
-      },
-      {
-        id: 'akademik',
-        name: 'Manajemen Akademik',
-        moduleName: 'Akademik',
-        description: 'Data induk siswa, kurikulum pembelajaran, jadwal pelajaran, penilaian, e-Rapor & kesiswaan.',
-        icon: GraduationCap,
-        color: 'from-teal-500 to-emerald-700',
-        iconBg: isDark ? 'bg-teal-500/20 text-teal-400 border-teal-500/30' : 'bg-teal-50 text-teal-600 border-teal-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
-        category: 'Operasional Sekolah',
+        path: '/core/dashboard'
       },
       {
         id: 'keuangan',
-        name: 'Keuangan & Pembukuan',
-        moduleName: 'Keuangan',
-        description: 'Tagihan SPP, pos penerimaan kasir, penganggaran RAPBS, jurnal akuntansi & laporan keuangan.',
+        code: 'FIN-02',
+        name: 'Keuangan & Kasir Digital',
+        moduleName: 'Keuangan & SPP',
+        description: 'Tagihan SPP multi-siswa, pos penerimaan kasir, rekening koran bank, jurnal akuntansi & laporan laba rugi.',
         icon: Wallet,
-        color: 'from-amber-500 to-orange-700',
-        iconBg: isDark ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-600 border-amber-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-amber-500 to-orange-600',
+        glowColor: 'amber',
         category: 'Finansial & Bisnis',
+        available: true,
+        path: '/keuangan/dashboard'
       },
       {
-        id: 'guru',
-        name: 'Portal Guru',
-        moduleName: 'Portal Pendidik',
-        description: 'Presensi diri GPS radius HRD, jadwal mengajar pribadi, notifikasi jadwal, input nilai & absensi kelas.',
+        id: 'akademik',
+        code: 'AKD-03',
+        name: 'Akademik & Kurikulum',
+        moduleName: 'Manajemen Akademik',
+        description: 'Data induk siswa Dapodik, rombel/kelas, jadwal pelajaran, penilaian, e-Rapor & kalender akademik.',
         icon: GraduationCap,
-        color: 'from-emerald-500 to-teal-600',
-        iconBg: isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
+        accentColor: 'from-emerald-500 to-teal-600',
+        glowColor: 'emerald',
+        category: 'Operasional Sekolah',
         available: true,
-        category: 'Portal Pengguna',
+        path: '/akademik/dashboard'
       },
       {
-        id: 'ortu',
-        name: 'Portal Orangtua',
-        moduleName: 'Portal Orangtua',
-        description: 'Monitoring nilai, absensi, tagihan sekolah anak, histori cashless kantin & komunikasi guru.',
-        icon: HeartHandshake,
-        color: 'from-rose-500 to-pink-700',
-        iconBg: isDark ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-rose-50 text-rose-600 border-rose-200',
-        badgeBg: isDark ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-amber-50 text-amber-700 border-amber-200',
-        status: 'Fase 5',
-        available: false,
-        category: 'Portal Pengguna',
+        id: 'kepegawaian',
+        code: 'SDM-04',
+        name: 'SDM & Human Resource',
+        moduleName: 'Kepegawaian & HRD',
+        description: 'Data induk pegawai, presensi harian radius GPS, pengajuan cuti, struktur organisasi, payroll & psikotes.',
+        icon: Users2,
+        accentColor: 'from-indigo-500 to-purple-600',
+        glowColor: 'indigo',
+        category: 'Operasional Sekolah',
+        available: true,
+        path: '/kepegawaian/dashboard'
       },
       {
-        id: 'kantin',
-        name: 'Kantin & Transaksi Digital',
-        moduleName: 'Kantin',
-        description: 'POS kasir kantin, transaksi digital cashless santri, pengelolaan vendor titipan & bagi hasil.',
-        icon: Utensils,
-        color: 'from-amber-500 to-orange-600',
-        iconBg: isDark ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-600 border-amber-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
+        id: 'kesiswaan',
+        code: 'KSS-05',
+        name: 'Kesiswaan & Prestasi',
+        moduleName: 'Kesiswaan & Disiplin',
+        description: 'Data ekstrakurikuler, rekam prestasi santri, tata tertib, pelanggaran & poin kedisiplinan santri.',
+        icon: Activity,
+        accentColor: 'from-violet-500 to-fuchsia-600',
+        glowColor: 'violet',
+        category: 'Operasional Sekolah',
         available: true,
-        category: 'Finansial & Bisnis',
+        path: '/kesiswaan/dashboard'
       },
       {
         id: 'sarpras',
+        code: 'SAR-06',
         name: 'Sarana & Prasarana',
-        moduleName: 'Sarpras',
-        description: 'Inventaris aset, pemeliharaan fasilitas, jadwal peminjaman ruang & logistik pengadaan.',
+        moduleName: 'Sarpras & Aset',
+        description: 'Inventaris aset gedung & ruang, pemeliharaan fasilitas, jadwal peminjaman sarana & logistik barang.',
         icon: Building,
-        color: 'from-indigo-600 to-sky-700',
-        iconBg: isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-sky-500 to-cyan-600',
+        glowColor: 'sky',
         category: 'Operasional Sekolah',
-      },
-      {
-        id: 'dapur',
-        name: 'Dapur & Logistik Makan',
-        moduleName: 'Dapur',
-        description: 'Perencanaan menu makan santri, stok bahan pangan basah/kering & kontrol porsi harian.',
-        icon: ChefHat,
-        color: 'from-amber-500 to-orange-700',
-        iconBg: isDark ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-amber-50 text-amber-600 border-amber-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
         available: true,
-        category: 'Operasional Sekolah',
+        path: '/sarpras/dashboard'
       },
       {
         id: 'perpustakaan',
-        name: 'Perpustakaan Digital',
-        moduleName: 'Perpustakaan',
-        description: 'Katalog buku perpustakaan digital (OPAC), sirkulasi peminjaman, tracking denda & barcode.',
+        code: 'LIB-07',
+        name: 'Perpustakaan Digital OPAC',
+        moduleName: 'Perpustakaan & OPAC',
+        description: 'Katalog buku perpustakaan digital (OPAC), barcode buku, sirkulasi peminjaman & tracking denda buku.',
         icon: BookOpen,
-        color: 'from-teal-600 to-emerald-800',
-        iconBg: isDark ? 'bg-teal-500/20 text-teal-400 border-teal-500/30' : 'bg-teal-50 text-teal-600 border-teal-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
+        accentColor: 'from-teal-500 to-emerald-600',
+        glowColor: 'teal',
+        category: 'Akademik & Santri',
         available: true,
-        category: 'Akademik & Santri',
+        path: '/perpustakaan/dashboard'
       },
       {
-        id: 'cbe',
+        id: 'cbt',
+        code: 'CBT-08',
         name: 'Ujian Daring & Bank Soal',
-        moduleName: 'CBE',
-        description: 'Pembuatan bank soal, pelaksanaan Computer-Based Exam terjadwal & analisis butir soal.',
+        moduleName: 'Computer-Based Test',
+        description: 'Bank soal online, jadwal ujian terstruktur, anti-cheat monitoring, dan koreksi otomatis butir soal.',
         icon: FileCheck2,
-        color: 'from-blue-600 to-cyan-800',
-        iconBg: isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-50 text-blue-600 border-blue-200',
-        badgeBg: isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200',
-        status: 'Fase 6',
-        available: false,
+        accentColor: 'from-blue-600 to-indigo-600',
+        glowColor: 'blue',
         category: 'Akademik & Santri',
+        available: true,
+        path: '/cbt/dashboard'
       },
       {
-        id: 'notifikasi',
-        name: 'Komunikasi & Notifikasi',
-        moduleName: 'Komunikasi',
-        description: 'Broadcast WhatsApp/SMS/Email, notifikasi presensi otomatis & integrasi gateway pesan.',
-        icon: BellRing,
-        color: 'from-purple-600 to-violet-800',
-        iconBg: isDark ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-purple-50 text-purple-600 border-purple-200',
-        badgeBg: isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200',
-        status: 'Fase 6',
-        available: false,
-        category: 'Utilitas & Fondasi',
+        id: 'bk',
+        code: 'BK-09',
+        name: 'Bimbingan & Konseling',
+        moduleName: 'Konseling & Karir',
+        description: 'Catatan konseling santri, pemetaan sosiometri, kunjungan rumah (home visit) & rekomendasi karir.',
+        icon: Compass,
+        accentColor: 'from-rose-500 to-pink-600',
+        glowColor: 'rose',
+        category: 'Akademik & Santri',
+        available: true,
+        path: '/bk/dashboard'
+      },
+      {
+        id: 'alumni',
+        code: 'ALM-10',
+        name: 'Tracer Study & Alumni',
+        moduleName: 'Portal Alumni',
+        description: 'Basis data alumni, rekam jejak karir/kuliah, jaringan donasi & forum komunikasi lintas angkatan.',
+        icon: Users2,
+        accentColor: 'from-indigo-600 to-sky-600',
+        glowColor: 'indigo',
+        category: 'Publik & Portal',
+        available: true,
+        path: '/alumni/dashboard'
+      },
+      {
+        id: 'ppdb',
+        code: 'PSB-11',
+        name: 'PPDB & Seleksi Masuk',
+        moduleName: 'Penerimaan Santri Baru',
+        description: 'Pendaftaran santri baru, verifikasi berkas formulir, tes seleksi online & administrasi daftar ulang.',
+        icon: GraduationCap,
+        accentColor: 'from-emerald-600 to-teal-700',
+        glowColor: 'emerald',
+        category: 'Publik & Portal',
+        available: true,
+        path: '/ppdb/dashboard'
       },
       {
         id: 'alquran',
+        code: 'QUR-12',
         name: "Tahfidz & Al-Qur'an",
-        moduleName: 'Tahfidz',
-        description: "Rekap setoran hafalan Qur'an, mutaba'ah yaumiyah, ujian munaqasyah & kajian kitab.",
+        moduleName: 'Tahfidz Al-Qur\'an',
+        description: "Setoran hafalan Qur'an, mutaba'ah ziyadah & muraja'ah harian, penilaian tajwid & ujian munaqasyah.",
         icon: BookMarked,
-        color: 'from-emerald-600 to-green-800',
-        iconBg: isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-emerald-500 to-green-600',
+        glowColor: 'emerald',
         category: 'Akademik & Santri',
+        available: true,
+        path: '/alquran/dashboard'
       },
       {
         id: 'manajemen',
+        code: 'MNJ-13',
         name: 'Manajemen & Mutu Sekolah',
-        moduleName: 'Manajemen',
-        description: 'Rencana kerja RKS/RIPS, pencapaian KPI mutu, Task Hub Gantt Chart & eksekutif dashboard.',
+        moduleName: 'Eksekutif Dashboard',
+        description: 'Rencana kerja anggaran RKS/RAPBS, KPI mutu satuan pendidikan, Gantt Chart Task Hub & monitoring pimpinan.',
         icon: BarChart3,
-        color: 'from-indigo-600 to-violet-800',
-        iconBg: isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-violet-600 to-indigo-700',
+        glowColor: 'violet',
         category: 'Operasional Sekolah',
+        available: true,
+        path: '/manajemen/dashboard'
       },
       {
         id: 'guru',
-        name: 'Portal Guru & Pengajar',
-        moduleName: 'Portal Guru',
-        description: 'Presensi harian GPS radius, agenda mengajar kelas, input nilai rapor & monitoring tujuan pembelajaran.',
+        code: 'GUR-14',
+        name: 'Portal Pendidik / Guru',
+        moduleName: 'Portal Pengajar',
+        description: 'Presensi mandiri GPS radius HRD, agenda mengajar kelas, pengisian nilai harian & monitoring materi.',
         icon: GraduationCap,
-        color: 'from-teal-600 to-emerald-800',
-        iconBg: isDark ? 'bg-teal-500/20 text-teal-400 border-teal-500/30' : 'bg-teal-50 text-teal-600 border-teal-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
-        available: true,
+        accentColor: 'from-teal-500 to-cyan-600',
+        glowColor: 'teal',
         category: 'Portal Pengguna',
+        available: true,
+        path: '/guru/dashboard'
       },
       {
-        id: 'calon-murid',
-        name: 'Portal Calon Santri & Murid',
-        moduleName: 'Portal PSB',
-        description: 'Layanan mandiri pendaftar PSB, pelacakan berkas, upload persyaratan, dan pelaksanaan ujian seleksi CBT online.',
-        icon: GraduationCap,
-        color: 'from-emerald-600 to-teal-800',
-        iconBg: isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        badgeBg: isDark ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        status: 'Aktif / Ready',
+        id: 'kantin',
+        code: 'KTN-15',
+        name: 'Kantin Digital & POS',
+        moduleName: 'Kantin Cashless',
+        description: 'Point of Sales kasir kantin, pembayaran cashless kartu santri, bagi hasil pengelola & tracking konsumsi.',
+        icon: Utensils,
+        accentColor: 'from-amber-500 to-yellow-600',
+        glowColor: 'amber',
+        category: 'Finansial & Bisnis',
         available: true,
-        category: 'Portal Pengguna',
+        path: '/kantin/dashboard'
       },
+      {
+        id: 'dapur',
+        code: 'DAP-16',
+        name: 'Dapur & Logistik Makanan',
+        moduleName: 'Dapur Santri',
+        description: 'Manajemen menu gizi santri, stok bahan pangan basah/kering & pengawasan porsi harian asrama.',
+        icon: ChefHat,
+        accentColor: 'from-orange-500 to-red-600',
+        glowColor: 'orange',
+        category: 'Operasional Sekolah',
+        available: true,
+        path: '/dapur/dashboard'
+      },
+      {
+        id: 'website-utama',
+        code: 'CMS-17',
+        name: 'Website Utama & Portal Berita',
+        moduleName: 'CMS Website & Berita',
+        description: 'Panel administrasi konten website resmi sekolah, publikasi berita, galeri santri & layanan konsultasi.',
+        icon: Globe,
+        accentColor: 'from-blue-500 to-indigo-600',
+        glowColor: 'blue',
+        category: 'Publik & Portal',
+        available: true,
+        path: '/website-utama'
+      }
     ],
-    [isDark]
+    []
   );
 
-  // Kategori Filter Options
-  const categories = useMemo(() => [
-    { id: 'all', label: 'Semua Modul' },
-    { id: 'Operasional Sekolah', label: 'Operasional Sekolah' },
-    { id: 'Akademik & Santri', label: 'Akademik & Santri' },
-    { id: 'Finansial & Bisnis', label: 'Finansial & Bisnis' },
-    { id: 'Portal Pengguna', label: 'Portal Pengguna' },
-    { id: 'Utilitas & Fondasi', label: 'Utilitas & Fondasi' },
-    { id: 'Publik & Portal', label: 'Publik & Portal' },
-  ], []);
+  // Kumpulkan role & permissions user yang sedang aktif
+  const userRoleNames = useMemo(() => {
+    if (!user) return [];
+    if (Array.isArray(user.roles)) {
+      return user.roles.map((r) => r.role_name).filter(Boolean);
+    }
+    return user.account_type ? [user.account_type] : [];
+  }, [user]);
 
-  // Filtered Apps List
+  const isUniversalAdmin = useMemo(() => {
+    if (!user) return false;
+    return (
+      user.account_type === 'super_admin' ||
+      user.account_type === 'admin' ||
+      userRoleNames.includes('super_admin') ||
+      userRoleNames.includes('admin_yayasan')
+    );
+  }, [user, userRoleNames]);
+
+  // Fungsi pengecekan otorisasi modul per user
+  const canAccessModule = (app) => {
+    if (isUniversalAdmin) return true;
+
+    const normalized = app.id.replace(/-/g, '_');
+
+    // 1. Cek dari daftar user.modules (dihitung langsung oleh backend)
+    if (Array.isArray(user?.modules)) {
+      if (user.modules.includes(app.id) || user.modules.includes(normalized)) {
+        return true;
+      }
+    }
+
+    // 2. Cek dari daftar user.permissions (kode permission granular)
+    if (Array.isArray(user?.permissions)) {
+      const hasPerm = user.permissions.some(
+        (p) =>
+          typeof p === 'string' &&
+          (p.startsWith(`${app.id}.`) || p.startsWith(`${normalized}.`))
+      );
+      if (hasPerm) return true;
+    }
+
+    // 3. Cek dari pemetaan role standar
+    const allowedRoles = MODULE_ACCESS_MAP[app.id] || MODULE_ACCESS_MAP[normalized] || [];
+    if (userRoleNames.some((r) => allowedRoles.includes(r))) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Filter modul yang diizinkan untuk user ini
+  const permittedApps = useMemo(() => {
+    return allApps.filter(canAccessModule);
+  }, [allApps, user, userRoleNames, isUniversalAdmin]);
+
+  // Kategori filter dinamis berdasarkan modul yang diizinkan
+  const categories = useMemo(() => {
+    const cats = new Set(permittedApps.map((a) => a.category));
+    return [
+      { id: 'all', label: 'Semua Modul', count: permittedApps.length },
+      ...Array.from(cats).map((c) => ({
+        id: c,
+        label: c,
+        count: permittedApps.filter((a) => a.category === c).length
+      }))
+    ];
+  }, [permittedApps]);
+
+  // Filter pencarian dan kategori
   const filteredApps = useMemo(() => {
-    return apps.filter((app) => {
-      const matchCat = selectedCategory === 'all' || app.category === selectedCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchQuery =
-        !q ||
-        app.name.toLowerCase().includes(q) ||
-        app.moduleName.toLowerCase().includes(q) ||
-        app.description.toLowerCase().includes(q) ||
-        app.category.toLowerCase().includes(q);
-      return matchCat && matchQuery;
-    });
-  }, [apps, selectedCategory, searchQuery]);
+    return permittedApps.filter((app) => {
+      const matchesSearch =
+        searchQuery.trim() === '' ||
+        app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.moduleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const readyCount = apps.filter((a) => a.available).length;
+      const matchesCategory =
+        selectedCategory === 'all' || app.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [permittedApps, searchQuery, selectedCategory]);
+
+  const handleAppLaunch = (app) => {
+    navigate(app.path || `/${app.id}/dashboard`);
+  };
+
+  // User badge info
+  const getPrimaryRoleBadge = () => {
+    if (isUniversalAdmin) {
+      return {
+        label: 'SUPER ADMIN • CLEARANCE LEVEL 10',
+        shortLabel: 'Super Admin',
+        color: 'from-cyan-400 to-emerald-400',
+        pill: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+      };
+    }
+    const primary = userRoleNames[0] || user?.account_type || 'User';
+    return {
+      label: `${primary.replace(/_/g, ' ').toUpperCase()} • LEVEL OTORISASI`,
+      shortLabel: primary.replace(/_/g, ' ').toUpperCase(),
+      color: 'from-indigo-400 to-purple-400',
+      pill: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+    };
+  };
+
+  const roleBadge = getPrimaryRoleBadge();
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 flex flex-col ${
-        isDark
-          ? 'bg-slate-950 text-slate-100'
-          : 'bg-gradient-to-br from-slate-50 via-slate-100/70 to-slate-50 text-slate-900'
-      }`}
-    >
-      {/* Top Navbar */}
-      <header
-        className={`sticky top-0 z-30 px-6 py-3.5 border-b backdrop-blur-md transition-colors ${
-          isDark
-            ? 'bg-slate-900/90 border-slate-800 shadow-lg'
-            : 'bg-white/90 border-slate-200/90 shadow-xs'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center font-black text-white text-lg shadow-md shadow-emerald-500/20">
-              A
+    <div className="min-h-screen w-full bg-[#030712] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500 selection:text-black flex flex-col">
+      {/* ======================================================== */}
+      {/* FUTURISTIC NEBULA GLOWS & CYBER GRID                     */}
+      {/* ======================================================== */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[160px] animate-pulse" />
+        <div className="absolute top-1/4 right-0 w-[700px] h-[700px] bg-indigo-600/10 rounded-full blur-[180px]" />
+        <div className="absolute -bottom-40 left-1/3 w-[650px] h-[650px] bg-emerald-500/10 rounded-full blur-[170px]" />
+
+        {/* Matrix Perspective Grid Lines */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `linear-gradient(#06b6d4 1px, transparent 1px), linear-gradient(to right, #06b6d4 1px, transparent 1px)`,
+            backgroundSize: '48px 48px'
+          }}
+        />
+
+        {/* Horizontal Laser Glow Accent */}
+        <div className="absolute top-20 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+      </div>
+
+      {/* ======================================================== */}
+      {/* TOP CYBER COMMAND NAVBAR                                 */}
+      {/* ======================================================== */}
+      <header className="relative z-20 border-b border-slate-800/90 bg-[#030712]/80 backdrop-blur-2xl sticky top-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+          {/* Brand & System Node Status */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative group">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 opacity-60 blur-sm group-hover:opacity-100 transition duration-300" />
+              <div className="relative w-11 h-11 rounded-2xl bg-slate-950 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                <ShieldCheck className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]" />
+              </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1
-                  className={`text-base font-black tracking-wide ${
-                    isDark ? 'text-white' : 'text-slate-900'
-                  }`}
-                >
-                  ALDEPOS IBS
+                <h1 className="text-base sm:text-lg font-black tracking-wider text-white flex items-center gap-1.5">
+                  ALDEPOS <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">QUANTUM</span>
                 </h1>
-                <span
-                  className={`text-[10.5px] px-2 py-0.5 rounded-full font-bold border ${
-                    isDark
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  Portal Terintegrasi
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border bg-cyan-500/10 text-cyan-300 border-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                  CORE v3.0
                 </span>
               </div>
-              <p
-                className={`text-xs font-medium ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
-                Sistem Manajemen Sekolah & Pesantren Multi-Satuan
+              <p className="text-[11px] font-semibold text-slate-400 tracking-wide flex items-center gap-2">
+                <span>Pusat Komando Ekosistem Terpadu</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-mono hidden md:inline">{currentTime}</span>
               </p>
             </div>
           </div>
 
-          {/* Right Controls: Theme Toggle & User Info */}
+          {/* Right Controls: School Unit Switcher & User Profile HUD */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              title={`Beralih ke ${isDark ? 'Mode Terang (Light Mode)' : 'Mode Gelap (Dark Mode)'}`}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-xs ${
-                isDark
-                  ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700 hover:border-slate-600'
-                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              {isDark ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-400" />
-                  <span className="hidden sm:inline">Mode Terang</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-indigo-600" />
-                  <span className="hidden sm:inline">Mode Gelap</span>
-                </>
-              )}
-            </button>
-
-            {isAuthenticated ? (
-              <div
-                className={`flex items-center gap-3 px-3.5 py-1.5 rounded-2xl border ${
-                  isDark
-                    ? 'bg-slate-800/90 border-slate-700 text-white'
-                    : 'bg-white border-slate-200 text-slate-900 shadow-xs'
-                }`}
-              >
-                <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-black shadow-sm">
-                  {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
-                </div>
-                <div className="text-left hidden sm:block">
-                  <div
-                    className={`text-xs font-bold ${
-                      isDark ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {user?.full_name || user?.username}
-                  </div>
-                  <div
-                    className={`text-[10px] font-semibold ${
-                      isDark ? 'text-emerald-400' : 'text-emerald-700'
-                    }`}
-                  >
-                    {user?.account_type || 'Super Admin'}
-                  </div>
-                </div>
+            {/* Satuan Pendidikan Selector Dropdown */}
+            {schoolUnits && schoolUnits.length > 0 && (
+              <div className="relative hidden md:block">
                 <button
-                  onClick={logout}
-                  title="Keluar / Logout"
-                  className={`p-1.5 rounded-lg transition cursor-pointer ml-1 ${
-                    isDark
-                      ? 'text-slate-400 hover:text-rose-400 hover:bg-slate-700/50'
-                      : 'text-slate-500 hover:text-rose-600 hover:bg-slate-100'
-                  }`}
+                  type="button"
+                  onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-700/80 bg-slate-900/80 hover:bg-slate-800 text-xs font-semibold text-slate-200 hover:border-cyan-500/50 transition cursor-pointer shadow-sm"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="max-w-[130px] truncate">
+                    {activeSchoolUnit?.name || 'Semua Unit'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
+
+                {showUnitDropdown && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-950/95 border border-slate-700/80 p-2 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                      Pilih Lingkup Satuan
+                    </div>
+                    <div className="max-h-56 overflow-y-auto py-1 space-y-1">
+                      {isUniversalAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            changeActiveSchoolUnit(null);
+                            setShowUnitDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-between ${
+                            !activeSchoolUnit
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                              : 'text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          <span>Pusat Yayasan (Gabungan)</span>
+                          {!activeSchoolUnit && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />}
+                        </button>
+                      )}
+                      {schoolUnits.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            changeActiveSchoolUnit(u);
+                            setShowUnitDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-between ${
+                            activeSchoolUnit?.id === u.id
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                              : 'text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          <span className="truncate">{u.name}</span>
+                          {activeSchoolUnit?.id === u.id && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => navigate('/core/login')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition cursor-pointer"
-              >
-                <User className="w-4 h-4" />
-                <span>Masuk Admin</span>
-              </button>
             )}
+
+            {/* User Profile HUD */}
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <div className="relative">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-[0_0_12px_rgba(6,182,212,0.4)]">
+                  {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'A'}
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
+              </div>
+              <div className="text-left hidden sm:block">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span className="truncate max-w-[140px]">{user?.full_name || user?.username}</span>
+                </div>
+                <div className="text-[10px] font-mono text-cyan-400 font-semibold truncate max-w-[140px]">
+                  {roleBadge.shortLabel}
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                title="Keluar dari sesi (Logout)"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer border border-transparent hover:border-rose-500/20"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Hero Banner with Soft Background */}
-      <div
-        className={`relative py-10 px-6 overflow-hidden border-b transition-colors ${
-          isDark
-            ? 'bg-gradient-to-b from-slate-900/90 via-slate-900/40 to-slate-950 border-slate-800/80'
-            : 'bg-gradient-to-b from-white via-indigo-50/20 to-slate-50 border-slate-200/80 shadow-xs'
-        }`}
-      >
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-3">
-          <div
-            className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold border shadow-xs ${
-              isDark
-                ? 'bg-slate-900/90 text-emerald-300 border-slate-800'
-                : 'bg-white text-emerald-700 border-emerald-200'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-            <span>Pusat Akses 15 Modul Aplikasi Sekolah & Pesantren</span>
+      {/* ======================================================== */}
+      {/* HERO COMMAND MATRIX BANNER                               */}
+      {/* ======================================================== */}
+      <section className="relative z-10 pt-10 pb-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800/80 bg-gradient-to-b from-slate-950/90 via-slate-900/30 to-transparent">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header Status & Greeting */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>ALDEPOS COMMAND MATRIX • SESI AKTIF TERSINKRON</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
+                Selamat Datang,{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-emerald-400">
+                  {user?.full_name || user?.username}
+                </span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl font-normal leading-relaxed">
+                Pilih modul di bawah untuk memulai sesi kerja. Akses sistem dibatasi secara ketat berdasarkan peran & hak akses (RBAC) akun Anda.
+              </p>
+            </div>
+
+            {/* Quick Telemetry Indicators */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="px-3.5 py-2 rounded-2xl border border-slate-800 bg-slate-900/70 backdrop-blur-md">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Modul Terotorisasi</div>
+                <div className="text-sm font-black text-cyan-400 flex items-center gap-1.5 font-mono">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  {permittedApps.length} / {allApps.length} Modul
+                </div>
+              </div>
+
+              <div className="px-3.5 py-2 rounded-2xl border border-slate-800 bg-slate-900/70 backdrop-blur-md">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tingkat Izin</div>
+                <div className="text-sm font-black text-indigo-400 font-mono">
+                  {roleBadge.shortLabel}
+                </div>
+              </div>
+
+              <div className="px-3.5 py-2 rounded-2xl border border-slate-800 bg-slate-900/70 backdrop-blur-md">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status Keamanan</div>
+                <div className="text-sm font-black text-emerald-400 flex items-center gap-1 font-mono">
+                  <Shield className="w-3.5 h-3.5" />
+                  SSO ACTIVE
+                </div>
+              </div>
+            </div>
           </div>
 
-          <h2
-            className={`text-2xl md:text-4xl font-black tracking-tight leading-tight ${
-              isDark ? 'text-white' : 'text-slate-900'
-            }`}
-          >
-            Selamat Datang di Portal Manajemen Terpadu
-          </h2>
+          {/* Search & Category Filter Navigation */}
+          <div className="pt-2 flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Category Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
+              {categories.map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 border ${
+                      isSelected
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.25)]'
+                        : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                        isSelected
+                          ? 'bg-cyan-400 text-slate-950'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {cat.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-          <p
-            className={`text-xs md:text-sm max-w-2xl mx-auto leading-relaxed font-medium ${
-              isDark ? 'text-slate-300' : 'text-slate-600'
-            }`}
-          >
-            Pilih modul aplikasi yang ingin Anda akses di bawah ini. Sesi login terintegrasi (Single Sign-On)
-            memungkinkan Anda berpindah antar modul operasional dengan mudah, aman, dan cepat.
-          </p>
-
-          {/* Quick Metrics */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
-                isDark
-                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              {readyCount} Modul Siap Digunakan
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
-                isDark
-                  ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                  : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              Single Sign-On (SSO) Aktif
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area: Search, Filter Tabs & Apps Grid */}
-      <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-6">
-        {/* Search & Category Filter Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Category Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-              return (
+            {/* Cyber Search Input */}
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari modul atau fungsi..."
+                className="w-full pl-9 pr-9 py-2 rounded-xl text-xs font-semibold bg-slate-900/80 border border-slate-700/80 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition shadow-inner"
+              />
+              {searchQuery && (
                 <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border whitespace-nowrap shadow-xs ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-600/20'
-                      : isDark
-                      ? 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
                 >
-                  {cat.label}
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              );
-            })}
-          </div>
-
-          {/* Search Input Box */}
-          <div className="relative min-w-[260px] max-w-sm w-full">
-            <Search
-              className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none ${
-                isDark ? 'text-slate-500' : 'text-slate-400'
-              }`}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari modul aplikasi..."
-              className={`w-full pl-9 pr-8 py-2 rounded-xl text-xs font-medium border transition outline-none shadow-xs ${
-                isDark
-                  ? 'bg-slate-900 border-slate-800 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
-                  : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
-              }`}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Apps Grid */}
+      {/* ======================================================== */}
+      {/* MODULE CARDS GRID                                        */}
+      {/* ======================================================== */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full z-10 space-y-6">
         {filteredApps.length === 0 ? (
-          <div
-            className={`p-12 rounded-3xl border border-dashed text-center space-y-2 ${
-              isDark
-                ? 'bg-slate-900/40 border-slate-800 text-slate-400'
-                : 'bg-white border-slate-300 text-slate-600'
-            }`}
-          >
-            <p className="text-sm font-bold">Tidak ada modul aplikasi yang sesuai</p>
-            <p className="text-xs">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
+          <div className="p-12 rounded-3xl border border-dashed border-slate-800 bg-slate-900/30 text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 mx-auto flex items-center justify-center text-slate-400">
+              <Search className="w-6 h-6" />
+            </div>
+            <div className="text-base font-bold text-white">Modul Tidak Ditemukan</div>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Tidak ada modul yang cocok dengan kata kunci "{searchQuery}" pada kategori ini, atau akun Anda belum diberikan hak akses untuk modul tersebut.
+            </p>
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedCategory('all');
               }}
-              className="mt-2 px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 cursor-pointer shadow-sm"
+              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
             >
-              Reset Filter
+              Reset Filter Pencarian
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {filteredApps.map((app) => {
               const Icon = app.icon;
-              const isClickable = app.available || app.isExternal;
-
               return (
                 <div
                   key={app.id}
-                  onClick={() => handleAppClick(app)}
-                  className={`group relative rounded-3xl border p-5 transition-all duration-300 flex flex-col justify-between shadow-xs ${
-                    isClickable
-                      ? isDark
-                        ? 'bg-slate-900/90 border-slate-800 hover:bg-slate-850 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-emerald-950/30 cursor-pointer hover:-translate-y-0.5'
-                        : 'bg-white border-slate-200/90 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-emerald-600/10 cursor-pointer hover:-translate-y-0.5'
-                      : isDark
-                      ? 'bg-slate-900/40 border-slate-800/70 opacity-60 cursor-not-allowed'
-                      : 'bg-slate-100/70 border-slate-200 opacity-60 cursor-not-allowed'
-                  }`}
+                  onClick={() => handleAppLaunch(app)}
+                  className="group relative rounded-3xl border border-slate-800/90 bg-slate-900/60 hover:bg-slate-900/95 backdrop-blur-xl p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan-500/50 hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)] cursor-pointer flex flex-col justify-between overflow-hidden"
                 >
-                  <div className="space-y-3">
-                    {/* Header Card: Icon & Badge */}
+                  {/* Neon Top Light Bar on Hover */}
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="space-y-4">
+                    {/* Top Row: Cyber Code & Icon */}
                     <div className="flex items-start justify-between gap-3">
-                      <div
-                        className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${app.color} flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-300`}
-                      >
-                        <Icon className="w-6 h-6" />
+                      <div className="relative">
+                        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 opacity-0 group-hover:opacity-75 blur-sm transition duration-300" />
+                        <div
+                          className={`relative w-12 h-12 rounded-2xl bg-gradient-to-br ${app.accentColor} p-0.5 shadow-lg group-hover:scale-105 transition-transform duration-300`}
+                        >
+                          <div className="w-full h-full bg-slate-950/70 rounded-[14px] flex items-center justify-center text-white backdrop-blur-xs">
+                            <Icon className="w-6 h-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+                          </div>
+                        </div>
                       </div>
-                      <span
-                        className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-full border shadow-xs ${app.badgeBg}`}
-                      >
-                        {app.status}
-                      </span>
+
+                      <div className="text-right">
+                        <span className="inline-block font-mono text-[10.5px] font-bold text-slate-400 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 group-hover:text-cyan-300 group-hover:border-cyan-500/40 transition">
+                          {app.code}
+                        </span>
+                        <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center justify-end gap-1 font-mono">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 group-hover:animate-ping" />
+                          ONLINE
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Subtitle & Title */}
+                    {/* Module Title & Description */}
                     <div>
-                      <div
-                        className={`text-[10.5px] font-black uppercase tracking-wider mb-1 ${
-                          isDark ? 'text-emerald-400' : 'text-emerald-700'
-                        }`}
-                      >
+                      <div className="text-[10.5px] font-bold tracking-widest text-cyan-400 uppercase mb-1">
                         {app.moduleName}
                       </div>
-                      <h3
-                        className={`text-base font-extrabold tracking-tight leading-snug transition-colors ${
-                          isDark
-                            ? 'text-white group-hover:text-emerald-300'
-                            : 'text-slate-900 group-hover:text-emerald-700'
-                        }`}
-                      >
+                      <h3 className="text-base font-extrabold text-white tracking-tight group-hover:text-cyan-300 transition-colors">
                         {app.name}
                       </h3>
-                      <p
-                        className={`text-xs mt-2 leading-relaxed line-clamp-3 font-normal ${
-                          isDark ? 'text-slate-300' : 'text-slate-600'
-                        }`}
-                      >
+                      <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed font-normal">
                         {app.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Card Bottom: Category & Action */}
-                  <div
-                    className={`mt-4 pt-3 border-t flex items-center justify-between text-xs font-semibold ${
-                      isDark ? 'border-slate-800' : 'border-slate-100'
-                    }`}
-                  >
-                    <span
-                      className={`text-[11px] font-medium ${
-                        isDark ? 'text-slate-400' : 'text-slate-500'
-                      }`}
-                    >
+                  {/* Bottom Action Footer */}
+                  <div className="mt-5 pt-3.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-semibold text-slate-500 group-hover:text-slate-400 transition">
                       {app.category}
                     </span>
-
-                    <div className="flex items-center gap-1 font-bold">
-                      {isClickable ? (
-                        app.isExternal ? (
-                          <span
-                            className={`flex items-center gap-1 group-hover:translate-x-0.5 transition-transform ${
-                              isDark ? 'text-blue-400' : 'text-blue-600'
-                            }`}
-                          >
-                            <span>Kunjungi</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </span>
-                        ) : (
-                          <span
-                            className={`flex items-center gap-1 group-hover:translate-x-0.5 transition-transform ${
-                              isDark ? 'text-emerald-400' : 'text-emerald-700'
-                            }`}
-                          >
-                            <span>{isAuthenticated ? 'Ke Dashboard' : 'Buka Aplikasi'}</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
-                        )
-                      ) : (
-                        <span
-                          className={`flex items-center gap-1 font-medium ${
-                            isDark ? 'text-slate-500' : 'text-slate-400'
-                          }`}
-                        >
-                          <Lock className="w-3 h-3" />
-                          <span>Segera Hadir</span>
-                        </span>
-                      )}
+                    <div className="flex items-center gap-1.5 font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider">Akses Portal</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </div>
@@ -717,25 +784,31 @@ export default function Launcher() {
             })}
           </div>
         )}
+
+        {/* Security / RBAC Information Notice */}
+        {!isUniversalAdmin && (
+          <div className="mt-8 p-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-md flex items-center gap-3.5 text-xs text-slate-400">
+            <Shield className="w-5 h-5 text-cyan-400 shrink-0" />
+            <div>
+              <span className="font-bold text-slate-200">Hak Akses Terproteksi: </span>
+              Daftar modul yang ditampilkan di atas disaring otomatis sesuai peran dan hak akses akun Anda. Apabila Anda memerlukan akses ke modul lain, silakan ajukan otorisasi ke Administrator Yayasan.
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer
-        className={`border-t px-6 py-4 text-center text-xs transition-colors ${
-          isDark
-            ? 'bg-slate-950 border-slate-800/80 text-slate-400'
-            : 'bg-white border-slate-200 text-slate-500 shadow-xs'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; 2026 Yayasan Pendidikan Al-Depok. Arsitektur 3 Domain Monorepo.</span>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>
-              Core Portal: <code className="font-bold text-emerald-600 dark:text-emerald-400">core.aldeposibs.com</code>
-            </span>
-            <span>
-              API Backend: <code className="font-bold text-emerald-600 dark:text-emerald-400">api.aldeposibs.com</code>
-            </span>
+      {/* ======================================================== */}
+      {/* FUTURISTIC TELEMETRY FOOTER                              */}
+      {/* ======================================================== */}
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/80 px-4 sm:px-6 lg:px-8 py-4 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-[11px]">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-3.5 h-3.5 text-cyan-500" />
+            <span>&copy; 2026 ALDEPOS QUANTUM CORE • INTEGRATED MULTI-UNIT SYSTEM</span>
+          </div>
+          <div className="flex items-center gap-4 text-slate-400">
+            <span>SSO GATEWAY: <strong className="text-cyan-400">ONLINE</strong></span>
+            <span>ENCRYPTION: <strong className="text-emerald-400">TLS 1.3 / AES-256</strong></span>
           </div>
         </div>
       </footer>

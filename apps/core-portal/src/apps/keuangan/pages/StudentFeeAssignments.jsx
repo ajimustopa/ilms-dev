@@ -47,7 +47,8 @@ export default function StudentFeeAssignments() {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSchemeFilter, setSelectedSchemeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'assigned', 'custom', 'unassigned'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'assigned' | 'custom' | 'unassigned'
+  const [registrationTypeFilter, setRegistrationTypeFilter] = useState('all'); // 'all' | 'siswa_baru' | 'pindahan'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'student_name', direction: 'asc' });
   const [loading, setLoading] = useState(false);
@@ -106,7 +107,7 @@ export default function StudentFeeAssignments() {
     if (selectedYearId) {
       fetchStudentAssignments();
     }
-  }, [activeSchoolUnit, selectedYearId, selectedClassId, selectedSchemeFilter]);
+  }, [activeSchoolUnit, selectedYearId, selectedClassId, selectedSchemeFilter, registrationTypeFilter]);
 
   const fetchInitialMeta = async () => {
     try {
@@ -243,7 +244,8 @@ export default function StudentFeeAssignments() {
         params: {
           academic_year_id: selectedYearId || undefined,
           class_id: selectedClassId || undefined,
-          fee_scheme_id: selectedSchemeFilter || undefined
+          fee_scheme_id: selectedSchemeFilter || undefined,
+          registration_type: registrationTypeFilter !== 'all' ? registrationTypeFilter : undefined
         }
       });
       setStudents(res.data?.data || []);
@@ -374,23 +376,28 @@ export default function StudentFeeAssignments() {
     const items = feeTypes.map(ft => {
       const existingAdj = currentAdjustments[ft.id];
       const existingBreakdown = breakdown[ft.id];
+      const isArrears = ft.code === 'arrears_previous_year' || String(ft.name).toLowerCase().includes('tunggakan') || ft.id === 11;
+      const autoArrearsAmt = (existingBreakdown?.is_auto_arrears ? existingBreakdown?.final_amount : 0) || 0;
 
       // Tentukan nilai awal:
-      // 1. Jika ada di fee_breakdown (final_amount), pakai itu
-      // 2. Jika ada override_amount, pakai itu
-      // 3. Jika belum pernah ditetapkan sama sekali, default ''
+      // 1. Jika ada override_amount eksplisit di penyesuaian khusus, pakai itu
+      // 2. Jika pos biasa (bukan tunggakan) dan ada di fee_breakdown, pakai itu
+      // 3. Jika pos tunggakan dan belum pernah di-override manual, biarkan '' (kosong) agar tetap otomatis dari sistem
       let initialAmount = '';
-      if (existingBreakdown && existingBreakdown.final_amount !== undefined && existingBreakdown.final_amount !== null) {
-        initialAmount = existingBreakdown.final_amount;
-      } else if (existingAdj && existingAdj.override_amount !== null && existingAdj.override_amount !== undefined) {
+      if (existingAdj && existingAdj.override_amount !== null && existingAdj.override_amount !== undefined) {
         initialAmount = existingAdj.override_amount;
+      } else if (existingBreakdown && existingBreakdown.final_amount !== undefined && existingBreakdown.final_amount !== null && !isArrears) {
+        initialAmount = existingBreakdown.final_amount;
       }
 
       return {
         fee_type_id: ft.id,
         fee_type_name: ft.name,
-        adjustment_kind: 'override_amount', // Selalu nominal langsung
+        fee_type_code: ft.code,
+        adjustment_kind: 'override_amount',
         override_amount: initialAmount,
+        is_arrears: isArrears,
+        auto_arrears: autoArrearsAmt,
         reason: existingAdj?.reason || ''
       };
     });
@@ -460,6 +467,12 @@ export default function StudentFeeAssignments() {
       st.nisn?.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchSearch) return false;
+
+    if (registrationTypeFilter && registrationTypeFilter !== 'all') {
+      const isTransfer = st.registration_type === 'pindahan' || st.entry_type === 'pindahan' || String(st.registration_type_display || '').toLowerCase().includes('pindah');
+      if (registrationTypeFilter === 'pindahan' && !isTransfer) return false;
+      if (registrationTypeFilter === 'siswa_baru' && isTransfer) return false;
+    }
 
     if (statusFilter === 'assigned') {
       return st.assignment?.fee_scheme_id && !st.assignment?.is_custom;
@@ -665,6 +678,17 @@ export default function StudentFeeAssignments() {
               ))}
             </select>
 
+            {/* Filter Jenis Pendaftaran (Siswa Baru / Siswa Pindahan) */}
+            <select
+              value={registrationTypeFilter}
+              onChange={(e) => setRegistrationTypeFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+            >
+              <option value="all">Semua Jenis Pendaftaran</option>
+              <option value="siswa_baru">Siswa Baru</option>
+              <option value="pindahan">Siswa Pindahan</option>
+            </select>
+
             {/* Filter Status */}
             <select
               value={statusFilter}
@@ -853,10 +877,8 @@ export default function StudentFeeAssignments() {
                     }
                   });
 
-                  // Determine Siswa Baru vs Siswa Pindahan
-                  const classNameStr = String(st.class_name || '').toLowerCase();
-                  const isNonEntryGrade = /(kelas\s*(8|9|11|12|viii|ix|xi|xii|[2-6]))/i.test(classNameStr);
-                  const isTransfer = st.entry_type === 'pindahan' || st.is_transfer_student || isNonEntryGrade;
+                  // Determine Siswa Baru vs Siswa Pindahan (Synchronized with Akademik Module)
+                  const isTransfer = st.registration_type === 'pindahan' || st.entry_type === 'pindahan' || String(st.registration_type_display || '').toLowerCase().includes('pindah');
 
                   return (
                     <tr
@@ -1355,21 +1377,29 @@ export default function StudentFeeAssignments() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {customItems.map((item, idx) => {
-                      const isArrears = item.fee_type_name?.toLowerCase().includes('tunggakan') || item.fee_type_id === 11;
+                      const isArrears = item.is_arrears || item.fee_type_code === 'arrears_previous_year' || item.fee_type_name?.toLowerCase().includes('tunggakan') || item.fee_type_id === 11;
+                      const hasAutoArrears = isArrears && (item.auto_arrears > 0);
+                      const isAutoUsed = isArrears && (item.override_amount === '' || item.override_amount === null || item.override_amount === undefined);
+                      const effectiveDisplayAmount = isAutoUsed ? (item.auto_arrears || 0) : Number(item.override_amount || 0);
+
                       return (
                         <tr key={idx} className={`transition ${isArrears ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500' : 'hover:bg-slate-50/60'}`}>
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-slate-800">{item.fee_type_name}</span>
                               {isArrears && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                  Tunggakan TP Lalu (Sistem)
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isAutoUsed ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}`}>
+                                  {isAutoUsed ? '⚡ Otomatis Sistem' : '✏️ Override Manual'}
                                 </span>
                               )}
                             </div>
                             <div className="text-[10px] text-slate-400 mt-0.5">
                               {isArrears ? (
-                                <span className="text-amber-700 font-medium">Input manual total tunggakan tahun ajaran lampau santri</span>
+                                <span className="text-amber-700 font-medium">
+                                  {hasAutoArrears
+                                    ? `Tunggakan otomatis dari sistem: ${formatRupiah(item.auto_arrears)}. Boleh dikosongkan jika tidak ingin diubah.`
+                                    : 'Boleh dikosongkan jika otomatis dari tahun ajaran sebelumnya yang masih ada tunggakan.'}
+                                </span>
                               ) : (
                                 `ID Pos: #${item.fee_type_id}`
                               )}
@@ -1385,12 +1415,12 @@ export default function StudentFeeAssignments() {
                                   step="1000"
                                   value={item.override_amount}
                                   onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
-                                  placeholder="0"
-                                  className={`w-40 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-200'}`}
+                                  placeholder={isArrears ? (hasAutoArrears ? `${item.auto_arrears} (Otomatis)` : 'Otomatis (kosongkan)') : '0'}
+                                  className={`w-44 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-200'}`}
                                 />
                               </div>
-                              <div className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? 'text-amber-800 bg-amber-100/70 border-amber-300' : 'text-purple-700 bg-purple-50/80 border-purple-200/60'}`}>
-                                {Number(item.override_amount || 0).toLocaleString('id-ID')}
+                              <div className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? (isAutoUsed ? 'text-emerald-800 bg-emerald-50 border-emerald-300' : 'text-amber-800 bg-amber-100/70 border-amber-300') : 'text-purple-700 bg-purple-50/80 border-purple-200/60'}`}>
+                                {effectiveDisplayAmount.toLocaleString('id-ID')} {isAutoUsed && isArrears ? '(Otomatis)' : ''}
                               </div>
                             </div>
                           </td>
@@ -1406,7 +1436,10 @@ export default function StudentFeeAssignments() {
                       <td className="px-4 py-3 text-right font-mono text-purple-950 text-sm font-extrabold">
                         {formatRupiah(
                           customItems.reduce((sum, it) => {
-                            return sum + Number(it.override_amount || 0);
+                            const isArrears = it.is_arrears || it.fee_type_code === 'arrears_previous_year' || it.fee_type_name?.toLowerCase().includes('tunggakan') || it.fee_type_id === 11;
+                            const isAutoUsed = isArrears && (it.override_amount === '' || it.override_amount === null || it.override_amount === undefined);
+                            const val = isAutoUsed ? (it.auto_arrears || 0) : Number(it.override_amount || 0);
+                            return sum + val;
                           }, 0)
                         )}
                       </td>

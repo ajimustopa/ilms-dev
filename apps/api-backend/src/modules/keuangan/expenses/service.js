@@ -203,6 +203,7 @@ class ExpensesService {
       try {
         await recordJournal({
           schoolUnitId,
+          academicYearId: resolvedAcademicYearId,
           transactionCode: 'expense_default',
           amount: totalAmount,
           sourceType: 'expense',
@@ -226,17 +227,18 @@ class ExpensesService {
         for (const src of fundSources) {
           const sAmt = parseFloat(src.amount || 0);
           if (sAmt > 0) {
+            const targetAy = src.target_academic_year_id || src.academic_year_id || resolvedAcademicYearId;
             try {
               await fundBalanceEngine.applyFundMutation({
                 schoolUnitId,
                 fundType: src.fund_type || 'fee_type',
                 fundRefId: Number(src.fund_ref_id || 0),
-                academicYearId: resolvedAcademicYearId,
+                academicYearId: targetAy,
                 direction: 'out',
                 amount: sAmt,
                 sourceTable: 'expenses',
                 sourceId: actualId,
-                notes: `Pengeluaran belanja #${actualId}: ${data.item_name}`,
+                notes: `Pengeluaran belanja #${actualId}: ${data.item_name} (Pos Dana ${src.scope === 'prior' ? 'Saldo Bawaan' : 'T.A. Berjalan'})`,
                 userId,
                 trx
               });
@@ -246,12 +248,13 @@ class ExpensesService {
           }
         }
       } else {
+        const targetAy = data.fund_source_academic_year_id || (data.fund_source_scope === 'prior' ? data.target_academic_year_id : null) || resolvedAcademicYearId;
         try {
           await fundBalanceEngine.applyFundMutation({
             schoolUnitId,
             fundType: chosenFundType,
             fundRefId: chosenFundRefId,
-            academicYearId: resolvedAcademicYearId,
+            academicYearId: targetAy,
             direction: 'out',
             amount: totalAmount,
             sourceTable: 'expenses',
@@ -574,6 +577,7 @@ class ExpensesService {
           const reversalJournalNumber = await generateJournalNumber(trx, new Date());
           const [revJournalId] = await trx('journal_entries').insert({
             school_unit_id: schoolUnitId,
+            academic_year_id: expense.academic_year_id || 2,
             journal_number: reversalJournalNumber,
             journal_date: new Date().toISOString().slice(0, 10),
             source_type: 'expense',
@@ -607,6 +611,7 @@ class ExpensesService {
         try {
           await recordJournal({
             schoolUnitId,
+            academicYearId: expense.academic_year_id || 2,
             transactionCode: 'expense_default',
             amount: totalAmount,
             sourceType: 'expense',
@@ -622,33 +627,34 @@ class ExpensesService {
       }
 
       // 3. MUTASI BALIK PADA fundBalanceEngine (DIRECTION: 'in')
-      let parsedFundSources = null;
-      if (expense.fund_sources) {
-        try {
-          parsedFundSources = typeof expense.fund_sources === 'string'
-            ? JSON.parse(expense.fund_sources)
-            : expense.fund_sources;
-        } catch (e) {}
-      }
+      const originalMutations = await trx('fund_balance_mutations')
+        .join('fund_balances', 'fund_balance_mutations.fund_balance_id', 'fund_balances.id')
+        .where({
+          'fund_balance_mutations.source_table': 'expenses',
+          'fund_balance_mutations.source_id': expense.id,
+          'fund_balance_mutations.direction': 'out'
+        })
+        .select(
+          'fund_balance_mutations.*',
+          'fund_balances.fund_type',
+          'fund_balances.fund_ref_id'
+        );
 
-      if (Array.isArray(parsedFundSources) && parsedFundSources.length > 0) {
-        for (const src of parsedFundSources) {
-          const srcAmount = parseFloat(src.amount || 0);
-          if (srcAmount > 0) {
-            await fundBalanceEngine.applyFundMutation({
-              schoolUnitId,
-              fundType: src.fund_type || 'fee_type',
-              fundRefId: Number(src.fund_ref_id || 0),
-              academicYearId: expenseAyId,
-              direction: 'in',
-              amount: srcAmount,
-              sourceTable: 'expenses',
-              sourceId: expense.id,
-              notes: `Pengembalian dana pembatalan belanja #${expense.id} (${expense.item_name}). Alasan: ${reason}`,
-              userId,
-              trx
-            });
-          }
+      if (originalMutations.length > 0) {
+        for (const om of originalMutations) {
+          await fundBalanceEngine.applyFundMutation({
+            schoolUnitId,
+            fundType: om.fund_type,
+            fundRefId: om.fund_ref_id,
+            academicYearId: om.academic_year_id || expenseAyId,
+            direction: 'in',
+            amount: parseFloat(om.amount),
+            sourceTable: 'expenses',
+            sourceId: expense.id,
+            notes: `Pengembalian dana pembatalan belanja #${expense.id} (${expense.item_name}). Alasan: ${reason}`,
+            userId,
+            trx
+          });
         }
       } else {
         const oldType = expense.fund_source_type || 'opening_pool';

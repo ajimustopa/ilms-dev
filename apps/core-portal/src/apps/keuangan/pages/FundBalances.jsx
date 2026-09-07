@@ -29,13 +29,18 @@ import {
   RotateCcw,
   ShieldAlert,
   Percent,
-  TrendingDown
+  TrendingDown,
+  TrendingUp,
+  Sparkles,
+  ChevronRight,
+  Activity,
+  DollarSign
 } from 'lucide-react';
 
 export default function FundBalances({ isEmbedded = false, initialTab = 'balances' }) {
-  const { activeSchoolUnit, user } = useAuth();
+  const { activeSchoolUnit } = useAuth();
   
-  // Active Tab: 'balances' (Saldo Kantong Dana) | 'loans' (Pinjaman Antar Tahun Ajaran)
+  // Active Tab: 'balances' (Pos Alokasi Dana & Saldo) | 'trajectory' (Matriks Lintas TA) | 'loans' (Pinjaman Antar TA)
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Master Data & Academic Year State
@@ -49,6 +54,11 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+
+  // State: Trajectory Data
+  const [trajectoryData, setTrajectoryData] = useState(null);
+  const [loadingTrajectory, setLoadingTrajectory] = useState(false);
+  const [trajectorySearch, setTrajectorySearch] = useState('');
 
   // State Modal Mutasi
   const [selectedFund, setSelectedFund] = useState(null);
@@ -157,13 +167,28 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
       }
     } catch (err) {
       console.error('Error fetching fund balances:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data saldo sumber dana');
+      setError(err.response?.data?.message || 'Gagal memuat data saldo pos alokasi dana');
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. Fetch Inter-Year Loans
+  // 3. Fetch Multi-Year Trajectory
+  const fetchTrajectory = async () => {
+    try {
+      setLoadingTrajectory(true);
+      const res = await api.get('/keuangan/fund-balances/multi-year-trajectory');
+      if (res.data?.success) {
+        setTrajectoryData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching multi-year trajectory:', err);
+    } finally {
+      setLoadingTrajectory(false);
+    }
+  };
+
+  // 4. Fetch Inter-Year Loans
   const fetchLoans = async () => {
     try {
       setLoadingLoans(true);
@@ -196,6 +221,8 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
   useEffect(() => {
     if (activeTab === 'loans') {
       fetchLoans();
+    } else if (activeTab === 'trajectory') {
+      fetchTrajectory();
     } else {
       fetchFundBalances();
     }
@@ -424,6 +451,12 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
     );
   });
 
+  const filteredTrajectoryFunds = (trajectoryData?.funds || []).filter(f => {
+    if (!trajectorySearch) return true;
+    const q = trajectorySearch.toLowerCase();
+    return f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q);
+  });
+
   const selectedYearObj = academicYears.find(y => String(y.id) === String(selectedYearId));
 
   return (
@@ -432,7 +465,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Saldo & Kantong Sumber Dana</h1>
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Pos Alokasi Sumber Dana</h1>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                 isYayasan
@@ -445,21 +478,20 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pelacakan posisi saldo per pos dana per tahun ajaran & realokasi pinjaman antar tahun ajaran
+            Pelacakan dompet virtual penerimaan per jenis tagihan, saldo bawaan tahun sebelumnya, dan aliran pengeluaran
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-center">
+        <div className="flex items-center gap-2.5 self-start sm:self-center flex-wrap">
           {/* Dropdown Filter Tahun Ajaran */}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span className="text-[11px] font-bold text-slate-500">Tahun Ajaran:</span>
             <select
               value={selectedYearId}
               onChange={(e) => handleYearChange(e.target.value)}
               className="text-xs font-bold text-slate-800 bg-transparent border-none focus:ring-0 cursor-pointer pr-4"
             >
-              <option value="">Semua Tahun</option>
               {academicYears.map(y => (
                 <option key={y.id} value={y.id}>
                   {y.name || `TA #${y.id}`} {y.is_active ? '(Aktif)' : ''}
@@ -481,42 +513,59 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
 
           <button
             type="button"
-            onClick={activeTab === 'balances' ? () => fetchFundBalances() : () => fetchLoans()}
-            disabled={loading || loadingLoans}
+            onClick={() => {
+              if (activeTab === 'balances') fetchFundBalances();
+              else if (activeTab === 'trajectory') fetchTrajectory();
+              else fetchLoans();
+            }}
+            disabled={loading || loadingLoans || loadingTrajectory}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading || loadingLoans ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
-            <span>{loading || loadingLoans ? 'Memuat...' : 'Muat Ulang'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading || loadingLoans || loadingTrajectory ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+            <span>{loading || loadingLoans || loadingTrajectory ? 'Memuat...' : 'Muat Ulang'}</span>
           </button>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex border-b border-slate-200 gap-6 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab('balances')}
-          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
+          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
             activeTab === 'balances'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>Saldo Kantong Dana & Mutasi</span>
+          <span>Pos Alokasi Dana &amp; Saldo</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('trajectory')}
+          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
+            activeTab === 'trajectory'
+              ? 'border-emerald-600 text-emerald-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Matriks Akumulasi Lintas Tahun Ajaran</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('loans')}
-          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
+          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
             activeTab === 'loans'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <ArrowRightLeft className="w-4 h-4" />
-          <span>Pinjaman & Realokasi Antar Tahun Ajaran</span>
+          <span>Pinjaman &amp; Realokasi Antar Tahun Ajaran</span>
           {loansSummary.aged_loans_count > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-600 text-white animate-pulse" title={`${loansSummary.aged_loans_count} pinjaman >90 hari`}>
               {loansSummary.aged_loans_count}
@@ -526,7 +575,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: SALDO KANTONG DANA & MUTASI */}
+      {/* TAB 1: POS ALOKASI DANA & SALDO */}
       {/* ========================================================================= */}
       {activeTab === 'balances' && (
         <div className="space-y-6">
@@ -537,72 +586,76 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
             </div>
           )}
 
-          {/* Stat Cards */}
+          {/* Hero Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Total Saldo Tersedia */}
+            <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-100">Total Saldo Tersedia</span>
+                <div className="p-2 bg-white/20 text-white rounded-xl">
+                  <Wallet className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-extrabold text-white">
+                  {formatCurrency(summary.total_fund_balance)}
+                </div>
+                <p className="text-[11px] text-emerald-100 font-medium mt-1">
+                  Saldo bawaan lalu + kas berjalan
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2: Saldo Bawaan Tahun Sebelumnya */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Akumulasi Masuk</span>
+                <span className="text-xs font-semibold text-slate-500">Saldo Bawaan T.A. Lalu</span>
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                  <History className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-extrabold text-purple-700">
+                  {formatCurrency(summary.total_prior_carry_over)}
+                </div>
+                <p className="text-[11px] text-purple-600 font-medium mt-1">
+                  Sisa akumulasi tahun sebelumnya
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3: Penerimaan Tahun Berjalan */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Penerimaan T.A. Berjalan</span>
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                   <ArrowDownLeft className="w-5 h-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-extrabold text-slate-800">
-                  {formatCurrency(summary.total_fund_in)}
+                <div className="text-2xl font-extrabold text-emerald-700">
+                  {formatCurrency(summary.total_current_year_in)}
                 </div>
                 <p className="text-[11px] text-emerald-600 font-medium mt-1">
-                  Penerimaan kas & pendaftaran
+                  Pembayaran siswa &amp; kas masuk
                 </p>
               </div>
             </div>
 
+            {/* Card 4: Pengeluaran Tahun Berjalan */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Realisasi Keluar</span>
+                <span className="text-xs font-semibold text-slate-500">Pengeluaran T.A. Berjalan</span>
                 <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
                   <ArrowUpRight className="w-5 h-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-extrabold text-slate-800">
-                  {formatCurrency(summary.total_fund_out)}
+                <div className="text-2xl font-extrabold text-rose-700">
+                  {formatCurrency(summary.total_current_year_out)}
                 </div>
                 <p className="text-[11px] text-rose-600 font-medium mt-1">
-                  Belanja RAPBS & operasional
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Sisa Saldo Dana</span>
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                  <Wallet className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-extrabold text-indigo-700">
-                  {formatCurrency(summary.total_fund_balance)}
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Saldo riil di seluruh pos dana
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-purple-50/60 p-5 rounded-2xl border border-purple-200/80 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-purple-900">Dimensi Tahun Ajaran</span>
-                <div className="p-2 bg-purple-100 text-purple-800 rounded-xl">
-                  <Calendar className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-lg font-bold text-purple-950">
-                  {selectedYearObj ? selectedYearObj.name : 'Semua Tahun (Konsolidasi)'}
-                </div>
-                <p className="text-[11px] text-purple-700 font-medium mt-1">
-                  {selectedYearObj?.is_active ? 'Tahun Ajaran Aktif Berjalan' : 'Tahun Ajaran Mendatang / Historis'}
+                  Realisasi belanja operasional
                 </p>
               </div>
             </div>
@@ -616,10 +669,10 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Cari nama pos dana atau kode..."
+                    placeholder="Cari nama pos alokasi dana atau kode..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -628,12 +681,12 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 transition"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 transition"
                 >
-                  <option value="all">Semua Jenis Kantong</option>
-                  <option value="fee_type">Pos Biaya Pendidikan (SPP/Kegiatan/PPDB)</option>
-                  <option value="income_category">Pendapatan Lain / Non-Siswa</option>
-                  <option value="opening_pool">Saldo Awal (Opening Pool)</option>
+                  <option value="all">Semua Kategori Pos Dana</option>
+                  <option value="fee_type">Penerimaan Tagihan Siswa</option>
+                  <option value="budget_income_item">Sumber Lain (RAPBS)</option>
+                  <option value="opening_pool">Saldo Awal &amp; Kas Utama</option>
                 </select>
               </div>
             </div>
@@ -642,13 +695,13 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-3 rounded-l-xl">Mata Anggaran / Pos RAPBS</th>
-                    <th className="px-4 py-3">Kategori Sumber Dana</th>
-                    <th className="px-4 py-3 text-right">Pagu RAPBS</th>
-                    <th className="px-4 py-3 text-right">Realisasi Masuk</th>
-                    <th className="px-4 py-3 text-right">Realisasi Belanja</th>
-                    <th className="px-4 py-3 text-right">Sisa Saldo Kas</th>
-                    <th className="px-4 py-3 text-center">Serapan</th>
+                    <th className="px-4 py-3 rounded-l-xl">Pos Alokasi Sumber Dana</th>
+                    <th className="px-4 py-3">Kategori Sumber</th>
+                    <th className="px-4 py-3 text-right">Pagu Target</th>
+                    <th className="px-4 py-3 text-right">Saldo Bawaan Lalu</th>
+                    <th className="px-4 py-3 text-right">Penerimaan Berjalan</th>
+                    <th className="px-4 py-3 text-right">Belanja Berjalan</th>
+                    <th className="px-4 py-3 text-right font-bold text-slate-800">Total Saldo Tersedia</th>
                     <th className="px-4 py-3 text-center rounded-r-xl">Aksi</th>
                   </tr>
                 </thead>
@@ -656,14 +709,14 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                   {loading ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-slate-400 italic">
-                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600 mb-2" />
-                        Memuat data kantong dana...
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
+                        Memuat data pos alokasi dana...
                       </td>
                     </tr>
                   ) : filteredFunds.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-slate-400 italic">
-                        Tidak ada pos dana yang sesuai kriteria.
+                        Tidak ada pos alokasi dana yang sesuai kriteria.
                       </td>
                     </tr>
                   ) : (
@@ -671,51 +724,55 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                       <tr key={idx} className="hover:bg-slate-50/70 transition">
                         <td className="px-4 py-3.5">
                           <div className="font-bold text-slate-800">{f.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{f.code || '-'}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-slate-400 font-mono">{f.code || '-'}</span>
+                            {f.billing_pattern && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">
+                                {f.billing_pattern === 'monthly' ? 'Bulanan' : 'Insidental'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                            f.category === 'Saldo Awal'
-                              ? 'bg-purple-50 text-purple-700'
-                              : f.category === 'Sumber Lain (RAPBS)'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-indigo-50 text-indigo-700'
+                            f.category === 'Saldo Awal & Kas Utama'
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
+                              : f.category === 'Sumber Pendapatan Lain (RAPBS)'
+                              ? 'bg-teal-50 text-teal-700 border border-teal-200/60'
+                              : 'bg-indigo-50 text-indigo-700 border border-indigo-200/60'
                           }`}>
-                            {f.category || (f.fund_type === 'fee_type' ? 'Penerimaan Siswa' : 'Pendapatan Lain')}
+                            {f.category || 'Penerimaan Tagihan Siswa'}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono text-slate-700 font-semibold">
+                        <td className="px-4 py-3.5 text-right font-mono text-slate-600 font-semibold">
                           {f.planned_amount > 0 ? formatCurrency(f.planned_amount) : '-'}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono text-emerald-700 font-semibold">
-                          {formatCurrency(f.total_in)}
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-mono text-rose-700 font-semibold">
-                          {formatCurrency(f.total_out)}
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 text-sm">
-                          {formatCurrency(f.balance)}
-                        </td>
-                        <td className="px-4 py-3.5 text-center font-mono">
-                          {f.planned_amount > 0 ? (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              f.realization_percentage >= 100
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : f.realization_percentage >= 50
-                                ? 'bg-blue-50 text-blue-800'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}>
-                              {f.realization_percentage}%
+                        <td className="px-4 py-3.5 text-right font-mono text-purple-700 font-semibold">
+                          {f.prior_years_carry_over > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200/50">
+                              {formatCurrency(f.prior_years_carry_over)}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-400">-</span>
+                            <span className="text-slate-400">Rp 0</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono text-emerald-700 font-semibold">
+                          {f.current_year_in > 0 ? `+${formatCurrency(f.current_year_in)}` : 'Rp 0'}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono text-rose-700 font-semibold">
+                          {f.current_year_out > 0 ? `-${formatCurrency(f.current_year_out)}` : 'Rp 0'}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono font-extrabold text-slate-900 text-sm">
+                          <span className={f.balance > 0 ? 'text-emerald-800' : 'text-slate-700'}>
+                            {formatCurrency(f.balance)}
+                          </span>
                         </td>
                         <td className="px-4 py-3.5 text-center">
                           <button
                             type="button"
                             onClick={() => handleOpenMutationsModal(f)}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-semibold rounded-lg transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-xl transition font-semibold text-[11px]"
+                            title="Lihat Riwayat Aliran Masuk & Keluar"
                           >
                             <History className="w-3.5 h-3.5" />
                             <span>Mutasi</span>
@@ -732,7 +789,110 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: PINJAMAN & REALOKASI ANTAR TAHUN AJARAN */}
+      {/* TAB 2: MATRIKS AKUMULASI LINTAS TAHUN AJARAN */}
+      {/* ========================================================================= */}
+      {activeTab === 'trajectory' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Evolusi Saldo Lintas Tahun Ajaran (Multi-Year Trajectory)</h3>
+                <p className="text-[11px] text-slate-500">
+                  Melacak saldo bawaan tahun sebelumnya yang terus terakumulasi dan digunakan pada tahun-tahun ajaran berikutnya
+                </p>
+              </div>
+
+              <div className="w-full sm:w-72">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari pos dana..."
+                    value={trajectorySearch}
+                    onChange={(e) => setTrajectorySearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {loadingTrajectory ? (
+              <div className="py-12 text-center text-slate-400 italic text-xs">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
+                Memuat matriks saldo lintas tahun ajaran...
+              </div>
+            ) : !trajectoryData || filteredTrajectoryFunds.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 italic text-xs">
+                Tidak ada data matriks yang ditemukan.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-800 text-white font-semibold">
+                      <th className="px-4 py-3 rounded-tl-xl sticky left-0 bg-slate-800 z-10">Pos Alokasi Sumber Dana</th>
+                      {trajectoryData.academic_years.map((ay) => (
+                        <th key={ay.id} className="px-4 py-3 text-center border-l border-slate-700 min-w-[170px]">
+                          <div>{ay.name}</div>
+                          <div className="text-[9px] font-normal text-slate-300">
+                            {ay.is_active ? '(T.A. Aktif)' : ''}
+                          </div>
+                        </th>
+                      ))}
+                      <th className="px-4 py-3 text-right rounded-tr-xl bg-slate-900 border-l border-slate-700">
+                        Total Saldo Terkini
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredTrajectoryFunds.map((fund, fIdx) => (
+                      <tr key={fIdx} className="hover:bg-slate-50/70 transition">
+                        <td className="px-4 py-3.5 font-bold text-slate-800 sticky left-0 bg-white shadow-xs">
+                          <div>{fund.name}</div>
+                          <span className="text-[10px] text-slate-400 font-mono">{fund.code}</span>
+                        </td>
+                        {trajectoryData.academic_years.map((ay) => {
+                          const item = fund.trajectory?.find(t => t.academic_year_id === ay.id) || {
+                            total_in: 0,
+                            total_out: 0,
+                            net_change: 0,
+                            cumulative_balance: 0
+                          };
+                          const isCurrentYear = String(ay.id) === String(selectedYearId);
+                          return (
+                            <td
+                              key={ay.id}
+                              className={`px-3 py-2.5 text-right font-mono border-l border-slate-100 ${
+                                isCurrentYear ? 'bg-emerald-50/60' : ''
+                              }`}
+                            >
+                              <div className="text-[10px] text-emerald-700">
+                                {item.total_in > 0 ? `+${formatCurrency(item.total_in)}` : '-'}
+                              </div>
+                              <div className="text-[10px] text-rose-700">
+                                {item.total_out > 0 ? `-${formatCurrency(item.total_out)}` : '-'}
+                              </div>
+                              <div className="text-xs font-bold text-slate-900 pt-1 border-t border-slate-100 mt-0.5">
+                                Saldo: {formatCurrency(item.cumulative_balance)}
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td className="px-4 py-3.5 text-right font-mono font-extrabold text-sm text-emerald-800 bg-slate-50 border-l border-slate-200">
+                          {formatCurrency(fund.total_balance)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: PINJAMAN & REALOKASI ANTAR TAHUN AJARAN */}
       {/* ========================================================================= */}
       {activeTab === 'loans' && (
         <div className="space-y-6">
@@ -743,11 +903,11 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
             </div>
           )}
 
-          {/* KPI Cards Pinjaman */}
+          {/* Loans Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Pinjaman Dibuat</span>
+                <span className="text-xs font-semibold text-slate-500">Total Dana Dipinjamkan</span>
                 <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                   <ArrowRightLeft className="w-5 h-5" />
                 </div>
@@ -756,13 +916,13 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <div className="text-2xl font-extrabold text-slate-800">
                   {formatCurrency(loansSummary.total_loaned)}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">Realokasi dana antar tahun ajaran</p>
+                <p className="text-[11px] text-slate-400 mt-1">Akumulasi seluruh transaksi pinjaman</p>
               </div>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Sisa Pinjaman (Outstanding)</span>
+                <span className="text-xs font-semibold text-slate-500">Sisa Belum Kembali</span>
                 <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
                   <Clock className="w-5 h-5" />
                 </div>
@@ -772,14 +932,14 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                   {formatCurrency(loansSummary.total_outstanding)}
                 </div>
                 <p className="text-[11px] text-amber-600 font-medium mt-1">
-                  {loansSummary.active_loans_count || 0} Pinjaman Belum Lunas
+                  {loansSummary.active_loans_count || 0} pinjaman belum lunas
                 </p>
               </div>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Dikembalikan</span>
+                <span className="text-xs font-semibold text-slate-500">Total Telah Dikembalikan</span>
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
@@ -788,35 +948,27 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <div className="text-2xl font-extrabold text-emerald-700">
                   {formatCurrency(loansSummary.total_repaid)}
                 </div>
-                <p className="text-[11px] text-emerald-600 font-medium mt-1">Dana telah kembali ke tahun sumber</p>
+                <p className="text-[11px] text-emerald-600 font-medium mt-1">Saldo telah dipulihkan ke pos asal</p>
               </div>
             </div>
 
-            <div className={`p-5 rounded-2xl border shadow-xs flex flex-col justify-between ${
-              loansSummary.aged_loans_count > 0
-                ? 'bg-rose-50/70 border-rose-300'
-                : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className={`text-xs font-bold ${loansSummary.aged_loans_count > 0 ? 'text-rose-900' : 'text-slate-600'}`}>
-                  Pinjaman &gt; 90 Hari
-                </span>
-                <div className={`p-2 rounded-xl ${loansSummary.aged_loans_count > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
+                <span className="text-xs font-semibold text-slate-500">Pinjaman Lewat 90 Hari</span>
+                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
               </div>
               <div className="mt-3">
-                <div className={`text-2xl font-extrabold ${loansSummary.aged_loans_count > 0 ? 'text-rose-800' : 'text-slate-800'}`}>
-                  {loansSummary.aged_loans_count || 0} <span className="text-xs font-normal">Perlu Perhatian</span>
+                <div className="text-2xl font-extrabold text-rose-700">
+                  {loansSummary.aged_loans_count || 0}
                 </div>
-                <p className={`text-[11px] font-medium mt-1 ${loansSummary.aged_loans_count > 0 ? 'text-rose-700' : 'text-slate-400'}`}>
-                  {loansSummary.aged_loans_count > 0 ? 'Belum lunas melebihi 90 hari' : 'Semua pinjaman berjalan lancar'}
-                </p>
+                <p className="text-[11px] text-rose-600 font-medium mt-1">Perlu perhatian &amp; pengembalian</p>
               </div>
             </div>
           </div>
 
-          {/* Loans Table & Filters */}
+          {/* Loans Table */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2 flex-1 max-w-md">
@@ -824,10 +976,10 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Cari alasan / pos biaya / catatan pinjaman..."
+                    placeholder="Cari alasan pinjaman / pos..."
                     value={loanSearchTerm}
                     onChange={(e) => setLoanSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                   />
                 </div>
               </div>
@@ -836,12 +988,12 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <select
                   value={loanStatusFilter}
                   onChange={(e) => setLoanStatusFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 transition"
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700"
                 >
-                  <option value="all">Semua Status Pinjaman</option>
-                  <option value="outstanding">Belum Dibayar (Outstanding)</option>
-                  <option value="partially_repaid">Dibayar Sebagian</option>
-                  <option value="repaid">Sudah Lunas (Repaid)</option>
+                  <option value="all">Semua Status</option>
+                  <option value="outstanding">Belum Lunas (Outstanding)</option>
+                  <option value="partially_repaid">Sebagian Dikembalikan</option>
+                  <option value="repaid">Lunas Penuh</option>
                 </select>
               </div>
             </div>
@@ -850,131 +1002,103 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-3 rounded-l-xl">Alur Tahun Ajaran</th>
-                    <th className="px-4 py-3">Pos Dana Sumber &rarr; Tujuan</th>
-                    <th className="px-4 py-3 text-right">Nominal Pinjaman</th>
-                    <th className="px-4 py-3 text-right">Sisa Pinjaman</th>
-                    <th className="px-4 py-3">Progress Pelunasan</th>
-                    <th className="px-4 py-3 text-center">Status & Usia</th>
+                    <th className="px-4 py-3 rounded-l-xl">Alasan &amp; Tujuan Penggunaan</th>
+                    <th className="px-4 py-3">T.A. Sumber &rarr; T.A. Pemakai</th>
+                    <th className="px-4 py-3 text-right">Nominal Pinjam</th>
+                    <th className="px-4 py-3 text-right">Sisa Belum Kembali</th>
+                    <th className="px-4 py-3 text-center">Status &amp; Usia</th>
                     <th className="px-4 py-3 text-center rounded-r-xl">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loadingLoans ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-slate-400 italic">
+                      <td colSpan={6} className="px-4 py-12 text-center text-slate-400 italic">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600 mb-2" />
-                        Memuat daftar pinjaman antar tahun ajaran...
+                        Memuat data pinjaman antar tahun ajaran...
                       </td>
                     </tr>
                   ) : filteredLoans.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">
-                        Belum ada data pinjaman antar tahun ajaran yang tercatat.
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic">
+                        Belum ada data pinjaman antar tahun ajaran.
                       </td>
                     </tr>
                   ) : (
-                    filteredLoans.map((l) => {
-                      const fromYear = academicYears.find(y => Number(y.id) === Number(l.from_academic_year_id))?.name || `TA #${l.from_academic_year_id}`;
-                      const toYear = academicYears.find(y => Number(y.id) === Number(l.to_academic_year_id))?.name || `TA #${l.to_academic_year_id}`;
-                      const isOutstanding = l.status === 'outstanding';
-                      const isPartial = l.status === 'partially_repaid';
-                      const isRepaid = l.status === 'repaid';
-
-                      return (
-                        <tr key={l.id} className="hover:bg-slate-50/70 transition">
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                              <span className="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-800">{fromYear}</span>
-                              <ArrowRightLeft className="w-3 h-3 text-slate-400" />
-                              <span className="px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-800">{toYear}</span>
-                            </div>
-                            <div className="text-[10px] text-slate-500 mt-1 truncate max-w-xs font-medium" title={l.purpose}>
-                              {l.purpose}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="font-semibold text-slate-700">{l.from_fee_type_name || 'Pos Biaya Sumber'}</div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">&rarr; {l.to_fee_type_name || 'Pos Tujuan'}</div>
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900">
-                            {formatCurrency(l.amount)}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-bold text-amber-800">
-                            {formatCurrency(l.outstanding_amount)}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="w-32">
-                              <div className="flex justify-between text-[10px] mb-1 text-slate-500 font-semibold">
-                                <span>{l.progress_percentage}%</span>
-                                <span>{formatCurrency(l.repaid_amount)}</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    isRepaid ? 'bg-emerald-600' : 'bg-indigo-600'
-                                  }`}
-                                  style={{ width: `${l.progress_percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            <div className="space-y-1">
-                              {isOutstanding && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                                  <Clock className="w-3 h-3 text-amber-600" />
-                                  Outstanding
-                                </span>
-                              )}
-                              {isPartial && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                                  <RotateCcw className="w-3 h-3 text-blue-600" />
-                                  Sebagian
-                                </span>
-                              )}
-                              {isRepaid && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  Lunas
-                                </span>
-                              )}
-
-                              {l.is_aged_90_days && (
-                                <div>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200" title={`${l.days_outstanding} hari sejak dipinjam`}>
-                                    &gt; 90 Hari ({l.days_outstanding}h)
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              {!isRepaid && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenRepayModal(l)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-2xs"
-                                  title="Catat Pengembalian Dana"
-                                >
-                                  <ArrowDownLeft className="w-3.5 h-3.5" />
-                                  <span>Kembalikan</span>
-                                </button>
-                              )}
+                    filteredLoans.map((loan) => (
+                      <tr key={loan.id} className="hover:bg-slate-50/70 transition">
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-slate-800">{loan.purpose}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            Pinjam: {String(loan.borrowed_at).slice(0, 10)}
+                            {loan.expected_repayment_note && ` • Rencana: ${loan.expected_repayment_note}`}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="font-semibold text-slate-700">
+                            TA #{loan.from_academic_year_id} ({loan.from_fee_type_name || 'Pos Sumber'})
+                          </div>
+                          <div className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1 mt-0.5">
+                            <span>&rarr; TA #{loan.to_academic_year_id} ({loan.to_fee_type_name || 'Pos Tujuan'})</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono font-semibold text-slate-800">
+                          {formatCurrency(loan.amount)}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-mono font-bold text-amber-800">
+                          {formatCurrency(loan.outstanding_amount)}
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                loan.status === 'repaid'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : loan.status === 'partially_repaid'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {loan.status === 'repaid'
+                                ? 'Lunas'
+                                : loan.status === 'partially_repaid'
+                                ? 'Sebagian'
+                                : 'Belum Kembali'}
+                            </span>
+                            {loan.status !== 'repaid' && (
+                              <span
+                                className={`text-[9px] font-medium ${
+                                  loan.is_aged_90_days ? 'text-rose-600 font-bold' : 'text-slate-400'
+                                }`}
+                              >
+                                {loan.days_outstanding} hari
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {loan.status !== 'repaid' && (
                               <button
                                 type="button"
-                                onClick={() => handleOpenDetailModal(l.id)}
-                                className="p-1 text-slate-400 hover:text-indigo-600 rounded-lg transition"
-                                title="Lihat Riwayat & Detail"
+                                onClick={() => handleOpenRepayModal(loan)}
+                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-2xs transition"
                               >
-                                <Eye className="w-4 h-4" />
+                                Kembalikan
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetailModal(loan.id)}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition"
+                              title="Detail Pinjaman & Riwayat"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -984,19 +1108,20 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL MUTASI KANTONG DANA (TAB 1) */}
+      {/* MODAL MUTASI DRILL-DOWN                                                   */}
       {/* ========================================================================= */}
       {selectedFund && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-100 max-w-2xl w-full overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full overflow-hidden flex flex-col max-h-[85vh]">
             <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-sm flex items-center gap-2">
-                  <History className="w-4 h-4 text-indigo-400" />
-                  Riwayat Mutasi Saldo Kantong Dana
+                  <Coins className="w-4 h-4 text-emerald-400" />
+                  Riwayat Mutasi: {selectedFund.name}
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {selectedFund.name} &bull; Sisa Saldo: {formatCurrency(selectedFund.balance)}
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Saldo Tersedia: <strong>{formatCurrency(selectedFund.balance)}</strong>
+                  {selectedFund.prior_years_carry_over > 0 && ` (Termasuk Saldo Bawaan: ${formatCurrency(selectedFund.prior_years_carry_over)})`}
                 </p>
               </div>
               <button
@@ -1011,7 +1136,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
               {loadingMutations ? (
                 <div className="py-12 text-center text-slate-400 italic text-xs">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600 mb-2" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
                   Memuat riwayat mutasi dana...
                 </div>
               ) : mutationError ? (
@@ -1020,7 +1145,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 </div>
               ) : mutations.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 italic text-xs">
-                  Belum ada catatan mutasi untuk pos dana ini.
+                  Belum ada catatan mutasi untuk pos alokasi dana ini.
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
@@ -1075,26 +1200,24 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 1: CATAT PINJAMAN ANTAR TAHUN AJARAN */}
-      {/* ========================================================================= */}
       {createLoanModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 bg-indigo-900 text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-sm flex items-center gap-2">
-                  <ArrowRightLeft className="w-4 h-4 text-indigo-300" />
+                  <ArrowRightLeft className="w-4 h-4 text-emerald-400" />
                   Catat Pinjaman / Realokasi Antar Tahun Ajaran
                 </h3>
-                <p className="text-[11px] text-indigo-200 mt-0.5">
+                <p className="text-[11px] text-slate-300 mt-0.5">
                   Pinjam sementara dana tahun ajaran lain untuk kebutuhan operasional
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setCreateLoanModalOpen(false)}
-                className="p-1 text-indigo-300 hover:text-white rounded-lg transition"
+                className="p-1 text-slate-400 hover:text-white rounded-lg transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1102,7 +1225,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
 
             <form onSubmit={handleCreateLoan} className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed">
-                <strong>Informasi Akuntansi:</strong> Transaksi ini murni realokasi internal pada lapisan kantong dana (<em>fund_balances</em>) dan tidak membentuk jurnal hutang/piutang formal baru di COA.
+                <strong>Informasi Akuntansi:</strong> Transaksi ini murni realokasi internal pada lapisan pos alokasi dana (<em>fund_balances</em>) dan tidak membentuk jurnal hutang/piutang formal baru di COA.
               </div>
 
               {/* Tahun Sumber & Kantong Sumber */}
@@ -1152,7 +1275,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 </div>
 
                 {sourceAvailableBalance !== null && (
-                  <div className="text-[11px] font-medium text-indigo-700 flex items-center gap-1.5">
+                  <div className="text-[11px] font-medium text-emerald-700 flex items-center gap-1.5">
                     <Coins className="w-3.5 h-3.5" />
                     <span>Saldo tersedia di pos sumber: <strong>{formatCurrency(sourceAvailableBalance)}</strong></span>
                   </div>
@@ -1239,7 +1362,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <textarea
                   required
                   rows={2}
-                  placeholder="Contoh: Talangan biaya perbaikan ruang kelas sebelum dana BOS semester 1 cair..."
+                  placeholder="Contoh: Talangan biaya operasional sebelum dana termin berikutnya cair..."
                   value={loanForm.purpose}
                   onChange={(e) => setLoanForm({ ...loanForm, purpose: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
@@ -1252,7 +1375,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Akan dikembalikan bertahap dari penerimaan SPP Oktober - Desember"
+                  placeholder="Contoh: Akan dikembalikan bertahap dari penerimaan SPP"
                   value={loanForm.expected_repayment_note}
                   onChange={(e) => setLoanForm({ ...loanForm, expected_repayment_note: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
@@ -1270,7 +1393,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <button
                   type="submit"
                   disabled={creatingLoan}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs disabled:opacity-50"
                 >
                   {creatingLoan ? 'Menyimpan...' : 'Catat & Realokasikan Saldo'}
                 </button>
@@ -1280,9 +1403,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL 2: CATAT PENGEMBALIAN PINJAMAN */}
-      {/* ========================================================================= */}
       {repayModalOpen && selectedLoanForRepay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden flex flex-col">
@@ -1317,7 +1438,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
 
               {borrowerAvailableBalance !== null && (
                 <div className="text-[11px] text-slate-600">
-                  Saldo kantong pemakai saat ini: <strong>{formatCurrency(borrowerAvailableBalance)}</strong>
+                  Saldo pos pemakai saat ini: <strong>{formatCurrency(borrowerAvailableBalance)}</strong>
                 </div>
               )}
 
@@ -1356,7 +1477,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Pengembalian</label>
                 <input
                   type="text"
-                  placeholder="Contoh: Pengembalian termin 1 dari pencairan dana BOS"
+                  placeholder="Contoh: Pengembalian pinjaman dana termin 1"
                   value={repayForm.notes}
                   onChange={(e) => setRepayForm({ ...repayForm, notes: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
@@ -1384,17 +1505,15 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL 3: DETAIL PINJAMAN & RIWAYAT REPAYMENT */}
-      {/* ========================================================================= */}
+      {/* MODAL 3: DETAIL PINJAMAN */}
       {detailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-xl w-full overflow-hidden flex flex-col max-h-[85vh]">
             <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-sm flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-indigo-400" />
-                  Detail Pinjaman & Riwayat Pengembalian
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                  Detail Pinjaman &amp; Riwayat Pengembalian
                 </h3>
               </div>
               <button
@@ -1409,7 +1528,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
             <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
               {loadingDetail ? (
                 <div className="py-12 text-center text-slate-400 italic">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600 mb-2" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
                   Memuat rincian pinjaman...
                 </div>
               ) : selectedLoanDetail ? (
@@ -1440,7 +1559,7 @@ export default function FundBalances({ isEmbedded = false, initialTab = 'balance
 
                   <div>
                     <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-1.5">
-                      <History className="w-4 h-4 text-indigo-600" />
+                      <History className="w-4 h-4 text-emerald-600" />
                       Riwayat Pengembalian ({selectedLoanDetail.repayments?.length || 0})
                     </h4>
 

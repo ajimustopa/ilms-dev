@@ -23,10 +23,17 @@ class ParentFacingService {
       )
       .orderBy('student_bills.due_date', 'asc');
 
-    const student = await crossModuleServices.getStudent(studentId);
+    const [student, academicYears] = await Promise.all([
+      crossModuleServices.getStudent(studentId),
+      crossModuleServices.listAcademicYears().catch(() => [])
+    ]);
+
+    const ayMap = {};
+    (academicYears || []).forEach(ay => { ayMap[ay.id] = ay.name; });
 
     return bills.map(b => ({
       ...b,
+      academic_year_name: ayMap[b.academic_year_id] || (b.period_year ? (b.period_month && b.period_month <= 6 ? `${b.period_year - 1}/${b.period_year}` : `${b.period_year}/${b.period_year + 1}`) : '-'),
       student_name: student?.full_name || `Siswa ID ${studentId}`
     }));
   }
@@ -56,10 +63,17 @@ class ParentFacingService {
       .where('student_bill_id', billId)
       .orderBy('created_at', 'desc');
 
-    const student = await crossModuleServices.getStudent(studentId);
+    const [student, academicYears] = await Promise.all([
+      crossModuleServices.getStudent(studentId),
+      crossModuleServices.listAcademicYears().catch(() => [])
+    ]);
+
+    const ayMap = {};
+    (academicYears || []).forEach(ay => { ayMap[ay.id] = ay.name; });
 
     return {
       ...bill,
+      academic_year_name: ayMap[bill.academic_year_id] || (bill.period_year ? (bill.period_month && bill.period_month <= 6 ? `${bill.period_year - 1}/${bill.period_year}` : `${bill.period_year}/${bill.period_year + 1}`) : '-'),
       student_name: student?.full_name || `Siswa ID ${studentId}`,
       payments,
       payment_proofs: proofs

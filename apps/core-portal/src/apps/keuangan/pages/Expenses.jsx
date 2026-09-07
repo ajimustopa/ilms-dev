@@ -116,6 +116,21 @@ export default function Expenses() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  const [availableFundGroups, setAvailableFundGroups] = useState([]);
+
+  const fetchAvailableFundSources = async (ayId) => {
+    try {
+      const res = await api.get('/keuangan/fund-balances/available-sources', {
+        params: { academic_year_id: ayId || selectedAcademicYearId || undefined }
+      });
+      if (res.data?.success) {
+        setAvailableFundGroups(res.data.data?.groups || []);
+      }
+    } catch (err) {
+      console.warn('Error fetching available fund sources:', err.message);
+    }
+  };
+
   const fetchExpensesAndBudgetItems = async () => {
     setLoading(true);
     try {
@@ -143,6 +158,9 @@ export default function Expenses() {
         const activeYear = yearsList.find(y => y.is_active) || yearsList[0];
         setSelectedAcademicYearId(String(activeYear.id));
         setFormData(prev => ({ ...prev, academic_year_id: activeYear.id }));
+        fetchAvailableFundSources(activeYear.id);
+      } else if (selectedAcademicYearId) {
+        fetchAvailableFundSources(selectedAcademicYearId);
       }
 
       // Ambil seluruh expense items dari rencana anggaran aktif
@@ -225,7 +243,7 @@ export default function Expenses() {
     try {
       const payload = {
         ...formData,
-        academic_year_id: selectedAcademicYearId || formData.academic_year_id || 2,
+        academic_year_id: Number(formData.academic_year_id || selectedAcademicYearId || 2),
         budget_plan_expense_item_id: formData.is_outside_budget ? null : (formData.budget_plan_expense_item_id || null)
       };
 
@@ -800,24 +818,76 @@ export default function Expenses() {
                   />
                 </div>
 
-                {/* Pemilihan Sumber Dana */}
+                {/* Peruntukan Tahun Ajaran */}
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Kantong Sumber Dana Utama *</label>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Peruntukan Tahun Ajaran *
+                  </label>
                   <select
-                    value={`${formData.fund_source_type}:${formData.fund_source_ref_id}`}
+                    value={formData.academic_year_id || selectedAcademicYearId || ''}
                     onChange={(e) => {
-                      const [t, r] = e.target.value.split(':');
-                      setFormData(p => ({ ...p, fund_source_type: t, fund_source_ref_id: Number(r) }));
+                      const newAyId = Number(e.target.value);
+                      setFormData(p => ({ ...p, academic_year_id: newAyId }));
+                      fetchAvailableFundSources(newAyId);
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    required
+                    className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500/20"
                   >
-                    <option value="opening_pool:0">Kantong Kas Umum (Opening Pool)</option>
-                    {feeTypes.map((ft) => (
-                      <option key={ft.id} value={`fee_type:${ft.id}`}>
-                        Jenis Biaya: {ft.name}
+                    {academicYears.map((ay) => (
+                      <option key={ay.id} value={ay.id}>
+                        Tahun Ajaran {ay.name} {ay.is_active ? '(Tahun Aktif)' : ''}
                       </option>
                     ))}
                   </select>
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
+                    * Aliran dana dan beban belanja dibukukan pada konteks tahun ajaran yang dipilih, meskipun tanggal kalender belanja berbeda.
+                  </p>
+                </div>
+
+                {/* Pemilihan Pos Alokasi Sumber Dana */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Pos Alokasi Sumber Dana *</label>
+                  <select
+                    value={`${formData.fund_source_type}:${formData.fund_source_ref_id}:${formData.fund_source_scope || 'current'}:${formData.target_academic_year_id || ''}`}
+                    onChange={(e) => {
+                      const [t, r, scope, targetAy] = e.target.value.split(':');
+                      setFormData(p => ({
+                        ...p,
+                        fund_source_type: t,
+                        fund_source_ref_id: Number(r),
+                        fund_source_scope: scope,
+                        target_academic_year_id: targetAy ? Number(targetAy) : undefined,
+                        fund_source_academic_year_id: targetAy ? Number(targetAy) : undefined
+                      }));
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {availableFundGroups.map((grp, gIdx) => (
+                      <optgroup key={gIdx} label={grp.group_title}>
+                        {grp.options.map((opt) => (
+                          <option
+                            key={opt.key}
+                            value={`${opt.fund_type}:${opt.fund_ref_id}:${opt.scope || 'current'}:${opt.target_academic_year_id || ''}`}
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    {availableFundGroups.length === 0 && (
+                      <>
+                        <option value="opening_pool:0:current:">Saldo Awal Kas (Opening Pool)</option>
+                        {feeTypes.map((ft) => (
+                          <option key={ft.id} value={`fee_type:${ft.id}:current:`}>
+                            Dana {ft.name}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1 italic">
+                    * Dapat memilih belanja dibebankan dari pos dana tahun berjalan atau menggunakan saldo bawaan tahun sebelumnya.
+                  </p>
                 </div>
 
                 <div>
@@ -1020,8 +1090,105 @@ export default function Expenses() {
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* MODAL 4: REALOKASI SUMBER DANA BELANJA                    */}
+      {/* ========================================================= */}
+      {reassignModalOpen && reassignExpense && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-indigo-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2 text-indigo-600">
+                <ArrowLeftRight className="w-5 h-5" />
+                <h3 className="font-bold text-slate-800 text-sm">Realokasi Pos Alokasi Sumber Dana</h3>
+              </div>
+              <button onClick={() => setReassignModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Item Belanja:</span>
+                <span className="font-bold text-slate-800">{reassignExpense.item_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Nominal:</span>
+                <span className="font-bold font-mono text-slate-900">{formatCurrency(reassignExpense.total_amount)}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleReassignFundSource} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Pindah ke Pos Alokasi Sumber Dana Baru *
+                </label>
+                <select
+                  value={`${reassignForm.fund_source_type}:${reassignForm.fund_source_ref_id}`}
+                  onChange={(e) => {
+                    const [t, r] = e.target.value.split(':');
+                    setReassignForm(p => ({ ...p, fund_source_type: t, fund_source_ref_id: Number(r) }));
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                >
+                  {availableFundGroups.map((grp, gIdx) => (
+                    <optgroup key={gIdx} label={grp.group_title}>
+                      {grp.options.map((opt) => (
+                        <option key={opt.key} value={`${opt.fund_type}:${opt.fund_ref_id}`}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  {availableFundGroups.length === 0 && (
+                    <>
+                      <option value="opening_pool:0">Saldo Awal Kas (Opening Pool)</option>
+                      {feeTypes.map((ft) => (
+                        <option key={ft.id} value={`fee_type:${ft.id}`}>
+                          Dana {ft.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Alasan Realokasi Sumber Dana *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Contoh: Realokasi beban ke dana BOS / Saldo Bawaan Tahun Lalu..."
+                  value={reassignForm.reason}
+                  onChange={(e) => setReassignForm(p => ({ ...p, reason: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setReassignModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-xs"
+                >
+                  {submitting ? 'Memproses...' : 'Konfirmasi Realokasi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+        </div>
+      )}
     </div>
-  )}
-</div>
-);
+  );
 }

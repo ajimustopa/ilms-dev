@@ -166,9 +166,23 @@ class BankStatementsService {
       .leftJoin(allocSub, 'bank_statements.id', 'alloc.bank_statement_id');
 
     if (targetUnit) {
-      query = query.where('bank_statements.school_unit_id', targetUnit);
+      query = query.where(function() {
+        this.where('bank_statements.school_unit_id', targetUnit)
+          .orWhere('bank_statements.school_unit_id', 0)
+          .orWhereNull('bank_statements.school_unit_id')
+          .orWhere('cash_accounts.school_unit_id', targetUnit)
+          .orWhere('cash_accounts.school_unit_id', 0)
+          .orWhereNull('cash_accounts.school_unit_id');
+      });
     } else if (filters.school_unit_id && isUnit(filters.school_unit_id)) {
-      query = query.where('bank_statements.school_unit_id', Number(filters.school_unit_id));
+      query = query.where(function() {
+        this.where('bank_statements.school_unit_id', Number(filters.school_unit_id))
+          .orWhere('bank_statements.school_unit_id', 0)
+          .orWhereNull('bank_statements.school_unit_id')
+          .orWhere('cash_accounts.school_unit_id', Number(filters.school_unit_id))
+          .orWhere('cash_accounts.school_unit_id', 0)
+          .orWhereNull('cash_accounts.school_unit_id');
+      });
     }
 
     if (filters.cash_account_id) {
@@ -291,7 +305,13 @@ class BankStatementsService {
     if (filters.search) {
       const rawSearch = String(filters.search).trim();
       if (rawSearch) {
-        const q = `%${rawSearch}%`;
+        // Escaped string for SQL LIKE pattern
+        const escapedSearch = rawSearch.replace(/\\/g, '\\\\');
+        const q = `%${escapedSearch}%`;
+        const qSlashToBackslash = `%${rawSearch.replace(/\//g, '\\').replace(/\\/g, '\\\\')}%`;
+        const qBackslashToSlash = `%${rawSearch.replace(/\\/g, '/')}%`;
+        const qWildcardSlash = `%${rawSearch.replace(/[\/\\]/g, '%')}%`;
+
         const cleanDigits = rawSearch.replace(/[^0-9]/g, '');
         const searchAmount = cleanDigits ? parseFloat(cleanDigits) : null;
 
@@ -310,7 +330,12 @@ class BankStatementsService {
         query = query.where(function() {
           this.where('bank_statements.description', 'like', q)
             .orWhere('bank_statements.journal_number', 'like', q)
+            .orWhere('bank_statements.journal_number', 'like', qSlashToBackslash)
+            .orWhere('bank_statements.journal_number', 'like', qBackslashToSlash)
+            .orWhere('bank_statements.journal_number', 'like', qWildcardSlash)
+            .orWhere('bank_statements.description', 'like', qWildcardSlash)
             .orWhere('bank_statements.reconciliation_notes', 'like', q)
+            .orWhere('bank_statements.import_batch_id', 'like', q)
             .orWhere('cash_accounts.name', 'like', q)
             .orWhere('cash_accounts.bank_name', 'like', q)
             .orWhere('cash_accounts.bank_account_number', 'like', q)
@@ -328,7 +353,10 @@ class BankStatementsService {
                 .join('bill_payments', 'bank_statement_references.reference_id', 'bill_payments.id')
                 .whereRaw('bank_statement_references.bank_statement_id = bank_statements.id')
                 .andWhere('bank_statement_references.reference_type', 'student_bill_payment')
-                .andWhere('bill_payments.receipt_number', 'like', q);
+                .andWhere(function() {
+                  this.where('bill_payments.receipt_number', 'like', q)
+                    .orWhere('bill_payments.receipt_number', 'like', qSlashToBackslash);
+                });
             })
             // Expenses (proof_number, item_name)
             .orWhereExists(function() {
@@ -372,6 +400,11 @@ class BankStatementsService {
                     .orWhere('payroll_disbursements.period_month', 'like', q);
                 });
             });
+
+          // Match by raw statement ID if numeric
+          if (/^\d+$/.test(rawSearch)) {
+            this.orWhere('bank_statements.id', parseInt(rawSearch, 10));
+          }
 
           // If matched students found, also match bank statements linked to bill payments of these students
           if (matchedStudentIds.length > 0) {
@@ -433,7 +466,11 @@ class BankStatementsService {
     // Available distinct years from bank_statements
     let yearsQuery = db('bank_statements');
     if (targetUnit) {
-      yearsQuery = yearsQuery.where('school_unit_id', targetUnit);
+      yearsQuery = yearsQuery.where(function() {
+        this.where('school_unit_id', targetUnit)
+          .orWhere('school_unit_id', 0)
+          .orWhereNull('school_unit_id');
+      });
     }
     const yearsResult = await yearsQuery
       .select(db.raw('DISTINCT YEAR(transaction_date) as yr'))
@@ -1038,6 +1075,7 @@ class BankStatementsService {
     await db('bank_statements')
       .where({ id })
       .update({
+        transaction_date: statement.transaction_date,
         is_reconciled: isFullyReconciled,
         reconciled_reference_type: reference_type,
         reconciled_reference_id: reference_id,
@@ -1115,6 +1153,7 @@ class BankStatementsService {
     await db('bank_statements')
       .where({ id })
       .update({
+        transaction_date: statement.transaction_date,
         is_reconciled: isFullyReconciled,
         reconciled_reference_type: lastRef ? lastRef.reference_type : null,
         reconciled_reference_id: lastRef ? lastRef.reference_id : null,

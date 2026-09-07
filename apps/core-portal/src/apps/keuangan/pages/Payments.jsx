@@ -91,6 +91,8 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
   if (!receipt) return;
 
   const receiptNo = receipt.receipt_number || `KWT-${Date.now()}`;
+  const schoolUnitName = receipt.school_unit?.name || unitName || 'Satuan Pendidikan Aldepos';
+  const schoolUnitAddress = receipt.school_unit?.address || 'Jl. Abdul Fatah No.24, Tapos II, Kec. Tenjolaya, Kabupaten Bogor, Jawa Barat 16370';
   const studentName = receipt.student?.name || receipt.student_name || '-';
   const studentNis = receipt.student?.nis || receipt.nis || '-';
   const studentClass = receipt.student?.class_name || receipt.class_name || '-';
@@ -101,7 +103,9 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
   const items = receipt.items && receipt.items.length > 0 ? receipt.items : [
     {
       fee_type_name: receipt.payment_for || receipt.fee_type_name || 'Pembayaran Tagihan Siswa',
-      period: receipt.period_month ? `${MONTH_NAMES[receipt.period_month] || receipt.period_month} ${receipt.period_year || ''}` : '',
+      period: (receipt.period_month && Number(receipt.period_month) > 0)
+        ? `${MONTH_NAMES[receipt.period_month] || receipt.period_month} ${receipt.academic_year_name || receipt.period_year || ''}`.trim()
+        : (receipt.academic_year_name || receipt.period_year || '-'),
       amount: totalAmount
     }
   ];
@@ -127,7 +131,7 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
         .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 36px; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; }
         .brand h1 { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
-        .brand p { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .brand p { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.4; }
         .receipt-badge { text-align: right; }
         .badge-title { font-size: 16px; font-weight: 800; color: ${isHistorical ? '#d97706' : '#0284c7'}; }
         .badge-no { font-family: monospace; font-size: 13px; font-weight: 700; color: #334155; margin-top: 3px; }
@@ -160,7 +164,7 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
         .sign-box { text-align: right; font-size: 11px; }
         .sign-date { color: #64748b; }
         .sign-role { font-weight: 700; color: #0f172a; margin-top: 2px; }
-        .sign-name { margin-top: 48px; font-weight: 800; text-decoration: underline; color: #0f172a; }
+        .sign-name { margin-top: 48px; font-weight: 800; color: #0f172a; letter-spacing: 2px; }
 
         .print-btn-bar { display: flex; justify-content: center; gap: 10px; margin-top: 24px; }
         .btn { padding: 8px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
@@ -178,12 +182,11 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
       <div class="container">
         <div class="header">
           <div class="brand">
-            <h1>ALDEPOS ISLAMIC BOARDING SCHOOL</h1>
-            <p>${unitName} &bull; Sistem Informasi Manajemen Keuangan Terpadu</p>
-            <p>Jl. Raya Aldepos, Bogor, Jawa Barat</p>
+            <h1>${schoolUnitName}</h1>
+            <p>${schoolUnitAddress}</p>
           </div>
           <div class="receipt-badge">
-            <div class="badge-title">${isHistorical ? 'KWITANSI CATATAN RIWAYAT (NON-KAS)' : 'KWITANSI RESMI'}</div>
+            <div class="badge-title">${isHistorical ? 'KWITANSI CATATAN RIWAYAT (NON-KAS)' : 'KWITANSI PEMBAYARAN RESMI'}</div>
             <div class="badge-no">${receiptNo}</div>
           </div>
         </div>
@@ -230,7 +233,7 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
             <tr>
               <th style="width: 40px;">No</th>
               <th>Komponen Tagihan & Keterangan</th>
-              <th style="width: 130px;">Periode</th>
+              <th style="width: 140px;">Periode</th>
               <th class="text-right" style="width: 160px;">Nominal (Rp)</th>
             </tr>
           </thead>
@@ -239,7 +242,7 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
               <tr>
                 <td>${idx + 1}</td>
                 <td style="font-weight: 600;">
-                  ${it.student_name ? `<span style="display:inline-block; font-size:11px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:4px; margin-bottom:3px; font-weight:700;">👤 ${it.student_name}${it.student_nis ? ` (${it.student_nis})` : ''}</span><br/>` : ''}
+                  ${it.student_name ? `<span style="display:inline-block; font-size:11px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:4px; margin-bottom:3px; font-weight:700;">👤 ${it.student_name}${it.student_nis ? ` (${it.student_nis})` : ''}${it.class_name ? ` - ${it.class_name}` : ''}</span><br/>` : ''}
                   ${it.fee_type_name || it.component_name || 'Tagihan Biaya'}
                 </td>
                 <td>${it.period || '-'}</td>
@@ -270,7 +273,7 @@ export function openReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldep
           <div class="sign-box">
             <div class="sign-date">Bogor, ${paidDate}</div>
             <div class="sign-role">Petugas Keuangan / Kasir,</div>
-            <div class="sign-name">Bendahara Satuan Pendidikan</div>
+            <div class="sign-name">................................................</div>
           </div>
         </div>
 
@@ -315,6 +318,8 @@ export default function Payments() {
 
   // 1. Tagihan Pembayaran Siswa Aktif States
   const [billsList, setBillsList] = useState([]);
+  const [priorArrearsList, setPriorArrearsList] = useState([]);
+  const [billsOriginFilter, setBillsOriginFilter] = useState('current'); // 'current' | 'all' | 'prior_arrears'
   const [billsSearch, setBillsSearch] = useState('');
   const [billsStatusFilter, setBillsStatusFilter] = useState('all');
   const [billsClassFilter, setBillsClassFilter] = useState('all');
@@ -366,8 +371,10 @@ export default function Payments() {
   const [bankStatementId, setBankStatementId] = useState('');
   const [bankStatementsOptions, setBankStatementsOptions] = useState([]);
   const [loadingBankStatements, setLoadingBankStatements] = useState(false);
+  const [blockedStatementModal, setBlockedStatementModal] = useState(null);
   const [paymentNotes, setPaymentNotes] = useState('');
   const [studentBillsForRecord, setStudentBillsForRecord] = useState([]);
+  const [recordBillsSearch, setRecordBillsSearch] = useState('');
   const [billAllocations, setBillAllocations] = useState({});
   const [billRuleOverrides, setBillRuleOverrides] = useState({});
   const [loadingStudentBills, setLoadingStudentBills] = useState(false);
@@ -396,14 +403,24 @@ export default function Payments() {
   // 5. Modal Edit Koreksi States
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedPaymentToEdit, setSelectedPaymentToEdit] = useState(null);
+  const [loadingEditDetails, setLoadingEditDetails] = useState(false);
   const [editForm, setEditForm] = useState({
     amount: '',
     paid_at: '',
     cash_account_id: '',
     payment_method: 'cash',
+    is_historical: false,
     notes: '',
-    correction_reason: ''
+    correction_reason: '',
+    bank_statement_id: '',
+    transaction_mapping_id: '',
+    override_debit_account_id: '',
+    override_credit_account_id: '',
+    override_cash_account_id: ''
   });
+  const [editBankStatementsOptions, setEditBankStatementsOptions] = useState([]);
+  const [loadingEditBankStatements, setLoadingEditBankStatements] = useState(false);
+  const [showEditAccountingOverride, setShowEditAccountingOverride] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Kwitansi Modal
@@ -495,12 +512,18 @@ export default function Payments() {
         ayParams.satuan_pendidikan_id = activeSchoolUnit.id;
       }
 
-      const [ayRes, cashRes, rulesRes, coaRes, ftRes] = await Promise.allSettled([
+      let stdParams = { limit: 1000 };
+      if (activeSchoolUnit && activeSchoolUnit.id !== 'all' && !activeSchoolUnit.is_foundation) {
+        stdParams.satuan_pendidikan_id = activeSchoolUnit.id;
+      }
+
+      const [ayRes, cashRes, rulesRes, coaRes, ftRes, stdRes] = await Promise.allSettled([
         api.get('/akademik/academic-years', { params: ayParams }),
         api.get('/keuangan/cash-accounts'),
         api.get('/keuangan/transaction-account-mappings'),
         api.get('/keuangan/chart-of-accounts'),
-        api.get('/keuangan/fee-types')
+        api.get('/keuangan/fee-types'),
+        api.get('/akademik/students', { params: stdParams })
       ]);
 
       let yearsList = [];
@@ -572,6 +595,22 @@ export default function Payments() {
       if (ftRes.status === 'fulfilled') {
         setFeeTypes(ftRes.value.data?.data || (Array.isArray(ftRes.value.data) ? ftRes.value.data : []));
       }
+
+      // Students
+      if (stdRes.status === 'fulfilled' && stdRes.value?.data) {
+        const rawStudents = stdRes.value.data?.data || (Array.isArray(stdRes.value.data) ? stdRes.value.data : []);
+        const formatted = rawStudents.map(s => ({
+          id: s.id,
+          name: s.full_name || s.name || `Siswa #${s.id}`,
+          nis: s.nipd || s.nis || s.nisn || '-',
+          class_name: s.class_name || s.class_group_name || ''
+        }));
+        setAllStudents(prev => {
+          const map = new Map(prev.map(item => [item.id, item]));
+          formatted.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
     } catch (err) {
       console.error('Error fetching master context:', err);
     }
@@ -635,6 +674,30 @@ export default function Payments() {
       };
     });
   }, [paymentRulesOptions, chartOfAccounts]);
+
+  const editCashAccountOptions = useMemo(() => {
+    return cashAccounts
+      .filter(a => editForm.payment_method === 'cash' ? true : a.account_kind === 'bank')
+      .map(a => ({
+        value: String(a.id),
+        label: a.name,
+        sublabel: `${a.account_kind === 'bank' ? (a.bank_name || 'Bank') : 'Kas Tunai'} | No: ${a.bank_account_number || a.account_number || '-'}`,
+        badge: a.account_kind === 'bank' ? 'BANK' : 'TUNAI',
+        badgeClass: a.account_kind === 'bank' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      }));
+  }, [cashAccounts, editForm.payment_method]);
+
+  const editActiveDebitCoa = useMemo(() => {
+    const id = editForm.override_debit_account_id ||
+      (transactionRules.find(r => String(r.id) === String(editForm.transaction_mapping_id))?.debit_account_id);
+    return chartOfAccounts.find(c => String(c.id) === String(id));
+  }, [editForm.override_debit_account_id, editForm.transaction_mapping_id, transactionRules, chartOfAccounts]);
+
+  const editActiveCreditCoa = useMemo(() => {
+    const id = editForm.override_credit_account_id ||
+      (transactionRules.find(r => String(r.id) === String(editForm.transaction_mapping_id))?.credit_account_id);
+    return chartOfAccounts.find(c => String(c.id) === String(id));
+  }, [editForm.override_credit_account_id, editForm.transaction_mapping_id, transactionRules, chartOfAccounts]);
 
   const getBillAccountingConfig = (bill) => {
     if (!bill) {
@@ -784,6 +847,33 @@ export default function Payments() {
     return studentBillsForRecord.filter(b => parseFloat(billAllocations[b.id] || 0) > 0);
   }, [studentBillsForRecord, billAllocations]);
 
+  const filteredStudentBillsForRecord = useMemo(() => {
+    if (!recordBillsSearch.trim()) return studentBillsForRecord;
+    const q = recordBillsSearch.toLowerCase().trim();
+    return studentBillsForRecord.filter((b) => {
+      const comp = (b.component_display || b.fee_type_name || '').toLowerCase();
+      const sName = (b.student_name || '').toLowerCase();
+      const nis = (b.nis || '').toLowerCase();
+      const code = (b.fee_type_code || '').toLowerCase();
+      const period = (b.period_display || b.period || '').toLowerCase();
+      const year = (b.academic_year_name || '').toLowerCase();
+      const notes = (b.notes || '').toLowerCase();
+      const amt = String(b.amount || '');
+      const rem = String(b.remaining_amount || '');
+      return (
+        comp.includes(q) ||
+        sName.includes(q) ||
+        nis.includes(q) ||
+        code.includes(q) ||
+        period.includes(q) ||
+        year.includes(q) ||
+        notes.includes(q) ||
+        amt.includes(q) ||
+        rem.includes(q)
+      );
+    });
+  }, [studentBillsForRecord, recordBillsSearch]);
+
   const detectedRule = useMemo(() => {
     if (overrideRuleId) {
       return transactionRules.find(r => String(r.id) === String(overrideRuleId)) || null;
@@ -831,21 +921,33 @@ export default function Payments() {
     overrideRuleId || overrideDebitAccountId || overrideCreditAccountId
   );
 
-  // 1. Fetch Student Bills (Siswa Aktif)
+  // 1. Fetch Student Bills (Siswa Aktif) & Tunggakan Tahun Ajaran Sebelumnya
   const fetchBillsData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/keuangan/student-bills', {
-        params: {
-          academic_year_id: activeAcademicYearId || undefined,
-          for_payments: true
-        }
-      });
-      const data = res.data?.data || [];
+      const [billsRes, arrearsRes] = await Promise.allSettled([
+        api.get('/keuangan/student-bills', {
+          params: {
+            academic_year_id: activeAcademicYearId || undefined,
+            exclude_arrears: true
+          }
+        }),
+        api.get('/keuangan/student-bills', {
+          params: {
+            academic_year_id: activeAcademicYearId || undefined,
+            prior_arrears_only: true
+          }
+        })
+      ]);
+
+      const data = (billsRes.status === 'fulfilled' && billsRes.value?.data?.data) || [];
+      const arrearsData = (arrearsRes.status === 'fulfilled' && arrearsRes.value?.data?.data) || [];
+
       setBillsList(data);
+      setPriorArrearsList(arrearsData);
 
       const studentMap = {};
-      data.forEach(b => {
+      [...data, ...arrearsData].forEach(b => {
         if (b.student_id && !studentMap[b.student_id]) {
           studentMap[b.student_id] = {
             id: b.student_id,
@@ -861,7 +963,7 @@ export default function Payments() {
         return Array.from(map.values());
       });
     } catch (err) {
-      console.error('Error fetching bills:', err);
+      console.error('Error fetching bills & arrears:', err);
     } finally {
       setLoading(false);
     }
@@ -1029,7 +1131,6 @@ export default function Payments() {
         params: {
           cash_account_id: accId,
           dc_type: 'credit',
-          is_reconciled: false,
           no_pagination: true,
           sort_by: 'transaction_date',
           sort_dir: 'desc'
@@ -1038,13 +1139,14 @@ export default function Payments() {
       const rows = res.data?.data?.statements || (Array.isArray(res.data?.data) ? res.data.data : []);
       const opts = rows.map(r => {
         const desc = r.description || r.mutation_description || 'Mutasi Masuk';
-        const refNo = r.reference_number || r.journal_number || '';
+        const refNo = r.journal_number || r.reference_number || r.reconciliation_notes || r.import_batch_id || '';
         const rkDate = r.transaction_date ? String(r.transaction_date).slice(0, 10) : '';
         const isExactDate = pDate && rkDate === pDate;
         const totalPlafon = parseFloat(r.amount || 0);
         const allocatedAmt = parseFloat(r.allocated_amount || 0);
         const remainingAmt = r.remaining_amount !== undefined ? parseFloat(r.remaining_amount) : Math.max(0, totalPlafon - allocatedAmt);
-        const isPartial = allocatedAmt > 0 && remainingAmt > 0.01;
+        const isFullyAllocated = Boolean(r.is_reconciled) || (remainingAmt <= 0.01 && totalPlafon > 0);
+        const isPartial = !isFullyAllocated && allocatedAmt > 0 && remainingAmt > 0.01;
 
         let badgeText = isExactDate ? '⭐ TGL COCOK' : 'KREDIT';
         let badgeStyle = isExactDate ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-blue-50 text-blue-700';
@@ -1054,14 +1156,40 @@ export default function Payments() {
           badgeStyle = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold';
         }
 
-        const labelText = isPartial
+        if (isFullyAllocated) {
+          badgeText = '⛔ HABIS TERPAKAI';
+          badgeStyle = 'bg-rose-100 text-rose-800 border border-rose-300 font-bold';
+        }
+
+        const labelText = isFullyAllocated
+          ? `[HABIS TERPAKAI] ${formatCurrency(totalPlafon)} - ${desc}`
+          : isPartial
           ? `Sisa: ${formatCurrency(remainingAmt)} (Plafon: ${formatCurrency(totalPlafon)}) - ${desc}`
           : `${formatCurrency(totalPlafon)} - ${desc}`;
+
+        const sublabelText = isFullyAllocated
+          ? `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | Plafon: ${formatCurrency(totalPlafon)} (Teralokasi Penuh: ${formatCurrency(allocatedAmt)}) • Saldo Sisa: Rp 0`
+          : `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | Plafon: ${formatCurrency(totalPlafon)}${allocatedAmt > 0 ? ` (Teralokasi: ${formatCurrency(allocatedAmt)})` : ''}`;
+
+        const searchTerms = [
+          refNo,
+          r.journal_number,
+          r.reference_number,
+          r.reconciliation_notes,
+          r.import_batch_id,
+          desc,
+          r.description,
+          r.mutation_description,
+          String(r.amount || ''),
+          String(totalPlafon),
+          String(remainingAmt),
+          rkDate
+        ].filter(Boolean);
 
         return {
           value: String(r.id),
           label: labelText,
-          sublabel: `Tgl: ${rkDate || '-'} ${refNo ? `| Ref: ${refNo}` : ''} | Plafon: ${formatCurrency(totalPlafon)}${allocatedAmt > 0 ? ` (Teralokasi: ${formatCurrency(allocatedAmt)})` : ''}`,
+          sublabel: sublabelText,
           badge: badgeText,
           badgeClass: badgeStyle,
           amount: totalPlafon,
@@ -1069,12 +1197,21 @@ export default function Payments() {
           remaining_amount: remainingAmt,
           rawDate: rkDate,
           desc: desc,
-          isExactDate
+          refNo: refNo,
+          journal_number: r.journal_number,
+          reference_number: r.reference_number,
+          searchTerms: searchTerms,
+          isExactDate,
+          disabled: isFullyAllocated,
+          isFullyAllocated: isFullyAllocated,
+          disabledReason: `Mutasi rekening koran (${desc}) sebesar ${formatCurrency(totalPlafon)} sudah habis terpakai (teralokasi penuh ${formatCurrency(allocatedAmt)}). Tidak dapat dipilih untuk pembayaran baru.`
         };
       });
 
-      // Sort: Exact date match first, then by date descending
+      // Sort: Active ones first (exact date first, then other dates), then disabled/fully used ones at the bottom
       opts.sort((a, b) => {
+        if (!a.disabled && b.disabled) return -1;
+        if (a.disabled && !b.disabled) return 1;
         if (a.isExactDate && !b.isExactDate) return -1;
         if (!a.isExactDate && b.isExactDate) return 1;
         return (b.rawDate || '').localeCompare(a.rawDate || '');
@@ -1095,6 +1232,7 @@ export default function Payments() {
     setSelectedStudentIds(studentId ? [String(studentId)] : []);
     setBillAllocations({});
     setBillRuleOverrides({});
+    setRecordBillsSearch('');
     if (!studentId) {
       setStudentBillsForRecord([]);
       return;
@@ -1103,10 +1241,12 @@ export default function Payments() {
     setLoadingStudentBills(true);
     try {
       const studentObj = allStudents.find(s => String(s.id) === String(studentId));
-      // Memuat seluruh tagihan belum lunas milik siswa (baik aktif maupun alumni)
+      // Memuat tagihan siswa untuk tahun ajaran terpilih + tunggakan tahun sebelumnya yang belum lunas
       const res = await api.get('/keuangan/student-bills', {
         params: {
-          student_id: studentId
+          student_id: studentId,
+          academic_year_id: activeAcademicYearId || undefined,
+          for_payments: true
         }
       });
       const allBills = (res.data?.data || []).map(b => ({
@@ -1140,7 +1280,9 @@ export default function Payments() {
       const studentObj = allStudents.find(s => String(s.id) === String(studentId));
       const res = await api.get('/keuangan/student-bills', {
         params: {
-          student_id: studentId
+          student_id: studentId,
+          academic_year_id: activeAcademicYearId || undefined,
+          for_payments: true
         }
       });
       const newBills = (res.data?.data || []).map(b => ({
@@ -1198,6 +1340,7 @@ export default function Payments() {
     setBillRuleOverrides({});
     setBillRuleCustomConfigs({});
     setEditingBillRule(null);
+    setRecordBillsSearch('');
 
     // Reset accounting overrides
     setShowAccountingOverride(false);
@@ -1386,40 +1529,237 @@ export default function Payments() {
     }
   };
 
-  // Open Edit Modal
-  const handleOpenEditModal = async (payment) => {
-    setSelectedPaymentToEdit(payment);
+  // Fetch Bank Statements for Edit Modal
+  const fetchEditBankStatements = async (accId, pDate, currentBsId = '') => {
+    if (!accId) {
+      setEditBankStatementsOptions([]);
+      return;
+    }
+    setLoadingEditBankStatements(true);
     try {
-      setEditForm({
-        amount: payment.amount,
-        paid_at: payment.paid_at_formatted || String(payment.paid_at).slice(0, 10),
-        cash_account_id: String(payment.cash_account_id),
-        payment_method: payment.payment_method || 'cash',
-        notes: payment.notes || '',
-        correction_reason: ''
+      const res = await api.get('/keuangan/bank-statements', {
+        params: {
+          cash_account_id: accId,
+          dc_type: 'credit',
+          no_pagination: true,
+          sort_by: 'transaction_date',
+          sort_dir: 'desc'
+        }
       });
-      setEditModalOpen(true);
+      const rows = res.data?.data?.statements || (Array.isArray(res.data?.data) ? res.data.data : []);
+      
+      const opts = rows.map(r => {
+        const desc = r.description || r.mutation_description || 'Mutasi Masuk';
+        const refNo = r.journal_number || r.reference_number || r.reconciliation_notes || r.import_batch_id || '';
+        const rkDate = r.transaction_date ? String(r.transaction_date).slice(0, 10) : '';
+        const isExactDate = pDate && rkDate === pDate;
+        const isCurrentLinked = String(r.id) === String(currentBsId);
+        const totalPlafon = parseFloat(r.amount || 0);
+        const allocatedAmt = parseFloat(r.allocated_amount || 0);
+        const remainingAmt = r.remaining_amount !== undefined ? parseFloat(r.remaining_amount) : Math.max(0, totalPlafon - allocatedAmt);
+        const isFullyAllocated = Boolean(r.is_reconciled) || (remainingAmt <= 0.01 && totalPlafon > 0);
+        const isPartial = !isFullyAllocated && allocatedAmt > 0 && remainingAmt > 0.01;
+
+        let badgeText = isCurrentLinked ? '📌 LINKED SAAT INI' : (isExactDate ? '⭐ TGL COCOK' : 'KREDIT');
+        let badgeStyle = isCurrentLinked ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold' : (isExactDate ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-blue-50 text-blue-700');
+
+        if (!isCurrentLinked && isPartial) {
+          badgeText = isExactDate ? '⭐ TGL COCOK | SISA' : '⚡ SISA PLAFON';
+          badgeStyle = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold';
+        }
+
+        if (!isCurrentLinked && isFullyAllocated) {
+          badgeText = '⛔ HABIS TERPAKAI';
+          badgeStyle = 'bg-rose-100 text-rose-800 border border-rose-300 font-bold';
+        }
+
+        const labelText = (!isCurrentLinked && isFullyAllocated)
+          ? `[HABIS TERPAKAI] ${formatCurrency(totalPlafon)} - ${desc}`
+          : isPartial
+          ? `Sisa: ${formatCurrency(remainingAmt)} (Plafon: ${formatCurrency(totalPlafon)}) - ${desc}`
+          : `${formatCurrency(totalPlafon)} - ${desc}`;
+
+        const sublabelText = (!isCurrentLinked && isFullyAllocated)
+          ? `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | Plafon: ${formatCurrency(totalPlafon)} (Teralokasi Penuh: ${formatCurrency(allocatedAmt)}) • Saldo Sisa: Rp 0`
+          : `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | Plafon: ${formatCurrency(totalPlafon)}${allocatedAmt > 0 ? ` (Teralokasi: ${formatCurrency(allocatedAmt)})` : ''}`;
+
+        const searchTerms = [
+          refNo,
+          r.journal_number,
+          r.reference_number,
+          r.reconciliation_notes,
+          r.import_batch_id,
+          desc,
+          r.description,
+          r.mutation_description,
+          String(r.amount || ''),
+          String(totalPlafon),
+          String(remainingAmt),
+          rkDate
+        ].filter(Boolean);
+
+        return {
+          value: String(r.id),
+          label: labelText,
+          sublabel: sublabelText,
+          badge: badgeText,
+          badgeClass: badgeStyle,
+          amount: totalPlafon,
+          allocated_amount: allocatedAmt,
+          remaining_amount: remainingAmt,
+          rawDate: rkDate,
+          desc: desc,
+          refNo: refNo,
+          journal_number: r.journal_number,
+          reference_number: r.reference_number,
+          searchTerms: searchTerms,
+          isExactDate,
+          isCurrentLinked,
+          disabled: isFullyAllocated && !isCurrentLinked,
+          isFullyAllocated: isFullyAllocated && !isCurrentLinked,
+          disabledReason: `Mutasi rekening koran (${desc}) sebesar ${formatCurrency(totalPlafon)} sudah habis terpakai (teralokasi penuh ${formatCurrency(allocatedAmt)}). Tidak dapat dipilih.`
+        };
+      });
+
+      opts.sort((a, b) => {
+        if (a.isCurrentLinked && !b.isCurrentLinked) return -1;
+        if (!a.isCurrentLinked && b.isCurrentLinked) return 1;
+        if (!a.disabled && b.disabled) return -1;
+        if (a.disabled && !b.disabled) return 1;
+        if (a.isExactDate && !b.isExactDate) return -1;
+        if (!a.isExactDate && b.isExactDate) return 1;
+        return (b.rawDate || '').localeCompare(a.rawDate || '');
+      });
+
+      setEditBankStatementsOptions(opts);
     } catch (err) {
-      alert('Gagal mengambil data pembayaran');
+      console.error('Error fetching edit bank statements:', err);
+      setEditBankStatementsOptions([]);
+    } finally {
+      setLoadingEditBankStatements(false);
     }
   };
 
+  // Open Edit Modal
+  const handleOpenEditModal = async (payment) => {
+    setSelectedPaymentToEdit(payment);
+    setShowEditAccountingOverride(false);
+    setEditModalOpen(true);
+    setLoadingEditDetails(true);
+
+    try {
+      const res = await api.get(`/keuangan/bill-payments/${payment.id}`);
+      const pData = res.data?.data || payment;
+      setSelectedPaymentToEdit(pData);
+
+      const paidIso = pData.paid_at_formatted || (pData.paid_at ? String(pData.paid_at).slice(0, 10) : new Date().toISOString().slice(0, 10));
+      const cashAccId = pData.cash_account_id ? String(pData.cash_account_id) : (cashAccounts.length > 0 ? String(cashAccounts[0].id) : '');
+      const method = pData.payment_method || 'cash';
+      const bsId = pData.bank_statement_id ? String(pData.bank_statement_id) : '';
+
+      let initialRuleId = pData.transaction_mapping_id ? String(pData.transaction_mapping_id) : '';
+      if (!initialRuleId && pData.fee_type_id) {
+        const ft = feeTypes.find(f => f.id === pData.fee_type_id);
+        if (ft && ft.payment_account_mapping_id) {
+          initialRuleId = String(ft.payment_account_mapping_id);
+        }
+      }
+      if (!initialRuleId) {
+        const defaultRule = transactionRules.find(r => r.transaction_code === 'student_bill_payment') || paymentRulesOptions[0];
+        if (defaultRule) initialRuleId = String(defaultRule.id);
+      }
+
+      const initialDebitCoa = pData.journal_debit_account_id ? String(pData.journal_debit_account_id) : '';
+      const initialCreditCoa = pData.journal_credit_account_id ? String(pData.journal_credit_account_id) : '';
+
+      setEditForm({
+        amount: pData.amount !== undefined ? String(pData.amount) : '',
+        paid_at: paidIso,
+        cash_account_id: cashAccId,
+        payment_method: method,
+        is_historical: Boolean(pData.is_legacy),
+        notes: pData.notes || '',
+        correction_reason: '',
+        bank_statement_id: bsId,
+        transaction_mapping_id: initialRuleId,
+        override_debit_account_id: initialDebitCoa,
+        override_credit_account_id: initialCreditCoa,
+        override_cash_account_id: ''
+      });
+
+      if (method === 'bank_transfer' && cashAccId) {
+        fetchEditBankStatements(cashAccId, paidIso, bsId);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil detail pembayaran:', err);
+      setEditForm({
+        amount: String(payment.amount || ''),
+        paid_at: payment.paid_at_formatted || String(payment.paid_at).slice(0, 10),
+        cash_account_id: String(payment.cash_account_id || (cashAccounts[0]?.id || '')),
+        payment_method: payment.payment_method || 'cash',
+        is_historical: Boolean(payment.is_legacy),
+        notes: payment.notes || '',
+        correction_reason: '',
+        bank_statement_id: payment.bank_statement_id ? String(payment.bank_statement_id) : '',
+        transaction_mapping_id: '',
+        override_debit_account_id: '',
+        override_credit_account_id: '',
+        override_cash_account_id: ''
+      });
+    } finally {
+      setLoadingEditDetails(false);
+    }
+  };
+
+  const handleEditRuleChange = (newRuleId) => {
+    const r = transactionRules.find(item => String(item.id) === String(newRuleId));
+    setEditForm(prev => ({
+      ...prev,
+      transaction_mapping_id: newRuleId || '',
+      override_debit_account_id: r?.debit_account_id ? String(r.debit_account_id) : prev.override_debit_account_id,
+      override_credit_account_id: r?.credit_account_id ? String(r.credit_account_id) : prev.override_credit_account_id,
+      override_cash_account_id: r?.cash_account_id ? String(r.cash_account_id) : prev.override_cash_account_id
+    }));
+  };
+
   // Submit Edit Koreksi Pembayaran
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
+  const handleSaveEdit = async (andPrintReceipt = false) => {
     if (!editForm.correction_reason.trim()) {
       alert('Alasan koreksi wajib diisi untuk menjaga integritas audit transaksi.');
+      return;
+    }
+    const numAmount = parseFloat(editForm.amount);
+    if (isNaN(numAmount) || numAmount < 0) {
+      alert('Nominal pembayaran harus berupa angka valid.');
       return;
     }
 
     setSavingEdit(true);
     try {
-      await api.patch(`/keuangan/bill-payments/${selectedPaymentToEdit.id}`, editForm);
+      const payload = {
+        amount: numAmount,
+        paid_at: editForm.paid_at,
+        cash_account_id: editForm.is_historical ? null : (editForm.cash_account_id || null),
+        payment_method: editForm.is_historical ? 'cash' : editForm.payment_method,
+        notes: editForm.notes,
+        correction_reason: editForm.correction_reason.trim(),
+        bank_statement_id: (!editForm.is_historical && editForm.payment_method === 'bank_transfer' && editForm.bank_statement_id) ? editForm.bank_statement_id : null,
+        transaction_mapping_id: editForm.transaction_mapping_id || null,
+        override_debit_account_id: editForm.override_debit_account_id || null,
+        override_credit_account_id: editForm.override_credit_account_id || null,
+        override_cash_account_id: editForm.override_cash_account_id || null
+      };
+
+      await api.patch(`/keuangan/bill-payments/${selectedPaymentToEdit.id}`, payload);
       alert('Koreksi pembayaran berhasil disimpan & dicatat ke riwayat audit!');
       setEditModalOpen(false);
       fetchPaymentHistoryData();
       fetchBillsData();
       fetchAlumniBillsData();
+
+      if (andPrintReceipt) {
+        handleViewAndPrintReceipt(selectedPaymentToEdit.id, true);
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal mengoreksi pembayaran');
     } finally {
@@ -1456,6 +1796,13 @@ export default function Payments() {
     return ['all', ...new Set(list)];
   }, [alumniBillsList]);
 
+  // Combined Bills for Table Display based on Origin Filter
+  const combinedBillsList = useMemo(() => {
+    if (billsOriginFilter === 'current') return billsList;
+    if (billsOriginFilter === 'prior_arrears') return priorArrearsList;
+    return [...billsList, ...priorArrearsList];
+  }, [billsOriginFilter, billsList, priorArrearsList]);
+
   // Distinct Fee Types Options for Component Filter
   const feeTypeFilterOptions = useMemo(() => {
     const map = new Map();
@@ -1464,7 +1811,7 @@ export default function Payments() {
         map.set(String(ft.id), ft.name);
       }
     });
-    billsList.forEach((b) => {
+    [...billsList, ...priorArrearsList].forEach((b) => {
       if (b.fee_type_id && (b.fee_type_name || b.component_display)) {
         map.set(String(b.fee_type_id), b.component_display || b.fee_type_name);
       }
@@ -1480,11 +1827,11 @@ export default function Payments() {
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [feeTypes, billsList, alumniBillsList, paymentHistoryList]);
+  }, [feeTypes, billsList, priorArrearsList, alumniBillsList, paymentHistoryList]);
 
   // Filtered Bills List (Active Students)
   const filteredBills = useMemo(() => {
-    let list = billsList.filter(b => {
+    let list = combinedBillsList.filter(b => {
       if (billsStatusFilter !== 'all') {
         if (billsStatusFilter === 'unpaid' && b.status !== 'unpaid') return false;
         if (billsStatusFilter === 'partially_paid' && b.status !== 'partially_paid') return false;
@@ -1552,7 +1899,7 @@ export default function Payments() {
     }
 
     return list;
-  }, [billsList, billsStatusFilter, billsClassFilter, billsFeeTypeFilter, billsSearch, billsSortConfig]);
+  }, [combinedBillsList, billsStatusFilter, billsClassFilter, billsFeeTypeFilter, billsSearch, billsSortConfig]);
 
   // Filtered Alumni Bills List
   const filteredAlumniBills = useMemo(() => {
@@ -1618,7 +1965,7 @@ export default function Payments() {
     });
   }, [paymentHistoryList, historyFeeTypeFilter, historySearch]);
 
-  // Summary Metrics Active Students
+  // Summary Metrics Active Students (Tahun Ajaran Terkait)
   const billsSummary = useMemo(() => {
     const totalAmount = billsList.reduce((acc, b) => acc + parseFloat(b.amount || 0), 0);
     const totalPaid = billsList.reduce((acc, b) => acc + parseFloat(b.total_paid || 0), 0);
@@ -1626,6 +1973,15 @@ export default function Payments() {
     const unpaidCount = billsList.filter(b => b.status !== 'paid').length;
     return { totalAmount, totalPaid, totalRemaining, unpaidCount };
   }, [billsList]);
+
+  // Summary Metrics Tunggakan Tahun Ajaran Sebelumnya
+  const priorArrearsSummary = useMemo(() => {
+    const totalAmount = priorArrearsList.reduce((acc, b) => acc + parseFloat(b.amount || 0), 0);
+    const totalPaid = priorArrearsList.reduce((acc, b) => acc + parseFloat(b.total_paid || 0), 0);
+    const totalRemaining = priorArrearsList.reduce((acc, b) => acc + parseFloat(b.remaining_amount || 0), 0);
+    const unpaidCount = priorArrearsList.filter(b => b.status !== 'paid').length;
+    return { totalAmount, totalPaid, totalRemaining, unpaidCount };
+  }, [priorArrearsList]);
 
   // Summary Metrics Alumni
   const alumniSummary = useMemo(() => {
@@ -1840,27 +2196,55 @@ export default function Payments() {
           {/* ============================================================== */}
           {receiptSubTab === 'bills' && (
             <div className="space-y-4">
-              {/* Macro Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Macro Summary Cards (5 Cards: Tagihan T.A. Terkait, Sudah Diterima, Sisa Piutang Berjalan, Tunggakan T.A. Lalu, Total Kewajiban) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* 1. Tagihan Terbit T.A. Terkait Saja */}
                 <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Tagihan Terbit</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tagihan Terbit (T.A. Ini)</span>
+                    <span className="px-1.5 py-0.2 bg-blue-50 text-blue-700 font-bold rounded text-[9.5px]">
+                      {activeAyObj?.name || 'T.A. Aktif'}
+                    </span>
+                  </div>
                   <p className="text-lg font-black text-slate-900 mt-1 font-mono">{formatCurrency(billsSummary.totalAmount)}</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{billsList.length} baris tagihan</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{billsList.length} baris tagihan terbit</p>
                 </div>
+
+                {/* 2. Sudah Diterima T.A. Terkait */}
                 <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 shadow-2xs">
-                  <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Sudah Diterima</span>
+                  <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Sudah Diterima (T.A. Ini)</span>
                   <p className="text-lg font-black text-emerald-700 mt-1 font-mono">{formatCurrency(billsSummary.totalPaid)}</p>
                   <p className="text-[11px] text-emerald-600 mt-0.5">Tercatat di kasir & bank</p>
                 </div>
+
+                {/* 3. Sisa Piutang Berjalan T.A. Terkait */}
                 <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200/80 shadow-2xs">
-                  <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Sisa Piutang</span>
+                  <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Sisa Piutang (T.A. Ini)</span>
                   <p className="text-lg font-black text-rose-700 mt-1 font-mono">{formatCurrency(billsSummary.totalRemaining)}</p>
-                  <p className="text-[11px] text-rose-600 mt-0.5">Belum dibayarkan</p>
+                  <p className="text-[11px] text-rose-600 mt-0.5">{billsSummary.unpaidCount} tagihan belum lunas</p>
                 </div>
+
+                {/* 4. Tunggakan Tahun Ajaran Sebelumnya */}
                 <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 shadow-2xs">
-                  <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Tagihan Menunggak</span>
-                  <p className="text-lg font-black text-amber-900 mt-1">{billsSummary.unpaidCount} Tagihan</p>
-                  <p className="text-[11px] text-amber-700 mt-0.5">Perlu tindak lanjut loket</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Tunggakan T.A. Lalu</span>
+                    {priorArrearsSummary.unpaidCount > 0 && (
+                      <span className="px-1.5 py-0.2 bg-amber-200 text-amber-900 font-extrabold rounded text-[9.5px]">
+                        {priorArrearsSummary.unpaidCount} Tagihan
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg font-black text-amber-900 mt-1 font-mono">{formatCurrency(priorArrearsSummary.totalRemaining)}</p>
+                  <p className="text-[11px] text-amber-700 mt-0.5">Sisa belum terbayar siswa aktif</p>
+                </div>
+
+                {/* 5. Total Akumulasi Kewajiban Piutang Siswa */}
+                <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200/80 shadow-2xs">
+                  <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider">Total Kewajiban Siswa</span>
+                  <p className="text-lg font-black text-indigo-900 mt-1 font-mono">
+                    {formatCurrency(billsSummary.totalRemaining + priorArrearsSummary.totalRemaining)}
+                  </p>
+                  <p className="text-[11px] text-indigo-700 mt-0.5">Piutang T.A. Ini + Tunggakan Lalu</p>
                 </div>
               </div>
 
@@ -1880,6 +2264,17 @@ export default function Payments() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    {/* Origin Switcher (T.A. Ini / Tunggakan Lalu / Semua) */}
+                    <select
+                      value={billsOriginFilter}
+                      onChange={(e) => setBillsOriginFilter(e.target.value)}
+                      className="px-3 py-2 bg-blue-50/80 border border-blue-200 rounded-xl text-xs font-bold text-blue-800 cursor-pointer shadow-2xs"
+                    >
+                      <option value="current">Tagihan T.A. {activeAyObj?.name || 'Ini'} ({billsList.length})</option>
+                      <option value="prior_arrears">Tunggakan T.A. Lalu ({priorArrearsList.length})</option>
+                      <option value="all">Semua ({billsList.length + priorArrearsList.length})</option>
+                    </select>
+
                     <select
                       value={billsStatusFilter}
                       onChange={(e) => setBillsStatusFilter(e.target.value)}
@@ -2937,16 +3332,29 @@ export default function Payments() {
       {/* ============================================================== */}
       {recordModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-5xl w-full my-auto shadow-2xl border border-slate-100 p-6 space-y-5 max-h-[92vh] flex flex-col justify-between">
+          <div className="bg-white rounded-3xl max-w-6xl xl:max-w-7xl w-full my-auto shadow-2xl border border-slate-100 p-6 space-y-5 max-h-[92vh] flex flex-col justify-between">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 shrink-0">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <span className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
                   <CreditCard className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">Pencatatan Pembayaran Tagihan Siswa</h3>
-                  <p className="text-xs text-slate-500">Pilih siswa, masukkan total bayar, dan tentukan alokasi rincian pos tagihan</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-slate-800 text-base">Pencatatan Pembayaran Tagihan Siswa</h3>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                      <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                      Tahun Ajaran: {activeAyObj?.name || 'Semua'}
+                      {activeAyObj?.is_active ? (
+                        <span className="ml-1 px-1.5 py-0.2 bg-emerald-600 text-white rounded text-[10px] font-semibold">Aktif</span>
+                      ) : (
+                        <span className="ml-1 px-1.5 py-0.2 bg-slate-500 text-white rounded text-[10px] font-semibold">Arsip</span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Konteks Tahun Ajaran: <strong>T.A. {activeAyObj?.name || '-'}</strong> &bull; Memuat tagihan berjalan dan tunggakan tahun sebelumnya yang belum lunas (tagihan tahun setelahnya tidak ditampilkan).
+                  </p>
                 </div>
               </div>
               <button
@@ -3188,12 +3596,13 @@ export default function Payments() {
                               }
                             }
                           }}
+                          onDisabledSelect={(opt) => setBlockedStatementModal(opt)}
                           placeholder="-- Pilih Rekening Koran Terkait --"
                           searchPlaceholder="Ketik nominal, no. ref, atau uraian transaksi RK..."
                           accentColor="emerald"
                           allowClear={true}
                           isLoading={loadingBankStatements}
-                          emptyText="Tidak ada mutasi kredit rekening koran belum tertaut / bersisa untuk akun bank ini"
+                          emptyText="Tidak ada mutasi kredit rekening koran untuk akun bank ini"
                         />
                         {(() => {
                           const selectedOpt = bankStatementsOptions.find(o => String(o.value) === String(bankStatementId));
@@ -3225,21 +3634,56 @@ export default function Payments() {
               </div>
 
               {/* Baris 4: Tabel Rincian Alokasi Tagihan Siswa */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    Rincian Alokasi Tagihan Siswa Terkait:
-                  </label>
-                  {studentBillsForRecord.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleAutoAllocateFifo}
-                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs"
-                    >
-                      <span>⚡ Alokasikan Otomatis (FIFO)</span>
-                    </button>
-                  )}
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      Rincian Alokasi Tagihan Siswa Terkait:
+                    </label>
+                    {studentBillsForRecord.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {recordBillsSearch.trim()
+                          ? `${filteredStudentBillsForRecord.length} dari ${studentBillsForRecord.length} Tagihan`
+                          : `${studentBillsForRecord.length} Tagihan`}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {studentBillsForRecord.length > 0 && (
+                      <div className="relative flex-1 sm:w-64">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={recordBillsSearch}
+                          onChange={(e) => setRecordBillsSearch(e.target.value)}
+                          placeholder="Cari pos, bulan, T.A, nama..."
+                          className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700 placeholder:text-slate-400"
+                        />
+                        {recordBillsSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setRecordBillsSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer"
+                            title="Bersihkan pencarian"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {studentBillsForRecord.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAutoAllocateFifo}
+                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs whitespace-nowrap"
+                      >
+                        <span>⚡ Alokasikan Otomatis (FIFO)</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {loadingStudentBills ? (
@@ -3255,23 +3699,37 @@ export default function Payments() {
                   <div className="p-8 text-center text-emerald-700 text-xs font-semibold bg-emerald-50 rounded-2xl border border-emerald-200">
                     Siswa ini tidak memiliki tagihan aktif yang belum lunas.
                   </div>
+                ) : filteredStudentBillsForRecord.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center gap-2">
+                    <Search className="w-7 h-7 text-slate-300" />
+                    <p className="text-xs text-slate-500 font-medium">
+                      Tidak ada tagihan yang cocok dengan kata kunci <span className="font-bold text-slate-700">"{recordBillsSearch}"</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setRecordBillsSearch('')}
+                      className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-blue-600 shadow-2xs cursor-pointer transition"
+                    >
+                      Reset Filter Pencarian
+                    </button>
+                  </div>
                 ) : (
                   <div className="border border-slate-200 rounded-2xl overflow-x-auto">
-                    <table className="w-full text-left text-xs min-w-[700px]">
+                    <table className="w-full text-left text-xs min-w-[850px]">
                       <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
                         <tr>
                           <th className="px-3 py-2.5">Komponen Tagihan</th>
-                          <th className="px-3 py-2.5" style={{ minWidth: '200px' }}>Aturan Transaksi (Jurnal)</th>
+                          <th className="px-3 py-2.5" style={{ minWidth: '260px' }}>Aturan Transaksi (Jurnal)</th>
                           <th className="px-3 py-2.5 text-right">Total</th>
                           <th className="px-3 py-2.5 text-right">Sudah Bayar</th>
                           <th className="px-3 py-2.5 text-right">Sisa Piutang</th>
-                          <th className="px-3 py-2.5 text-right" style={{ width: '140px' }}>Bayar Sekarang (Rp)</th>
+                          <th className="px-3 py-2.5 text-right" style={{ width: '165px', minWidth: '155px' }}>Bayar Sekarang (Rp)</th>
                           <th className="px-3 py-2.5 text-right">Sisa Setelah Bayar</th>
                           <th className="px-3 py-2.5 text-center" style={{ width: '65px' }}>Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {studentBillsForRecord.map((bill) => {
+                        {filteredStudentBillsForRecord.map((bill) => {
                           const billTotal = parseFloat(bill.amount || 0);
                           const billPaid = parseFloat(bill.total_paid || 0);
                           const billRem = bill.remaining_amount !== undefined ? parseFloat(bill.remaining_amount) : (billTotal - billPaid);
@@ -3290,12 +3748,27 @@ export default function Payments() {
                                   )}
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-bold text-slate-800">{bill.component_display || bill.fee_type_name}</span>
+                                    {bill.academic_year_name && (
+                                      <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
+                                        activeAyObj && String(bill.academic_year_id) !== String(activeAyObj.id)
+                                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                      }`}>
+                                        T.A. {bill.academic_year_name}
+                                        {activeAyObj && String(bill.academic_year_id) !== String(activeAyObj.id) && ' (Tunggakan)'}
+                                      </span>
+                                    )}
                                     {(bill.fee_type_code === 'arrears_previous_year' || bill.fee_type_name?.toLowerCase().includes('tunggakan')) && (
                                       <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                                         Tunggakan TP Lalu
                                       </span>
                                     )}
                                   </div>
+                                  {bill.period_display && (
+                                    <span className="text-[10.5px] text-slate-500 font-medium">
+                                      Periode: {bill.period_display}
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">
@@ -3307,10 +3780,10 @@ export default function Payments() {
                                   const dShort = cfg.debitCoa ? `${cfg.debitCoa.account_code || cfg.debitCoa.account_number || ''} ${cfg.debitCoa.account_name || cfg.debitCoa.name || ''}`.trim() : 'Kas';
                                   const kShort = cfg.creditCoa ? `${cfg.creditCoa.account_code || cfg.creditCoa.account_number || ''} ${cfg.creditCoa.account_name || cfg.creditCoa.name || ''}`.trim() : 'Piutang';
                                   const cashLabel = cfg.cashAcc?.name || (targetCashAccountId ? (cashAccounts.find(a => String(a.id) === String(targetCashAccountId))?.name || 'Kasir Default') : 'Kasir Default');
-                                  const posBiayaLabel = cfg.feeTypeObj?.name || bill.fee_type_name || bill.component_display || 'Pos Biaya';
+                                  const posBiayaLabel = cfg.feeTypeObj?.name || bill.fee_type_name || bill.component_display || 'Pos Alokasi Dana';
 
                                   return (
-                                    <div className="flex flex-col gap-1 min-w-[230px] max-w-[280px] py-0.5">
+                                    <div className="flex flex-col gap-1.5 min-w-[250px] py-0.5">
                                       {/* Baris 1: Nama Aturan Transaksi & Status Badge & Tombol Edit */}
                                       <div className="flex items-center justify-between gap-1.5">
                                         <div className="flex items-center gap-1 min-w-0">
@@ -3331,32 +3804,32 @@ export default function Payments() {
                                           type="button"
                                           onClick={() => openEditBillRuleModal(bill)}
                                           className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs active:scale-95 shrink-0"
-                                          title="Ubah aturan transaksi, akun debit/kredit, kas terkait, atau pos biaya"
+                                          title="Ubah aturan transaksi, akun debit/kredit, kas terkait, atau pos alokasi dana"
                                         >
                                           <Edit2 className="w-3 h-3 text-indigo-600" />
                                           <span>Edit</span>
                                         </button>
                                       </div>
 
-                                      {/* Baris 2: Akun Debet & Kredit (Double-Entry) */}
-                                      <div className="grid grid-cols-2 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200/80 text-[10px] font-mono leading-tight">
-                                        <div className="truncate text-emerald-800" title={`Debit: ${dCode}`}>
-                                          <span className="font-bold text-emerald-600 font-sans">D: </span>
-                                          <span className="font-semibold">{dShort}</span>
+                                      {/* Baris 2: Akun Debet & Kredit (Double-Entry - Stacked cleanly with distinct badges) */}
+                                      <div className="flex flex-col gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-200/80 text-[10px] font-mono">
+                                        <div className="flex items-center gap-1.5 text-emerald-800 min-w-0" title={`Debit: ${dCode}`}>
+                                          <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 font-bold rounded text-[9px] shrink-0 font-sans">D</span>
+                                          <span className="font-semibold truncate">{dShort}</span>
                                         </div>
-                                        <div className="truncate text-blue-800" title={`Kredit: ${kCode}`}>
-                                          <span className="font-bold text-blue-600 font-sans">K: </span>
-                                          <span className="font-semibold">{kShort}</span>
+                                        <div className="flex items-center gap-1.5 text-blue-800 min-w-0" title={`Kredit: ${kCode}`}>
+                                          <span className="px-1.5 py-0.2 bg-blue-100 text-blue-800 font-bold rounded text-[9px] shrink-0 font-sans">K</span>
+                                          <span className="font-semibold truncate">{kShort}</span>
                                         </div>
                                       </div>
 
-                                      {/* Baris 3: Kas Terkait (Default) & Pos Biaya Terkait */}
+                                      {/* Baris 3: Kas Terkait (Default) & Pos Alokasi Dana Terkait */}
                                       <div className="flex items-center justify-between gap-1 text-[9.5px] leading-tight text-slate-500">
                                         <div className="truncate flex items-center gap-1 max-w-[125px]" title={`Kas Terkait: ${cashLabel}`}>
                                           <span className="text-slate-400 font-bold shrink-0">Kas:</span>
                                           <span className="font-semibold text-slate-700 truncate">{cashLabel}</span>
                                         </div>
-                                        <div className="truncate flex items-center gap-1 max-w-[135px]" title={`Pos Biaya: ${posBiayaLabel}`}>
+                                        <div className="truncate flex items-center gap-1 max-w-[135px]" title={`Pos Alokasi Dana: ${posBiayaLabel}`}>
                                           <span className="text-slate-400 font-bold shrink-0">Pos:</span>
                                           <span className="font-semibold text-indigo-700 truncate">{posBiayaLabel}</span>
                                         </div>
@@ -3368,13 +3841,13 @@ export default function Payments() {
                               <td className="px-3 py-2.5 text-right font-mono text-slate-700">{formatCurrency(billTotal)}</td>
                               <td className="px-3 py-2.5 text-right font-mono text-emerald-700">{formatCurrency(billPaid)}</td>
                               <td className="px-3 py-2.5 text-right font-mono font-bold text-rose-600">{formatCurrency(billRem)}</td>
-                              <td className="px-3 py-2.5 text-right">
+                              <td className="px-3 py-2.5 text-right" style={{ width: '165px', minWidth: '155px' }}>
                                 <input
                                   type="number"
                                   value={billAllocations[bill.id] || ''}
                                   onChange={(e) => handleAllocationChange(bill.id, e.target.value)}
                                   placeholder="0"
-                                  className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-right font-mono font-bold text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-right font-mono font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs shadow-2xs"
                                 />
                               </td>
                               <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-800">
@@ -3505,12 +3978,12 @@ export default function Payments() {
 
             {/* Body Form */}
             <div className="p-6 space-y-4 text-xs overflow-y-auto max-h-[calc(85vh-140px)]">
-              {/* 1. Pos Biaya Terkait & Ringkasan Finansial */}
+              {/* 1. Pos Alokasi Dana Terkait & Ringkasan Finansial */}
               {(() => {
                 const ftObj = feeTypes.find(f => f.id === editingBillRule.fee_type_id) || null;
-                const posBiayaName = ftObj?.name || editingBillRule.fee_type_name || editingBillRule.component_display || 'Pos Biaya Tagihan';
+                const posBiayaName = ftObj?.name ? `Dana ${ftObj.name}` : (editingBillRule.fee_type_name ? `Dana ${editingBillRule.fee_type_name}` : 'Pos Alokasi Dana Tagihan');
                 const posBiayaCode = ftObj?.code || editingBillRule.fee_type_code || '-';
-                const posBiayaCategory = ftObj?.category || (posBiayaCode.includes('spp') ? 'Rutin Bulanan' : 'Pos Biaya Pendidikan');
+                const posBiayaCategory = ftObj?.category || (posBiayaCode.includes('spp') ? 'Rutin Bulanan' : 'Penerimaan Tagihan Siswa');
                 const defaultReceivableCoa = chartOfAccounts.find(c => c.id === ftObj?.receivable_account_id);
                 const defaultReceivableLabel = defaultReceivableCoa ? `[${defaultReceivableCoa.account_code || defaultReceivableCoa.account_number}] ${defaultReceivableCoa.account_name || defaultReceivableCoa.name}` : null;
                 const defaultRuleObj = transactionRules.find(r => String(r.id) === String(ftObj?.payment_account_mapping_id));
@@ -3525,7 +3998,7 @@ export default function Payments() {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wider">
-                              Pos Biaya Terkait
+                              Pos Alokasi Dana Terkait
                             </span>
                             <span className="px-2 py-0.2 bg-indigo-100 text-indigo-800 font-mono font-bold rounded-full text-[9.5px] border border-indigo-200">
                               Kode: {posBiayaCode}
@@ -3562,7 +4035,7 @@ export default function Payments() {
                         <div className="font-semibold text-slate-800 mt-0.5 truncate" title={defaultReceivableLabel || 'Sesuai Aturan Jurnal'}>
                           {defaultReceivableLabel || '(Sesuai Aturan Transaksi)'}
                         </div>
-                        <span className="text-[10px] text-indigo-600">Master Pos Biaya</span>
+                        <span className="text-[10px] text-indigo-600">Master Pos Alokasi Dana</span>
                       </div>
 
                       <div className="bg-white/90 p-2.5 rounded-xl border border-indigo-100/80">
@@ -3570,7 +4043,7 @@ export default function Payments() {
                         <div className="font-semibold text-slate-800 mt-0.5 truncate" title={defaultRuleObj?.transaction_label || defaultRuleObj?.transaction_code || 'Standar Siswa'}>
                           {defaultRuleObj?.transaction_label || defaultRuleObj?.transaction_code || 'Standar Tagihan Siswa'}
                         </div>
-                        <span className="text-[10px] text-emerald-700">Mutasi Saldo Kas Pos Biaya</span>
+                        <span className="text-[10px] text-emerald-700">Mutasi Saldo Dompet Pos Dana</span>
                       </div>
                     </div>
                   </div>
@@ -3710,137 +4183,488 @@ export default function Payments() {
       {/* MODAL 2: EDIT & KOREKSI PEMBAYARAN (AUDIT TRAIL)              */}
       {/* ============================================================== */}
       {editModalOpen && selectedPaymentToEdit && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-extrabold text-slate-800 text-sm">Koreksi & Edit Pembayaran Siswa</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] space-y-4 my-auto animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base">Koreksi & Edit Pembayaran Siswa</h3>
+                  <p className="text-xs text-slate-500">
+                    Perbarui data transaksi, akun kas/bank, mutasi rekening koran, serta aturan jurnal & akuntansi
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-mono font-bold text-xs">
+                  {selectedPaymentToEdit.receipt_number || '-'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">No. Kwitansi:</span>
-                  <span className="font-mono font-bold text-slate-800">{selectedPaymentToEdit.receipt_number || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Nama Siswa:</span>
-                  <span className="font-bold text-slate-800">{selectedPaymentToEdit.student_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Komponen Tagihan:</span>
-                  <span className="font-bold text-slate-800">{selectedPaymentToEdit.component_display || selectedPaymentToEdit.fee_type_name}</span>
+            {/* Modal Body Form */}
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Context Info Banner (Identitas Siswa, Satuan Pendidikan & Tagihan) */}
+              <div className="p-3.5 bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/50 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                  {/* Kolom Kiri: Siswa & Satdik */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-slate-800">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span className="font-extrabold truncate">
+                        {selectedPaymentToEdit.school_unit_name || selectedPaymentToEdit.school_unit?.name || activeSchoolUnit?.name || 'Satuan Pendidikan Aldepos'}
+                      </span>
+                    </div>
+                    {selectedPaymentToEdit.school_unit_address && (
+                      <p className="text-[10px] text-slate-500 pl-5 line-clamp-1">
+                        {selectedPaymentToEdit.school_unit_address}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1.5 pt-1 text-slate-900 font-semibold">
+                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        👤
+                      </span>
+                      <span className="font-bold text-slate-900">{selectedPaymentToEdit.student_name || 'Siswa'}</span>
+                      <span className="text-slate-400 font-normal">
+                        (NIS: {selectedPaymentToEdit.nis || '-'})
+                      </span>
+                      {selectedPaymentToEdit.class_name && (
+                        <span className="px-1.5 py-0.2 bg-blue-100 text-blue-800 font-bold rounded text-[9.5px]">
+                          {selectedPaymentToEdit.class_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Kolom Kanan: Tagihan, Periode & Kwitansi */}
+                  <div className="space-y-1 md:text-right flex flex-col md:items-end justify-center">
+                    <div className="flex items-center gap-1.5 md:justify-end">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">Komponen Tagihan:</span>
+                      <span className="font-extrabold text-indigo-900">
+                        {selectedPaymentToEdit.component_display || selectedPaymentToEdit.fee_type_name || 'Tagihan Siswa'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 md:justify-end text-[10.5px] text-slate-600">
+                      <Calendar className="w-3 h-3 text-slate-400" />
+                      <span>Periode / TA: <b className="text-slate-800">{selectedPaymentToEdit.period_display || selectedPaymentToEdit.academic_year_name || '-'}</b></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 md:justify-end text-[10px] text-slate-500 font-mono">
+                      <span>No. Kwitansi: <b className="text-slate-700">{selectedPaymentToEdit.receipt_number || '-'}</b></span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Nominal Pembayaran (Rp) *</label>
-                <input
-                  type="number"
-                  value={editForm.amount}
-                  onChange={(e) => setEditForm(p => ({ ...p, amount: e.target.value }))}
-                  required
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold text-sm text-slate-800"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+              {/* Baris 1: Tanggal & Nominal Pembayaran */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
                 <div>
                   <DatePickerField
-                    label="Tanggal Pembayaran"
+                    label="Tanggal Pembayaran *"
                     value={editForm.paid_at}
-                    onChange={(iso) => setEditForm(p => ({ ...p, paid_at: iso }))}
+                    onChange={(iso) => {
+                      setEditForm(p => ({ ...p, paid_at: iso }));
+                      if (editForm.payment_method === 'bank_transfer' && editForm.cash_account_id) {
+                        fetchEditBankStatements(editForm.cash_account_id, iso, editForm.bank_statement_id);
+                      }
+                    }}
                     placeholder="DD/MM/YYYY"
-                    required
+                    required={true}
+                    inputClassName="bg-white"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Metode Pembayaran</label>
-                  <select
-                    value={editForm.payment_method}
-                    onChange={(e) => setEditForm(p => ({ ...p, payment_method: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
-                  >
-                    <option value="cash">Tunai (Cash)</option>
-                    <option value="bank_transfer">Non-Tunai (Transfer Bank)</option>
-                  </select>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Nominal Pembayaran (Rp) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm(p => ({ ...p, amount: e.target.value }))}
+                    placeholder="Contoh: 500000"
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  {/* Terbilang Live Preview */}
+                  {parseFloat(editForm.amount) > 0 && (
+                    <div className="text-[10.5px] text-indigo-700 font-medium bg-indigo-50/90 px-2.5 py-1 rounded-lg border border-indigo-200/80 italic leading-snug">
+                      # {terbilang(parseFloat(editForm.amount))} Rupiah #
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Rekening Kas Masuk</label>
-                <select
-                  value={editForm.cash_account_id}
-                  onChange={(e) => setEditForm(p => ({ ...p, cash_account_id: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
-                >
-                  {cashAccounts.map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({a.account_kind})</option>
-                  ))}
-                </select>
+              {/* Opsi Pencatatan Riwayat Saja (Non-Kas) */}
+              <div className={`p-3.5 rounded-2xl border transition-all ${
+                editForm.is_historical 
+                  ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-400/25 shadow-xs' 
+                  : 'bg-slate-50 border-slate-200/80 hover:border-slate-300'
+              }`}>
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={editForm.is_historical}
+                    onChange={(e) => setEditForm(p => ({ ...p, is_historical: e.target.checked }))}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                        <History className={`w-3.5 h-3.5 ${editForm.is_historical ? 'text-amber-600' : 'text-slate-500'}`} />
+                        Catat Sebagai Riwayat Saja (Non-Kas / Tanpa Mutasi Saldo)
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        editForm.is_historical 
+                          ? 'bg-amber-200 text-amber-900 border border-amber-300' 
+                          : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {editForm.is_historical ? '⚡ Mode Riwayat Saja Aktif' : 'Normal (Mutasi Kas Aktif)'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Centang opsi ini jika transaksi ini merupakan <strong>catatan riwayat pelunasan tagihan siswa</strong> tanpa memengaruhi saldo akun kas/bank dan tanpa membukukan mutasi kas berjalan.
+                    </p>
+                  </div>
+                </label>
               </div>
 
+              {/* Baris 2: Metode Bayar & Rekening Kas Masuk / Mutasi Rekening Koran */}
+              <div className="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                {editForm.is_historical ? (
+                  <div className="p-2.5 bg-amber-100/70 text-amber-900 border border-amber-200 rounded-xl text-[11px] font-medium flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Mode Riwayat Saja: Pembayaran ini melunasi tagihan siswa tanpa memengaruhi saldo akun kas/bank.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <label className="text-xs font-bold text-slate-700">Metode Pembayaran:</label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-slate-800">
+                        <input
+                          type="radio"
+                          name="editPaymentMethod"
+                          checked={editForm.payment_method === 'cash'}
+                          onChange={() => setEditForm(p => ({ ...p, payment_method: 'cash' }))}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>Tunai (Kasir Loket)</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-slate-800">
+                        <input
+                          type="radio"
+                          name="editPaymentMethod"
+                          checked={editForm.payment_method === 'bank_transfer'}
+                          onChange={() => {
+                            setEditForm(p => {
+                              let nextAccId = p.cash_account_id;
+                              const currentAcc = cashAccounts.find(a => String(a.id) === String(nextAccId));
+                              if (!currentAcc || currentAcc.account_kind !== 'bank') {
+                                const defaultBank = cashAccounts.find(a => a.account_kind === 'bank' && a.name?.toLowerCase().includes('penerimaan')) ||
+                                                    cashAccounts.find(a => a.account_kind === 'bank' && a.is_active) ||
+                                                    cashAccounts.find(a => a.account_kind === 'bank');
+                                if (defaultBank) nextAccId = String(defaultBank.id);
+                              }
+                              if (nextAccId) {
+                                fetchEditBankStatements(nextAccId, p.paid_at, p.bank_statement_id);
+                              }
+                              return { ...p, payment_method: 'bank_transfer', cash_account_id: nextAccId };
+                            });
+                          }}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>Non-Tunai (Transfer Bank)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dropdown Akun Kas & Rekening Koran jika Normal */}
+                {!editForm.is_historical && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Akun Kas / Bank Masuk <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSelect
+                        options={editCashAccountOptions}
+                        value={editForm.cash_account_id}
+                        onChange={(val) => {
+                          setEditForm(p => ({ ...p, cash_account_id: val || '' }));
+                          if (editForm.payment_method === 'bank_transfer' && val) {
+                            fetchEditBankStatements(val, editForm.paid_at, editForm.bank_statement_id);
+                          }
+                        }}
+                        placeholder="-- Pilih Akun Kas / Bank --"
+                        searchPlaceholder="Cari nama akun kas / bank..."
+                        accentColor="blue"
+                        allowClear={false}
+                      />
+                    </div>
+
+                    {/* Referensi Rekening Koran saat Non-Tunai */}
+                    {editForm.payment_method === 'bank_transfer' && (
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center justify-between">
+                          <span>Referensi Mutasi Rekening Koran</span>
+                          <span className="text-[10px] text-slate-400 font-normal">(Multi-Transaksi / Parsial OK)</span>
+                        </label>
+                        <SearchableSelect
+                          options={editBankStatementsOptions}
+                          value={editForm.bank_statement_id}
+                          onChange={(val) => {
+                            setEditForm(p => ({ ...p, bank_statement_id: val || '' }));
+                            if (val) {
+                              const selectedOpt = editBankStatementsOptions.find(o => String(o.value) === String(val));
+                              if (selectedOpt && selectedOpt.rawDate) {
+                                // Auto sync date to bank statement date
+                                setEditForm(p => ({ ...p, paid_at: selectedOpt.rawDate }));
+                              }
+                            }
+                          }}
+                          onDisabledSelect={(opt) => setBlockedStatementModal(opt)}
+                          placeholder="-- Pilih Rekening Koran Terkait --"
+                          searchPlaceholder="Ketik nominal, no. ref, atau uraian transaksi RK..."
+                          accentColor="emerald"
+                          allowClear={true}
+                          isLoading={loadingEditBankStatements}
+                          emptyText="Tidak ada mutasi kredit rekening koran untuk akun bank ini"
+                        />
+                        {(() => {
+                          const selectedOpt = editBankStatementsOptions.find(o => String(o.value) === String(editForm.bank_statement_id));
+                          if (!selectedOpt) return null;
+                          return (
+                            <div className="p-2 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-[10px] space-y-1 text-slate-700 animate-in fade-in duration-150">
+                              <div className="flex items-center justify-between font-semibold">
+                                <span className="text-emerald-900 font-bold flex items-center gap-1">
+                                  <span>🔗 RK Terpilih:</span>
+                                  <span className="truncate max-w-xs">{selectedOpt.desc}</span>
+                                </span>
+                                <span className="font-mono text-emerald-800 font-bold">
+                                  Plafon: {formatCurrency(selectedOpt.amount)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-500">
+                                <span>Tgl Mutasi Bank: <b className="text-slate-800 font-mono">{selectedOpt.rawDate || '-'}</b> • Teralokasi: <b>{formatCurrency(selectedOpt.allocated_amount || 0)}</b></span>
+                                <span className="text-emerald-700 font-bold font-mono">
+                                  Sisa Plafon: {formatCurrency(selectedOpt.remaining_amount || selectedOpt.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Baris 3: Aturan Transaksi & Jurnal Akuntansi (Double Entry) */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                      <Sliders className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">Aturan Transaksi & Jurnal Akuntansi</h4>
+                      <p className="text-[10px] text-slate-500">Otomatis tentukan debit kas/bank dan kredit piutang pendapatan</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowEditAccountingOverride(prev => !prev)}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                  >
+                    <Settings2 className="w-3 h-3 text-indigo-600" />
+                    <span>{showEditAccountingOverride ? 'Sembunyikan Kustomisasi COA' : 'Kustomisasi Akun Debit / Kredit'}</span>
+                  </button>
+                </div>
+
+                {/* Pilihan Aturan Transaksi */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    Pilihan Aturan Transaksi (Transaction Rule) <span className="text-rose-500">*</span>
+                  </label>
+                  <SearchableSelect
+                    options={ruleSelectOptions}
+                    value={editForm.transaction_mapping_id}
+                    onChange={handleEditRuleChange}
+                    placeholder="-- Pilih Aturan Transaksi --"
+                    searchPlaceholder="Cari aturan transaksi..."
+                    accentColor="indigo"
+                    allowClear={false}
+                  />
+                </div>
+
+                {/* Bagian Kustomisasi Akun COA jika dibuka */}
+                {showEditAccountingOverride && (
+                  <div className="space-y-3 pt-2 border-t border-slate-200 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Akun Debit */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                          <span>Akun Debit (Kas / Penerimaan)</span>
+                        </label>
+                        <SearchableSelect
+                          options={coaOptions}
+                          value={editForm.override_debit_account_id}
+                          onChange={(val) => setEditForm(p => ({ ...p, override_debit_account_id: val || '' }))}
+                          placeholder="-- Pilih Akun Debit --"
+                          searchPlaceholder="Cari nomor atau nama akun COA..."
+                          accentColor="emerald"
+                          allowClear={false}
+                        />
+                      </div>
+
+                      {/* Akun Kredit */}
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-blue-800 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                          <span>Akun Kredit (Piutang / Pendapatan)</span>
+                        </label>
+                        <SearchableSelect
+                          options={coaOptions}
+                          value={editForm.override_credit_account_id}
+                          onChange={(val) => setEditForm(p => ({ ...p, override_credit_account_id: val || '' }))}
+                          placeholder="-- Pilih Akun Kredit --"
+                          searchPlaceholder="Cari nomor atau nama akun COA..."
+                          accentColor="blue"
+                          allowClear={false}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Akun Kas Terkait (Default Override) */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Akun Kas Terkait (Default Jurnal)
+                      </label>
+                      <SearchableSelect
+                        options={cashAccountSelectOptions}
+                        value={editForm.override_cash_account_id}
+                        onChange={(val) => setEditForm(p => ({ ...p, override_cash_account_id: val || '' }))}
+                        placeholder="-- Otomatis Sesuai Kas Transaksi Utama --"
+                        searchPlaceholder="Cari nama akun kas..."
+                        accentColor="blue"
+                        allowClear={true}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Pratinjau Jurnal Ganda Live Box */}
+                <div className="p-3.5 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-2 font-mono">
+                  <div className="flex items-center justify-between text-[11px] text-indigo-300 font-bold border-b border-slate-800 pb-1.5 font-sans">
+                    <span>Pratinjau Jurnal Ganda (Double Entry):</span>
+                    <span>Nominal: {formatCurrency(parseFloat(editForm.amount) || 0)}</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-emerald-400">
+                      <span className="truncate">
+                        [D] {editActiveDebitCoa ? `[${editActiveDebitCoa.account_code || editActiveDebitCoa.account_number || ''}] ${editActiveDebitCoa.account_name || editActiveDebitCoa.name || ''}` : 'Kas Penerimaan'}
+                      </span>
+                      <span className="font-bold">{formatCurrency(parseFloat(editForm.amount) || 0)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-blue-400 pl-4">
+                      <span className="truncate">
+                        [K] {editActiveCreditCoa ? `[${editActiveCreditCoa.account_code || editActiveCreditCoa.account_number || ''}] ${editActiveCreditCoa.account_name || editActiveCreditCoa.name || ''}` : 'Piutang / Pendapatan'}
+                      </span>
+                      <span className="font-bold">{formatCurrency(parseFloat(editForm.amount) || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Baris 4: Catatan / Keterangan Transaksi */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Catatan</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Keterangan Transaksi</label>
                 <input
                   type="text"
+                  placeholder="Contoh: Pembayaran SPP via loket..."
                   value={editForm.notes}
                   onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
 
-              {/* Alasan Koreksi */}
-              <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-1">
-                <label className="block font-bold text-amber-950 text-xs mb-1 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
-                  Alasan Koreksi Pembayaran (Wajib Diisi) <span className="text-rose-500">*</span>
+              {/* Baris 5: Alasan Koreksi Pembayaran (Audit Trail Wajib) */}
+              <div className="p-3.5 bg-amber-50/90 border border-amber-300/80 rounded-2xl space-y-1.5 shadow-2xs">
+                <label className="block font-bold text-amber-950 text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                    Alasan Koreksi Pembayaran (Audit Log) <span className="text-rose-500">*</span>
+                  </span>
+                  <span className="text-[10px] text-amber-800 font-semibold">Wajib Diisi untuk Integritas Finansial</span>
                 </label>
                 <textarea
                   value={editForm.correction_reason}
                   onChange={(e) => setEditForm(p => ({ ...p, correction_reason: e.target.value }))}
-                  placeholder="Contoh: Salah input nominal setoran siswa (seharusnya Rp 450.000)..."
+                  placeholder="Contoh: Koreksi nominal setoran siswa (seharusnya Rp 500.000) dan penggantian rekening kas..."
                   required
                   rows={2}
-                  className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500/25 focus:outline-none placeholder:text-slate-400"
                 />
               </div>
 
+              {/* Baris 6: Snapshot Data Sebelum Koreksi Terakhir jika ada */}
               {selectedPaymentToEdit.previous_data && (
-                <div className="p-3 bg-slate-100 rounded-xl text-[11px] text-slate-600 space-y-1 border border-slate-200">
-                  <span className="font-bold text-slate-800">Snapshot Data Sebelum Koreksi Terakhir:</span>
-                  <div>Nominal: {formatCurrency(selectedPaymentToEdit.previous_data.amount)}</div>
-                  <div>Tgl: {selectedPaymentToEdit.previous_data.paid_at}</div>
-                  <div>Alasan Lalu: {selectedPaymentToEdit.correction_reason || '-'}</div>
+                <div className="p-3 bg-slate-100/90 rounded-2xl text-[11px] text-slate-600 space-y-1 border border-slate-200">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Snapshot Data Sebelum Koreksi Terakhir:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-mono text-[10.5px]">
+                    <div>Nominal: <b>{formatCurrency(selectedPaymentToEdit.previous_data.amount)}</b></div>
+                    <div>Tgl: <b>{selectedPaymentToEdit.previous_data.paid_at}</b></div>
+                    <div>Alasan Lalu: <span className="font-sans italic">{selectedPaymentToEdit.correction_reason || '-'}</span></div>
+                  </div>
                 </div>
               )}
+            </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            {/* Modal Actions Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0 gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs cursor-pointer transition"
+              >
+                Batal
+              </button>
+
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
                   disabled={savingEdit}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer"
+                  onClick={() => handleSaveEdit(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-xs cursor-pointer transition disabled:opacity-50"
                 >
-                  {savingEdit ? 'Menyimpan Koreksi...' : 'Simpan Koreksi'}
+                  {savingEdit ? 'Menyimpan Koreksi...' : 'Simpan Koreksi Saja'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={savingEdit}
+                  onClick={() => handleSaveEdit(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/25 cursor-pointer transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>{savingEdit ? 'Memproses...' : 'Simpan & Cetak Ulang Kwitansi'}</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -3882,12 +4706,20 @@ export default function Payments() {
                 <span className="text-blue-700 font-black">{activeReceiptData.receipt_number}</span>
               </div>
               <div className="flex justify-between text-slate-600">
+                <span>Satuan Pendidikan:</span>
+                <span className="font-bold text-slate-800">{activeReceiptData.school_unit?.name || activeSchoolUnit?.name || 'Satuan Pendidikan Aldepos'}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
                 <span>Tanggal Bayar:</span>
                 <span>{activeReceiptData.paid_at ? String(activeReceiptData.paid_at).slice(0, 10) : '-'}</span>
               </div>
               <div className="flex justify-between text-slate-600">
-                <span>{activeReceiptData.is_multi_student ? 'Nama-Nama Siswa:' : 'Nama Siswa:'}</span>
+                <span>{activeReceiptData.is_multi_student ? 'Nama Siswa:' : 'Nama Siswa:'}</span>
                 <span className="font-bold text-slate-800 text-right max-w-xs">{activeReceiptData.student?.name || activeReceiptData.student_name}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Kelas / Rombel:</span>
+                <span className="font-bold text-slate-800">{activeReceiptData.student?.class_name || activeReceiptData.class_name || '-'}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Pembayaran Untuk:</span>
@@ -3920,7 +4752,7 @@ export default function Payments() {
               </button>
               <button
                 type="button"
-                onClick={() => openReceiptInNewTab(activeReceiptData, activeSchoolUnit?.name)}
+                onClick={() => openReceiptInNewTab(activeReceiptData, activeReceiptData.school_unit?.name || activeSchoolUnit?.name)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -4065,6 +4897,80 @@ export default function Payments() {
               ) : (
                 <span className="text-xs text-slate-400 italic">File gambar tidak tersedia</span>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL 6: PERINGATAN REKENING KORAN HABIS TERPAKAI               */}
+      {/* ============================================================== */}
+      {blockedStatementModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-rose-200 max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="bg-rose-50 border-b border-rose-100 p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 text-xl font-bold shrink-0 shadow-xs">
+                ⛔
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-rose-950">Rekening Koran Habis Terpakai</h3>
+                <p className="text-[11px] text-rose-700">Mutasi ini tidak dapat dipilih untuk pembayaran</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-3 text-xs text-slate-600">
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2 font-mono text-[11px]">
+                <div className="flex justify-between border-b border-slate-200 pb-1.5 gap-2">
+                  <span className="text-slate-500 font-sans shrink-0">Uraian Mutasi:</span>
+                  <span className="font-bold text-slate-800 text-right truncate" title={blockedStatementModal.desc}>
+                    {blockedStatementModal.desc}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-500 font-sans">Tgl & Ref:</span>
+                  <span className="font-semibold text-slate-700">
+                    {blockedStatementModal.rawDate || '-'} | Ref: {blockedStatementModal.refNo || '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-500 font-sans">Total Plafon RK:</span>
+                  <span className="font-bold text-slate-800">
+                    {formatCurrency(blockedStatementModal.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200 pb-1.5">
+                  <span className="text-slate-500 font-sans">Sudah Teralokasi:</span>
+                  <span className="font-bold text-rose-600">
+                    {formatCurrency(blockedStatementModal.allocated_amount || blockedStatementModal.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-0.5">
+                  <span className="text-slate-500 font-sans">Sisa Plafon Tersedia:</span>
+                  <span className="font-bold text-slate-500">
+                    Rp 0 (Habis)
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200/70 rounded-xl text-amber-900 text-[11px] leading-relaxed flex items-start gap-2">
+                <span className="text-amber-600 text-base leading-none shrink-0">💡</span>
+                <span>
+                  Seluruh nominal plafon mutasi rekening koran ini telah habis dialokasikan ke transaksi pembayaran sebelumnya. Silakan pilih baris rekening koran lain yang masih memiliki sisa saldo plafon.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 border-t border-slate-100 p-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setBlockedStatementModal(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+              >
+                Mengerti & Tutup
+              </button>
             </div>
           </div>
         </div>

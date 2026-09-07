@@ -52,6 +52,7 @@ export default function Bookkeeping() {
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [coaList, setCoaList] = useState([]);
   const [manualForm, setManualForm] = useState({
+    academic_year_id: '',
     journal_date: new Date().toISOString().slice(0, 10),
     description: '',
     source_type: 'adjustment',
@@ -272,6 +273,7 @@ export default function Bookkeeping() {
     setSubmittingManual(true);
     try {
       await api.post('/keuangan/journal-entries/manual', {
+        academic_year_id: Number(manualForm.academic_year_id || selectedAcademicYearId || 2),
         journal_date: manualForm.journal_date,
         description: manualForm.description,
         source_type: manualForm.source_type || 'adjustment',
@@ -1372,7 +1374,21 @@ export default function Bookkeeping() {
             </div>
 
             <form onSubmit={handleSaveManualJournal} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1">Peruntukan Tahun Ajaran *</label>
+                  <select
+                    value={manualForm.academic_year_id || selectedAcademicYearId || ''}
+                    onChange={(e) => setManualForm(prev => ({ ...prev, academic_year_id: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  >
+                    {academicYears.map(ay => (
+                      <option key={ay.id} value={ay.id}>
+                        {ay.name} {ay.is_active ? '(Aktif)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-slate-600 font-semibold mb-1">Tanggal Jurnal:</label>
                   <input

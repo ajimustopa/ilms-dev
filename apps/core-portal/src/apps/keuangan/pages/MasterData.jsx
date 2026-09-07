@@ -2251,29 +2251,29 @@ export default function MasterData() {
                       </div>
                     )}
 
-                    {/* Pos Biaya Terkait: hanya jika penambahan_kas atau pengurangan_kas */}
+                    {/* Pos Alokasi Dana Terkait: hanya jika penambahan_kas atau pengurangan_kas */}
                     {(formData.transaction_type === 'penambahan_kas' || formData.transaction_type === 'pengurangan_kas') ? (
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Pos Biaya Terkait</label>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Pos Alokasi Dana Terkait</label>
                         <SearchableSelect
                           options={[
-                            { value: '', label: '-- Tidak Terikat Pos Biaya --', sublabel: 'Aturan transaksi bersifat umum' },
+                            { value: '', label: '-- Tidak Terikat Pos Alokasi Dana --', sublabel: 'Aturan transaksi bersifat umum' },
                             ...feeTypes.map((f) => ({
                               value: f.id,
-                              label: f.name,
+                              label: `Dana ${f.name}`,
                               sublabel: `Pola: ${f.billing_pattern}`
                             }))
                           ]}
                           value={formData.related_fee_type_id || ''}
                           onChange={(val) => setFormData({ ...formData, related_fee_type_id: val ? Number(val) : '' })}
                           placeholder="-- Tidak Ada --"
-                          searchPlaceholder="Cari jenis biaya..."
+                          searchPlaceholder="Cari pos dana (SPP/Sarpras/PPDB)..."
                           menuMinWidth="max(100%, 320px)"
                         />
                       </div>
                     ) : (
                       <div className="opacity-50 pointer-events-none">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Pos Biaya Terkait</label>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1">Pos Alokasi Dana Terkait</label>
                         <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 italic">
                           Hanya untuk Kas Masuk / Keluar
                         </div>

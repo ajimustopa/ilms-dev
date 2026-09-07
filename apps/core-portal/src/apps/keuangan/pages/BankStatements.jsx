@@ -1589,10 +1589,43 @@ export default function BankStatements() {
                   <td colSpan={11} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <FileSpreadsheet className="w-8 h-8 text-slate-300" />
-                      <p className="font-medium text-slate-600 text-sm">Belum Ada Baris Rekening Koran</p>
-                      <p className="text-xs text-slate-400 max-w-sm">
-                        Silakan import berkas mutasi rekening koran dari bank Anda atau catat mutasi secara manual.
-                      </p>
+                      {debouncedSearch ? (
+                        <>
+                          <p className="font-bold text-slate-700 text-sm">
+                            Tidak Ada Mutasi Rekening Koran yang Cocok
+                          </p>
+                          <p className="text-xs text-slate-500 max-w-md">
+                            Tidak ditemukan data dengan kata kunci pencarian <span className="font-mono font-bold text-blue-700">"{debouncedSearch}"</span>
+                            {(selectedYear || selectedMonth || selectedAcademicYearId || selectedAccountId || statusFilter !== 'all' || dcFilter) ? ' pada filter aktif saat ini.' : '.'}
+                          </p>
+                          {(selectedYear || selectedMonth || selectedAcademicYearId || selectedAccountId || statusFilter !== 'all' || dcFilter) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedAccountId('');
+                                setSelectedAcademicYearId('');
+                                setSelectedYear('');
+                                setSelectedMonth('');
+                                setStartDate('');
+                                setEndDate('');
+                                setStatusFilter('all');
+                                setDcFilter('');
+                                setPagination(p => ({ ...p, current_page: 1 }));
+                              }}
+                              className="mt-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              🔍 Cari Kata Kunci Ini di Semua Periode & Rekening
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-medium text-slate-600 text-sm">Belum Ada Baris Rekening Koran</p>
+                          <p className="text-xs text-slate-400 max-w-sm">
+                            Silakan import berkas mutasi rekening koran dari bank Anda atau catat mutasi secara manual.
+                          </p>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

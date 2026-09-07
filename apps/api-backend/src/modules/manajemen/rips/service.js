@@ -251,8 +251,9 @@ class RipsService {
 
   async getOrInitRipsDocument(schoolUnitId = null) {
     let q = db('rips_documents');
-    if (schoolUnitId) {
-      q = q.where('school_unit_id', Number(schoolUnitId));
+    const validUnitId = (schoolUnitId && schoolUnitId !== 'all' && !isNaN(Number(schoolUnitId))) ? Number(schoolUnitId) : null;
+    if (validUnitId) {
+      q = q.where('school_unit_id', validUnitId);
     } else {
       q = q.whereNull('school_unit_id');
     }
@@ -265,14 +266,13 @@ class RipsService {
         'Menyediakan tata kelola kelembagaan yang transparan, akuntabel, dan berbasis digital'
       ];
       const defaultObjectives = [
-        'Mencapai 100% kelulusan santri dengan kompetensi akademik dan keagamaan unggul',
-        'Mewujudkan iklim pesantren yang aman, sehat, inklusif, dan ramah anak',
+        'Tercapainya kelulusan 100% dengan rata-rata nilai akademik melampaui standar nasional',
         'Meningkatkan efisiensi dan tata kelola sarana prasarana sekolah mencapai standar prima'
       ];
 
       const [id] = await db('rips_documents').insert({
-        school_unit_id: schoolUnitId ? Number(schoolUnitId) : null,
-        name: schoolUnitId ? `RIPS Satuan Pendidikan (ID #${schoolUnitId})` : 'RIPS Induk Yayasan Aldepos',
+        school_unit_id: validUnitId,
+        name: validUnitId ? `RIPS Satuan Pendidikan (ID #${validUnitId})` : 'RIPS Induk Yayasan Aldepos',
         vision: 'Mewujudkan institusi pendidikan berkualitas prima, islami, dan berdaya saing global.',
         mission: JSON.stringify(defaultMission),
         objectives: JSON.stringify(defaultObjectives),

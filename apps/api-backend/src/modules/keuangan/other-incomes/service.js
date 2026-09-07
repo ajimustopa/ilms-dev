@@ -155,6 +155,7 @@ class OtherIncomesService {
       try {
         await recordJournal({
           schoolUnitId,
+          academicYearId: Number(data.academic_year_id || 2),
           transactionCode: 'other_income_default',
           amount: amount,
           sourceType: 'other_income',

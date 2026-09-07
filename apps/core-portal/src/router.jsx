@@ -20,27 +20,53 @@ const lazyLoad = (importFn) => {
   return <Suspense fallback={<PageLoader />}><LazyComponent /></Suspense>;
 };
 
-// 1. Launcher (Eagerly loaded for instant landing)
+// 1. Launcher & Login Gates (Eagerly loaded for instant landing)
 import Launcher from './pages/Launcher';
+import Login from './apps/core/pages/Login';
+import { useAuth } from './shared/store/AuthContext';
+
+// Gate for root path: If authenticated -> Launcher; If unauthenticated -> Login
+function RootGate() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <PageLoader />;
+  }
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+  return <Launcher />;
+}
+
+// Gate for login path: If authenticated -> redirect to root; If unauthenticated -> Login
+function LoginGate() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <PageLoader />;
+  }
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return <Login />;
+}
 
 // 2. Website Utama CMS Routes
 import websiteUtamaRoutes from './apps/website-utama/routes';
 
 export const router = createBrowserRouter([
-  // 1. Landing Page Publik
+  // 1. Landing Page / Gate (Login jika belum masuk, Launcher jika sudah masuk)
   {
     path: '/',
-    element: <Launcher />,
+    element: <RootGate />,
   },
 
   // 2. Core Login & Shortcut
   {
     path: '/core/login',
-    element: lazyLoad(() => import('./apps/core/pages/Login')),
+    element: <LoginGate />,
   },
   {
     path: '/login',
-    element: <Navigate to="/core/login" replace />,
+    element: <LoginGate />,
   },
 
   // 3. Core Service
@@ -498,11 +524,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'fund-balances',
-            element: lazyLoad(() => import('./apps/keuangan/pages/Reports')),
+            element: lazyLoad(() => import('./apps/keuangan/pages/FundBalances')),
           },
           {
             path: 'saldo-dana',
-            element: lazyLoad(() => import('./apps/keuangan/pages/Reports')),
+            element: lazyLoad(() => import('./apps/keuangan/pages/FundBalances')),
+          },
+          {
+            path: 'pos-alokasi-dana',
+            element: lazyLoad(() => import('./apps/keuangan/pages/FundBalances')),
           },
           {
             path: 'payments',

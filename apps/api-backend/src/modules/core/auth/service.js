@@ -139,6 +139,21 @@ class AuthService {
 
     const roleNames = [...new Set(schoolRoles.map((sr) => sr.role_name))];
 
+    const isUniversalAdmin = user.account_type === 'super_admin' ||
+      user.account_type === 'admin' ||
+      roleNames.includes('super_admin') ||
+      roleNames.includes('admin_yayasan');
+
+    const allModuleKeys = [
+      'core', 'website-utama', 'kepegawaian', 'akademik', 'keuangan',
+      'kesiswaan', 'sarpras', 'perpustakaan', 'cbt', 'bk', 'alumni',
+      'ppdb', 'portal_ortu', 'portal_siswa', 'al_quran'
+    ];
+
+    const accessibleModules = isUniversalAdmin
+      ? allModuleKeys
+      : [...new Set(permissions.map((p) => p.module || (p.code && p.code.split('.')[0])).filter(Boolean))];
+
     const tokenPayload = {
       sub: user.id,
       id: user.id,
@@ -150,6 +165,7 @@ class AuthService {
       active_school_unit_id: activeSchoolRole?.school_unit_id || null,
       active_role: activeSchoolRole?.role_name || (roleNames[0] || null),
       roles: roleNames,
+      modules: accessibleModules,
       school_units: schoolRoles.map((sr) => ({
         id: sr.school_unit_id,
         name: sr.school_name,
@@ -221,6 +237,7 @@ class AuthService {
           school_unit_id: sr.school_unit_id,
           school_name: sr.school_name
         })),
+        modules: accessibleModules,
         permissions: activePermissions
       }
     };
@@ -355,6 +372,22 @@ class AuthService {
 
     const { schoolRoles, permissions } = await this.getUserPermissionsAndRoles(user.id);
     const activeSchoolRole = schoolRoles.length > 0 ? schoolRoles[0] : null;
+    const roleNames = [...new Set(schoolRoles.map((sr) => sr.role_name))];
+
+    const isUniversalAdmin = user.account_type === 'super_admin' ||
+      user.account_type === 'admin' ||
+      roleNames.includes('super_admin') ||
+      roleNames.includes('admin_yayasan');
+
+    const allModuleKeys = [
+      'core', 'website-utama', 'kepegawaian', 'akademik', 'keuangan',
+      'kesiswaan', 'sarpras', 'perpustakaan', 'cbt', 'bk', 'alumni',
+      'ppdb', 'portal_ortu', 'portal_siswa', 'al_quran'
+    ];
+
+    const accessibleModules = isUniversalAdmin
+      ? allModuleKeys
+      : [...new Set(permissions.map((p) => p.module || (p.code && p.code.split('.')[0])).filter(Boolean))];
 
     return {
       ...user,
@@ -378,6 +411,7 @@ class AuthService {
         role_id: sr.role_id,
         role_name: sr.role_name
       })),
+      modules: accessibleModules,
       permissions: [...new Set(permissions.map((p) => p.code))]
     };
   }

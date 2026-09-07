@@ -32,6 +32,12 @@ router.get(
 
 // 2. Edit & Riwayat Koreksi Pembayaran (Fitur #18)
 router.get(
+  '/bill-payments/:id',
+  verifyJwt,
+  requirePermission('keuangan.payments.record', 'keuangan.payments.correct'),
+  controller.getPaymentById
+);
+router.get(
   '/bill-payments/:id/history',
   verifyJwt,
   requirePermission('keuangan.payments.correct'),

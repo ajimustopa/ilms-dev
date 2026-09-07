@@ -2342,7 +2342,7 @@ export default function RegistrationBilling() {
                         });
                       }
 
-                      const isTransfer = cand.entry_type === 'pindahan' || String(cand.entry_type_label || '').toLowerCase().includes('pindahan');
+                      const isTransfer = cand.registration_type === 'pindahan' || cand.entry_type === 'pindahan' || String(cand.registration_type_display || cand.entry_type_label || '').toLowerCase().includes('pindah');
 
                       return (
                         <tr
@@ -4317,33 +4317,51 @@ export default function RegistrationBilling() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {customItems.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/60 transition">
-                        <td className="px-4 py-2.5">
-                          <div className="font-semibold text-slate-800">{item.fee_type_name}</div>
-                          <div className="text-[10px] text-slate-400">ID Pos: #{item.fee_type_id}</div>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <span className="text-xs font-bold text-slate-400">Rp</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="1000"
-                                value={item.override_amount}
-                                onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
-                                placeholder="0"
-                                className="w-40 px-3 py-1.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-purple-500 rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 focus:ring-purple-200 outline-none transition"
-                              />
+                    {customItems.map((item, idx) => {
+                      const isArrears = item.fee_type_name?.toLowerCase().includes('tunggakan') || item.fee_type_id === 11;
+                      const isAutoUsed = isArrears && (item.override_amount === '' || item.override_amount === null || item.override_amount === undefined);
+
+                      return (
+                        <tr key={idx} className={`transition ${isArrears ? 'bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500' : 'hover:bg-slate-50/60'}`}>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-800">{item.fee_type_name}</span>
+                              {isArrears && (
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isAutoUsed ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}`}>
+                                  {isAutoUsed ? '⚡ Otomatis Sistem' : '✏️ Override Manual'}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[11px] font-mono font-bold text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded border border-purple-200/60 shadow-2xs">
-                              {Number(item.override_amount || 0).toLocaleString('id-ID')}
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {isArrears ? (
+                                <span className="text-amber-700 font-medium">Boleh dikosongkan jika otomatis dari sistem tahun ajaran sebelumnya.</span>
+                              ) : (
+                                `ID Pos: #${item.fee_type_id}`
+                              )}
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <span className="text-xs font-bold text-slate-400">Rp</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1000"
+                                  value={item.override_amount}
+                                  onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
+                                  placeholder={isArrears ? 'Otomatis (kosongkan)' : '0'}
+                                  className={`w-44 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-200'}`}
+                                />
+                              </div>
+                              <div className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? (isAutoUsed ? 'text-emerald-800 bg-emerald-50 border-emerald-300' : 'text-amber-800 bg-amber-100/70 border-amber-300') : 'text-purple-700 bg-purple-50/80 border-purple-200/60'}`}>
+                                {Number(item.override_amount || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot className="bg-purple-50/60 border-t-2 border-purple-200 font-bold text-slate-900">
                     <tr>

@@ -107,6 +107,11 @@ export default function KeuanganLayout() {
       icon: FileSpreadsheet,
     },
     {
+      label: 'Pos Alokasi Dana',
+      path: '/keuangan/fund-balances',
+      icon: Coins,
+    },
+    {
       label: 'Tagihan Siswa',
       path: '/keuangan/bills',
       icon: Receipt,

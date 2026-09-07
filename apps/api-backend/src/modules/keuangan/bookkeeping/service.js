@@ -21,13 +21,8 @@ class BookkeepingService {
       query = query.where('school_unit_id', targetUnit);
     }
 
-    if (filters.academic_year_id) {
-      const ay = await crossModuleServices.getAcademicYear(filters.academic_year_id);
-      if (ay?.start_date && ay?.end_date) {
-        const startMonthFirstDay = ay.start_date.slice(0, 7) + '-01';
-        query = query.where('journal_date', '>=', startMonthFirstDay)
-                     .where('journal_date', '<=', ay.end_date);
-      }
+    if (filters.academic_year_id && filters.academic_year_id !== 'all') {
+      query = query.where('journal_entries.academic_year_id', Number(filters.academic_year_id));
     }
 
     if (filters.source_type) {
@@ -149,8 +144,10 @@ class BookkeepingService {
       const journalNumber = await generateJournalNumber(trx, targetUnit);
       const formattedDate = journal_date ? journal_date.slice(0, 10) : new Date().toISOString().slice(0, 10);
 
+      const resolvedAcademicYearId = data.academic_year_id ? Number(data.academic_year_id) : 2;
       const [journalId] = await trx('journal_entries').insert({
         school_unit_id: targetUnit,
+        academic_year_id: resolvedAcademicYearId,
         journal_number: journalNumber,
         journal_date: formattedDate,
         source_type: 'manual',
@@ -593,12 +590,9 @@ class BookkeepingService {
     const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
     let { period_from, period_to, academic_year_id } = filters;
 
-    if (academic_year_id && !period_from && !period_to) {
-      const ay = await crossModuleServices.getAcademicYear(academic_year_id);
-      if (ay?.start_date && ay?.end_date) {
-        period_from = ay.start_date.slice(0, 7) + '-01';
-        period_to = ay.end_date;
-      }
+    // Filter peruntukan tahun ajaran langsung ke kolom academic_year_id
+    if (academic_year_id && academic_year_id !== 'all') {
+      // jika ada academic_year_id, gunakan langsung
     }
 
     let accountQuery = db('chart_of_accounts');
@@ -614,6 +608,9 @@ class BookkeepingService {
 
     if (targetUnit) {
       linesQuery = linesQuery.where('journal_entries.school_unit_id', targetUnit);
+    }
+    if (academic_year_id && academic_year_id !== 'all') {
+      linesQuery = linesQuery.where('journal_entries.academic_year_id', Number(academic_year_id));
     }
     if (period_from) linesQuery = linesQuery.where('journal_entries.journal_date', '>=', period_from);
     if (period_to) linesQuery = linesQuery.where('journal_entries.journal_date', '<=', period_to);

@@ -10,11 +10,13 @@ import { getAppLoginPath } from '../utils/authHelper';
  */
 const MODULE_ROLE_RULES = {
   core: ['super_admin', 'admin_yayasan', 'developer'],
-  kepegawaian: ['super_admin', 'admin_yayasan', 'hrd', 'admin_satuan_pendidikan', 'tu', 'staf'],
+  kepegawaian: ['super_admin', 'admin_yayasan', 'hrd', 'kepegawaian', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staff_payroll', 'staf'],
   akademik: [
     'super_admin',
     'admin_yayasan',
+    'admin_satuan',
     'admin_satuan_pendidikan',
+    'kepala_sekolah',
     'waka_kurikulum',
     'guru',
     'wali_kelas',
@@ -26,20 +28,41 @@ const MODULE_ROLE_RULES = {
   alquran: [
     'super_admin',
     'admin_yayasan',
+    'admin_satuan',
     'admin_satuan_pendidikan',
+    'kepala_sekolah',
     'guru',
     'wali_kelas',
     'musyrif',
     'guru_tahfidz',
     'tu'
   ],
-  keuangan: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan_pendidikan', 'tu'],
-  sarpras: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan_pendidikan', 'tu', 'staf'],
-  perpustakaan: ['super_admin', 'admin_yayasan', 'pustakawan', 'admin_satuan_pendidikan', 'guru', 'tu', 'staf'],
-  kantin: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan_pendidikan', 'staf', 'tu'],
-  dapur: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan_pendidikan', 'staf', 'tu'],
-  manajemen: ['super_admin', 'admin_yayasan', 'admin_satuan_pendidikan', 'waka_kurikulum', 'hrd', 'keuangan', 'sarpras_manager'],
-  'website-utama': ['super_admin', 'admin_yayasan', 'admin_satuan_pendidikan', 'panitia_ppdb', 'tu']
+  al_quran: [
+    'super_admin',
+    'admin_yayasan',
+    'admin_satuan',
+    'admin_satuan_pendidikan',
+    'kepala_sekolah',
+    'guru',
+    'wali_kelas',
+    'musyrif',
+    'guru_tahfidz',
+    'tu'
+  ],
+  keuangan: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  kesiswaan: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'wali_kelas', 'pelatih_ekskul', 'tu'],
+  sarpras: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staf'],
+  perpustakaan: ['super_admin', 'admin_yayasan', 'pustakawan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'guru', 'tu', 'staf'],
+  kantin: ['super_admin', 'admin_yayasan', 'keuangan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'staf', 'tu'],
+  dapur: ['super_admin', 'admin_yayasan', 'sarpras_manager', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'staf', 'tu'],
+  cbt: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'guru', 'tu'],
+  bk: ['super_admin', 'admin_yayasan', 'guru_bk', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'wali_kelas'],
+  alumni: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu', 'staf'],
+  ppdb: ['super_admin', 'admin_yayasan', 'panitia_ppdb', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'tu'],
+  portal_ortu: ['super_admin', 'admin_yayasan', 'wali_santri', 'admin_satuan', 'admin_satuan_pendidikan', 'tu'],
+  portal_siswa: ['super_admin', 'admin_yayasan', 'siswa', 'guru', 'wali_kelas', 'admin_satuan', 'admin_satuan_pendidikan', 'tu'],
+  manajemen: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'hrd', 'kepegawaian', 'keuangan', 'sarpras_manager'],
+  'website-utama': ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'panitia_ppdb', 'tu']
 };
 
 export default function ProtectedRoute({
@@ -80,16 +103,28 @@ export default function ProtectedRoute({
     targetModule = segments[0] || 'core';
   }
 
-  // 4. Validasi hak akses berbasis aturan modul (MODULE_ROLE_RULES)
-  let isAuthorized = true;
+  // Normalisasi nama modul untuk alias
+  const normalizedModule = targetModule.replace(/-/g, '_');
 
-  if (MODULE_ROLE_RULES[targetModule]) {
-    const allowedRoles = MODULE_ROLE_RULES[targetModule];
-    const hasModuleRole = userRoleNames.some((r) => allowedRoles.includes(r));
-    if (!hasModuleRole) {
-      isAuthorized = false;
-    }
+  // 4. Validasi hak akses berbasis modul
+  // Cek jika modul eksplisit ada di user.modules
+  const userModules = Array.isArray(user.modules) ? user.modules : [];
+  const userPermissions = Array.isArray(user.permissions) ? user.permissions : [];
+
+  let hasModuleAccess = false;
+
+  if (userModules.includes(targetModule) || userModules.includes(normalizedModule)) {
+    hasModuleAccess = true;
+  } else if (userPermissions.some((p) => typeof p === 'string' && (p.startsWith(`${targetModule}.`) || p.startsWith(`${normalizedModule}.`)))) {
+    hasModuleAccess = true;
+  } else if (MODULE_ROLE_RULES[targetModule] || MODULE_ROLE_RULES[normalizedModule]) {
+    const allowedRoles = MODULE_ROLE_RULES[targetModule] || MODULE_ROLE_RULES[normalizedModule];
+    hasModuleAccess = userRoleNames.some((r) => allowedRoles.includes(r));
+  } else {
+    hasModuleAccess = true;
   }
+
+  let isAuthorized = hasModuleAccess;
 
   // 5. Validasi hak akses berbasis role spesifik (jika diberikan di route)
   if (isAuthorized && requiredRoles && requiredRoles.length > 0) {
@@ -101,7 +136,6 @@ export default function ProtectedRoute({
 
   // 6. Validasi hak akses berbasis permission spesifik (jika diberikan di route)
   if (isAuthorized && requiredPermissions && requiredPermissions.length > 0) {
-    const userPermissions = Array.isArray(user.permissions) ? user.permissions : [];
     const hasRequiredPermission = requiredPermissions.some((p) => userPermissions.includes(p));
     if (!hasRequiredPermission) {
       isAuthorized = false;

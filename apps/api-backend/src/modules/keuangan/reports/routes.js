@@ -45,7 +45,12 @@ router.get(
   controller.getBalanceSheet
 );
 
-// 7. Kartu Bayar Siswa & Rekap Kelas (Student Ledger)
+router.get(
+  '/reports/academic-years',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.listAcademicYears
+);
 router.get(
   '/reports/classes',
   verifyJwt,
