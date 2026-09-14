@@ -1074,18 +1074,18 @@ export default function LongTermPlanning() {
 
   // Helper render badge kategori
   const renderCategoryBadge = (categoryName) => {
-    if (!categoryName) return <span className="text-gray-400 italic text-[10px]">-</span>;
+    if (!categoryName) return <span className="text-slate-400 italic text-[10px]">-</span>;
 
     const cat = categoryName.trim();
-    let badgeClass = 'bg-gray-100 text-gray-700 border-gray-300';
+    let badgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
     if (cat.includes('Pengembangan Program')) {
-      badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+      badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
     } else if (cat.includes('Penyusunan Dokumen')) {
       badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     } else if (cat.includes('Pengadaan Sarpras')) {
       badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
     } else if (cat.includes('Kegiatan Siswa')) {
-      badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+      badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
     } else if (cat.includes('Forum/Rapat')) {
       badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
     } else if (cat.includes('Sosialisasi')) {
@@ -1130,7 +1130,7 @@ export default function LongTermPlanning() {
     if (groupedPrograms.length === 0) {
       return (
         <tr>
-          <td colSpan={displayedYears.length + 3} className="py-10 text-center text-gray-500 bg-white">
+          <td colSpan={displayedYears.length + 3} className="py-10 text-center text-slate-500 bg-white">
             Belum ada program strategis yang sesuai kriteria filter.
           </td>
         </tr>
@@ -1144,8 +1144,8 @@ export default function LongTermPlanning() {
       return (
         <React.Fragment key={domain.id}>
           {/* LEVEL 1: BIDANG (DOMAIN) */}
-          <tr className="bg-[#E5E7EB] border-b border-gray-300 font-bold text-gray-900 transition-colors">
-            <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
+          <tr className="bg-[#E5E7EB] border-b border-slate-300 font-bold text-slate-900 transition-colors">
+            <td className="py-1.5 px-3 text-center border-r border-slate-300 font-mono text-[11px] text-indigo-800">
               {domain.code}
             </td>
             <td colSpan={displayedYears.length + 2} className="py-1.5 px-3">
@@ -1154,17 +1154,17 @@ export default function LongTermPlanning() {
                 onClick={() => toggleDomain(domainKey)}
                 className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
               >
-                <span className="p-0.5 rounded bg-gray-300/70 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <span className="p-0.5 rounded bg-slate-300/70 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                   {isDomainExpanded ? (
                     <ChevronDown className="w-3.5 h-3.5" />
                   ) : (
                     <ChevronRight className="w-3.5 h-3.5" />
                   )}
                 </span>
-                <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">
+                <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900 group-hover:text-indigo-700 transition-colors">
                   BIDANG: {domain.name}
                 </span>
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300/80 text-gray-700 leading-tight">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-300/80 text-slate-700 leading-tight">
                   {domain.totalPrograms} Program Terdaftar
                 </span>
               </button>
@@ -1211,18 +1211,18 @@ export default function LongTermPlanning() {
                     sub.programs.map((row) => (
                       <tr
                         key={row.program_id}
-                        className="bg-white hover:bg-blue-50/60 border-b border-gray-200 text-gray-800 transition-colors"
+                        className="bg-white hover:bg-indigo-50/60 border-b border-slate-200 text-slate-800 transition-colors"
                       >
                         {/* Kode Program */}
-                        <td className="py-2 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-blue-700 align-middle">
+                        <td className="py-2 px-3 text-center border-r border-slate-200 font-mono text-[11px] font-bold text-indigo-700 align-middle">
                           {row.program_code}
                         </td>
 
                         {/* Nama Program (Satu Baris, Sejajar / Masuk dari Sub-Bidang) */}
-                        <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle min-w-[240px]">
+                        <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-slate-200 align-middle min-w-[240px]">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-gray-900 leading-snug">
+                              <span className="text-xs font-bold text-slate-900 leading-snug">
                                 {row.program_name}
                               </span>
                               {row.is_flagship === 1 && (
@@ -1243,7 +1243,7 @@ export default function LongTermPlanning() {
                         </td>
 
                         {/* Kategori Program */}
-                        <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top w-32">
+                        <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top w-32">
                           {renderCategoryBadge(row.category_name)}
                         </td>
 
@@ -1255,8 +1255,8 @@ export default function LongTermPlanning() {
                             <td
                               key={yr}
                               onClick={() => handleChecklistToggle(row.program_id, yr)}
-                              className={`py-2 px-2 text-center border-r border-gray-200 align-middle cursor-pointer transition-colors select-none ${
-                                isChecked ? 'bg-emerald-50 hover:bg-emerald-100/80' : 'hover:bg-gray-100'
+                              className={`py-2 px-2 text-center border-r border-slate-200 align-middle cursor-pointer transition-colors select-none ${
+                                isChecked ? 'bg-emerald-50 hover:bg-emerald-100/80' : 'hover:bg-slate-100'
                               }`}
                               title={isChecked ? `Program dijadwalkan dilaksanakan di TA ${yr}. Klik untuk batalkan.` : `Klik untuk jadwalkan pelaksanaan di TA ${yr}`}
                             >
@@ -1265,14 +1265,14 @@ export default function LongTermPlanning() {
                                   type="checkbox"
                                   checked={isChecked}
                                   onChange={() => {}} // Handled by td click
-                                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer pointer-events-none"
+                                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer pointer-events-none"
                                 />
                                 {isChecked ? (
                                   <span className="text-[9.5px] font-bold text-emerald-700">
                                     Aktif di RKT
                                   </span>
                                 ) : (
-                                  <span className="text-[9px] text-gray-400">
+                                  <span className="text-[9px] text-slate-400">
                                     -
                                   </span>
                                 )}
@@ -1295,7 +1295,7 @@ export default function LongTermPlanning() {
     if (groupedGoalsHierarchy.length === 0) {
       return (
         <tr>
-          <td colSpan={displayedYears.length + 5} className="py-10 text-center text-gray-500 bg-white">
+          <td colSpan={displayedYears.length + 5} className="py-10 text-center text-slate-500 bg-white">
             Belum ada sasaran strategis RIPS yang sesuai filter.
           </td>
         </tr>
@@ -1309,8 +1309,8 @@ export default function LongTermPlanning() {
       return (
         <React.Fragment key={domain.id}>
           {/* LEVEL 1: BIDANG */}
-          <tr className="bg-[#E5E7EB] border-b border-gray-300 font-bold text-gray-900 transition-colors">
-            <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
+          <tr className="bg-[#E5E7EB] border-b border-slate-300 font-bold text-slate-900 transition-colors">
+            <td className="py-1.5 px-3 text-center border-r border-slate-300 font-mono text-[11px] text-indigo-800">
               {domain.code}
             </td>
             <td colSpan={displayedYears.length + 4} className="py-1.5 px-3">
@@ -1319,17 +1319,17 @@ export default function LongTermPlanning() {
                 onClick={() => toggleDomain(domainKey)}
                 className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
               >
-                <span className="p-0.5 rounded bg-gray-300/70 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <span className="p-0.5 rounded bg-slate-300/70 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                   {isDomainExpanded ? (
                     <ChevronDown className="w-3.5 h-3.5" />
                   ) : (
                     <ChevronRight className="w-3.5 h-3.5" />
                   )}
                 </span>
-                <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">
+                <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900 group-hover:text-indigo-700 transition-colors">
                   BIDANG: {domain.name}
                 </span>
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300/80 text-gray-700 leading-tight">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-300/80 text-slate-700 leading-tight">
                   {domain.totalGoals} Sasaran Strategis / {domain.subdomainList.length} Sub-Bidang
                 </span>
               </button>
@@ -1377,22 +1377,22 @@ export default function LongTermPlanning() {
                       return (
                         <tr
                           key={g.id}
-                          className="bg-white hover:bg-blue-50/60 border-b border-gray-200 text-gray-800 transition-colors"
+                          className="bg-white hover:bg-indigo-50/60 border-b border-slate-200 text-slate-800 transition-colors"
                         >
                           {/* Kode Sasaran */}
-                          <td className="py-2.5 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-indigo-700 align-top">
+                          <td className="py-2.5 px-3 text-center border-r border-slate-200 font-mono text-[11px] font-bold text-indigo-700 align-top">
                             {g.code}
                           </td>
 
                           {/* Sub-Bidang & Sasaran Strategis */}
-                          <td className="py-2.5 px-4 border-r border-gray-200 align-top min-w-[220px]">
-                            <div className="text-xs font-bold text-gray-900 leading-snug">
+                          <td className="py-2.5 px-4 border-r border-slate-200 align-top min-w-[220px]">
+                            <div className="text-xs font-bold text-slate-900 leading-snug">
                               {g.title}
                             </div>
                             {g.indicators && g.indicators.length > 0 && (
                               <div className="mt-1 space-y-0.5">
                                 {g.indicators.map((ind, iIdx) => (
-                                  <div key={ind.id || iIdx} className="text-[10.5px] text-gray-500 flex items-center gap-1">
+                                  <div key={ind.id || iIdx} className="text-[10.5px] text-slate-500 flex items-center gap-1">
                                     <span className="text-indigo-400">&bull;</span>
                                     <span>{ind.name} ({ind.baseline_percent || 0}% &rarr; {ind.target_percent || 100}%)</span>
                                   </div>
@@ -1402,19 +1402,19 @@ export default function LongTermPlanning() {
                           </td>
 
                           {/* Aspek BSC */}
-                          <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top w-28">
+                          <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top w-28">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                               {g.bsc_aspect_name || 'Internal Process'}
                             </span>
                           </td>
 
                           {/* Baseline */}
-                          <td className="py-2.5 px-3 text-right border-r border-gray-200 font-mono text-xs font-bold text-gray-600 align-top w-20">
+                          <td className="py-2.5 px-3 text-right border-r border-slate-200 font-mono text-xs font-bold text-slate-600 align-top w-20">
                             {g.baseline_calc !== null && g.baseline_calc !== undefined ? `${Number(g.baseline_calc).toFixed(0)}%` : '0%'}
                           </td>
 
                           {/* Target */}
-                          <td className="py-2.5 px-3 text-right border-r border-gray-200 font-mono text-xs font-extrabold text-blue-700 align-top w-20">
+                          <td className="py-2.5 px-3 text-right border-r border-slate-200 font-mono text-xs font-extrabold text-indigo-700 align-top w-20">
                             {g.target_calc !== null && g.target_calc !== undefined ? `${Number(g.target_calc).toFixed(0)}%` : '100%'}
                           </td>
 
@@ -1423,7 +1423,7 @@ export default function LongTermPlanning() {
                             const val = goalTrajectoryInputs[g.id]?.[yr];
 
                             return (
-                              <td key={yr} className="py-2 px-2 text-center border-r border-gray-200 align-middle">
+                              <td key={yr} className="py-2 px-2 text-center border-r border-slate-200 align-middle">
                                 <input
                                   type="number"
                                   step="0.1"
@@ -1432,7 +1432,7 @@ export default function LongTermPlanning() {
                                   placeholder="-"
                                   value={val ?? ''}
                                   onChange={(e) => handleGoalTrajectoryChange(g.id, yr, e.target.value)}
-                                  className="w-16 bg-slate-50 border border-gray-300 rounded-lg py-1 px-1.5 text-center text-xs text-emerald-700 font-bold outline-none focus:border-indigo-500 focus:bg-white transition shadow-inner font-mono"
+                                  className="w-16 bg-slate-50 border border-slate-300 rounded-lg py-1 px-1.5 text-center text-xs text-emerald-700 font-bold outline-none focus:border-indigo-500 focus:bg-white transition shadow-inner font-mono"
                                   title={`Target capaian indikator sasaran [${g.code}] pada TA ${yr} (%)`}
                                 />
                               </td>
@@ -1460,12 +1460,12 @@ export default function LongTermPlanning() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
               <CalendarRange className="w-6 h-6" />
             </div>
             <div>
@@ -1489,12 +1489,12 @@ export default function LongTermPlanning() {
           {/* Context Switcher & Actions */}
           <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
             {/* Context Switcher: Yayasan vs Satuan */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setContextType('foundation')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   contextType === 'foundation'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                    ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -1505,7 +1505,7 @@ export default function LongTermPlanning() {
                 onClick={() => setContextType('school_unit')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   contextType === 'school_unit'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                    ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -1540,7 +1540,7 @@ export default function LongTermPlanning() {
                 });
                 setModalType('create_rkjp');
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
             >
               <Plus className="w-4 h-4" />
               Buat RKJP Baru
@@ -1633,8 +1633,8 @@ export default function LongTermPlanning() {
 
       {/* Global Loading Spinner for Page Fetch */}
       {loading && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4 shadow-xl animate-fadeIn">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/30">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center space-y-4 shadow-xl animate-fadeIn">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/30">
             <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
           </div>
           <div className="space-y-1">
@@ -1651,7 +1651,7 @@ export default function LongTermPlanning() {
             <div className="flex items-center gap-2 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('rkjp')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === 'rkjp'
                     ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
@@ -1668,7 +1668,7 @@ export default function LongTermPlanning() {
                   <button
                     key={rkjm.id}
                     onClick={() => setActiveTab(tabKey)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                       isActive
                         ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
                         : 'text-slate-400 hover:text-slate-200'
@@ -1682,7 +1682,7 @@ export default function LongTermPlanning() {
 
               <button
                 onClick={() => setActiveTab('publications')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === 'publications'
                     ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
@@ -1718,15 +1718,15 @@ export default function LongTermPlanning() {
 
           {/* TAB CONTENT: MATRIX */}
           {activeTab !== 'publications' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
               {/* Sub-Tab Navigation Bar: 2 View Modes */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-                <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+                <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shadow-inner">
                   <button
                     onClick={() => setSubViewMode('plan_checklist')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                       subViewMode === 'plan_checklist'
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                        ? 'bg-gradient-to-r from-emerald-600 to-emerald-600 text-white shadow-md'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1738,7 +1738,7 @@ export default function LongTermPlanning() {
                     onClick={() => setSubViewMode('strategic_targets')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                       subViewMode === 'strategic_targets'
-                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                        ? 'bg-emerald-600 text-white shadow-md'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1859,7 +1859,7 @@ export default function LongTermPlanning() {
               </div>
 
               {/* Tree-View Hierarchical Matrix Table Card (Matching RIPS Style) */}
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+              <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
                 {/* Header Utama Tabel: Biru Solid (#3B82F6) */}
                 <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md">
                   <div className="flex items-center gap-3">
@@ -1872,7 +1872,7 @@ export default function LongTermPlanning() {
                           ? `TABEL PENERAPAN RENCANA PROGRAM (${currentTabPlan?.title})`
                           : `TABEL TARGET SASARAN STRATEGIS (${currentTabPlan?.title})`}
                       </h3>
-                      <p className="text-[11px] text-blue-100 font-medium">
+                      <p className="text-[11px] text-indigo-100 font-medium">
                         {subViewMode === 'plan_checklist'
                           ? 'Daftar program kerja yang direncanakan & dijadwalkan pada masing-masing tahun ajaran'
                           : 'Matriks sasaran strategis, aspek BSC, baseline, dan angka target (%) per tahun ajaran'}
@@ -1881,7 +1881,7 @@ export default function LongTermPlanning() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                    <span className="px-2.5 py-1 rounded-full bg-blue-700/60 border border-blue-400/30">
+                    <span className="px-2.5 py-1 rounded-full bg-indigo-700/60 border border-indigo-400/30">
                       {subViewMode === 'plan_checklist' ? `${targetsData?.matrix?.length || 0} Total Program` : `${targetsData?.goals?.length || 0} Sasaran Strategis`}
                     </span>
 
@@ -1966,7 +1966,7 @@ export default function LongTermPlanning() {
                   <table className="w-full text-left border-collapse min-w-[900px]">
                     <thead className="sticky top-0 z-10 shadow-xs">
                       {subViewMode === 'plan_checklist' ? (
-                        <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                        <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                           <th className="py-2.5 px-4 border-r border-[#D1D5DB] min-w-[260px]">Program Strategis &amp; Inisiatif Terobosan</th>
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-32">Kategori</th>
@@ -1988,14 +1988,14 @@ export default function LongTermPlanning() {
                                 className="py-2 px-1 text-center border-r border-[#D1D5DB] w-28 bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors"
                               >
                                 <div className="flex flex-col items-center justify-center gap-1">
-                                  <span className="font-mono font-bold text-gray-900 text-xs">{yr}</span>
+                                  <span className="font-mono font-bold text-slate-900 text-xs">{yr}</span>
                                   <button
                                     type="button"
                                     onClick={() => toggleSelectAllYear(yr)}
                                     className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold transition select-none ${
                                       isAllYearChecked
                                         ? 'bg-emerald-600 text-white shadow-xs'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                     }`}
                                     title={isAllYearChecked ? `Hapus centang semua untuk TA ${yr}` : `Centang semua program untuk TA ${yr}`}
                                   >
@@ -2013,14 +2013,14 @@ export default function LongTermPlanning() {
                           })}
                         </tr>
                       ) : (
-                        <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                        <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                           <th className="py-2.5 px-4 border-r border-[#D1D5DB] min-w-[240px]">Sub-Bidang &amp; Sasaran Strategis</th>
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-28">Aspek BSC</th>
                           <th className="py-2.5 px-3 text-right border-r border-[#D1D5DB] w-20">Baseline</th>
                           <th className="py-2.5 px-3 text-right border-r border-[#D1D5DB] w-20">Target</th>
                           {displayedYears.map((yr) => (
-                            <th key={yr} className="py-2.5 px-2 text-center border-r border-[#D1D5DB] w-24 font-mono font-bold text-gray-900">
+                            <th key={yr} className="py-2.5 px-2 text-center border-r border-[#D1D5DB] w-24 font-mono font-bold text-slate-900">
                               {yr} (%)
                             </th>
                           ))}
@@ -2034,7 +2034,7 @@ export default function LongTermPlanning() {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 flex items-center justify-between">
                 <span>
                   💡 <strong>Catatan Penjadwalan &amp; Target:</strong> Centang pada <em>Tabel Penerapan Rencana Program</em> menandai program akan dilaksanakan pada tahun tersebut sehingga muncul di <strong>RKT</strong>. Adapun isian angka persen pada <em>Tabel Target Sasaran</em> merupakan trajectory target indikator untuk evaluasi mutu.
                 </span>
@@ -2076,7 +2076,7 @@ export default function LongTermPlanning() {
                     flex: '1 1 auto',
                     minHeight: 0,
                   }}
-                  className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+                  className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
                 >
                   {/* Header Fullscreen */}
                   <div className="bg-[#3B82F6] px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
@@ -2095,7 +2095,7 @@ export default function LongTermPlanning() {
                             Full Screen Mode
                           </span>
                         </div>
-                        <p className="text-[11px] text-blue-100 font-medium">
+                        <p className="text-[11px] text-indigo-100 font-medium">
                           {currentLevelLabel} &bull; {subViewMode === 'plan_checklist' ? 'Checklist Penjadwalan Pelaksanaan RKT' : 'Matriks Sasaran Strategis & Target %'}
                         </p>
                       </div>
@@ -2109,7 +2109,7 @@ export default function LongTermPlanning() {
                           type="button"
                           onClick={() => setSubViewMode('plan_checklist')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                            subViewMode === 'plan_checklist' ? 'bg-white text-blue-800 shadow-xs' : 'text-blue-100 hover:text-white'
+                            subViewMode === 'plan_checklist' ? 'bg-white text-indigo-800 shadow-xs' : 'text-indigo-100 hover:text-white'
                           }`}
                         >
                           Checklist TA
@@ -2118,7 +2118,7 @@ export default function LongTermPlanning() {
                           type="button"
                           onClick={() => setSubViewMode('strategic_targets')}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                            subViewMode === 'strategic_targets' ? 'bg-white text-blue-800 shadow-xs' : 'text-blue-100 hover:text-white'
+                            subViewMode === 'strategic_targets' ? 'bg-white text-indigo-800 shadow-xs' : 'text-indigo-100 hover:text-white'
                           }`}
                         >
                           Target Sasaran
@@ -2175,7 +2175,7 @@ export default function LongTermPlanning() {
                       />
 
                       <div className="relative flex items-center group">
-                        <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                        <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                         <input
                           type="text"
                           value={searchQuery}
@@ -2187,7 +2187,7 @@ export default function LongTermPlanning() {
                           <button
                             type="button"
                             onClick={() => setSearchQuery('')}
-                            className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                            className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                             title="Hapus kata kunci pencarian"
                           >
                             <X className="w-3 h-3" />
@@ -2292,7 +2292,7 @@ export default function LongTermPlanning() {
                     className="bg-white"
                   >
                     <table className="w-full text-left border-collapse min-w-[900px]">
-                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                         {subViewMode === 'plan_checklist' ? (
                           <tr>
                             <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
@@ -2315,14 +2315,14 @@ export default function LongTermPlanning() {
                                   className="py-2 px-1 text-center border-r border-[#D1D5DB] w-28 bg-[#F9FAFB] hover:bg-[#F3F4F6] transition-colors"
                                 >
                                   <div className="flex flex-col items-center justify-center gap-1">
-                                    <span className="font-mono font-bold text-gray-900 text-xs">{yr}</span>
+                                    <span className="font-mono font-bold text-slate-900 text-xs">{yr}</span>
                                     <button
                                       type="button"
                                       onClick={() => toggleSelectAllYear(yr)}
                                       className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold transition select-none ${
                                         isAllYearChecked
                                           ? 'bg-emerald-600 text-white shadow-xs'
-                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                          : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                       }`}
                                       title={isAllYearChecked ? `Hapus centang semua untuk TA ${yr}` : `Centang semua program untuk TA ${yr}`}
                                     >
@@ -2347,7 +2347,7 @@ export default function LongTermPlanning() {
                             <th className="py-2.5 px-3 text-right border-r border-[#D1D5DB] w-20">Baseline</th>
                             <th className="py-2.5 px-3 text-right border-r border-[#D1D5DB] w-20">Target</th>
                             {displayedYears.map((yr) => (
-                              <th key={yr} className="py-2.5 px-2 text-center border-r border-[#D1D5DB] w-24 font-mono font-bold text-gray-900">
+                              <th key={yr} className="py-2.5 px-2 text-center border-r border-[#D1D5DB] w-24 font-mono font-bold text-slate-900">
                                 {yr} (%)
                               </th>
                             ))}
@@ -2366,7 +2366,7 @@ export default function LongTermPlanning() {
 
           {/* TAB CONTENT: PUBLICATIONS HISTORY */}
           {activeTab === 'publications' && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <History className="w-5 h-5 text-indigo-400" />
@@ -2392,7 +2392,7 @@ export default function LongTermPlanning() {
                     return (
                       <div
                         key={pub.id}
-                        className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        className="p-5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                       >
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2">
@@ -2462,8 +2462,8 @@ export default function LongTermPlanning() {
         </>
       ) : (
         /* Empty State */
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-4 shadow-xl">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center space-y-4 shadow-xl">
+          <div className="w-16 h-16 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
             <CalendarRange className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-white">
@@ -2483,7 +2483,7 @@ export default function LongTermPlanning() {
               });
               setModalType('create_rkjp');
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
           >
             <Plus className="w-4 h-4" />
             Buat RKJP Sekarang
@@ -2494,7 +2494,7 @@ export default function LongTermPlanning() {
       {/* MODAL 1: CREATE RKJP */}
       {modalType === 'create_rkjp' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white">Buat Dokumen RKJP Baru</h3>
@@ -2599,7 +2599,7 @@ export default function LongTermPlanning() {
                 if (totalYears <= 0) return null;
 
                 return (
-                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-2xl space-y-2 text-xs text-indigo-300">
+                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-xl space-y-2 text-xs text-indigo-300">
                     <div className="flex items-center justify-between font-bold text-white">
                       <span>Total Periode: {totalYears} Tahun ({s} - {e})</span>
                       <span className="text-[11px] bg-indigo-600/40 px-2.5 py-0.5 rounded-full border border-indigo-500/40 text-indigo-200">
@@ -2646,7 +2646,7 @@ export default function LongTermPlanning() {
                 <button
                   type="submit"
                   disabled={formLoading || !formData.start_year || !formData.end_year || Number(formData.end_year) < Number(formData.start_year)}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50 disabled:opacity-60"
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50 disabled:opacity-60"
                 >
                   {formLoading ? (
                     <>
@@ -2669,7 +2669,7 @@ export default function LongTermPlanning() {
       {/* MODAL 1.5: EDIT RKJP (TITLE, STATUS & YEAR RANGE) */}
       {modalType === 'edit_rkjp' && editingRkjp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -2760,7 +2760,7 @@ export default function LongTermPlanning() {
                 if (totalYears <= 0) return null;
 
                 return (
-                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-2xl space-y-2 text-xs text-indigo-300">
+                  <div className="p-3.5 bg-indigo-950/40 border border-indigo-800/60 rounded-xl space-y-2 text-xs text-indigo-300">
                     <div className="flex items-center justify-between font-bold text-white">
                       <span>Total Periode Baru: {totalYears} Tahun ({s} - {e})</span>
                       <span className="text-[11px] bg-indigo-600/40 px-2.5 py-0.5 rounded-full border border-indigo-500/40 text-indigo-200">
@@ -2783,7 +2783,7 @@ export default function LongTermPlanning() {
                 );
               })()}
 
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300 space-y-1">
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 space-y-1">
                 <span className="font-bold">Info Sinkronisasi:</span>
                 <p>
                   Jika Anda menambah atau mengurangi tahun RKJP, sistem akan otomatis menyesuaikan jumlah dan periode RKJM turunan. Target rencana tahunan yang sudah ada pada tahun yang tetap aktif tidak akan hilang.
@@ -2842,7 +2842,7 @@ export default function LongTermPlanning() {
       {/* MODAL 2: PUBLISH DOCUMENT */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-400" />
@@ -2851,7 +2851,7 @@ export default function LongTermPlanning() {
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
               Penerbitan ini akan membekukan (snapshot) target tahunan program pada rentang tahun dokumen ini ke dalam repositori resmi (Document Publications).
             </div>
 
@@ -2922,7 +2922,7 @@ export default function LongTermPlanning() {
       {/* MODAL 3: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Perencanaan</h3>
@@ -2934,7 +2934,7 @@ export default function LongTermPlanning() {
             </div>
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="font-bold text-indigo-400 uppercase text-[10px]">Dokumen</span>
                 <h4 className="text-sm font-bold text-white">{selectedPubSnapshot.plan?.title}</h4>
                 <p className="text-slate-400">

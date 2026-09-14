@@ -52,7 +52,7 @@ export default function MoveProgramModal({
         label: s.name,
         sublabel: d ? `Bidang: ${d.name}` : `Bidang #${s.domain_id}`,
         badge: isCurrent ? 'Saat Ini' : (d?.code || `BID-${d?.order_index || d?.id || ''}`),
-        badgeClass: isCurrent ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-blue-50 text-blue-700 border-blue-200',
+        badgeClass: isCurrent ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-indigo-50 text-indigo-700 border-indigo-200',
       };
     });
   }, [subdomains, domains, currentSubdomainId]);
@@ -102,7 +102,7 @@ export default function MoveProgramModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-scaleUp">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-scaleUp">
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-indigo-900/60 via-slate-900 to-slate-900 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">

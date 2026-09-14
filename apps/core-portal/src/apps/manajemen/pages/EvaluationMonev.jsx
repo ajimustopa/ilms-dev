@@ -274,7 +274,7 @@ export default function EvaluationMonev() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Notifications */}
       {feedbackMsg && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs text-emerald-400">
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-400">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedbackMsg}</span>
@@ -286,7 +286,7 @@ export default function EvaluationMonev() {
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs text-rose-400">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -298,10 +298,10 @@ export default function EvaluationMonev() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center text-white font-bold">
               <Activity className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-black text-white">Monitoring, Evaluasi & Tindak Lanjut (Monev & RTL)</h2>
@@ -323,7 +323,7 @@ export default function EvaluationMonev() {
           <button
             type="button"
             onClick={() => handleOpenCreateRtlFromSource('general', {})}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-950/50 transition border border-teal-400/20"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-teal-950/50 transition border border-emerald-400/20"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Catat RTL Baru</span>
@@ -333,26 +333,26 @@ export default function EvaluationMonev() {
 
       {/* Dashboard Metrics Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
           <span className="text-slate-400 text-[11px] block">Sasaran Tercapai:</span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-xl font-black text-emerald-400">{dashboardMetrics.goals_summary.achieved}</span>
             <span className="text-xs text-slate-500">/ {dashboardMetrics.goals_summary.total} ({dashboardMetrics.goals_summary.percentage}%)</span>
           </div>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
           <span className="text-slate-400 text-[11px] block">Rata-rata Capaian KPI:</span>
           <span className="text-xl font-black text-indigo-400">{dashboardMetrics.kpi_summary.avg_achievement_percentage}%</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
           <span className="text-slate-400 text-[11px] block">Temuan & Masalah:</span>
           <span className="text-xl font-black text-amber-400">{findings.length}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
           <span className="text-slate-400 text-[11px] block">RTL Aktif Berjalan:</span>
-          <span className="text-xl font-black text-teal-400">{dashboardMetrics.rtl_summary.active}</span>
+          <span className="text-xl font-black text-emerald-400">{dashboardMetrics.rtl_summary.active}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-rose-500/30 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-rose-500/30 shadow-xl space-y-1">
           <span className="text-rose-400 text-[11px] font-bold block">RTL Overdue / Kritis:</span>
           <span className="text-xl font-black text-rose-400">{dashboardMetrics.rtl_summary.overdue}</span>
         </div>
@@ -374,7 +374,7 @@ export default function EvaluationMonev() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-teal-600 text-white shadow-md shadow-teal-950/40'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-teal-950/40'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
               }`}
             >
@@ -387,7 +387,7 @@ export default function EvaluationMonev() {
 
       {/* TAB 1: MONITORING SASARAN (BSC & MUTU) */}
       {activeTab === 'goals_mon' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-white">Monitoring Sasaran Strategis BSC & Sasaran Mutu Unit</h3>
@@ -447,7 +447,7 @@ export default function EvaluationMonev() {
                       <button
                         type="button"
                         onClick={() => handleOpenCreateRtlFromSource('quality_goal', g)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-[11px]"
+                        className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
                       >
                         + Buat RTL
                       </button>
@@ -462,7 +462,7 @@ export default function EvaluationMonev() {
 
       {/* TAB 2: MONITORING PROGRAM */}
       {activeTab === 'programs_mon' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-white">Monitoring Penyerapan Anggaran & Capaian Output Program</h3>
@@ -505,7 +505,7 @@ export default function EvaluationMonev() {
                       <button
                         type="button"
                         onClick={() => handleOpenCreateRtlFromSource('program', p)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-[11px]"
+                        className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
                       >
                         + Buat RTL
                       </button>
@@ -520,7 +520,7 @@ export default function EvaluationMonev() {
 
       {/* TAB 3: MONITORING KPI */}
       {activeTab === 'kpi_mon' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-white">Monitoring Kamus Indikator Kinerja Utama (KPI / IKU)</h3>
@@ -579,7 +579,7 @@ export default function EvaluationMonev() {
                       <button
                         type="button"
                         onClick={() => handleOpenCreateRtlFromSource('kpi', k)}
-                        className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-bold text-[11px]"
+                        className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
                       >
                         + Buat RTL
                       </button>
@@ -594,7 +594,7 @@ export default function EvaluationMonev() {
 
       {/* TAB 4: EVALUASI & TEMUAN */}
       {activeTab === 'findings' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -630,7 +630,7 @@ export default function EvaluationMonev() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateRtlFromSource(f.source_type, { id: f.source_id, code: f.source_code, name: f.source_name, title: f.title })}
-                      className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow"
                     >
                       Eskalasi ke RTL ➔
                     </button>
@@ -646,7 +646,7 @@ export default function EvaluationMonev() {
       {activeTab === 'rtl' && (
         <div className="space-y-4">
           {/* RTL Filter Controls */}
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <SearchableSelect
                 value={rtlStatusFilter}
@@ -679,7 +679,7 @@ export default function EvaluationMonev() {
             <button
               type="button"
               onClick={() => handleOpenCreateRtlFromSource('general', {})}
-              className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
             >
               + Catat RTL Baru
             </button>
@@ -688,19 +688,19 @@ export default function EvaluationMonev() {
           {/* RTL Register Cards */}
           <div className="space-y-3">
             {followUps.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center text-slate-500 text-xs">
+              <div className="p-8 rounded-xl bg-slate-900 border border-slate-800 text-center text-slate-500 text-xs">
                 Tidak ada data rencana tindak lanjut (RTL) yang ditemukan.
               </div>
             ) : (
               followUps.map((rtl) => (
                 <div
                   key={rtl.id}
-                  className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition shadow-xl space-y-3 text-xs"
+                  className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition shadow-xl space-y-3 text-xs"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] font-bold text-teal-400 bg-teal-950/80 px-2 py-0.5 rounded">
+                        <span className="font-mono text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded">
                           [RTL #{rtl.id}] Sumber: {rtl.source_type.toUpperCase()} ({rtl.source_code || rtl.source_name || 'Umum'})
                         </span>
                         {renderStatusBadge(rtl.status)}
@@ -751,7 +751,7 @@ export default function EvaluationMonev() {
                     <div className="flex items-center gap-4">
                       <span>PIC: <strong className="text-slate-200">{rtl.pic_name || 'Belum diatur'}</strong></span>
                       <span>Tenggat: <strong className="text-amber-400">{rtl.deadline ? rtl.deadline.slice(0, 10) : '-'}</strong></span>
-                      <span>Progres: <strong className="text-teal-400">{rtl.progress_percent || 0}%</strong></span>
+                      <span>Progres: <strong className="text-emerald-400">{rtl.progress_percent || 0}%</strong></span>
                     </div>
 
                     {rtl.status === 'verified' && (
@@ -771,7 +771,7 @@ export default function EvaluationMonev() {
       {/* MODAL: BUAT / UBAH RTL */}
       {rtlModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {editMode ? 'Ubah Rencana Tindak Lanjut (RTL)' : 'Catat Rencana Tindak Lanjut (RTL) Baru'}
@@ -919,7 +919,7 @@ export default function EvaluationMonev() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold disabled:opacity-50"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan RTL'}
                 </button>
@@ -932,7 +932,7 @@ export default function EvaluationMonev() {
       {/* MODAL: VERIFIKASI SELESAI RTL */}
       {verifyModalOpen && selectedRtl && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -944,7 +944,7 @@ export default function EvaluationMonev() {
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-800 space-y-1.5 text-xs">
-              <span className="font-mono text-teal-400 font-bold">[RTL #{selectedRtl.id}] {selectedRtl.source_code || ''}</span>
+              <span className="font-mono text-emerald-400 font-bold">[RTL #{selectedRtl.id}] {selectedRtl.source_code || ''}</span>
               <h4 className="font-bold text-white">{selectedRtl.action_plan}</h4>
               <div className="text-[10px] text-slate-400">PIC: {selectedRtl.pic_name || '-'} | Progres: {selectedRtl.progress_percent}%</div>
             </div>

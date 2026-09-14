@@ -180,13 +180,13 @@ export default function InstitutionProfile() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header & Context Switcher */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+              <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
                 <Building2 className="w-6 h-6" />
               </div>
               <div>
@@ -199,13 +199,13 @@ export default function InstitutionProfile() {
           </div>
 
           {/* Context Selector Toggle */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 self-start lg:self-auto">
+          <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 self-start lg:self-auto">
             <button
               type="button"
               onClick={() => setContextType('foundation')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 contextType === 'foundation'
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-950/50'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-indigo-950/50'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -218,7 +218,7 @@ export default function InstitutionProfile() {
               onClick={() => setContextType('school_unit')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                 contextType === 'school_unit'
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-950/50'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-indigo-950/50'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -245,7 +245,7 @@ export default function InstitutionProfile() {
 
         {/* Expiry Alert Banner if any doc expiring soon or expired */}
         {(stats.expired_legal_docs > 0 || stats.expiring_legal_docs > 0) && (
-          <div className="mt-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+          <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
               <div className="text-sm text-amber-200">
@@ -272,7 +272,7 @@ export default function InstitutionProfile() {
       <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-2">
         <button
           onClick={() => setActiveTab('base_profile')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'base_profile'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -284,7 +284,7 @@ export default function InstitutionProfile() {
 
         <button
           onClick={() => setActiveTab('legal_docs')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'legal_docs'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -296,7 +296,7 @@ export default function InstitutionProfile() {
 
         <button
           onClick={() => setActiveTab('letterheads')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'letterheads'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -308,7 +308,7 @@ export default function InstitutionProfile() {
 
         <button
           onClick={() => setActiveTab('stamps')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'stamps'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -320,7 +320,7 @@ export default function InstitutionProfile() {
 
         <button
           onClick={() => setActiveTab('signatures')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'signatures'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -334,7 +334,7 @@ export default function InstitutionProfile() {
       {/* TAB 1: PROFIL DASAR */}
       {activeTab === 'base_profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -356,13 +356,13 @@ export default function InstitutionProfile() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-xs text-slate-500 font-medium">Nama Lembaga / Satuan</span>
                 <p className="text-sm font-semibold text-white mt-1">{baseProfile.name || '-'}</p>
               </div>
 
               {contextType === 'school_unit' && (
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <span className="text-xs text-slate-500 font-medium">Jenjang Pendidikan & NPSN</span>
                   <p className="text-sm font-semibold text-white mt-1">
                     {baseProfile.level || '-'} {baseProfile.npsn ? `• NPSN: ${baseProfile.npsn}` : ''}
@@ -371,23 +371,23 @@ export default function InstitutionProfile() {
               )}
 
               {contextType === 'foundation' && (
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <span className="text-xs text-slate-500 font-medium">Ketua Yayasan</span>
                   <p className="text-sm font-semibold text-white mt-1">{baseProfile.chairman_name || '-'}</p>
                 </div>
               )}
 
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-xs text-slate-500 font-medium">Email Resmi</span>
                 <p className="text-sm font-semibold text-white mt-1">{baseProfile.email || '-'}</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-xs text-slate-500 font-medium">Nomor Telepon</span>
                 <p className="text-sm font-semibold text-white mt-1">{baseProfile.phone_number || '-'}</p>
               </div>
 
-              <div className="md:col-span-2 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="md:col-span-2 p-4 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-xs text-slate-500 font-medium">Alamat Lengkap</span>
                 <p className="text-sm font-semibold text-white mt-1">{baseProfile.address || '-'}</p>
               </div>
@@ -395,7 +395,7 @@ export default function InstitutionProfile() {
           </div>
 
           {/* Quick Stats Summary Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 flex flex-col justify-between">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-5 flex flex-col justify-between">
             <div>
               <h3 className="text-md font-bold text-white flex items-center gap-2 mb-4">
                 <Sparkles className="w-5 h-5 text-indigo-400" />
@@ -433,7 +433,7 @@ export default function InstitutionProfile() {
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-900/30 to-violet-900/30 border border-indigo-500/20 text-xs text-indigo-200">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-900/30 to-indigo-900/30 border border-indigo-500/20 text-xs text-indigo-200">
               Data kelengkapan ini akan dihubungkan secara otomatis saat menerbitkan dokumen SK, RIPS, RKJM, RKT, maupun laporan akreditasi pada modul Manajemen.
             </div>
           </div>
@@ -442,7 +442,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 2: DOKUMEN LEGALITAS */}
       {activeTab === 'legal_docs' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -583,7 +583,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 3: KOP SURAT */}
       {activeTab === 'letterheads' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -621,7 +621,7 @@ export default function InstitutionProfile() {
               letterheads.map((lh) => (
                 <div
                   key={lh.id}
-                  className={`p-5 rounded-2xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
+                  className={`p-5 rounded-xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
                     lh.is_default ? 'border-indigo-500 shadow-lg shadow-indigo-950/40' : 'border-slate-800'
                   }`}
                 >
@@ -691,7 +691,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 4: CAP STEMPEL */}
       {activeTab === 'stamps' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -730,7 +730,7 @@ export default function InstitutionProfile() {
               stamps.map((st) => (
                 <div
                   key={st.id}
-                  className={`p-5 rounded-2xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
+                  className={`p-5 rounded-xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
                     st.is_default ? 'border-indigo-500 shadow-lg shadow-indigo-950/40' : 'border-slate-800'
                   }`}
                 >
@@ -803,7 +803,7 @@ export default function InstitutionProfile() {
 
       {/* TAB 5: TANDA TANGAN PEJABAT */}
       {activeTab === 'signatures' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -841,7 +841,7 @@ export default function InstitutionProfile() {
               signatures.map((sig) => (
                 <div
                   key={sig.id}
-                  className={`p-5 rounded-2xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
+                  className={`p-5 rounded-xl bg-slate-950 border transition flex flex-col justify-between space-y-4 ${
                     sig.is_default ? 'border-indigo-500 shadow-lg shadow-indigo-950/40' : 'border-slate-800'
                   }`}
                 >
@@ -921,7 +921,7 @@ export default function InstitutionProfile() {
       {/* MODAL FORM */}
       {modalType && createPortal(
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6 animate-scaleUp">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-6 animate-scaleUp">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingItem ? 'Edit Data' : 'Tambah Data'} -{' '}
@@ -1187,7 +1187,7 @@ export default function InstitutionProfile() {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold transition shadow-lg shadow-indigo-950/50"
                 >
                   {formLoading ? 'Menyimpan...' : 'Simpan Data'}
                 </button>

@@ -326,7 +326,7 @@ export default function ApprovalCenter() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Feedback Messages */}
       {feedbackMsg && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs text-emerald-400">
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-400">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedbackMsg}</span>
@@ -338,7 +338,7 @@ export default function ApprovalCenter() {
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs text-rose-400">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -350,10 +350,10 @@ export default function ApprovalCenter() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-600 flex items-center justify-center text-white font-bold">
               <FileCheck2 className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-black text-white">Pusat Persetujuan & Alur Kerja (Approval Center)</h2>
@@ -384,7 +384,7 @@ export default function ApprovalCenter() {
       </div>
 
       {/* Tabs Navigation & Filters */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           {[
             { id: 'inbox', label: `Menunggu Persetujuan (${pendingList.length})`, icon: Clock },
@@ -443,14 +443,14 @@ export default function ApprovalCenter() {
       {activeTab === 'inbox' && (
         <div className="space-y-4">
           {filteredPending.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center text-slate-500 text-xs italic">
+            <div className="p-8 rounded-xl bg-slate-900 border border-slate-800 text-center text-slate-500 text-xs italic">
               Tidak ada berkas yang sedang menunggu persetujuan Anda saat ini.
             </div>
           ) : (
             filteredPending.map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-1.5 text-xs max-w-2xl">
                   <div className="flex items-center gap-2">
@@ -519,7 +519,7 @@ export default function ApprovalCenter() {
 
       {/* TAB 2: RIWAYAT PERSETUJUAN (HISTORY) */}
       {activeTab === 'history' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-bold">
@@ -570,7 +570,7 @@ export default function ApprovalCenter() {
       {/* TAB 3: STRUKTUR ALUR KERJA (WORKFLOWS) */}
       {activeTab === 'workflows' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <GitBranch className="w-4 h-4 text-indigo-400" />
@@ -592,7 +592,7 @@ export default function ApprovalCenter() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {workflows.map((wf) => (
-              <div key={wf.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+              <div key={wf.id} className="p-5 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
                 <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
                   <div>
                     <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase bg-indigo-950 px-2 py-0.5 rounded">
@@ -633,7 +633,7 @@ export default function ApprovalCenter() {
       {/* DRAWER: DETAIL PENGAJUAN & AUDIT TRAIL */}
       {detailDrawerOpen && selectedRequest && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-end p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full h-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full h-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-slate-800 flex items-start justify-between gap-3 bg-slate-950/40">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -650,7 +650,7 @@ export default function ApprovalCenter() {
             </div>
 
             <div className="p-5 space-y-5 overflow-y-auto flex-1 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-800/60 border border-slate-700">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700">
                 <div>
                   <span className="text-slate-400 text-[10px] block">Pemohon:</span>
                   <span className="font-bold text-white">👤 {selectedRequest.requester_name}</span>
@@ -689,7 +689,7 @@ export default function ApprovalCenter() {
 
               {/* Action Buttons for current request */}
               {selectedRequest.status === 'pending' && (
-                <div className="p-3.5 rounded-2xl bg-slate-850 border border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-xl bg-slate-850 border border-slate-800 space-y-2">
                   <span className="text-[11px] font-bold text-slate-300 block">Tindakan Otorisasi Anda:</span>
                   <div className="grid grid-cols-3 gap-2">
                     <button
@@ -767,7 +767,7 @@ export default function ApprovalCenter() {
       {/* MODAL: AKSI PERSETUJUAN (APPROVE / RETURN / REJECT) */}
       {actionModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {actionType === 'approved' ? 'Setujui Pengajuan' : actionType === 'returned' ? 'Kembalikan Berkas untuk Perbaikan' : 'Tolak Pengajuan'}
@@ -817,7 +817,7 @@ export default function ApprovalCenter() {
       {/* MODAL: AJUKAN PERSETUJUAN BARU */}
       {submitModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">Ajukan Dokumen untuk Persetujuan Berjenjang</h3>
               <button onClick={() => setSubmitModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
@@ -925,7 +925,7 @@ export default function ApprovalCenter() {
       {/* MODAL: BUAT ALUR KERJA BARU */}
       {workflowModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">Buat Definisi Alur Kerja Persetujuan Baru</h3>
               <button onClick={() => setWorkflowModalOpen(false)} className="p-1 text-slate-400 hover:text-white">

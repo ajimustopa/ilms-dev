@@ -132,7 +132,7 @@ export default function TaskProjectHub() {
         value: 'all',
         label: '✨ Semua Proyek Generik (Gabungan Seluruh Tugas)',
         badge: `${projectsList.length} Proyek`,
-        badgeClass: 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30',
+        badgeClass: 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30',
       },
       ...projectsList.map((pr) => ({
         value: pr.id,
@@ -1287,7 +1287,7 @@ export default function TaskProjectHub() {
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        <div className={`border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
+        <div className={`border rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
           isDark
             ? 'bg-slate-900 border-slate-800 text-white'
             : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
@@ -1299,7 +1299,7 @@ export default function TaskProjectHub() {
               : 'border-slate-200 bg-slate-50'
           }`}>
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
                 isDark
                   ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400'
                   : 'bg-indigo-50 border-indigo-200 text-indigo-600'
@@ -1329,7 +1329,7 @@ export default function TaskProjectHub() {
             {/* Tipe Sumber Switcher: Aktivitas RKT vs Tugas Proyek */}
             <div className="space-y-1.5">
               <label className={`text-[11px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Tipe Tugas / Aktivitas</label>
-              <div className={`grid grid-cols-2 gap-2 p-1 rounded-2xl border ${
+              <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'
               }`}>
                 <button
@@ -1351,7 +1351,7 @@ export default function TaskProjectHub() {
                   onClick={() => setCreateForm((prev) => ({ ...prev, source_type: 'task' }))}
                   className={`py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
                     createForm.source_type === 'task'
-                      ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-violet-600/30'
                       : isDark
                       ? 'text-slate-400 hover:text-white hover:bg-slate-900'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
@@ -1457,7 +1457,7 @@ export default function TaskProjectHub() {
             </div>
 
             {/* Pilihan Jadwal Tanggal: 1 Hari vs Rentang Waktu */}
-            <div className={`space-y-2 p-3.5 border rounded-2xl ${
+            <div className={`space-y-2 p-3.5 border rounded-xl ${
               isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-100/90 border-slate-200'
             }`}>
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1548,7 +1548,7 @@ export default function TaskProjectHub() {
             {/* Penanggung Jawab (PIC Pegawai - Multi-Select) */}
             <div className="space-y-1.5">
               <label className={`text-[11px] font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 Penanggung Jawab (PIC Pegawai - Bisa &gt; 1 Orang)
               </label>
               <SearchableSelect
@@ -1713,7 +1713,7 @@ export default function TaskProjectHub() {
         }}
       >
         <div
-          className={`border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
+          className={`border rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleUp ${
             isDark
               ? 'bg-slate-900 border-slate-800 text-white'
               : 'bg-white border-slate-200 text-slate-900 shadow-slate-300/50'
@@ -1727,7 +1727,7 @@ export default function TaskProjectHub() {
           >
             <div className="flex items-center gap-3">
               <div
-                className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center ${
                   isDark
                     ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400'
                     : 'bg-indigo-50 border-indigo-200 text-indigo-600'
@@ -1762,7 +1762,7 @@ export default function TaskProjectHub() {
             {/* Program / Proyek Terkait Info */}
             {selectedItem.program_name && (
               <div
-                className={`p-3 rounded-2xl border flex items-center gap-2.5 ${
+                className={`p-3 rounded-xl border flex items-center gap-2.5 ${
                   isDark
                     ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-200'
                     : 'bg-indigo-50 border-indigo-200 text-indigo-900'
@@ -1848,7 +1848,7 @@ export default function TaskProjectHub() {
 
             {/* Pilihan Jadwal Tanggal: 1 Hari vs Rentang Waktu */}
             <div
-              className={`space-y-2 p-3.5 border rounded-2xl ${
+              className={`space-y-2 p-3.5 border rounded-xl ${
                 isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-100/90 border-slate-200'
               }`}
             >
@@ -1940,7 +1940,7 @@ export default function TaskProjectHub() {
             {/* Penanggung Jawab (PIC Pegawai - Multi-Select) */}
             <div className="space-y-1.5">
               <label className={`text-[11px] font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                <User className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 Penanggung Jawab (PIC Pegawai - Bisa &gt; 1 Orang)
               </label>
               <SearchableSelect
@@ -1957,7 +1957,7 @@ export default function TaskProjectHub() {
 
             {/* Progres Capaian (%) & Slider */}
             <div
-              className={`p-3.5 rounded-2xl border space-y-2 ${
+              className={`p-3.5 rounded-xl border space-y-2 ${
                 isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
               }`}
             >
@@ -2077,9 +2077,9 @@ export default function TaskProjectHub() {
   return (
     <div className="space-y-6 pb-16 mj-animate-fade-in">
       {/* 0. HEADER CONTEXT BANNER & ACADEMIC YEAR SELECTOR */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/50 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/50 shrink-0">
             <Kanban className="w-6 h-6" />
           </div>
           <div>
@@ -2101,7 +2101,7 @@ export default function TaskProjectHub() {
         {/* Level Context & Academic Year Switchers */}
         <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
           {/* Switcher Yayasan vs Satuan Pendidikan */}
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setContextType('foundation')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -2159,10 +2159,10 @@ export default function TaskProjectHub() {
       {/* 1. TOP EXECUTIVE DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-1"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-1"
           style={{ borderTop: '3px solid var(--mj-primary)' }}
         >
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0">
             <CheckSquare className="w-5 h-5" />
           </div>
           <div>
@@ -2172,10 +2172,10 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-2"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-2"
           style={{ borderTop: '3px solid var(--mj-done)' }}
         >
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
@@ -2185,10 +2185,10 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-3"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-3"
           style={{ borderTop: '3px solid var(--mj-progress)' }}
         >
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
             <Clock className="w-5 h-5" />
           </div>
           <div>
@@ -2198,10 +2198,10 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-4"
+          className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-4"
           style={{ borderTop: '3px solid var(--mj-risk)' }}
         >
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
@@ -2211,20 +2211,20 @@ export default function TaskProjectHub() {
         </div>
 
         <div
-          className="col-span-2 lg:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-5"
+          className="col-span-2 lg:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-3 mj-summary-card mj-stagger-5"
           style={{ borderTop: '3px solid var(--mj-sky)' }}
         >
-          <div className="w-10 h-10 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0">
             <Percent className="w-5 h-5" />
           </div>
           <div className="w-full">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-400 font-medium">Rata-rata Progres</span>
-              <span className="text-xs font-bold text-violet-300">{dashboardStats.avg_progress_percent}%</span>
+              <span className="text-xs font-bold text-indigo-300">{dashboardStats.avg_progress_percent}%</span>
             </div>
             <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-violet-500 to-indigo-400 h-full rounded-full"
+                className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-full rounded-full"
                 style={{ width: `${dashboardStats.avg_progress_percent}%` }}
               />
             </div>
@@ -2233,10 +2233,10 @@ export default function TaskProjectHub() {
       </div>
 
       {/* 2. CONTEXT SELECTOR & VIEW MODE TOGGLE */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Source Switcher & Dropdown */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setContextSource('program')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -2289,7 +2289,7 @@ export default function TaskProjectHub() {
         {/* Right Action: View Mode Toggle & Tambah Tugas Button */}
         <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
           {/* View Mode Toggle */}
-          <div className={`flex items-center gap-1 p-1 rounded-2xl border overflow-x-auto ${
+          <div className={`flex items-center gap-1 p-1 rounded-xl border overflow-x-auto ${
             isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-100 border-slate-200'
           }`}>
             <button
@@ -2349,7 +2349,7 @@ export default function TaskProjectHub() {
           {/* Tombol Tambah Tugas / Aktivitas Global */}
           <button
             onClick={() => openCreateModal()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 hover:shadow-lg transition cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 hover:shadow-lg transition cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Tugas / Aktivitas</span>
@@ -2368,7 +2368,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'planned')}
-                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2394,7 +2394,7 @@ export default function TaskProjectHub() {
                   </div>
                   <div className="space-y-2.5">
                     {tasksList.filter((t) => t.status === 'planned' || t.status === 'todo').length === 0 ? (
-                      <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                      <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                         isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                       }`}>
                         <p className="text-xs font-semibold">Belum ada tugas di kolom ini</p>
@@ -2407,7 +2407,7 @@ export default function TaskProjectHub() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => setSelectedItem(item)}
-                          className={`p-3.5 rounded-2xl border transition cursor-pointer space-y-2 shadow-xs ${
+                          className={`p-3.5 rounded-xl border transition cursor-pointer space-y-2 shadow-xs ${
                             isDark
                               ? 'bg-slate-950 hover:border-indigo-500/50 border-slate-800/80'
                               : 'bg-slate-50 hover:border-indigo-500/50 border-slate-200'
@@ -2467,7 +2467,7 @@ export default function TaskProjectHub() {
                 {/* Quick Add Button Planned */}
                 <button
                   onClick={() => openCreateModal(null, null, 'planned')}
-                  className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                  className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                     isDark
                       ? 'border-slate-800 hover:border-indigo-500/60 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-400'
                       : 'border-slate-300 hover:border-indigo-500/60 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700'
@@ -2482,7 +2482,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'in_progress')}
-                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2508,7 +2508,7 @@ export default function TaskProjectHub() {
                   </div>
                   <div className="space-y-2.5">
                     {tasksList.filter((t) => t.status === 'in_progress').length === 0 ? (
-                      <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                      <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                         isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                       }`}>
                         <p className="text-xs font-semibold">Belum ada tugas di kolom ini</p>
@@ -2521,7 +2521,7 @@ export default function TaskProjectHub() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => setSelectedItem(item)}
-                          className={`p-3.5 rounded-2xl border transition cursor-pointer space-y-2 shadow-xs ${
+                          className={`p-3.5 rounded-xl border transition cursor-pointer space-y-2 shadow-xs ${
                             isDark
                               ? 'bg-slate-950 hover:border-amber-500/50 border-slate-800/80'
                               : 'bg-slate-50 hover:border-amber-500/50 border-slate-200'
@@ -2581,7 +2581,7 @@ export default function TaskProjectHub() {
                 {/* Quick Add Button In Progress */}
                 <button
                   onClick={() => openCreateModal(null, null, 'in_progress')}
-                  className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                  className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                     isDark
                       ? 'border-slate-800 hover:border-amber-500/60 hover:bg-amber-500/10 text-slate-400 hover:text-amber-400'
                       : 'border-slate-300 hover:border-amber-500/60 hover:bg-amber-50 text-slate-600 hover:text-amber-700'
@@ -2596,7 +2596,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'done')}
-                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2622,7 +2622,7 @@ export default function TaskProjectHub() {
                   </div>
                   <div className="space-y-2.5">
                     {tasksList.filter((t) => t.status === 'done' || t.status === 'completed').length === 0 ? (
-                      <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                      <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                         isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                       }`}>
                         <p className="text-xs font-semibold">Belum ada tugas di kolom ini</p>
@@ -2635,7 +2635,7 @@ export default function TaskProjectHub() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => setSelectedItem(item)}
-                          className={`p-3.5 rounded-2xl border transition cursor-pointer space-y-2 shadow-xs ${
+                          className={`p-3.5 rounded-xl border transition cursor-pointer space-y-2 shadow-xs ${
                             isDark
                               ? 'bg-slate-950 hover:border-emerald-500/50 border-slate-800/80'
                               : 'bg-slate-50 hover:border-emerald-500/50 border-slate-200'
@@ -2699,7 +2699,7 @@ export default function TaskProjectHub() {
                 {/* Quick Add Button Done */}
                 <button
                   onClick={() => openCreateModal(null, null, 'done')}
-                  className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                  className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                     isDark
                       ? 'border-slate-800 hover:border-emerald-500/60 hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-400'
                       : 'border-slate-300 hover:border-emerald-500/60 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700'
@@ -2714,7 +2714,7 @@ export default function TaskProjectHub() {
               <div
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'cancelled')}
-                className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
+                className={`border rounded-xl p-4 flex flex-col justify-between min-h-[400px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
                 }`}
               >
@@ -2740,7 +2740,7 @@ export default function TaskProjectHub() {
                   </div>
                   <div className="space-y-2.5">
                     {tasksList.filter((t) => t.status === 'cancelled' || t.status === 'dibatalkan').length === 0 ? (
-                      <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                      <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                         isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                       }`}>
                         <p className="text-xs font-semibold">Belum ada tugas di kolom ini</p>
@@ -2753,7 +2753,7 @@ export default function TaskProjectHub() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, item)}
                           onClick={() => setSelectedItem(item)}
-                          className={`p-3.5 rounded-2xl border transition cursor-pointer space-y-2 shadow-xs ${
+                          className={`p-3.5 rounded-xl border transition cursor-pointer space-y-2 shadow-xs ${
                             isDark
                               ? 'bg-slate-950 hover:border-rose-500/50 border-slate-800/80'
                               : 'bg-slate-50 hover:border-rose-500/50 border-slate-200'
@@ -2817,7 +2817,7 @@ export default function TaskProjectHub() {
                 {/* Quick Add Button Cancelled */}
                 <button
                   onClick={() => openCreateModal(null, null, 'cancelled')}
-                  className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                  className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                     isDark
                       ? 'border-slate-800 hover:border-rose-500/60 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400'
                       : 'border-slate-300 hover:border-rose-500/60 hover:bg-rose-50 text-slate-600 hover:text-rose-700'
@@ -2834,7 +2834,7 @@ export default function TaskProjectHub() {
           {viewMode === 'bucket' && (
             <div className="space-y-4">
               {/* Header Bucket Toolbar */}
-              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border ${
+              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border ${
                 isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-slate-200/50'
               }`}>
                 <div className="flex items-center gap-2.5">
@@ -2859,7 +2859,7 @@ export default function TaskProjectHub() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Column 1: Overdue / Terlewat */}
-                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-rose-500/30' : 'bg-white border-rose-200'
                 }`}>
                   <div className="space-y-3">
@@ -2885,7 +2885,7 @@ export default function TaskProjectHub() {
 
                     <div className="space-y-2.5">
                       {(!bucketData.overdue || bucketData.overdue.length === 0) ? (
-                        <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                        <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                           isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                         }`}>
                           <p className="text-xs font-semibold">Tidak ada tugas terlewat</p>
@@ -2905,7 +2905,7 @@ export default function TaskProjectHub() {
                             <div
                               key={`${i.item_type || 'item'}-${i.id}`}
                               onClick={() => setSelectedItem(i)}
-                              className={`p-3.5 rounded-2xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
+                              className={`p-3.5 rounded-xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
                                 isDark
                                   ? 'bg-slate-950 border-slate-800/80 hover:border-rose-500/40 text-white'
                                   : 'bg-slate-50 border-slate-200 hover:border-rose-500/40 text-slate-900'
@@ -2947,7 +2947,7 @@ export default function TaskProjectHub() {
                   </div>
                   <button
                     onClick={() => openCreateModal()}
-                    className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                    className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                       isDark
                         ? 'border-slate-800 hover:border-rose-500/60 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400'
                         : 'border-slate-300 hover:border-rose-500/60 hover:bg-rose-50 text-slate-600 hover:text-rose-700'
@@ -2959,7 +2959,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 2: Today / Hari Ini */}
-                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-amber-500/30' : 'bg-white border-amber-200'
                 }`}>
                   <div className="space-y-3">
@@ -2985,7 +2985,7 @@ export default function TaskProjectHub() {
 
                     <div className="space-y-2.5">
                       {(!bucketData.today || bucketData.today.length === 0) ? (
-                        <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                        <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                           isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                         }`}>
                           <p className="text-xs font-semibold">Tidak ada tugas hari ini</p>
@@ -3005,7 +3005,7 @@ export default function TaskProjectHub() {
                             <div
                               key={`${i.item_type || 'item'}-${i.id}`}
                               onClick={() => setSelectedItem(i)}
-                              className={`p-3.5 rounded-2xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
+                              className={`p-3.5 rounded-xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
                                 isDark
                                   ? 'bg-slate-950 border-slate-800/80 hover:border-amber-500/40 text-white'
                                   : 'bg-slate-50 border-slate-200 hover:border-amber-500/40 text-slate-900'
@@ -3047,7 +3047,7 @@ export default function TaskProjectHub() {
                   </div>
                   <button
                     onClick={() => openCreateModal()}
-                    className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                    className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                       isDark
                         ? 'border-slate-800 hover:border-amber-500/60 hover:bg-amber-500/10 text-slate-400 hover:text-amber-400'
                         : 'border-slate-300 hover:border-amber-500/60 hover:bg-amber-50 text-slate-600 hover:text-amber-700'
@@ -3059,7 +3059,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 3: Tomorrow / Besok */}
-                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-indigo-500/30' : 'bg-white border-indigo-200'
                 }`}>
                   <div className="space-y-3">
@@ -3085,7 +3085,7 @@ export default function TaskProjectHub() {
 
                     <div className="space-y-2.5">
                       {(!bucketData.tomorrow || bucketData.tomorrow.length === 0) ? (
-                        <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                        <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                           isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                         }`}>
                           <p className="text-xs font-semibold">Tidak ada tugas besok</p>
@@ -3105,7 +3105,7 @@ export default function TaskProjectHub() {
                             <div
                               key={`${i.item_type || 'item'}-${i.id}`}
                               onClick={() => setSelectedItem(i)}
-                              className={`p-3.5 rounded-2xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
+                              className={`p-3.5 rounded-xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
                                 isDark
                                   ? 'bg-slate-950 border-slate-800/80 hover:border-indigo-500/40 text-white'
                                   : 'bg-slate-50 border-slate-200 hover:border-indigo-500/40 text-slate-900'
@@ -3147,7 +3147,7 @@ export default function TaskProjectHub() {
                   </div>
                   <button
                     onClick={() => openCreateModal()}
-                    className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                    className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                       isDark
                         ? 'border-slate-800 hover:border-indigo-500/60 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-400'
                         : 'border-slate-300 hover:border-indigo-500/60 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700'
@@ -3159,7 +3159,7 @@ export default function TaskProjectHub() {
                 </div>
 
                 {/* Column 4: This Week / Pekan Ini & Mendatang */}
-                <div className={`border rounded-2xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
+                <div className={`border rounded-xl p-4 flex flex-col justify-between min-h-[350px] shadow-xs ${
                   isDark ? 'bg-slate-900 border-emerald-500/30' : 'bg-white border-emerald-200'
                 }`}>
                   <div className="space-y-3">
@@ -3185,7 +3185,7 @@ export default function TaskProjectHub() {
 
                     <div className="space-y-2.5">
                       {(!bucketData.this_week || bucketData.this_week.length === 0) ? (
-                        <div className={`p-6 rounded-2xl border border-dashed text-center space-y-1 my-2 ${
+                        <div className={`p-6 rounded-xl border border-dashed text-center space-y-1 my-2 ${
                           isDark ? 'border-slate-800/80 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-slate-50 text-slate-400'
                         }`}>
                           <p className="text-xs font-semibold">Tidak ada tugas pekan ini</p>
@@ -3205,7 +3205,7 @@ export default function TaskProjectHub() {
                             <div
                               key={`${i.item_type || 'item'}-${i.id}`}
                               onClick={() => setSelectedItem(i)}
-                              className={`p-3.5 rounded-2xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
+                              className={`p-3.5 rounded-xl border transition text-xs cursor-pointer space-y-2 shadow-xs ${
                                 isDark
                                   ? 'bg-slate-950 border-slate-800/80 hover:border-emerald-500/40 text-white'
                                   : 'bg-slate-50 border-slate-200 hover:border-emerald-500/40 text-slate-900'
@@ -3247,7 +3247,7 @@ export default function TaskProjectHub() {
                   </div>
                   <button
                     onClick={() => openCreateModal()}
-                    className={`w-full py-2 px-3 rounded-2xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
+                    className={`w-full py-2 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer mt-3 ${
                       isDark
                         ? 'border-slate-800 hover:border-emerald-500/60 hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-400'
                         : 'border-slate-300 hover:border-emerald-500/60 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700'
@@ -3263,7 +3263,7 @@ export default function TaskProjectHub() {
 
           {/* VIEW: LIST TABLE */}
           {viewMode === 'list' && (
-            <div className={`border rounded-2xl overflow-hidden shadow-xl ${
+            <div className={`border rounded-xl overflow-hidden shadow-xl ${
               isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-slate-200/50'
             }`}>
               {/* Header List Toolbar */}

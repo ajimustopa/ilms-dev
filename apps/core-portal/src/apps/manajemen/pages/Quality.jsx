@@ -117,9 +117,9 @@ export default function Quality() {
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+          <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
             <Award className="w-6 h-6" />
           </div>
           <div>
@@ -161,7 +161,7 @@ export default function Quality() {
       {/* Reports & Evidence Canvas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Reports List */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <FileText className="w-4 h-4 text-indigo-400" />
             Daftar Laporan Akreditasi ({reports.length})
@@ -178,7 +178,7 @@ export default function Quality() {
                     setSelectedReport(rep);
                     fetchEvidences(rep.id);
                   }}
-                  className={`p-4 rounded-2xl border cursor-pointer transition space-y-1.5 ${
+                  className={`p-4 rounded-xl border cursor-pointer transition space-y-1.5 ${
                     selectedReport?.id === rep.id
                       ? 'bg-indigo-500/10 border-indigo-500 shadow-sm'
                       : 'bg-slate-950 border-slate-800 hover:border-slate-700'
@@ -201,7 +201,7 @@ export default function Quality() {
         </div>
 
         {/* Right: Evidences Table */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -296,7 +296,7 @@ export default function Quality() {
       {/* Modal Laporan Akreditasi */}
       {reportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">Laporan Akreditasi Baru</h3>
               <button onClick={() => setReportModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
@@ -354,7 +354,7 @@ export default function Quality() {
       {/* Modal Evidence */}
       {evidenceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">Tambah Butir Bukti Akreditasi</h3>
               <button onClick={() => setEvidenceModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>

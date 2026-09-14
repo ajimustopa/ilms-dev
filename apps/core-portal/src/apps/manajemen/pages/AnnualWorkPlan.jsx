@@ -410,7 +410,7 @@ export default function AnnualWorkPlan() {
       <>
         {parts.map((part, i) =>
           part.toLowerCase() === q.toLowerCase() ? (
-            <mark key={i} className="bg-amber-300 text-gray-950 font-bold px-0.5 rounded shadow-xs">
+            <mark key={i} className="bg-amber-300 text-slate-950 font-bold px-0.5 rounded shadow-xs">
               {part}
             </mark>
           ) : (
@@ -1496,8 +1496,8 @@ export default function AnnualWorkPlan() {
       return (
         <React.Fragment key={domain.id}>
           {/* LEVEL 1: BIDANG */}
-          <tr className="bg-[#E5E7EB] border-b border-gray-300 font-bold text-gray-900 transition-colors">
-            <td className="py-2 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
+          <tr className="bg-[#E5E7EB] border-b border-slate-300 font-bold text-slate-900 transition-colors">
+            <td className="py-2 px-3 text-center border-r border-slate-300 font-mono text-[11px] text-indigo-800">
               {domain.code}
             </td>
             <td colSpan={6} className="py-2 px-3">
@@ -1507,17 +1507,17 @@ export default function AnnualWorkPlan() {
                   onClick={() => toggleDomain(domKey)}
                   className="flex items-center gap-1.5 text-left group focus:outline-none flex-1 min-w-0"
                 >
-                  <span className="p-0.5 rounded bg-gray-300 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                  <span className="p-0.5 rounded bg-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
                     {isDomExpanded ? (
                       <ChevronDown className="w-3.5 h-3.5" />
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5" />
                     )}
                   </span>
-                  <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                  <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
                     BIDANG: {domain.name}
                   </span>
-                  <span className="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300 text-gray-700 leading-tight shrink-0">
+                  <span className="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-300 text-slate-700 leading-tight shrink-0">
                     {domain.totalPrograms} Program Kerja / {domain.subdomainList.length} Sub-Bidang
                   </span>
                 </button>
@@ -1528,7 +1528,7 @@ export default function AnnualWorkPlan() {
                       e.stopPropagation();
                       handleOpenEditDomainModal(domain);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-gray-700 hover:text-blue-700 text-[10.5px] font-bold transition border border-gray-300 shadow-2xs select-none cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-700 hover:text-indigo-700 text-[10.5px] font-bold transition border border-slate-300 shadow-2xs select-none cursor-pointer"
                     title={`Edit Nama / Urutan Bidang ${domain.name} (Berlaku untuk seluruh TA)`}
                   >
                     <Pencil className="w-3 h-3 text-amber-600" />
@@ -1630,19 +1630,19 @@ export default function AnnualWorkPlan() {
                       return (
                         <React.Fragment key={prog.program_id}>
                           {/* BARIS PROGRAM (SEJAJAR / LEBIH KE DALAM DARI SUB-BIDANG, TEKS SATU BARIS) */}
-                          <tr className="bg-slate-50/80 hover:bg-blue-50/70 border-b border-gray-200 font-medium transition-colors">
+                          <tr className="bg-slate-50/80 hover:bg-indigo-50/70 border-b border-slate-200 font-medium transition-colors">
                             {/* Kode Program */}
-                            <td className="py-2 px-3 text-center border-r border-gray-200 font-mono text-[11px] font-bold text-indigo-700 align-middle">
+                            <td className="py-2 px-3 text-center border-r border-slate-200 font-mono text-[11px] font-bold text-indigo-700 align-middle">
                               {highlightMatch(prog.program_code, searchQuery)}
                             </td>
 
                             {/* Nama Program (Satu Baris, Indentasi Sejajar / Masuk dari Sub-Bidang) */}
-                            <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle">
+                            <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-slate-200 align-middle">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <button
                                   type="button"
                                   onClick={() => toggleProgram(prog.program_id)}
-                                  className="p-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition shrink-0 cursor-pointer"
+                                  className="p-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 transition shrink-0 cursor-pointer"
                                   title={isProgExpanded ? 'Sembunyikan rincian tugas' : 'Tampilkan rincian tugas'}
                                 >
                                   {isProgExpanded ? (
@@ -1651,7 +1651,7 @@ export default function AnnualWorkPlan() {
                                     <ChevronRight className="w-3.5 h-3.5" />
                                   )}
                                 </button>
-                                <span className="text-xs font-bold text-gray-900 leading-snug">
+                                <span className="text-xs font-bold text-slate-900 leading-snug">
                                   {highlightMatch(prog.program_name, searchQuery)}
                                 </span>
                                 {prog.is_flagship === 1 && (
@@ -1663,7 +1663,7 @@ export default function AnnualWorkPlan() {
                             </td>
 
                             {/* Kategori Program */}
-                            <td className="py-2.5 px-3 text-center border-r border-gray-200 align-middle">
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle">
                               <span
                                 style={{
                                   backgroundColor: prog.category_bg_color || '#EEF2FF',
@@ -1677,12 +1677,12 @@ export default function AnnualWorkPlan() {
                             </td>
 
                             {/* Jadwal Pelaksanaan */}
-                            <td className="py-2.5 px-3 text-center border-r border-gray-200 align-middle text-xs font-bold text-slate-700 font-mono">
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle text-xs font-bold text-slate-700 font-mono">
                               TA {academicYear}
                             </td>
 
                             {/* Kepanitiaan (Pop up trigger button) */}
-                            <td className="py-2.5 px-3 text-center border-r border-gray-200 align-middle">
+                            <td className="py-2.5 px-3 text-center border-r border-slate-200 align-middle">
                               <button
                                 type="button"
                                 onClick={() => handleOpenCommitteeModal(prog)}
@@ -1691,7 +1691,7 @@ export default function AnnualWorkPlan() {
                                     ? isCommDisahkan
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
                                       : 'bg-indigo-100 text-indigo-800 border border-indigo-300 hover:bg-indigo-200'
-                                    : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200'
                                 }`}
                                 title="Klik untuk melihat / mengelola susunan SK Kepanitiaan"
                               >
@@ -1704,17 +1704,17 @@ export default function AnnualWorkPlan() {
                             </td>
 
                             {/* Status & Agregat Progres */}
-                            <td className="py-2.5 px-3 border-r border-gray-200 align-middle">
+                            <td className="py-2.5 px-3 border-r border-slate-200 align-middle">
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between text-[10px]">
-                                  <span className="font-semibold text-gray-600">
+                                  <span className="font-semibold text-slate-600">
                                     {prog.stats?.completed_activities || 0}/{actCount} Tugas
                                   </span>
                                   <span className="font-bold text-indigo-700">
                                     {prog.stats?.avg_progress_percent || 0}%
                                   </span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                                   <div
                                     className="bg-indigo-600 h-full rounded-full transition-all duration-300"
                                     style={{ width: `${prog.stats?.avg_progress_percent || 0}%` }}
@@ -1767,11 +1767,11 @@ export default function AnnualWorkPlan() {
                           {isProgExpanded && (
                             <>
                               {actCount === 0 ? (
-                                <tr className="bg-white border-b border-gray-200">
-                                  <td className="py-2 px-3 text-center border-r border-gray-200 text-gray-400 font-mono text-[10px]">
+                                <tr className="bg-white border-b border-slate-200">
+                                  <td className="py-2 px-3 text-center border-r border-slate-200 text-slate-400 font-mono text-[10px]">
                                     -
                                   </td>
-                                  <td colSpan={5} className="py-2 px-8 text-xs text-gray-400 italic">
+                                  <td colSpan={5} className="py-2 px-8 text-xs text-slate-400 italic">
                                     Belum ada rincian tugas kegiatan. Klik tombol <strong>+ Tugas</strong> di sebelah kanan untuk menambahkan.
                                   </td>
                                   <td className="py-2 px-3 text-center">
@@ -1791,18 +1791,18 @@ export default function AnnualWorkPlan() {
                                   return (
                                     <tr
                                       key={act.id}
-                                      className="bg-white hover:bg-amber-50/40 border-b border-gray-100 text-gray-800 transition-colors"
+                                      className="bg-white hover:bg-amber-50/40 border-b border-slate-100 text-slate-800 transition-colors"
                                     >
                                       {/* Penomoran Sub-Tugas */}
-                                      <td className="py-2 px-3 text-center border-r border-gray-200 font-mono text-[10.5px] text-gray-500 align-middle">
+                                      <td className="py-2 px-3 text-center border-r border-slate-200 font-mono text-[10.5px] text-slate-500 align-middle">
                                         {prog.program_code}.{actIdx + 1}
                                       </td>
 
                                       {/* Judul Langkah Tugas & Catatan */}
-                                      <td className="py-2 px-3 pl-12 sm:pl-14 border-r border-gray-200 align-middle">
+                                      <td className="py-2 px-3 pl-12 sm:pl-14 border-r border-slate-200 align-middle">
                                         <div className="flex items-center gap-2">
                                           <CheckSquare className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                          <span className="text-xs font-semibold text-gray-900 leading-snug">
+                                          <span className="text-xs font-semibold text-slate-900 leading-snug">
                                             {highlightMatch(act.title, searchQuery)}
                                           </span>
                                           {act.document_link && (
@@ -1817,14 +1817,14 @@ export default function AnnualWorkPlan() {
                                           )}
                                         </div>
                                         {act.notes && (
-                                          <p className="text-[10.5px] text-gray-500 mt-0.5 pl-5">
+                                          <p className="text-[10.5px] text-slate-500 mt-0.5 pl-5">
                                             {highlightMatch(act.notes, searchQuery)}
                                           </p>
                                         )}
                                       </td>
 
                                       {/* Tag / Tipe Tugas */}
-                                      <td className="py-2 px-3 text-center border-r border-gray-200 align-middle">
+                                      <td className="py-2 px-3 text-center border-r border-slate-200 align-middle">
                                         <span
                                           className={`inline-flex items-center px-2 py-0.5 rounded text-[9.5px] font-bold border uppercase ${getTagBadge(
                                             act.tag
@@ -1835,13 +1835,13 @@ export default function AnnualWorkPlan() {
                                       </td>
 
                                       {/* Jadwal Tanggal (Single Day / Rentang Waktu) */}
-                                      <td className="py-2 px-3 text-center border-r border-gray-200 align-middle text-[11px] text-gray-600">
+                                      <td className="py-2 px-3 text-center border-r border-slate-200 align-middle text-[11px] text-slate-600">
                                         {(() => {
                                           const sDate = act.start_date || act.activity_date;
                                           const eDate = act.end_date || sDate;
 
                                           if (!sDate && !eDate) {
-                                            return <span className="text-gray-400 text-[11px]">-</span>;
+                                            return <span className="text-slate-400 text-[11px]">-</span>;
                                           }
 
                                           if (!eDate || sDate === eDate) {
@@ -1873,7 +1873,7 @@ export default function AnnualWorkPlan() {
                                       </td>
 
                                       {/* PIC Pelaksana Tugas (Multi-Assignee) */}
-                                      <td className="py-2 px-3 text-center border-r border-gray-200 align-middle text-xs text-gray-700">
+                                      <td className="py-2 px-3 text-center border-r border-slate-200 align-middle text-xs text-slate-700">
                                         {(() => {
                                           let empIds = [];
                                           if (Array.isArray(act.assignee_employee_ids) && act.assignee_employee_ids.length > 0) {
@@ -1883,7 +1883,7 @@ export default function AnnualWorkPlan() {
                                           }
 
                                           if (empIds.length === 0) {
-                                            return <span className="text-gray-400 text-[11px]">-</span>;
+                                            return <span className="text-slate-400 text-[11px]">-</span>;
                                           }
 
                                           const matchedEmps = empIds
@@ -1891,7 +1891,7 @@ export default function AnnualWorkPlan() {
                                             .filter(Boolean);
 
                                           if (matchedEmps.length === 0) {
-                                            return <span className="text-gray-400 text-[11px]">-</span>;
+                                            return <span className="text-slate-400 text-[11px]">-</span>;
                                           }
 
                                           if (matchedEmps.length === 1) {
@@ -1920,17 +1920,17 @@ export default function AnnualWorkPlan() {
                                       </td>
 
                                       {/* Status & Progres Bar */}
-                                      <td className="py-2 px-3 border-r border-gray-200 align-middle">
+                                      <td className="py-2 px-3 border-r border-slate-200 align-middle">
                                         <div className="space-y-1">
                                           <div className="flex items-center justify-between text-[10px]">
-                                            <span className="capitalize font-semibold text-gray-600">
+                                            <span className="capitalize font-semibold text-slate-600">
                                               {act.status.replace('_', ' ')}
                                             </span>
                                             <span className="font-bold text-emerald-600">
                                               {act.progress_percent}%
                                             </span>
                                           </div>
-                                          <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                                             <div
                                               className="bg-emerald-500 h-full rounded-full"
                                               style={{ width: `${act.progress_percent}%` }}
@@ -1944,7 +1944,7 @@ export default function AnnualWorkPlan() {
                                         <button
                                           type="button"
                                           onClick={() => handleOpenEditActivity(prog, act)}
-                                          className="p-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition"
+                                          className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
                                           title="Edit tugas"
                                         >
                                           <Edit2 className="w-3 h-3" />
@@ -1978,14 +1978,14 @@ export default function AnnualWorkPlan() {
   return (
     <div className="space-y-6 pb-16 pt-2">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-visible">
-        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-visible">
+        <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
           <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         </div>
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-40">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
               <CalendarDays className="w-6 h-6" />
             </div>
             <div>
@@ -2009,7 +2009,7 @@ export default function AnnualWorkPlan() {
           {/* Context Switcher & Academic Year Selectors */}
           <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto relative z-50">
             {/* Context Switcher: Yayasan vs Satuan */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setContextType('foundation')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -2081,7 +2081,7 @@ export default function AnnualWorkPlan() {
                   });
                   setModalType('publish');
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/40"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/40"
               >
                 <Send className="w-3.5 h-3.5" />
                 Terbitkan RKT Ini
@@ -2218,7 +2218,7 @@ export default function AnnualWorkPlan() {
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
         <button
           onClick={() => setMainTab('rkt')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             mainTab === 'rkt'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
               : 'text-slate-400 hover:text-slate-200'
@@ -2230,7 +2230,7 @@ export default function AnnualWorkPlan() {
 
         <button
           onClick={() => setMainTab('publications')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             mainTab === 'publications'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md'
               : 'text-slate-400 hover:text-slate-200'
@@ -2243,9 +2243,9 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 1: RKT HIERARCHICAL TABLE (BIDANG -> SUB-BIDANG -> PROGRAM -> TUGAS) */}
       {mainTab === 'rkt' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
           {/* Header Utama Tabel: Biru Solid (#3B82F6) seperti di RIPS */}
-          <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-2xl relative z-50">
+          <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-xl relative z-50">
             {/* Sisi Kiri: Ikon & Judul Tabel */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold shadow-xs">
@@ -2255,7 +2255,7 @@ export default function AnnualWorkPlan() {
                 <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
                   MATRIKS OPERASIONAL PROGRAM KERJA TAHUNAN ({academicYear})
                 </h3>
-                <p className="text-[11px] text-blue-100 font-medium">
+                <p className="text-[11px] text-indigo-100 font-medium">
                   {currentLevelLabel} &bull; Menampilkan {totalFilteredPrograms} dari {programs.length} Program Operasional &amp; Tugas
                 </p>
               </div>
@@ -2331,7 +2331,7 @@ export default function AnnualWorkPlan() {
 
               {/* Search Box */}
               <div className="relative flex items-center group">
-                <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -2343,7 +2343,7 @@ export default function AnnualWorkPlan() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                    className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                     title="Hapus kata kunci pencarian"
                   >
                     <X className="w-3 h-3" />
@@ -2435,7 +2435,7 @@ export default function AnnualWorkPlan() {
 
           {/* Banner Hasil Pencarian / Filter Aktif */}
           {isFilteringActive && (
-            <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-200 animate-fadeIn">
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-200 animate-fadeIn">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <Search className="w-4 h-4 text-indigo-400 shrink-0" />
                 <span>
@@ -2467,7 +2467,7 @@ export default function AnnualWorkPlan() {
           )}
 
           {groupedProgramsHierarchy.length === 0 ? (
-            <div className="p-12 text-center space-y-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+            <div className="p-12 text-center space-y-3 bg-slate-950/60 rounded-xl border border-slate-800">
               <Sparkles className="w-12 h-12 text-slate-600 mx-auto" />
               <h4 className="text-sm font-bold text-white">
                 {isFilteringActive ? 'Tidak Ada Program yang Cocok' : 'Tidak Ada Program yang Dijadwalkan'}
@@ -2494,10 +2494,10 @@ export default function AnnualWorkPlan() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-gray-300 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
               <table className="w-full text-left border-collapse min-w-[950px]">
                 <thead>
-                  <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                  <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                     <th className="py-3 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                     <th className="py-3 px-4 border-r border-[#D1D5DB] min-w-[280px]">Program Kerja / Langkah Tugas Kegiatan</th>
                     <th className="py-3 px-3 text-center border-r border-[#D1D5DB] w-32">Kategori / Tag</th>
@@ -2543,10 +2543,10 @@ export default function AnnualWorkPlan() {
                 flex: '1 1 auto',
                 minHeight: 0,
               }}
-              className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+              className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
             >
               {/* Header Fullscreen */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
+              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
                     <CalendarDays className="w-5 h-5 text-white" />
@@ -2560,7 +2560,7 @@ export default function AnnualWorkPlan() {
                         Full Screen Mode
                       </span>
                     </div>
-                    <p className="text-[11px] text-blue-100 font-medium">
+                    <p className="text-[11px] text-indigo-100 font-medium">
                       {currentLevelLabel} &bull; Rincian langkah operasional, susunan panitia SK &amp; progres tugas
                     </p>
                   </div>
@@ -2635,7 +2635,7 @@ export default function AnnualWorkPlan() {
 
                   {/* Search Input with Clear Button */}
                   <div className="relative flex items-center group">
-                    <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                    <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                     <input
                       type="text"
                       value={searchQuery}
@@ -2647,7 +2647,7 @@ export default function AnnualWorkPlan() {
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                        className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                         title="Hapus kata kunci pencarian"
                       >
                         <X className="w-3 h-3" />
@@ -2753,12 +2753,12 @@ export default function AnnualWorkPlan() {
                 className="bg-white"
               >
                 {groupedProgramsHierarchy.length === 0 ? (
-                  <div className="p-12 text-center space-y-3 bg-gray-50 m-6 rounded-2xl border border-gray-200">
-                    <Sparkles className="w-12 h-12 text-gray-400 mx-auto" />
-                    <h4 className="text-sm font-bold text-gray-800">
+                  <div className="p-12 text-center space-y-3 bg-slate-50 m-6 rounded-xl border border-slate-200">
+                    <Sparkles className="w-12 h-12 text-slate-400 mx-auto" />
+                    <h4 className="text-sm font-bold text-slate-800">
                       {isFilteringActive ? 'Tidak Ada Program yang Cocok' : 'Tidak Ada Program yang Dijadwalkan'}
                     </h4>
-                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
                       {isFilteringActive
                         ? 'Tidak ada program kerja atau langkah tugas yang cocok dengan kata kunci pencarian.'
                         : 'Program pada tahun ajaran ini ditentukan dari RKJP & RKJM.'}
@@ -2781,7 +2781,7 @@ export default function AnnualWorkPlan() {
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse min-w-[950px]">
-                    <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                    <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                       <tr>
                         <th className="py-3 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                         <th className="py-3 px-4 border-r border-[#D1D5DB] min-w-[280px]">Program Kerja / Langkah Tugas Kegiatan</th>
@@ -2805,7 +2805,7 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 2: PUBLICATIONS */}
       {mainTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -2825,7 +2825,7 @@ export default function AnnualWorkPlan() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {publications.map((pub) => (
-                <div key={pub.id} className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <div key={pub.id} className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       Versi Resmi v{pub.version}
@@ -2871,7 +2871,7 @@ export default function AnnualWorkPlan() {
       {/* POPUP MODAL: DETAIL KEPANITIAAN PROGRAM */}
       {modalType === 'committee_detail' && currentProgramObj && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <div className="flex items-center gap-2">
@@ -2896,7 +2896,7 @@ export default function AnnualWorkPlan() {
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs">
               {currentProgramObj.committee?.status === 'disahkan' ? (
-                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs text-emerald-300 font-semibold">
                     <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
                     <div>
@@ -2911,7 +2911,7 @@ export default function AnnualWorkPlan() {
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
                   <span className="text-slate-400 text-xs">
                     Kelola nama personil kepanitiaan sebelum disahkan dengan SK resmi.
                   </span>
@@ -2953,7 +2953,7 @@ export default function AnnualWorkPlan() {
               <div className="space-y-2">
                 <h4 className="font-bold text-white text-xs">Daftar Anggota &amp; Jabatan:</h4>
                 {!currentProgramObj.committee?.members || currentProgramObj.committee.members.length === 0 ? (
-                  <div className="py-8 text-center text-slate-500 bg-slate-950/60 rounded-2xl border border-slate-800">
+                  <div className="py-8 text-center text-slate-500 bg-slate-950/60 rounded-xl border border-slate-800">
                     Belum ada susunan panitia. Klik tombol "Tambah Anggota" di atas.
                   </div>
                 ) : (
@@ -3010,7 +3010,7 @@ export default function AnnualWorkPlan() {
 
       {/* TAB 2: PUBLICATIONS HISTORY */}
       {mainTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
@@ -3036,7 +3036,7 @@ export default function AnnualWorkPlan() {
                 return (
                   <div
                     key={pub.id}
-                    className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -3107,7 +3107,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 1: ADD / EDIT ACTIVITY */}
       {modalType === 'activity' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingActivity ? 'Edit Langkah Tugas Kegiatan' : 'Tambah Langkah Tugas Kegiatan'}
@@ -3155,7 +3155,7 @@ export default function AnnualWorkPlan() {
               </div>
 
               {/* Pilihan Jadwal Tanggal: 1 Hari vs Rentang Waktu */}
-              <div className="space-y-2 p-3 bg-slate-950/70 border border-slate-800 rounded-2xl">
+              <div className="space-y-2 p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="text-xs font-semibold text-slate-300">
                     Jadwal Pelaksanaan Tugas
@@ -3297,7 +3297,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 2: ADD COMMITTEE MEMBER */}
       {modalType === 'add_member' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">Tambah Jabatan Kepanitiaan</h3>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
@@ -3354,7 +3354,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 3: SAHKAN KEPANITIAAN */}
       {modalType === 'sahkan_committee' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -3363,7 +3363,7 @@ export default function AnnualWorkPlan() {
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
             </div>
 
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
               ⚠️ Pengesahan ini akan mengunci susunan panitia menjadi <strong>read-only</strong>.
             </div>
 
@@ -3427,7 +3427,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 4: PUBLISH RKT */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5 text-emerald-400" />
@@ -3436,7 +3436,7 @@ export default function AnnualWorkPlan() {
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
               Penerbitan ini akan membekukan (snapshot) seluruh <strong>{programs.length} program</strong> beserta seluruh rincian langkah kegiatan dan susunan kepanitiaannya ke dalam repositori resmi (Document Publications).
             </div>
 
@@ -3510,7 +3510,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 5: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Dokumen RKT</h3>
@@ -3522,7 +3522,7 @@ export default function AnnualWorkPlan() {
             </div>
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                 <span className="font-bold text-indigo-400 uppercase text-[10px]">Dokumen RKT</span>
                 <h4 className="text-sm font-bold text-white">{selectedPubSnapshot.annual_work_plan?.title}</h4>
                 <p className="text-slate-400">
@@ -3563,7 +3563,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 6: TAMBAH PROGRAM KE RKT (PILIH DARI RIPS / BUAT BARU) */}
       {isAddProgramModalOpen && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
@@ -3585,7 +3585,7 @@ export default function AnnualWorkPlan() {
             </div>
 
             {/* Mode Switcher Tabs */}
-            <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800 shrink-0">
+            <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800 shrink-0">
               <button
                 type="button"
                 onClick={() => setAddProgramTab('existing')}
@@ -3637,7 +3637,7 @@ export default function AnnualWorkPlan() {
                   </label>
 
                   {selectedRipsProg ? (
-                    <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 flex items-start justify-between gap-3 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/40 flex items-start justify-between gap-3 animate-fadeIn">
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800">
@@ -3698,7 +3698,7 @@ export default function AnnualWorkPlan() {
 
                       {/* Dropdown Menu Hasil Pencarian */}
                       {isExistingDropdownOpen && (
-                        <div className="absolute z-30 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                        <div className="absolute z-30 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
                           {(() => {
                             const filtered = availableRipsPrograms.filter((p) => {
                               if (!existingProgSearch.trim()) return true;
@@ -3936,7 +3936,7 @@ export default function AnnualWorkPlan() {
 
                     {/* Dropdown Menu Sasaran */}
                     {isNewProgGoalDropdownOpen && (
-                      <div className="absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                      <div className="absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
                         {(() => {
                           const filteredGoals = availableRipsGoals.filter((g) => {
                             if (!newProgGoalSearch.trim()) return true;
@@ -4050,7 +4050,7 @@ export default function AnnualWorkPlan() {
                         const isAllSelected = selectedGoalInds.length === allGoalIndIds.length;
 
                         return (
-                          <div key={g.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                          <div key={g.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                             <div className="flex items-center justify-between pb-1.5 border-b border-slate-850 gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
@@ -4214,7 +4214,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL 8: EDIT PROGRAM KERJA (SYNC OTOMATIS RIPS & RKT) */}
       {isEditProgramModalOpen && editingProgramObj && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
@@ -4360,7 +4360,7 @@ export default function AnnualWorkPlan() {
                   </div>
 
                   {isEditProgGoalDropdownOpen && (
-                    <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
+                    <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-1.5 divide-y divide-slate-800 animate-fadeIn">
                       {(() => {
                         const filtered = availableRipsGoals.filter((g) => {
                           if (!editProgGoalSearch.trim()) return true;
@@ -4512,7 +4512,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL: TAMBAH SUB-BIDANG BARU */}
       {isAddSubdomainModalOpen && selectedDomainForSubdomain && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-5 h-5 text-amber-400" />
@@ -4578,10 +4578,10 @@ export default function AnnualWorkPlan() {
       {/* MODAL: EDIT BIDANG (DOMAIN) */}
       {isEditDomainModalOpen && editingDomainObj && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Pencil className="w-5 h-5 text-blue-400" />
+                <Pencil className="w-5 h-5 text-indigo-400" />
                 Edit Bidang (Domain)
               </h3>
               <button
@@ -4596,7 +4596,7 @@ export default function AnnualWorkPlan() {
               </button>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200">
+            <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200">
               Perubahan nama bidang ini akan <strong>tersimpan permanen di master RIPS</strong> dan berlaku untuk <strong>seluruh tahun ajaran</strong> lainnya.
             </div>
 
@@ -4612,7 +4612,7 @@ export default function AnnualWorkPlan() {
                   placeholder="Contoh: Kurikulum & Pembelajaran, Kesiswaan, dll."
                   required
                   autoFocus
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -4625,7 +4625,7 @@ export default function AnnualWorkPlan() {
                   min="1"
                   value={editDomainForm.order_index}
                   onChange={(e) => setEditDomainForm({ ...editDomainForm, order_index: parseInt(e.target.value, 10) || 1 })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -4643,7 +4643,7 @@ export default function AnnualWorkPlan() {
                 <button
                   type="submit"
                   disabled={formLoading || !editDomainForm.name.trim()}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-lg shadow-blue-950/50"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-lg shadow-blue-950/50"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{formLoading ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
@@ -4657,7 +4657,7 @@ export default function AnnualWorkPlan() {
       {/* MODAL: EDIT SUB-BIDANG */}
       {isEditSubdomainModalOpen && editingSubdomainObj && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-amber-400" />

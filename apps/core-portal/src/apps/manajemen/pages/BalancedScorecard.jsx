@@ -135,12 +135,12 @@ export default function BalancedScorecard() {
   return (
     <div className="space-y-6 pb-16">
       {/* 1. HEADER CARD */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
               <Compass className="w-6 h-6" />
             </div>
             <div>
@@ -156,12 +156,12 @@ export default function BalancedScorecard() {
           {/* Context Controls */}
           <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
             {/* Context Switcher */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setContextType('school_unit')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
                   contextType === 'school_unit'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow'
+                    ? 'bg-emerald-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -172,7 +172,7 @@ export default function BalancedScorecard() {
                 onClick={() => setContextType('foundation')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
                   contextType === 'foundation'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow'
+                    ? 'bg-emerald-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -194,7 +194,7 @@ export default function BalancedScorecard() {
             </div>
 
             {/* EVADIR Report Selector */}
-            <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
               <span className="text-[11px] text-slate-400 font-semibold pl-2">Laporan:</span>
               <SearchableSelect
                 value={selectedReportId}
@@ -211,7 +211,7 @@ export default function BalancedScorecard() {
       </div>
 
       {!dashboardData ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-xl">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center space-y-3 shadow-xl">
           <Compass className="w-12 h-12 text-slate-600 mx-auto" />
           <h4 className="text-sm font-bold text-white">Belum Ada Data Evaluasi Diri (EVADIR)</h4>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
@@ -223,7 +223,7 @@ export default function BalancedScorecard() {
           {/* 2. RADAR SPIDER CHART & EXECUTIVE SUMMARY */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* Radar Spider Chart (5 cols) */}
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
+            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -341,7 +341,7 @@ export default function BalancedScorecard() {
                 <div
                   key={asp.aspect_id}
                   onClick={() => setSelectedAspectFilter(selectedAspectFilter === asp.aspect_name ? 'all' : asp.aspect_name)}
-                  className={`p-5 rounded-2xl border transition cursor-pointer space-y-3 ${
+                  className={`p-5 rounded-xl border transition cursor-pointer space-y-3 ${
                     selectedAspectFilter === asp.aspect_name
                       ? 'bg-indigo-600/10 border-indigo-500 ring-1 ring-indigo-500 shadow-lg'
                       : 'bg-slate-900 border-slate-800 hover:border-slate-700'
@@ -380,7 +380,7 @@ export default function BalancedScorecard() {
 
           {/* 3. MULTI-LINE HISTORICAL TRENDS */}
           {trendData?.series?.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <LineChartIcon className="w-4 h-4 text-emerald-400" />
@@ -447,7 +447,7 @@ export default function BalancedScorecard() {
           )}
 
           {/* 4. DETAIL SASARAN STRATEGIS TABLE */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">

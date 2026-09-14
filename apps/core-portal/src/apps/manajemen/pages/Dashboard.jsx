@@ -105,15 +105,15 @@ export default function Dashboard() {
 
   // Cascading Workflow Stages for Visual Roadmap
   const cascadingStages = [
-    { label: 'Profil Lembaga', path: '/manajemen/institution-profile', color: 'from-blue-600 to-indigo-600', count: 'Legalitas' },
-    { label: 'Rencana Induk (RIPS)', path: '/manajemen/planning/rips', color: 'from-indigo-600 to-violet-600', count: data.strategic.active_rips ? 'Aktif' : 'Draft' },
-    { label: 'RKJP & RKJM', path: '/manajemen/planning/rkjp-rkjm', color: 'from-violet-600 to-purple-600', count: 'Multi-Tahun' },
-    { label: 'RKT Tahunan', path: '/manajemen/planning/rkt', color: 'from-purple-600 to-pink-600', count: 'TA 2026/2027' },
-    { label: 'Tugas & Proyek', path: '/manajemen/tasks', color: 'from-pink-600 to-rose-600', count: `${data.tasks.total_tasks} Tugas` },
-    { label: 'Evaluasi Diri (EVADIR)', path: '/manajemen/evadir', color: 'from-amber-600 to-orange-600', count: 'Sasaran' },
-    { label: 'Balanced Scorecard', path: '/manajemen/bsc', color: 'from-emerald-600 to-teal-600', count: '4 Aspek' },
-    { label: 'Akreditasi Lembaga', path: '/manajemen/quality', color: 'from-teal-600 to-cyan-600', count: 'Evidence' },
-    { label: 'Manajemen Risiko', path: '/manajemen/risks', color: 'from-cyan-600 to-blue-600', count: `${data.risks.total_risks} Risiko` },
+    { label: 'Profil Lembaga', path: '/manajemen/institution-profile', color: 'from-indigo-600 to-indigo-600', count: 'Legalitas' },
+    { label: 'Rencana Induk (RIPS)', path: '/manajemen/planning/rips', color: 'from-indigo-600 to-indigo-600', count: data.strategic.active_rips ? 'Aktif' : 'Draft' },
+    { label: 'RKJP & RKJM', path: '/manajemen/planning/rkjp-rkjm', color: 'from-indigo-600 to-indigo-600', count: 'Multi-Tahun' },
+    { label: 'RKT Tahunan', path: '/manajemen/planning/rkt', color: 'from-indigo-600 to-rose-600', count: 'TA 2026/2027' },
+    { label: 'Tugas & Proyek', path: '/manajemen/tasks', color: 'from-rose-600 to-rose-600', count: `${data.tasks.total_tasks} Tugas` },
+    { label: 'Evaluasi Diri (EVADIR)', path: '/manajemen/evadir', color: 'from-amber-600 to-amber-600', count: 'Sasaran' },
+    { label: 'Balanced Scorecard', path: '/manajemen/bsc', color: 'from-emerald-600 to-emerald-600', count: '4 Aspek' },
+    { label: 'Akreditasi Lembaga', path: '/manajemen/quality', color: 'from-emerald-600 to-emerald-600', count: 'Evidence' },
+    { label: 'Manajemen Risiko', path: '/manajemen/risks', color: 'from-emerald-600 to-indigo-600', count: `${data.risks.total_risks} Risiko` },
     { label: 'Pusat Persetujuan', path: '/manajemen/approvals', color: 'from-slate-700 to-slate-850', count: `${data.approvals.pending_count} Pending` }
   ];
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto mj-animate-fade-in">
       {/* Error Alert */}
       {errorMsg && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs text-rose-400">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -133,7 +133,7 @@ export default function Dashboard() {
       )}
 
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl mj-card-hover">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl mj-card-hover">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold">
@@ -176,7 +176,7 @@ export default function Dashboard() {
       </div>
 
       {/* Visual Cascading Workflow Roadmap */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+      <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitBranch className="w-4 h-4 text-indigo-400" />
@@ -213,17 +213,17 @@ export default function Dashboard() {
         {/* Card 1: Strategis */}
         <Link
           to="/manajemen/planning/rips"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-1"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-1"
           style={{ borderTop: '3px solid var(--mj-sky)' }}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-400">Sasaran RIPS</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
               <Compass className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-white group-hover:text-blue-400 transition">
+            <div className="text-2xl font-black text-white group-hover:text-indigo-400 transition">
               {data.strategic.total_goals}
             </div>
             <div className="text-[10px] text-slate-400 truncate mt-0.5">
@@ -235,20 +235,20 @@ export default function Dashboard() {
         {/* Card 2: Program Prioritas */}
         <Link
           to="/manajemen/planning/rkt"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-violet-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-2"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-2"
           style={{ borderTop: '3px solid var(--mj-primary)' }}
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-400">Program RKT</span>
-            <div className="w-7 h-7 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center font-bold">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
               <Target className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-white group-hover:text-violet-400 transition">
+            <div className="text-2xl font-black text-white group-hover:text-indigo-400 transition">
               {data.programs.total_programs}
             </div>
-            <div className="text-[10px] text-violet-400 font-semibold mt-0.5">
+            <div className="text-[10px] text-indigo-400 font-semibold mt-0.5">
               ⭐ {data.programs.priority_programs_count} Program Unggulan
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function Dashboard() {
         {/* Card 3: EVADIR / BSC */}
         <Link
           to="/manajemen/bsc"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-3"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-3"
           style={{ borderTop: '3px solid var(--mj-done)' }}
         >
           <div className="flex items-center justify-between">
@@ -279,7 +279,7 @@ export default function Dashboard() {
         {/* Card 4: Manajemen Risiko */}
         <Link
           to="/manajemen/risks"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-4"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-4"
           style={{ borderTop: '3px solid var(--mj-risk)' }}
         >
           <div className="flex items-center justify-between">
@@ -301,7 +301,7 @@ export default function Dashboard() {
         {/* Card 5: Task Hub */}
         <Link
           to="/manajemen/tasks"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-5"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-5"
           style={{ borderTop: '3px solid var(--mj-progress)' }}
         >
           <div className="flex items-center justify-between">
@@ -323,7 +323,7 @@ export default function Dashboard() {
         {/* Card 6: RTL & Persetujuan */}
         <Link
           to="/manajemen/approvals"
-          className="p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-6"
+          className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition shadow-xl space-y-2 group mj-animate-fade-in mj-stagger-6"
           style={{ borderTop: '3px solid var(--mj-primary)' }}
         >
           <div className="flex items-center justify-between">
@@ -336,7 +336,7 @@ export default function Dashboard() {
             <div className="text-2xl font-black text-indigo-400">
               {data.approvals.pending_count}
             </div>
-            <div className="text-[10px] text-teal-400 font-semibold mt-0.5">
+            <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">
               📋 {data.rtl.active_rtl} RTL Aktif Berjalan
             </div>
           </div>
@@ -348,7 +348,7 @@ export default function Dashboard() {
         {/* Left 2 Cols: Program Prioritas & KPI Health */}
         <div className="lg:col-span-2 space-y-6">
           {/* Program Prioritas Tracking */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -410,7 +410,7 @@ export default function Dashboard() {
           </div>
 
           {/* KPI Indikator Mutu Highlight */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -456,7 +456,7 @@ export default function Dashboard() {
         {/* Right 1 Col: Risiko & Agenda */}
         <div className="space-y-6">
           {/* Peta Risiko Summary */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-rose-400" />
@@ -472,9 +472,9 @@ export default function Dashboard() {
                 <span>Sedang</span>
                 <div className="text-base font-black text-amber-400">{data.risks.by_level.medium}</div>
               </div>
-              <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-300">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300">
                 <span>Tinggi</span>
-                <div className="text-base font-black text-orange-400">{data.risks.by_level.high}</div>
+                <div className="text-base font-black text-amber-400">{data.risks.by_level.high}</div>
               </div>
               <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300">
                 <span>Ekstrem</span>
@@ -501,7 +501,7 @@ export default function Dashboard() {
           </div>
 
           {/* Agenda & Jadwal Terdekat */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
@@ -522,7 +522,7 @@ export default function Dashboard() {
                   <div key={agenda.id} className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="text-xs font-bold text-white leading-tight truncate">{agenda.title}</h4>
-                      <span className="text-[9px] uppercase font-bold text-purple-400 bg-purple-950 px-1.5 py-0.5 rounded shrink-0">
+                      <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-950 px-1.5 py-0.5 rounded shrink-0">
                         {agenda.category}
                       </span>
                     </div>

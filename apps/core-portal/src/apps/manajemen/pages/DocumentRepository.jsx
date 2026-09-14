@@ -77,10 +77,10 @@ export default function DocumentRepository() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-600 flex items-center justify-center text-white font-bold">
               <FolderArchive className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-black text-white">Repositori Dokumen Perencanaan & Mutu</h2>
@@ -102,7 +102,7 @@ export default function DocumentRepository() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap text-xs">
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-800/80 border border-slate-700/80">
             {['all', 'Renstra', 'RKT', 'SK & Kebijakan', 'Bukti Akreditasi'].map((cat) => (
@@ -134,7 +134,7 @@ export default function DocumentRepository() {
       </div>
 
       {/* Documents Table */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
+      <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-bold">
             <tr>

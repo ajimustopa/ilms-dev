@@ -885,12 +885,12 @@ export default function RipsPlanning() {
   return (
     <div className="space-y-6 pb-16">
       {/* Top Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/60 border border-indigo-400/30">
               <Compass className="w-6 h-6" />
             </div>
             <div>
@@ -922,12 +922,12 @@ export default function RipsPlanning() {
           {/* Controls: Context Selector & Actions */}
           <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
             {/* Context Switcher */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setContextType('foundation')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   contextType === 'foundation'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                    ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -938,7 +938,7 @@ export default function RipsPlanning() {
                 onClick={() => setContextType('school_unit')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   contextType === 'school_unit'
-                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
+                    ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -1015,7 +1015,7 @@ export default function RipsPlanning() {
                 });
                 setModalType('publish');
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/40"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/40"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Sahkan Dokumen Resmi (SK)
@@ -1025,7 +1025,7 @@ export default function RipsPlanning() {
 
         {/* Vision Mission Objectives Banner */}
         {ripsDoc && (
-          <div className="mt-6 p-5 rounded-2xl bg-slate-950/70 border border-slate-800 grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="mt-6 p-5 rounded-xl bg-slate-950/70 border border-slate-800 grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* VISI */}
             <div className="border-b lg:border-b-0 lg:border-r border-slate-800/80 pb-4 lg:pb-0 lg:pr-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -1049,14 +1049,14 @@ export default function RipsPlanning() {
 
             {/* MISI */}
             <div className="border-b lg:border-b-0 lg:border-r border-slate-800/80 pb-4 lg:pb-0 lg:pr-4 space-y-2">
-              <span className="text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5" /> Misi Kelembagaan ({Array.isArray(ripsDoc.mission) ? ripsDoc.mission.length : 0})
               </span>
               <ul className="space-y-1.5 text-xs text-slate-300 max-h-40 overflow-y-auto pr-1">
                 {Array.isArray(ripsDoc.mission) && ripsDoc.mission.length > 0 ? (
                   ripsDoc.mission.map((m, idx) => (
                     <li key={idx} className="flex items-start gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/50">
-                      <span className="w-4 h-4 rounded-full bg-violet-500/20 text-violet-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      <span className="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
                         {idx + 1}
                       </span>
                       <span className="leading-snug">{m}</span>
@@ -1096,7 +1096,7 @@ export default function RipsPlanning() {
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('vision_mission')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'vision_mission'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -1108,7 +1108,7 @@ export default function RipsPlanning() {
 
         <button
           onClick={() => setActiveTab('matrix')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'matrix'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -1120,7 +1120,7 @@ export default function RipsPlanning() {
 
         <button
           onClick={() => setActiveTab('programs')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'programs'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -1132,7 +1132,7 @@ export default function RipsPlanning() {
 
         <button
           onClick={() => setActiveTab('publications')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
             activeTab === 'publications'
               ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-md shadow-indigo-950/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
@@ -1147,7 +1147,7 @@ export default function RipsPlanning() {
       {activeTab === 'vision_mission' && (
         <div className="space-y-6">
           {/* Status & Ratification Action Banner */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-400 uppercase">Status Pengesahan:</span>
@@ -1212,14 +1212,14 @@ export default function RipsPlanning() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Visi Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400" />
                   Visi Strategis Lembaga
                 </h3>
               </div>
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/80">
                 <p className="text-sm text-slate-100 font-medium italic leading-relaxed">
                   "{ripsDoc?.vision || 'Visi belum ditentukan'}"
                 </p>
@@ -1230,18 +1230,18 @@ export default function RipsPlanning() {
             </div>
 
             {/* Misi Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-violet-400" />
+                  <BookOpen className="w-4 h-4 text-indigo-400" />
                   Misi Lembaga ({Array.isArray(ripsDoc?.mission) ? ripsDoc.mission.length : 0})
                 </h3>
               </div>
               <ul className="space-y-2.5">
                 {Array.isArray(ripsDoc?.mission) && ripsDoc.mission.length > 0 ? (
                   ripsDoc.mission.map((m, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200">
-                      <span className="w-5 h-5 rounded-lg bg-violet-500/20 text-violet-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
+                    <li key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200">
+                      <span className="w-5 h-5 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         {idx + 1}
                       </span>
                       <span className="leading-relaxed">{m}</span>
@@ -1254,7 +1254,7 @@ export default function RipsPlanning() {
             </div>
 
             {/* Tujuan Card */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Target className="w-4 h-4 text-amber-400" />
@@ -1264,7 +1264,7 @@ export default function RipsPlanning() {
               <ul className="space-y-2.5">
                 {Array.isArray(ripsDoc?.objectives) && ripsDoc.objectives.length > 0 ? (
                   ripsDoc.objectives.map((obj, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200">
+                    <li key={idx} className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-200">
                       <span className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5">
                         {idx + 1}
                       </span>
@@ -1282,9 +1282,9 @@ export default function RipsPlanning() {
 
       {/* TAB 1: MATRIKS SASARAN & INDIKATOR */}
       {activeTab === 'matrix' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           {/* Tree-View Hierarchical Matrix Table Card */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200">
             {/* Header Utama Tabel: Biru Solid (#3B82F6) */}
             <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-t-2xl relative z-20">
               {/* Sisi Kiri: Ikon & Judul Tabel */}
@@ -1296,7 +1296,7 @@ export default function RipsPlanning() {
                   <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
                     MANAJEMEN STRATEGIS
                   </h3>
-                  <p className="text-[11px] text-blue-100 font-medium">
+                  <p className="text-[11px] text-indigo-100 font-medium">
                     Hierarki Perencanaan: Bidang &gt; Sub-Bidang &gt; Sasaran &amp; Indikator ({filteredGoals.length} Sasaran Terpetakan)
                   </p>
                 </div>
@@ -1376,7 +1376,7 @@ export default function RipsPlanning() {
 
                 {/* Live Search */}
                 <div className="relative flex items-center group">
-                  <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                  <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1388,7 +1388,7 @@ export default function RipsPlanning() {
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                      className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                       title="Hapus kata kunci pencarian"
                     >
                       <X className="w-3 h-3" />
@@ -1406,7 +1406,7 @@ export default function RipsPlanning() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs whitespace-nowrap"
                   title="Tambah Bidang Baru ke Matriks"
                 >
-                  <Plus className="w-3.5 h-3.5 text-blue-100" />
+                  <Plus className="w-3.5 h-3.5 text-indigo-100" />
                   <span>Tambah Bidang</span>
                 </button>
 
@@ -1518,7 +1518,7 @@ export default function RipsPlanning() {
             {/* Sub-Header Kolom & Isi Tabel */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#F3F4F6] text-gray-800 font-bold border-b border-[#D1D5DB]">
+                <thead className="bg-[#F3F4F6] text-slate-800 font-bold border-b border-[#D1D5DB]">
                   <tr>
                     <th className="py-2 px-3 w-28 text-center border-r border-[#D1D5DB] text-[11px]">Kode / Bidang</th>
                     <th className="py-2 px-3 border-r border-[#D1D5DB] text-[11px]">Sub-Bidang &amp; Sasaran Strategis</th>
@@ -1531,7 +1531,7 @@ export default function RipsPlanning() {
                 <tbody>
                   {groupedHierarchy.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-500 bg-white">
+                      <td colSpan={6} className="py-8 text-center text-slate-500 bg-white">
                         Belum ada sasaran strategis RIPS yang sesuai filter.
                       </td>
                     </tr>
@@ -1543,26 +1543,26 @@ export default function RipsPlanning() {
                       return (
                         <React.Fragment key={domainKey}>
                           {/* LEVEL 1: BIDANG (Padding-y 6-8px, compact badge & button) */}
-                          <tr className="bg-[#E5E7EB] border-b border-gray-300 font-bold text-gray-900 transition-colors">
-                            <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
+                          <tr className="bg-[#E5E7EB] border-b border-slate-300 font-bold text-slate-900 transition-colors">
+                            <td className="py-1.5 px-3 text-center border-r border-slate-300 font-mono text-[11px] text-indigo-800">
                               {domainItem.code}
                             </td>
-                            <td colSpan={4} className="py-1.5 px-3 border-r border-gray-300">
+                            <td colSpan={4} className="py-1.5 px-3 border-r border-slate-300">
                               <button
                                 onClick={() => toggleDomain(domainKey)}
                                 className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
                               >
-                                <span className="p-0.5 rounded bg-gray-300/70 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <span className="p-0.5 rounded bg-slate-300/70 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                   {isDomainExpanded ? (
                                     <ChevronDown className="w-3.5 h-3.5" />
                                   ) : (
                                     <ChevronRight className="w-3.5 h-3.5" />
                                   )}
                                 </span>
-                                <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">
+                                <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900 group-hover:text-indigo-700 transition-colors">
                                   BIDANG: {domainItem.name}
                                 </span>
-                                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300/80 text-gray-700 leading-tight">
+                                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-300/80 text-slate-700 leading-tight">
                                   {domainItem.totalGoals} Sasaran / {domainItem.subdomainList.length} Sub-Bidang
                                 </span>
                               </button>
@@ -1575,10 +1575,10 @@ export default function RipsPlanning() {
                                     setNewDomainName('');
                                     setModalType('add_domain_quick');
                                   }}
-                                  className="p-1 rounded bg-white hover:bg-blue-100 text-blue-700 transition shadow-2xs border border-gray-300"
+                                  className="p-1 rounded bg-white hover:bg-indigo-100 text-indigo-700 transition shadow-2xs border border-slate-300"
                                   title="Tambah Bidang Baru"
                                 >
-                                  <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                  <Plus className="w-3.5 h-3.5 text-indigo-600" />
                                 </button>
                                 <button
                                   type="button"
@@ -1611,7 +1611,7 @@ export default function RipsPlanning() {
                                     });
                                     setModalType('goal');
                                   }}
-                                  className="p-1 rounded hover:bg-gray-300 text-gray-700 hover:text-blue-700 transition"
+                                  className="p-1 rounded hover:bg-slate-300 text-slate-700 hover:text-indigo-700 transition"
                                   title="Tambah Sasaran di Bidang ini"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
@@ -1619,7 +1619,7 @@ export default function RipsPlanning() {
                                 {domainItem.id !== 'unassigned' && (
                                   <button
                                     onClick={() => requestDelete('domain', domainItem.id, `Bidang [${domainItem.code}] ${domainItem.name}`)}
-                                    className="p-1 rounded hover:bg-rose-100 text-gray-400 hover:text-rose-600 transition"
+                                    className="p-1 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition"
                                     title="Hapus Bidang & Semua Data di Bawahnya"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1632,16 +1632,16 @@ export default function RipsPlanning() {
                           {/* LEVEL 2: SUB-BIDANG (Padding-y 6-8px, indentasi rapi, compact badge) */}
                           {isDomainExpanded && (
                             domainItem.subdomainList.length === 0 ? (
-                              <tr className="bg-gray-50/70 border-b border-gray-200 text-gray-400 italic text-[11px]">
-                                <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                <td colSpan={5} className="py-2 px-3 pl-7 border-r border-gray-200">
+                              <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-400 italic text-[11px]">
+                                <td className="py-2 px-3 text-center border-r border-slate-200">-</td>
+                                <td colSpan={5} className="py-2 px-3 pl-7 border-r border-slate-200">
                                   Belum ada sub-bidang di bidang ini.{' '}
                                   <button
                                     onClick={() => {
                                       setNewSubdomainData({ domain_id: domainItem.id, name: '' });
                                       setModalType('add_subdomain_quick');
                                     }}
-                                    className="text-blue-600 hover:underline font-semibold not-italic ml-1 inline-flex items-center gap-1"
+                                    className="text-indigo-600 hover:underline font-semibold not-italic ml-1 inline-flex items-center gap-1"
                                   >
                                     <Plus className="w-3 h-3" /> Tambah Sub-Bidang Sekarang
                                   </button>
@@ -1746,9 +1746,9 @@ export default function RipsPlanning() {
                                     {/* LEVEL 3: PROGRAM & DETAIL INDIKATOR (Padding-y 6-8px, minimized margins, compact pills) */}
                                     {isSubExpanded && (
                                       subItem.goals.length === 0 ? (
-                                        <tr className="bg-white border-b border-gray-200 text-gray-400 italic text-[11px]">
-                                          <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                          <td colSpan={4} className="py-2 px-3 pl-10 border-r border-gray-200">
+                                        <tr className="bg-white border-b border-slate-200 text-slate-400 italic text-[11px]">
+                                          <td className="py-2 px-3 text-center border-r border-slate-200">-</td>
+                                          <td colSpan={4} className="py-2 px-3 pl-10 border-r border-slate-200">
                                             Belum ada sasaran / program di sub-bidang ini.{' '}
                                             <button
                                               onClick={() => {
@@ -1793,23 +1793,23 @@ export default function RipsPlanning() {
                                           return (
                                             <tr
                                               key={g.id}
-                                              className="bg-white hover:bg-blue-50/60 border-b border-gray-200 text-gray-800 transition-colors"
+                                              className="bg-white hover:bg-indigo-50/60 border-b border-slate-200 text-slate-800 transition-colors"
                                             >
                                               {/* Kolom Kode: Center Aligned */}
-                                              <td className="py-2 px-3 text-center border-r border-gray-200 align-top">
-                                                <span className="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block">
+                                              <td className="py-2 px-3 text-center border-r border-slate-200 align-top">
+                                                <span className="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 inline-block">
                                                   {g.code}
                                                 </span>
                                               </td>
 
                                               {/* Kolom Sasaran & Indikator: Left Aligned, Collapsible & Direct Indicator Add */}
-                                              <td className="py-2 px-3 pl-10 border-r border-gray-200 align-top">
+                                              <td className="py-2 px-3 pl-10 border-r border-slate-200 align-top">
                                                 <div className="flex items-start justify-between gap-2">
                                                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                     {hasIndicators && (
                                                       <button
                                                         onClick={() => toggleGoal(g.id)}
-                                                        className="p-0.5 rounded hover:bg-blue-100 text-blue-600 transition shrink-0 mt-0.5"
+                                                        className="p-0.5 rounded hover:bg-indigo-100 text-indigo-600 transition shrink-0 mt-0.5"
                                                         title={isGoalExpanded ? 'Lipat Indikator' : 'Buka Indikator'}
                                                       >
                                                         {isGoalExpanded ? (
@@ -1819,13 +1819,13 @@ export default function RipsPlanning() {
                                                         )}
                                                       </button>
                                                     )}
-                                                    <span className="font-semibold text-gray-900 block text-xs leading-snug">
+                                                    <span className="font-semibold text-slate-900 block text-xs leading-snug">
                                                       {g.title}
                                                     </span>
                                                     {hasIndicators && (
                                                       <button
                                                         onClick={() => toggleGoal(g.id)}
-                                                        className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200 leading-tight shrink-0 hover:bg-blue-100 transition"
+                                                        className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 leading-tight shrink-0 hover:bg-indigo-100 transition"
                                                       >
                                                         {g.indicators.length} Indikator {isGoalExpanded ? '▲' : '▼'}
                                                       </button>
@@ -1873,7 +1873,7 @@ export default function RipsPlanning() {
                                                           value={inlineIndicatorForm.name}
                                                           onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, name: e.target.value })}
                                                           placeholder="Nama Indikator (mis. Persentase kelulusan tahfidz 3 juz)"
-                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-medium"
+                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-medium"
                                                           autoFocus
                                                         />
                                                       </div>
@@ -1883,7 +1883,7 @@ export default function RipsPlanning() {
                                                           value={inlineIndicatorForm.unit}
                                                           onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, unit: e.target.value })}
                                                           placeholder="Satuan (%)"
-                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-mono"
+                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-mono"
                                                         />
                                                       </div>
                                                       <div className="sm:col-span-2">
@@ -1894,7 +1894,7 @@ export default function RipsPlanning() {
                                                           onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, baseline_percent: e.target.value })}
                                                           placeholder="Base (%)"
                                                           title="Baseline Persentase (%)"
-                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-mono"
+                                                          className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-mono"
                                                         />
                                                       </div>
                                                       <div className="sm:col-span-2">
@@ -1913,7 +1913,7 @@ export default function RipsPlanning() {
                                                       <button
                                                         type="button"
                                                         onClick={() => setAddingIndicatorGoalId(null)}
-                                                        className="px-2.5 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-[11px] font-semibold transition"
+                                                        className="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-semibold transition"
                                                       >
                                                         Batal
                                                       </button>
@@ -1930,18 +1930,18 @@ export default function RipsPlanning() {
 
                                                 {/* Detail Indikator Breakdown jika ada & tidak dilipat */}
                                                 {hasIndicators && isGoalExpanded && (
-                                                  <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-blue-200">
+                                                  <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-indigo-200">
                                                     {g.indicators.map((ind, idx) => (
                                                       <div
                                                         key={ind.id || idx}
-                                                        className="group/ind px-2 py-0.5 rounded bg-gray-50 hover:bg-blue-50/80 border border-gray-200 flex items-center justify-between text-[11px] leading-tight transition"
+                                                        className="group/ind px-2 py-0.5 rounded bg-slate-50 hover:bg-indigo-50/80 border border-slate-200 flex items-center justify-between text-[11px] leading-tight transition"
                                                       >
-                                                        <span className="text-gray-700 font-medium truncate mr-2 flex items-center gap-1.5">
-                                                          <span className="font-mono text-[9.5px] text-blue-600 font-bold">{ind.code || `IND-${idx + 1}`}</span>
+                                                        <span className="text-slate-700 font-medium truncate mr-2 flex items-center gap-1.5">
+                                                          <span className="font-mono text-[9.5px] text-indigo-600 font-bold">{ind.code || `IND-${idx + 1}`}</span>
                                                           <span>• {ind.name} ({ind.unit || '%'})</span>
                                                         </span>
                                                         <div className="flex items-center gap-2">
-                                                          <span className="font-mono text-[10px] text-gray-500 whitespace-nowrap">
+                                                          <span className="font-mono text-[10px] text-slate-500 whitespace-nowrap">
                                                             Base: <strong>{Number(ind.baseline_percent ?? 0).toFixed(2)}%</strong> → Target:{' '}
                                                             <strong className="text-emerald-600">{Number(ind.target_percent ?? 100).toFixed(2)}%</strong>
                                                           </span>
@@ -1963,16 +1963,16 @@ export default function RipsPlanning() {
                                               </td>
 
                                               {/* Kolom Aspek BSC */}
-                                              <td className="py-2 px-3 border-r border-gray-200 align-top">
-                                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 leading-tight">
+                                              <td className="py-2 px-3 border-r border-slate-200 align-top">
+                                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 leading-tight">
                                                   {g.bsc_aspect_name || '-'}
                                                 </span>
                                               </td>
 
                                               {/* Kolom Baseline: Right Aligned */}
-                                              <td className="py-2 px-3 text-right font-mono text-xs font-semibold text-gray-700 border-r border-gray-200 align-top">
+                                              <td className="py-2 px-3 text-right font-mono text-xs font-semibold text-slate-700 border-r border-slate-200 align-top">
                                                 {g.indicators?.length > 1 ? (
-                                                  <span className="text-[10px] text-gray-500 italic">Multi-Indikator</span>
+                                                  <span className="text-[10px] text-slate-500 italic">Multi-Indikator</span>
                                                 ) : baseVal !== null ? (
                                                   g.indicator_unit && g.indicator_unit !== '%'
                                                     ? `${Number(g.baseline_percent ?? 0)} ${g.indicator_unit}`
@@ -1983,7 +1983,7 @@ export default function RipsPlanning() {
                                               </td>
 
                                               {/* Kolom Target: Right Aligned */}
-                                              <td className="py-2 px-3 text-right font-mono text-xs font-bold text-emerald-700 border-r border-gray-200 align-top">
+                                              <td className="py-2 px-3 text-right font-mono text-xs font-bold text-emerald-700 border-r border-slate-200 align-top">
                                                 {g.indicators?.length > 1 ? (
                                                   <span className="text-[10px] text-emerald-600 font-semibold">{g.indicators.length} Indikator</span>
                                                 ) : targetVal !== null ? (
@@ -2028,7 +2028,7 @@ export default function RipsPlanning() {
                                                       });
                                                       setModalType('goal');
                                                     }}
-                                                    className="p-1 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition"
+                                                    className="p-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 transition"
                                                     title="Edit Sasaran & Indikator"
                                                   >
                                                     <Edit2 className="w-3.5 h-3.5" />
@@ -2088,7 +2088,7 @@ export default function RipsPlanning() {
                     flex: '1 1 auto',
                     minHeight: 0,
                   }}
-                  className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+                  className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
                 >
                   {/* Header Utama Tabel di Fullscreen */}
                   <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
@@ -2106,7 +2106,7 @@ export default function RipsPlanning() {
                             Full Screen Mode
                           </span>
                         </div>
-                        <p className="text-[11px] text-blue-100 font-medium">
+                        <p className="text-[11px] text-indigo-100 font-medium">
                           Hierarki: Bidang &gt; Sub-Bidang &gt; Sasaran &amp; Indikator ({filteredGoals.length} Sasaran Terpetakan)
                         </p>
                       </div>
@@ -2186,7 +2186,7 @@ export default function RipsPlanning() {
 
                       {/* Live Search */}
                       <div className="relative flex items-center group">
-                        <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                        <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                         <input
                           type="text"
                           value={searchQuery}
@@ -2198,7 +2198,7 @@ export default function RipsPlanning() {
                           <button
                             type="button"
                             onClick={() => setSearchQuery('')}
-                            className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                            className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                             title="Hapus kata kunci pencarian"
                           >
                             <X className="w-3 h-3" />
@@ -2216,7 +2216,7 @@ export default function RipsPlanning() {
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition border border-white/25 shadow-xs whitespace-nowrap"
                         title="Tambah Bidang Baru ke Matriks"
                       >
-                        <Plus className="w-3.5 h-3.5 text-blue-100" />
+                        <Plus className="w-3.5 h-3.5 text-indigo-100" />
                         <span>Tambah Bidang</span>
                       </button>
 
@@ -2337,7 +2337,7 @@ export default function RipsPlanning() {
                     className="bg-white"
                   >
                     <table className="w-full text-left text-xs border-collapse min-w-[900px]">
-                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-gray-800 font-bold border-b border-[#D1D5DB]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#F3F4F6] text-slate-800 font-bold border-b border-[#D1D5DB]">
                         <tr>
                           <th className="py-2.5 px-3 w-28 text-center border-r border-[#D1D5DB] text-[11px]">Kode / Bidang</th>
                           <th className="py-2.5 px-3 border-r border-[#D1D5DB] text-[11px] min-w-[280px]">Sub-Bidang &amp; Sasaran Strategis</th>
@@ -2350,7 +2350,7 @@ export default function RipsPlanning() {
                       <tbody>
                         {groupedHierarchy.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="py-8 text-center text-gray-500 bg-white">
+                            <td colSpan={6} className="py-8 text-center text-slate-500 bg-white">
                               Belum ada sasaran strategis RIPS yang sesuai filter.
                             </td>
                           </tr>
@@ -2362,26 +2362,26 @@ export default function RipsPlanning() {
                             return (
                               <React.Fragment key={domainKey}>
                                 {/* LEVEL 1: BIDANG */}
-                                <tr className="bg-[#E5E7EB] border-b border-gray-300 font-bold text-gray-900 transition-colors">
-                                  <td className="py-1.5 px-3 text-center border-r border-gray-300 font-mono text-[11px] text-blue-800">
+                                <tr className="bg-[#E5E7EB] border-b border-slate-300 font-bold text-slate-900 transition-colors">
+                                  <td className="py-1.5 px-3 text-center border-r border-slate-300 font-mono text-[11px] text-indigo-800">
                                     {domainItem.code}
                                   </td>
-                                  <td colSpan={4} className="py-1.5 px-3 border-r border-gray-300">
+                                  <td colSpan={4} className="py-1.5 px-3 border-r border-slate-300">
                                     <button
                                       onClick={() => toggleDomain(domainKey)}
                                       className="flex items-center gap-1.5 text-left w-full group focus:outline-none"
                                     >
-                                      <span className="p-0.5 rounded bg-gray-300/70 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                      <span className="p-0.5 rounded bg-slate-300/70 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                         {isDomainExpanded ? (
                                           <ChevronDown className="w-3.5 h-3.5" />
                                         ) : (
                                           <ChevronRight className="w-3.5 h-3.5" />
                                         )}
                                       </span>
-                                      <span className="text-xs uppercase tracking-wider font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors">
+                                      <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900 group-hover:text-indigo-700 transition-colors">
                                         BIDANG: {domainItem.name}
                                       </span>
-                                      <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-gray-300/80 text-gray-700 leading-tight">
+                                      <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-300/80 text-slate-700 leading-tight">
                                         {domainItem.totalGoals} Sasaran / {domainItem.subdomainList.length} Sub-Bidang
                                       </span>
                                     </button>
@@ -2394,10 +2394,10 @@ export default function RipsPlanning() {
                                           setNewDomainName('');
                                           setModalType('add_domain_quick');
                                         }}
-                                        className="p-1 rounded bg-white hover:bg-blue-100 text-blue-700 transition shadow-2xs border border-gray-300"
+                                        className="p-1 rounded bg-white hover:bg-indigo-100 text-indigo-700 transition shadow-2xs border border-slate-300"
                                         title="Tambah Bidang Baru"
                                       >
-                                        <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                        <Plus className="w-3.5 h-3.5 text-indigo-600" />
                                       </button>
                                       <button
                                         type="button"
@@ -2430,7 +2430,7 @@ export default function RipsPlanning() {
                                           });
                                           setModalType('goal');
                                         }}
-                                        className="p-1 rounded hover:bg-gray-300 text-gray-700 hover:text-blue-700 transition"
+                                        className="p-1 rounded hover:bg-slate-300 text-slate-700 hover:text-indigo-700 transition"
                                         title="Tambah Sasaran di Bidang ini"
                                       >
                                         <Plus className="w-3.5 h-3.5" />
@@ -2438,7 +2438,7 @@ export default function RipsPlanning() {
                                       {domainItem.id !== 'unassigned' && (
                                         <button
                                           onClick={() => requestDelete('domain', domainItem.id, `Bidang [${domainItem.code}] ${domainItem.name}`)}
-                                          className="p-1 rounded hover:bg-rose-100 text-gray-400 hover:text-rose-600 transition"
+                                          className="p-1 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition"
                                           title="Hapus Bidang & Semua Data di Bawahnya"
                                         >
                                           <Trash2 className="w-3.5 h-3.5" />
@@ -2451,9 +2451,9 @@ export default function RipsPlanning() {
                                 {/* LEVEL 2: SUB-BIDANG */}
                                 {isDomainExpanded && (
                                   domainItem.subdomainList.length === 0 ? (
-                                    <tr className="bg-gray-50/70 border-b border-gray-200 text-gray-400 italic text-[11px]">
-                                      <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                      <td colSpan={5} className="py-2 px-3 pl-7 border-r border-gray-200">
+                                    <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-400 italic text-[11px]">
+                                      <td className="py-2 px-3 text-center border-r border-slate-200">-</td>
+                                      <td colSpan={5} className="py-2 px-3 pl-7 border-r border-slate-200">
                                         Belum ada sub-bidang di bidang ini.
                                       </td>
                                       <td className="py-2 px-2 text-center">-</td>
@@ -2556,9 +2556,9 @@ export default function RipsPlanning() {
                                           {/* LEVEL 3: PROGRAM & DETAIL INDIKATOR */}
                                           {isSubExpanded && (
                                             subItem.goals.length === 0 ? (
-                                              <tr className="bg-white border-b border-gray-200 text-gray-400 italic text-[11px]">
-                                                <td className="py-2 px-3 text-center border-r border-gray-200">-</td>
-                                                <td colSpan={4} className="py-2 px-3 pl-10 border-r border-gray-200">
+                                              <tr className="bg-white border-b border-slate-200 text-slate-400 italic text-[11px]">
+                                                <td className="py-2 px-3 text-center border-r border-slate-200">-</td>
+                                                <td colSpan={4} className="py-2 px-3 pl-10 border-r border-slate-200">
                                                   Belum ada sasaran / program di sub-bidang ini.
                                                 </td>
                                                 <td className="py-2 px-2 text-center">-</td>
@@ -2579,23 +2579,23 @@ export default function RipsPlanning() {
                                                 return (
                                                   <tr
                                                     key={g.id}
-                                                    className="bg-white hover:bg-blue-50/60 border-b border-gray-200 text-gray-800 transition-colors"
+                                                    className="bg-white hover:bg-indigo-50/60 border-b border-slate-200 text-slate-800 transition-colors"
                                                   >
                                                     {/* Kolom Kode */}
-                                                    <td className="py-2 px-3 text-center border-r border-gray-200 align-top">
-                                                      <span className="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block">
+                                                    <td className="py-2 px-3 text-center border-r border-slate-200 align-top">
+                                                      <span className="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 inline-block">
                                                         {g.code}
                                                       </span>
                                                     </td>
 
                                                     {/* Kolom Sasaran & Indikator */}
-                                                    <td className="py-2 px-3 pl-10 border-r border-gray-200 align-top">
+                                                    <td className="py-2 px-3 pl-10 border-r border-slate-200 align-top">
                                                       <div className="flex items-start justify-between gap-2">
                                                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                           {hasIndicators && (
                                                             <button
                                                               onClick={() => toggleGoal(g.id)}
-                                                              className="p-0.5 rounded hover:bg-blue-100 text-blue-600 transition shrink-0 mt-0.5"
+                                                              className="p-0.5 rounded hover:bg-indigo-100 text-indigo-600 transition shrink-0 mt-0.5"
                                                               title={isGoalExpanded ? 'Lipat Indikator' : 'Buka Indikator'}
                                                             >
                                                               {isGoalExpanded ? (
@@ -2605,13 +2605,13 @@ export default function RipsPlanning() {
                                                               )}
                                                             </button>
                                                           )}
-                                                          <span className="font-semibold text-gray-900 block text-xs leading-snug">
+                                                          <span className="font-semibold text-slate-900 block text-xs leading-snug">
                                                             {g.title}
                                                           </span>
                                                           {hasIndicators && (
                                                             <button
                                                               onClick={() => toggleGoal(g.id)}
-                                                              className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200 leading-tight shrink-0 hover:bg-blue-100 transition"
+                                                              className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 leading-tight shrink-0 hover:bg-indigo-100 transition"
                                                             >
                                                               {g.indicators.length} Indikator {isGoalExpanded ? '▲' : '▼'}
                                                             </button>
@@ -2659,7 +2659,7 @@ export default function RipsPlanning() {
                                                                 value={inlineIndicatorForm.name}
                                                                 onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, name: e.target.value })}
                                                                 placeholder="Nama Indikator (mis. Persentase kelulusan tahfidz 3 juz)"
-                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-medium"
+                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-medium"
                                                                 autoFocus
                                                               />
                                                             </div>
@@ -2669,7 +2669,7 @@ export default function RipsPlanning() {
                                                                 value={inlineIndicatorForm.unit}
                                                                 onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, unit: e.target.value })}
                                                                 placeholder="Satuan (%)"
-                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-mono"
+                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-mono"
                                                               />
                                                             </div>
                                                             <div className="sm:col-span-2">
@@ -2680,7 +2680,7 @@ export default function RipsPlanning() {
                                                                 onChange={(e) => setInlineIndicatorForm({ ...inlineIndicatorForm, baseline_percent: e.target.value })}
                                                                 placeholder="Base (%)"
                                                                 title="Baseline Persentase (%)"
-                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-gray-900 outline-none focus:border-indigo-500 font-mono"
+                                                                className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 font-mono"
                                                               />
                                                             </div>
                                                             <div className="sm:col-span-2">
@@ -2699,7 +2699,7 @@ export default function RipsPlanning() {
                                                             <button
                                                               type="button"
                                                               onClick={() => setAddingIndicatorGoalId(null)}
-                                                              className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-gray-600 hover:bg-gray-200 transition"
+                                                              className="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:bg-slate-200 transition"
                                                             >
                                                               Batal
                                                             </button>
@@ -2716,36 +2716,36 @@ export default function RipsPlanning() {
 
                                                       {/* Daftar Indikator Kuantitatif */}
                                                       {hasIndicators && isGoalExpanded && (
-                                                        <div className="mt-1.5 space-y-1 pl-4 border-l-2 border-blue-200">
+                                                        <div className="mt-1.5 space-y-1 pl-4 border-l-2 border-indigo-200">
                                                           {g.indicators.map((ind, iIdx) => (
                                                             <div
                                                               key={ind.id || iIdx}
-                                                              className="flex items-center justify-between gap-2 py-0.5 text-[11px] text-gray-700 bg-slate-50/80 px-2 py-1 rounded border border-slate-200/60"
+                                                              className="flex items-center justify-between gap-2 py-0.5 text-[11px] text-slate-700 bg-slate-50/80 px-2 py-1 rounded border border-slate-200/60"
                                                             >
                                                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                                                                <span className="font-mono text-[9.5px] text-gray-500 font-semibold shrink-0">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                                                                <span className="font-mono text-[9.5px] text-slate-500 font-semibold shrink-0">
                                                                   {ind.code || `IND-${iIdx + 1}`}:
                                                                 </span>
                                                                 <span className="truncate">{ind.name}</span>
-                                                                <span className="text-[10px] text-gray-500 shrink-0">
+                                                                <span className="text-[10px] text-slate-500 shrink-0">
                                                                   ({ind.unit || '%'})
                                                                 </span>
                                                               </div>
 
                                                               <div className="flex items-center gap-2 shrink-0">
                                                                 <div className="flex items-center gap-1 font-mono text-[10.5px]">
-                                                                  <span className="text-gray-500" title="Baseline">
+                                                                  <span className="text-slate-500" title="Baseline">
                                                                     {ind.baseline_percent ?? 0}%
                                                                   </span>
-                                                                  <span className="text-gray-400">→</span>
+                                                                  <span className="text-slate-400">→</span>
                                                                   <span className="font-bold text-emerald-700" title="Target">
                                                                     {ind.target_percent ?? 100}%
                                                                   </span>
                                                                 </div>
                                                                 <button
                                                                   onClick={() => handleDeleteIndicator(ind.id)}
-                                                                  className="text-gray-400 hover:text-rose-600 p-0.5 rounded transition"
+                                                                  className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition"
                                                                   title="Hapus Indikator Ini"
                                                                 >
                                                                   <Trash2 className="w-3 h-3" />
@@ -2758,19 +2758,19 @@ export default function RipsPlanning() {
                                                     </td>
 
                                                     {/* Kolom BSC */}
-                                                    <td className="py-2 px-3 border-r border-gray-200 align-top">
-                                                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 leading-snug">
+                                                    <td className="py-2 px-3 border-r border-slate-200 align-top">
+                                                      <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 leading-snug">
                                                         {g.bsc_aspect_name || 'Umum'}
                                                       </span>
                                                     </td>
 
                                                     {/* Kolom Baseline */}
-                                                    <td className="py-2 px-3 text-right font-mono text-xs border-r border-gray-200 align-top text-gray-600">
+                                                    <td className="py-2 px-3 text-right font-mono text-xs border-r border-slate-200 align-top text-slate-600">
                                                       {baseVal ? `${baseVal}%` : '-'}
                                                     </td>
 
                                                     {/* Kolom Target */}
-                                                    <td className="py-2 px-3 text-right font-mono text-xs font-bold text-emerald-700 border-r border-gray-200 align-top">
+                                                    <td className="py-2 px-3 text-right font-mono text-xs font-bold text-emerald-700 border-r border-slate-200 align-top">
                                                       {targetVal ? `${targetVal}%` : '-'}
                                                     </td>
 
@@ -2809,7 +2809,7 @@ export default function RipsPlanning() {
                                                             });
                                                             setModalType('goal');
                                                           }}
-                                                          className="p-1 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition"
+                                                          className="p-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 transition"
                                                           title="Edit Sasaran & Indikator"
                                                         >
                                                           <Edit2 className="w-3.5 h-3.5" />
@@ -2849,9 +2849,9 @@ export default function RipsPlanning() {
 
       {/* TAB 2: PROGRAM & UPAYA STRATEGIS (REDESIGNED AS HIGH-DENSITY TABLE) */}
       {activeTab === 'programs' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           {/* Program Table Card (Normal Inline Display) */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200">
             {/* Header Utama Tabel: Biru Solid (#3B82F6) */}
             <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md rounded-t-2xl relative z-20">
               {/* Sisi Kiri: Ikon & Judul Tabel */}
@@ -2863,7 +2863,7 @@ export default function RipsPlanning() {
                   <h3 className="font-extrabold text-sm sm:text-base tracking-wider uppercase">
                     PROGRAM STRATEGIS &amp; INISIATIF TEROBOSAN
                   </h3>
-                  <p className="text-[11px] text-blue-100 font-medium">
+                  <p className="text-[11px] text-indigo-100 font-medium">
                     Menampilkan {totalFilteredProgramsCount} dari {programs.length} Program Operasional ({programs.filter(p => p.is_flagship).length} Unggulan)
                   </p>
                 </div>
@@ -2937,7 +2937,7 @@ export default function RipsPlanning() {
 
                 {/* Live Search */}
                 <div className="relative flex items-center group">
-                  <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                  <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                   <input
                     type="text"
                     value={programSearchQuery}
@@ -2949,7 +2949,7 @@ export default function RipsPlanning() {
                     <button
                       type="button"
                       onClick={() => setProgramSearchQuery('')}
-                      className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                      className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                       title="Hapus kata kunci pencarian"
                     >
                       <X className="w-3 h-3" />
@@ -3047,7 +3047,7 @@ export default function RipsPlanning() {
             <div className="overflow-x-auto bg-white">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead className="sticky top-0 z-10 shadow-xs">
-                  <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                  <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                     <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                     <th className="py-2.5 px-4 border-r border-[#D1D5DB] min-w-[240px]">Nama Program &amp; Deskripsi</th>
                     <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-32">Kategori</th>
@@ -3059,7 +3059,7 @@ export default function RipsPlanning() {
                 <tbody className="divide-y divide-gray-200">
                   {groupedPrograms.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-gray-500 bg-white">
+                      <td colSpan={6} className="py-10 text-center text-slate-500 bg-white">
                         Belum ada program strategis yang ditambahkan. Klik tombol <strong>"+ Tambah Program Baru"</strong> di atas.
                       </td>
                     </tr>
@@ -3071,24 +3071,24 @@ export default function RipsPlanning() {
                       return (
                         <React.Fragment key={domain.id}>
                           {/* LEVEL 1: BIDANG (DOMAIN) */}
-                          <tr className="bg-[#E5E7EB] hover:bg-[#D1D5DB]/80 transition-colors border-y-2 border-gray-300">
+                          <tr className="bg-[#E5E7EB] hover:bg-[#D1D5DB]/80 transition-colors border-y-2 border-slate-300">
                             <td colSpan={6} className="py-2 px-3">
                               <div className="flex items-center justify-between">
                                 <button
                                   type="button"
                                   onClick={() => toggleDomain(domainKey)}
-                                  className="flex items-center gap-2 text-left text-xs font-bold text-gray-900 focus:outline-none select-none"
+                                  className="flex items-center gap-2 text-left text-xs font-bold text-slate-900 focus:outline-none select-none"
                                 >
                                   {isDomainExpanded ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-700 shrink-0" />
+                                    <ChevronDown className="w-4 h-4 text-slate-700 shrink-0" />
                                   ) : (
-                                    <ChevronRight className="w-4 h-4 text-gray-700 shrink-0" />
+                                    <ChevronRight className="w-4 h-4 text-slate-700 shrink-0" />
                                   )}
-                                  <span className="font-mono text-blue-700 text-[11px] bg-white px-1.5 py-0.5 rounded border border-gray-300">
+                                  <span className="font-mono text-indigo-700 text-[11px] bg-white px-1.5 py-0.5 rounded border border-slate-300">
                                     {domain.code}
                                   </span>
                                   <span className="tracking-wide uppercase font-extrabold">{domain.name}</span>
-                                  <span className="text-[11px] font-medium text-gray-600 ml-1">
+                                  <span className="text-[11px] font-medium text-slate-600 ml-1">
                                     ({domain.totalPrograms || 0} Program)
                                   </span>
                                 </button>
@@ -3102,10 +3102,10 @@ export default function RipsPlanning() {
                                       setNewDomainName('');
                                       setModalType('add_domain_quick');
                                     }}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-blue-900 border border-blue-200 text-[11px] font-bold transition shadow-xs"
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-indigo-900 border border-indigo-200 text-[11px] font-bold transition shadow-xs"
                                     title="Tambah Bidang Baru"
                                   >
-                                    <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                    <Plus className="w-3.5 h-3.5 text-indigo-600" />
                                     <span>Tambah Bidang</span>
                                   </button>
                                   <button
@@ -3130,7 +3130,7 @@ export default function RipsPlanning() {
                           {isDomainExpanded && (
                             domain.subdomainList.length === 0 ? (
                               <tr className="bg-white">
-                                <td colSpan={6} className="py-2 px-8 text-xs text-gray-400 italic">
+                                <td colSpan={6} className="py-2 px-8 text-xs text-slate-400 italic">
                                   Belum ada sub-bidang atau program di bidang ini.
                                 </td>
                               </tr>
@@ -3204,7 +3204,7 @@ export default function RipsPlanning() {
                                     {isSubExpanded && (
                                       sub.programs.length === 0 ? (
                                         <tr className="bg-white">
-                                          <td colSpan={6} className="py-2 px-12 text-xs text-gray-400 italic">
+                                          <td colSpan={6} className="py-2 px-12 text-xs text-slate-400 italic">
                                             Belum ada program strategis pada sub-bidang ini.
                                           </td>
                                         </tr>
@@ -3216,21 +3216,21 @@ export default function RipsPlanning() {
                                           return (
                                             <tr
                                               key={p.id}
-                                              className={`hover:bg-blue-50/50 transition-colors ${
+                                              className={`hover:bg-indigo-50/50 transition-colors ${
                                                 isFlagship ? 'bg-amber-50/30' : 'bg-white'
                                               }`}
                                             >
                                               {/* Kode Program */}
-                                              <td className="py-2 px-3 text-center border-r border-gray-200 align-middle">
-                                                <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block">
+                                              <td className="py-2 px-3 text-center border-r border-slate-200 align-middle">
+                                                <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 inline-block">
                                                   {p.code}
                                                 </span>
                                               </td>
 
                                               {/* Nama Program (Satu Baris, Sejajar / Masuk dari Sub-Bidang) */}
-                                              <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-gray-200 align-middle">
+                                              <td className="py-2 px-3 pl-8 sm:pl-9 border-r border-slate-200 align-middle">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                  <span className="font-bold text-gray-900 text-xs leading-snug">
+                                                  <span className="font-bold text-slate-900 text-xs leading-snug">
                                                     {p.name}
                                                   </span>
                                                   {isFlagship && (
@@ -3242,7 +3242,7 @@ export default function RipsPlanning() {
                                               </td>
 
                                               {/* Kategori */}
-                                              <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top">
+                                              <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top">
                                                 {p.category_name ? (
                                                   <span 
                                                     style={{ 
@@ -3259,14 +3259,14 @@ export default function RipsPlanning() {
                                                     Program Unggulan
                                                   </span>
                                                 ) : (
-                                                  <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200 whitespace-nowrap">
+                                                  <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
                                                     Reguler
                                                   </span>
                                                 )}
                                               </td>
 
                                               {/* Sasaran Terkait & Indikator Terkait */}
-                                              <td className="py-2.5 px-4 border-r border-gray-200 align-top">
+                                              <td className="py-2.5 px-4 border-r border-slate-200 align-top">
                                                 {hasLinks ? (
                                                   <div className="space-y-2">
                                                     {p.linked_goals.map((lg) => {
@@ -3285,7 +3285,7 @@ export default function RipsPlanning() {
                                                               <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
                                                                 {lg.goal_code}
                                                               </span>
-                                                              <span className="text-[11px] font-bold text-gray-900 leading-snug">
+                                                              <span className="text-[11px] font-bold text-slate-900 leading-snug">
                                                                 {lg.goal_title}
                                                               </span>
                                                             </div>
@@ -3317,7 +3317,7 @@ export default function RipsPlanning() {
                                                                 {lg.indicators.map((ind) => (
                                                                   <div
                                                                     key={ind.id}
-                                                                    className="flex items-start justify-between gap-2 text-[10.5px] text-gray-700 bg-white px-2 py-1 rounded-md border border-gray-150 shadow-2xs"
+                                                                    className="flex items-start justify-between gap-2 text-[10.5px] text-slate-700 bg-white px-2 py-1 rounded-md border border-gray-150 shadow-2xs"
                                                                   >
                                                                     <div className="flex items-start gap-1 leading-tight">
                                                                       <span className="text-indigo-600 font-bold">•</span>
@@ -3330,7 +3330,7 @@ export default function RipsPlanning() {
                                                                 ))}
                                                               </div>
                                                             ) : (
-                                                              <span className="text-[10px] text-gray-400 italic block pl-3">
+                                                              <span className="text-[10px] text-slate-400 italic block pl-3">
                                                                 (Belum ada indikator terdaftar)
                                                               </span>
                                                             )
@@ -3340,19 +3340,19 @@ export default function RipsPlanning() {
                                                     })}
                                                   </div>
                                                 ) : (
-                                                  <span className="text-gray-400 text-[11px] italic">
+                                                  <span className="text-slate-400 text-[11px] italic">
                                                     Belum terhubung ke sasaran strategis
                                                   </span>
                                                 )}
                                               </td>
 
                                               {/* Status */}
-                                              <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top">
+                                              <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top">
                                                 <span
                                                   className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
                                                     p.status === 'active'
                                                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                                                      : 'bg-slate-100 text-slate-600 border border-slate-300'
                                                   }`}
                                                 >
                                                   {p.status || 'Active'}
@@ -3387,7 +3387,7 @@ export default function RipsPlanning() {
                                                       });
                                                       setModalType('program');
                                                     }}
-                                                    className="p-1 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition"
+                                                    className="p-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 transition"
                                                     title="Edit Program"
                                                   >
                                                     <Edit2 className="w-3.5 h-3.5" />
@@ -3449,7 +3449,7 @@ export default function RipsPlanning() {
                       flex: '1 1 auto', 
                       minHeight: 0 
                     }}
-                    className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+                    className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
                   >
                     {/* Header Utama Tabel di Fullscreen */}
                     <div className="bg-[#3B82F6] px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-white shrink-0 shadow-md relative z-50">
@@ -3467,7 +3467,7 @@ export default function RipsPlanning() {
                               Full Screen Mode
                             </span>
                           </div>
-                          <p className="text-[11px] text-blue-100 font-medium">
+                          <p className="text-[11px] text-indigo-100 font-medium">
                             Menampilkan {totalFilteredProgramsCount} dari {programs.length} Program Operasional ({programs.filter((p) => p.is_flagship).length} Unggulan)
                           </p>
                         </div>
@@ -3541,7 +3541,7 @@ export default function RipsPlanning() {
 
                         {/* Live Search */}
                         <div className="relative flex items-center group">
-                          <Search className="w-3.5 h-3.5 text-blue-200 group-focus-within:text-blue-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
+                          <Search className="w-3.5 h-3.5 text-indigo-200 group-focus-within:text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200 z-10" />
                           <input
                             type="text"
                             value={programSearchQuery}
@@ -3553,7 +3553,7 @@ export default function RipsPlanning() {
                             <button
                               type="button"
                               onClick={() => setProgramSearchQuery('')}
-                              className="absolute right-2 p-1 rounded-full text-blue-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
+                              className="absolute right-2 p-1 rounded-full text-indigo-200 hover:text-white focus:text-slate-700 hover:bg-white/20 transition-all z-10"
                               title="Hapus kata kunci pencarian"
                             >
                               <X className="w-3 h-3" />
@@ -3660,7 +3660,7 @@ export default function RipsPlanning() {
                     >
                     <table className="w-full text-left border-collapse min-w-[900px]">
                       <thead className="sticky top-0 z-10 shadow-xs">
-                        <tr className="bg-[#F3F4F6] text-gray-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
+                        <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-24">Kode</th>
                           <th className="py-2.5 px-4 border-r border-[#D1D5DB] min-w-[240px]">Nama Program &amp; Deskripsi</th>
                           <th className="py-2.5 px-3 text-center border-r border-[#D1D5DB] w-32">Kategori</th>
@@ -3672,7 +3672,7 @@ export default function RipsPlanning() {
                       <tbody className="divide-y divide-gray-200">
                         {groupedPrograms.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="py-10 text-center text-gray-500 bg-white">
+                            <td colSpan={6} className="py-10 text-center text-slate-500 bg-white">
                               Belum ada program strategis yang ditambahkan.
                             </td>
                           </tr>
@@ -3684,24 +3684,24 @@ export default function RipsPlanning() {
                             return (
                               <React.Fragment key={domain.id}>
                                 {/* LEVEL 1: BIDANG */}
-                                <tr className="bg-[#E5E7EB] hover:bg-[#D1D5DB]/80 transition-colors border-y-2 border-gray-300">
+                                <tr className="bg-[#E5E7EB] hover:bg-[#D1D5DB]/80 transition-colors border-y-2 border-slate-300">
                                   <td colSpan={6} className="py-2 px-3">
                                     <div className="flex items-center justify-between">
                                       <button
                                         type="button"
                                         onClick={() => toggleDomain(domainKey)}
-                                        className="flex items-center gap-2 text-left text-xs font-bold text-gray-900 focus:outline-none select-none"
+                                        className="flex items-center gap-2 text-left text-xs font-bold text-slate-900 focus:outline-none select-none"
                                       >
                                         {isDomainExpanded ? (
-                                          <ChevronDown className="w-4 h-4 text-gray-700 shrink-0" />
+                                          <ChevronDown className="w-4 h-4 text-slate-700 shrink-0" />
                                         ) : (
-                                          <ChevronRight className="w-4 h-4 text-gray-700 shrink-0" />
+                                          <ChevronRight className="w-4 h-4 text-slate-700 shrink-0" />
                                         )}
-                                        <span className="font-mono text-blue-700 text-[11px] bg-white px-1.5 py-0.5 rounded border border-gray-300">
+                                        <span className="font-mono text-indigo-700 text-[11px] bg-white px-1.5 py-0.5 rounded border border-slate-300">
                                           {domain.code}
                                         </span>
                                         <span className="tracking-wide uppercase font-extrabold">{domain.name}</span>
-                                        <span className="text-[11px] font-medium text-gray-600 ml-1">
+                                        <span className="text-[11px] font-medium text-slate-600 ml-1">
                                           ({domain.totalPrograms || 0} Program)
                                         </span>
                                       </button>
@@ -3715,10 +3715,10 @@ export default function RipsPlanning() {
                                             setNewDomainName('');
                                             setModalType('add_domain_quick');
                                           }}
-                                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-blue-900 border border-blue-200 text-[11px] font-bold transition shadow-xs"
+                                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 hover:bg-white text-indigo-900 border border-indigo-200 text-[11px] font-bold transition shadow-xs"
                                           title="Tambah Bidang Baru"
                                         >
-                                          <Plus className="w-3.5 h-3.5 text-blue-600" />
+                                          <Plus className="w-3.5 h-3.5 text-indigo-600" />
                                           <span>Tambah Bidang</span>
                                         </button>
                                         <button
@@ -3815,22 +3815,22 @@ export default function RipsPlanning() {
                                             return (
                                               <tr
                                                 key={p.id}
-                                                className={`hover:bg-blue-50/50 transition-colors ${
+                                                className={`hover:bg-indigo-50/50 transition-colors ${
                                                   isFlagship ? 'bg-amber-50/30' : 'bg-white'
                                                 }`}
                                               >
                                                 {/* Kode */}
-                                                <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top pl-8">
-                                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block">
+                                                <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top pl-8">
+                                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 inline-block">
                                                     {p.code}
                                                   </span>
                                                 </td>
 
                                                 {/* Nama Program */}
-                                                <td className="py-2.5 px-4 border-r border-gray-200 align-top">
+                                                <td className="py-2.5 px-4 border-r border-slate-200 align-top">
                                                   <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
-                                                      <span className="font-bold text-gray-900 text-xs leading-snug">
+                                                      <span className="font-bold text-slate-900 text-xs leading-snug">
                                                         {p.name}
                                                       </span>
                                                       {isFlagship && (
@@ -3840,7 +3840,7 @@ export default function RipsPlanning() {
                                                       )}
                                                     </div>
                                                     {p.description && (
-                                                      <p className="text-[11px] text-gray-600 leading-relaxed">
+                                                      <p className="text-[11px] text-slate-600 leading-relaxed">
                                                         {p.description}
                                                       </p>
                                                     )}
@@ -3848,7 +3848,7 @@ export default function RipsPlanning() {
                                                 </td>
 
                                                 {/* Kategori */}
-                                                <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top">
+                                                <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top">
                                                   {p.category_name ? (
                                                     <span 
                                                       style={{ 
@@ -3865,14 +3865,14 @@ export default function RipsPlanning() {
                                                       Program Unggulan
                                                     </span>
                                                   ) : (
-                                                    <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200 whitespace-nowrap">
+                                                    <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
                                                       Reguler
                                                     </span>
                                                   )}
                                                 </td>
 
                                                 {/* Sasaran & Indikator (Collapsible) */}
-                                                <td className="py-2.5 px-4 border-r border-gray-200 align-top">
+                                                <td className="py-2.5 px-4 border-r border-slate-200 align-top">
                                                   {hasLinks ? (
                                                     <div className="space-y-2">
                                                       {p.linked_goals.map((lg) => {
@@ -3890,7 +3890,7 @@ export default function RipsPlanning() {
                                                                 <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
                                                                   {lg.goal_code}
                                                                 </span>
-                                                                <span className="text-[11px] font-bold text-gray-900 leading-snug">
+                                                                <span className="text-[11px] font-bold text-slate-900 leading-snug">
                                                                   {lg.goal_title}
                                                                 </span>
                                                               </div>
@@ -3922,7 +3922,7 @@ export default function RipsPlanning() {
                                                                   {lg.indicators.map((ind) => (
                                                                     <div
                                                                       key={ind.id}
-                                                                      className="flex items-start justify-between gap-2 text-[10.5px] text-gray-700 bg-white px-2 py-1 rounded-md border border-gray-150 shadow-2xs"
+                                                                      className="flex items-start justify-between gap-2 text-[10.5px] text-slate-700 bg-white px-2 py-1 rounded-md border border-gray-150 shadow-2xs"
                                                                     >
                                                                       <div className="flex items-start gap-1 leading-tight">
                                                                         <span className="text-indigo-600 font-bold">•</span>
@@ -3935,7 +3935,7 @@ export default function RipsPlanning() {
                                                                   ))}
                                                                 </div>
                                                               ) : (
-                                                                <span className="text-[10px] text-gray-400 italic block pl-3">
+                                                                <span className="text-[10px] text-slate-400 italic block pl-3">
                                                                   (Belum ada indikator terdaftar)
                                                                 </span>
                                                               )
@@ -3945,19 +3945,19 @@ export default function RipsPlanning() {
                                                       })}
                                                     </div>
                                                   ) : (
-                                                    <span className="text-gray-400 text-[11px] italic">
+                                                    <span className="text-slate-400 text-[11px] italic">
                                                       Belum terhubung ke sasaran strategis
                                                     </span>
                                                   )}
                                                 </td>
 
                                                 {/* Status */}
-                                                <td className="py-2.5 px-3 text-center border-r border-gray-200 align-top">
+                                                <td className="py-2.5 px-3 text-center border-r border-slate-200 align-top">
                                                   <span
                                                     className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
                                                       p.status === 'active'
                                                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                                        : 'bg-gray-100 text-gray-600 border border-gray-300'
+                                                        : 'bg-slate-100 text-slate-600 border border-slate-300'
                                                     }`}
                                                   >
                                                     {p.status || 'Active'}
@@ -3993,7 +3993,7 @@ export default function RipsPlanning() {
                                                         });
                                                         setModalType('program');
                                                       }}
-                                                      className="p-1 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition"
+                                                      className="p-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 transition"
                                                       title="Edit Program"
                                                     >
                                                       <Edit2 className="w-3.5 h-3.5" />
@@ -4030,7 +4030,7 @@ export default function RipsPlanning() {
 
       {/* TAB 3: RIWAYAT PENERBITAN RESMI */}
       {activeTab === 'publications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -4058,7 +4058,7 @@ export default function RipsPlanning() {
                 return (
                   <div
                     key={pub.id}
-                    className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -4133,7 +4133,7 @@ export default function RipsPlanning() {
             {/* MODAL 1: GOAL FORM */}
             {modalType === 'goal' && (
               <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingItem ? 'Edit Sasaran RIPS' : 'Tambah Sasaran RIPS Baru'}
@@ -4231,7 +4231,7 @@ export default function RipsPlanning() {
 
                 <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                   {(formData.indicators || []).map((ind, idx) => (
-                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2.5 relative">
+                    <div key={idx} className="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2.5 relative">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
                           Indikator #{idx + 1}
@@ -4339,7 +4339,7 @@ export default function RipsPlanning() {
       {/* MODAL 2: PROGRAM FORM (LIVE SEARCH SASARAN & CHECKLIST INDIKATOR) */}
       {modalType === 'program' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-400" />
@@ -4422,7 +4422,7 @@ export default function RipsPlanning() {
 
                   {/* Dropdown Menu Hasil Pencarian */}
                   {isGoalDropdownOpen && (
-                    <div className="absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 divide-y divide-slate-800">
+                    <div className="absolute z-30 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-1.5 divide-y divide-slate-800">
                       {(() => {
                         const filteredGoals = goals.filter((g) => {
                           if (!progGoalSearch.trim()) return true;
@@ -4520,7 +4520,7 @@ export default function RipsPlanning() {
                 </div>
 
                 {(!formData.linked_goal_ids || formData.linked_goal_ids.length === 0) ? (
-                  <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-slate-400 text-xs">
+                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-center text-slate-400 text-xs">
                     💡 Pilih sasaran strategis terlebih dahulu pada kolom pencarian di atas untuk memilih indikator kinerjanya.
                   </div>
                 ) : (
@@ -4545,7 +4545,7 @@ export default function RipsPlanning() {
                       const isAllSelected = selectedGoalInds.length === allGoalIndIds.length;
 
                       return (
-                        <div key={g.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-xs">
+                        <div key={g.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-xs">
                           <div className="flex items-center justify-between pb-2 border-b border-slate-850 gap-2">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="font-mono text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800 shrink-0">
@@ -4694,7 +4694,7 @@ export default function RipsPlanning() {
       {/* MODAL 3: HEADER VISI MISI & TUJUAN */}
       {modalType === 'header' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
@@ -4772,7 +4772,7 @@ export default function RipsPlanning() {
       {/* MODAL 4: PUBLISH / SK PENGESAHAN DOKUMEN */}
       {modalType === 'publish' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -4781,7 +4781,7 @@ export default function RipsPlanning() {
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 shrink-0">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 shrink-0">
               Pengesahan ini akan menerbitkan <strong>Surat Keputusan (SK) Resmi</strong> dan membekukan (freeze snapshot) seluruh <strong>{goals.length} sasaran</strong>, <strong>{programs.length} program</strong>, serta <strong>Visi, Misi & Tujuan</strong> ke dalam arsip riwayat resmi.
             </div>
 
@@ -4877,7 +4877,7 @@ export default function RipsPlanning() {
       {/* MODAL 5: VIEW SNAPSHOT */}
       {modalType === 'view_pub' && selectedPubSnapshot && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-white">Snapshot Freeze Dokumen RIPS</h3>
@@ -4889,7 +4889,7 @@ export default function RipsPlanning() {
             </div>
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                 <span className="font-bold text-indigo-400 uppercase text-[10px]">Visi Lembaga</span>
                 <p className="text-slate-200 italic font-medium">"{selectedPubSnapshot.document?.vision}"</p>
               </div>
@@ -4938,7 +4938,7 @@ export default function RipsPlanning() {
       {/* MODAL 6: KELOLA MASTER BIDANG, BSC & KATEGORI PROGRAM */}
       {modalType === 'manage_masters' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
               <h3 className="text-base font-bold text-white">Kelola Master Custom RIPS</h3>
               <button onClick={() => setModalType(null)} className="text-slate-400 hover:text-white">✕</button>
@@ -4977,7 +4977,7 @@ export default function RipsPlanning() {
               {masterTab === 'domain' && (
                 <div className="space-y-4">
                   {/* Add Domain Form */}
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex gap-2">
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex gap-2">
                     <input
                       type="text"
                       id="new_domain_input"
@@ -5001,7 +5001,7 @@ export default function RipsPlanning() {
                   {/* List Domains */}
                   <div className="space-y-3">
                     {domains.map((d) => (
-                      <div key={d.id} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                      <div key={d.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
                         <div className="flex items-center justify-between">
                           {editingDomain?.id === d.id ? (
                             <div className="flex items-center gap-2 flex-1 mr-2">
@@ -5133,7 +5133,7 @@ export default function RipsPlanning() {
               {masterTab === 'categories' && (
                 <div className="space-y-4">
                   {/* Add Program Category Form */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
                     <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
                       <Plus className="w-3.5 h-3.5 text-indigo-400" />
                       Tambah Kategori Program Baru
@@ -5217,7 +5217,7 @@ export default function RipsPlanning() {
                     {programCategories.map((cat) => (
                       <div
                         key={cat.id}
-                        className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 hover:border-slate-700 transition"
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 hover:border-slate-700 transition"
                       >
                         <div className="flex items-center gap-3">
                           {/* Color Badge Indicator */}
@@ -5262,7 +5262,7 @@ export default function RipsPlanning() {
               {masterTab === 'bsc' && (
                 <div className="space-y-4">
                   {/* Add BSC Form */}
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex gap-2">
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex gap-2">
                     <input
                       type="text"
                       id="new_bsc_input"
@@ -5285,7 +5285,7 @@ export default function RipsPlanning() {
 
                   <div className="space-y-2">
                     {bscAspects.map((b) => (
-                      <div key={b.id} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                      <div key={b.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                         <div>
                           <h4 className="font-bold text-white">{b.name}</h4>
                           <p className="text-xs text-slate-400">{b.description || 'Tidak ada deskripsi'}</p>
@@ -5313,7 +5313,7 @@ export default function RipsPlanning() {
       {/* SAFE DELETE CONFIRMATION MODAL WITH DEPENDENCY BREAKDOWN */}
       {deleteConfirmModal.isOpen && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/30 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/30 rounded-xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Trash2 className="w-5 h-5 text-rose-400" />
@@ -5333,14 +5333,14 @@ export default function RipsPlanning() {
               </p>
 
               {deleteConfirmModal.loading ? (
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center text-slate-400">
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-400">
                   Menganalisis keterkaitan data...
                 </div>
               ) : deleteConfirmModal.impact ? (
                 <div className="space-y-3">
                   {/* Warning / Error if cannot delete */}
                   {deleteConfirmModal.impact.can_delete === false ? (
-                    <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-2">
+                    <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-2">
                       <div className="font-bold flex items-center gap-1.5">
                         ⚠️ Data Tidak Dapat Dihapus Langsung
                       </div>
@@ -5359,7 +5359,7 @@ export default function RipsPlanning() {
                       )}
                     </div>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-slate-300">
+                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-slate-300">
                       <span className="font-bold text-slate-200 block">Informasi Data Terkait yang Terdampak:</span>
                       
                       {/* For Domain Deletion */}
@@ -5490,7 +5490,7 @@ export default function RipsPlanning() {
       {/* QUICK MODAL: TAMBAH BIDANG */}
       {modalType === 'add_domain_quick' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-400" />
@@ -5550,7 +5550,7 @@ export default function RipsPlanning() {
       {/* QUICK MODAL: TAMBAH SUB-BIDANG */}
       {modalType === 'add_subdomain_quick' && (
         <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Plus className="w-4 h-4 text-amber-400" />

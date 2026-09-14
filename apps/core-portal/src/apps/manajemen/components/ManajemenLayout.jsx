@@ -204,7 +204,7 @@ function ManajemenLayoutContent() {
             }}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-950/40 border border-indigo-400/20 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-950/40 border border-indigo-400/20 shrink-0">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               {!isCollapsed && (
@@ -333,7 +333,7 @@ function ManajemenLayoutContent() {
           }}
         >
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-md">
               {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
             </div>
             {!isCollapsed && (

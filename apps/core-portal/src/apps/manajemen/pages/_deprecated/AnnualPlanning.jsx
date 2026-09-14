@@ -459,7 +459,7 @@ export default function AnnualPlanning() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Notifications */}
       {feedbackMsg && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs text-emerald-400">
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-400">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedbackMsg}</span>
@@ -471,7 +471,7 @@ export default function AnnualPlanning() {
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs text-rose-400">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -483,10 +483,10 @@ export default function AnnualPlanning() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-teal-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-600 flex items-center justify-center text-white font-bold">
               <CalendarDays className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-black text-white">Perencanaan Tahunan & Rencana Operasional (Renop)</h2>
@@ -533,9 +533,9 @@ export default function AnnualPlanning() {
       </div>
 
       {/* RKT Selector & Stats Banner */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950/60 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div className="p-5 rounded-xl bg-gradient-to-r from-slate-900 to-indigo-950/60 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-sm">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-black text-sm">
             RKT
           </div>
           <div className="space-y-1">
@@ -575,7 +575,7 @@ export default function AnnualPlanning() {
           </div>
           <div className="text-right">
             <span className="text-slate-400 block text-[10px]">Kegiatan Renop:</span>
-            <span className="font-bold text-teal-300 text-sm">{activities.length} Kegiatan</span>
+            <span className="font-bold text-emerald-300 text-sm">{activities.length} Kegiatan</span>
           </div>
         </div>
       </div>
@@ -612,7 +612,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: RENOP (FITUR 4 — TREE & LIST VIEW) */}
       {activeTab === 'renop' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -663,7 +663,7 @@ export default function AnnualPlanning() {
               {activeRktPrograms.map((prog) => {
                 const progActivities = activities.filter((a) => a.work_plan_program_id === prog.id && !a.parent_activity_id);
                 return (
-                  <div key={prog.id} className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700/70 space-y-4">
+                  <div key={prog.id} className="p-5 rounded-xl bg-slate-800/70 border border-slate-700/70 space-y-4">
                     {/* Level 2: Program */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-3">
                       <div className="space-y-0.5">
@@ -704,7 +704,7 @@ export default function AnnualPlanning() {
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div className="space-y-0.5">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-[10px] font-bold text-teal-400 bg-teal-950 px-2 py-0.5 rounded border border-teal-800/40">
+                                    <span className="font-mono text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800/40">
                                       {act.code}
                                     </span>
                                     <h5 className="text-xs font-bold text-white">{act.name}</h5>
@@ -721,7 +721,7 @@ export default function AnnualPlanning() {
                                     type="button"
                                     onClick={() => handleOpenCreateActivity(prog.id, act.id)}
                                     title="Tambah Subkegiatan"
-                                    className="p-1 rounded bg-slate-800 hover:bg-teal-600 text-slate-300 hover:text-white text-[10px]"
+                                    className="p-1 rounded bg-slate-800 hover:bg-emerald-600 text-slate-300 hover:text-white text-[10px]"
                                   >
                                     + Sub
                                   </button>
@@ -744,7 +744,7 @@ export default function AnnualPlanning() {
 
                               {/* Level 4: Subkegiatan Nodes */}
                               {subActs.length > 0 && (
-                                <div className="pl-4 border-l border-teal-500/30 space-y-2 pt-1">
+                                <div className="pl-4 border-l border-emerald-500/30 space-y-2 pt-1">
                                   {subActs.map((sub) => (
                                     <div key={sub.id} className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center justify-between text-xs">
                                       <div className="space-y-0.5">
@@ -810,7 +810,7 @@ export default function AnnualPlanning() {
                 <tbody className="divide-y divide-slate-800">
                   {activities.map((act) => (
                     <tr key={act.id} className="hover:bg-slate-800/40 transition">
-                      <td className="p-3 font-mono font-bold text-teal-400">{act.code}</td>
+                      <td className="p-3 font-mono font-bold text-emerald-400">{act.code}</td>
                       <td className="p-3">
                         <div className="font-bold text-white">{act.name}</div>
                         {act.parent_activity_name && (
@@ -855,7 +855,7 @@ export default function AnnualPlanning() {
       {/* TAB: RINGKASAN RKT */}
       {activeTab === 'rkt' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="lg:col-span-2 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-white">Deskripsi & Arah Kebijakan Tahunan</h3>
             <p className="text-xs text-slate-300 leading-relaxed">
               {selectedRkt?.description || 'Rencana Kerja Tahunan (RKT) merangkum sasaran mutu prioritas, indikator ketercapaian, alokasi PIC tenaga pendidik, dan estimasi pembiayaan selama satu tahun ajaran.'}
@@ -873,7 +873,7 @@ export default function AnnualPlanning() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 text-xs">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 text-xs">
             <h3 className="text-sm font-bold text-white">Rekapitulasi Unit Pelaksana</h3>
             <div className="space-y-2">
               {['Bidang Kurikulum & Akademik', 'Bidang Sarana & Prasarana', 'Bidang Kesiswaan & Asrama', 'Bidang Tahfidz & Keislaman'].map((u, i) => {
@@ -894,7 +894,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: SASARAN */}
       {activeTab === 'goals' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white">Sasaran Strategis yang Diturunkan ke RKT</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {strategicGoals.map((g) => (
@@ -913,7 +913,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: PROGRAM TAHUNAN */}
       {activeTab === 'programs' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">Daftar Program Kerja Tahunan</h3>
             <button
@@ -980,7 +980,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: ACTIVITIES & OUTPUT */}
       {activeTab === 'activities' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white">Rincian Kegiatan & Output Operasional</h3>
           <div className="space-y-3">
             {activities.map((act) => (
@@ -1007,7 +1007,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: BUDGET */}
       {activeTab === 'budget' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white">Distribusi Plafon Anggaran Program Kerja RKT</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeRktPrograms.map((p) => (
@@ -1029,7 +1029,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: TIMELINE */}
       {activeTab === 'timeline' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white">Timeline Pelaksanaan Program Tahun Berjalan</h3>
           <div className="space-y-3">
             {activeRktPrograms.map((p) => (
@@ -1054,7 +1054,7 @@ export default function AnnualPlanning() {
 
       {/* TAB: DOCUMENTS */}
       {activeTab === 'documents' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-white">Naskah Dokumen RKT Terlampir</h3>
           {selectedRkt?.document_url ? (
             <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs">

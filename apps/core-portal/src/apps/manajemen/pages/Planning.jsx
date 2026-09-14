@@ -202,7 +202,7 @@ export default function Planning() {
         <>
           {/* TAB 1: RIPS */}
           {activeTab === 'rips' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
@@ -266,7 +266,7 @@ export default function Planning() {
 
           {/* TAB 2: RKS */}
           {activeTab === 'rks' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
@@ -301,7 +301,7 @@ export default function Planning() {
                                 rks.status === 'approved'
                                   ? 'bg-emerald-100 text-emerald-700'
                                   : rks.status === 'submitted'
-                                  ? 'bg-blue-100 text-blue-700'
+                                  ? 'bg-indigo-100 text-indigo-700'
                                   : 'bg-amber-100 text-amber-700'
                               }`}
                             >
@@ -330,7 +330,7 @@ export default function Planning() {
 
           {/* TAB 3: PROGRAM KERJA */}
           {activeTab === 'programs' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider">
@@ -368,7 +368,7 @@ export default function Planning() {
                                 prog.status === 'done'
                                   ? 'bg-emerald-100 text-emerald-700'
                                   : prog.status === 'ongoing'
-                                  ? 'bg-blue-100 text-blue-700'
+                                  ? 'bg-indigo-100 text-indigo-700'
                                   : 'bg-slate-100 text-slate-700'
                               }`}
                             >
@@ -400,7 +400,7 @@ export default function Planning() {
       {/* Modal Form */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
             <h3 className="text-sm font-bold text-slate-800">
               {modalType === 'create_rips' && 'Buat Dokumen RIPS Baru'}
               {modalType === 'create_rks' && 'Buat RKS Tahunan Baru'}

@@ -281,7 +281,7 @@ export default function RiskManagement() {
   // Cell Color for 5x5 Heatmap Matrix
   const getHeatmapCellColor = (score) => {
     if (score >= 20) return 'bg-rose-600/80 hover:bg-rose-600 text-white border-rose-500 shadow-rose-950/50';
-    if (score >= 12) return 'bg-orange-500/80 hover:bg-orange-500 text-white border-orange-400 shadow-orange-950/50';
+    if (score >= 12) return 'bg-amber-500/80 hover:bg-amber-500 text-white border-amber-400 shadow-orange-950/50';
     if (score >= 6) return 'bg-amber-500/80 hover:bg-amber-500 text-slate-950 font-black border-amber-400 shadow-amber-950/50';
     return 'bg-emerald-600/70 hover:bg-emerald-600 text-white border-emerald-500 shadow-emerald-950/50';
   };
@@ -305,7 +305,7 @@ export default function RiskManagement() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Notifications */}
       {feedbackMsg && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-xs text-emerald-400">
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-400">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedbackMsg}</span>
@@ -317,7 +317,7 @@ export default function RiskManagement() {
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-400">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between text-xs text-rose-400">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -329,7 +329,7 @@ export default function RiskManagement() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-600 flex items-center justify-center text-white font-bold">
@@ -364,23 +364,23 @@ export default function RiskManagement() {
 
       {/* Risk Metrics Summary Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-1">
           <span className="text-slate-400 text-[11px] block">Total Risiko:</span>
           <span className="text-xl font-black text-white">{heatmapData.stats.total}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-rose-600/30 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-rose-600/30 shadow-xl space-y-1">
           <span className="text-rose-400 text-[11px] font-bold block">Ekstrem (20–25):</span>
           <span className="text-xl font-black text-rose-400">{heatmapData.stats.extreme}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-orange-500/30 shadow-xl space-y-1">
-          <span className="text-orange-400 text-[11px] font-bold block">Tinggi (12–19):</span>
-          <span className="text-xl font-black text-orange-400">{heatmapData.stats.high}</span>
+        <div className="p-4 rounded-xl bg-slate-900 border border-amber-500/30 shadow-xl space-y-1">
+          <span className="text-amber-400 text-[11px] font-bold block">Tinggi (12–19):</span>
+          <span className="text-xl font-black text-amber-400">{heatmapData.stats.high}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-amber-500/30 shadow-xl space-y-1">
           <span className="text-amber-400 text-[11px] font-bold block">Sedang (6–11):</span>
           <span className="text-xl font-black text-amber-400">{heatmapData.stats.medium}</span>
         </div>
-        <div className="p-4 rounded-2xl bg-slate-900 border border-emerald-500/30 shadow-xl space-y-1">
+        <div className="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 shadow-xl space-y-1">
           <span className="text-emerald-400 text-[11px] font-bold block">Rendah (1–5):</span>
           <span className="text-xl font-black text-emerald-400">{heatmapData.stats.low}</span>
         </div>
@@ -416,7 +416,7 @@ export default function RiskManagement() {
       {activeTab === 'list' && (
         <div className="space-y-5">
           {/* Controls Bar */}
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-[280px]">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -460,7 +460,7 @@ export default function RiskManagement() {
           </div>
 
           {/* Table Daftar Risiko */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-bold">
                 <tr>
@@ -550,7 +550,7 @@ export default function RiskManagement() {
 
       {/* TAB 2: PETA RISIKO HEATMAP 5x5 */}
       {activeTab === 'heatmap' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-6">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
             <div>
               <h3 className="text-base font-black text-white flex items-center gap-2">
@@ -564,7 +564,7 @@ export default function RiskManagement() {
             <div className="flex items-center gap-2 text-[10px] font-bold">
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-600 inline-block"></span> Rendah (1-5)</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-500 inline-block"></span> Sedang (6-11)</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-500 inline-block"></span> Tinggi (12-19)</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-500 inline-block"></span> Tinggi (12-19)</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-rose-600 inline-block"></span> Ekstrem (20-25)</span>
             </div>
           </div>
@@ -633,7 +633,7 @@ export default function RiskManagement() {
       {/* TAB 3: MITIGASI */}
       {activeTab === 'mitigation' && (
         <div className="space-y-5">
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
+          <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-bold">
                 <tr>
@@ -689,7 +689,7 @@ export default function RiskManagement() {
 
       {/* TAB 4: MONITORING RESIDUAL RISK */}
       {activeTab === 'residual' && (
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="p-6 rounded-xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-sm font-bold text-white">Monitoring Penurunan Tingkat Risiko (Inherent vs Residual)</h3>
             <span className="text-xs text-slate-400">Efektivitas Implementasi Kontrol Mitigasi</span>
@@ -763,7 +763,7 @@ export default function RiskManagement() {
       {/* MODAL: DAFTAR RISIKO PER SEL HEATMAP */}
       {cellModalOpen && selectedCellRisks && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-white">
@@ -809,7 +809,7 @@ export default function RiskManagement() {
       {/* MODAL: IDENTIFIKASI / UBAH RISIKO */}
       {riskModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 {riskEditMode ? 'Ubah Data Identifikasi Risiko' : 'Identifikasi Risiko Baru'}
@@ -885,7 +885,7 @@ export default function RiskManagement() {
               </div>
 
               {/* Matriks Penilaian 1-5 & Live Score */}
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-3">
                 <span className="font-bold text-amber-400 uppercase text-[10px] block">
                   Penilaian Probabilitas & Dampak Inherent (Skala 1 - 5):
                 </span>
@@ -993,7 +993,7 @@ export default function RiskManagement() {
       {/* MODAL: TINDAKAN MITIGASI & RESIDUAL RISK */}
       {mitigationModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
               <div className="space-y-1">
                 <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950 px-2 py-0.5 rounded">
@@ -1060,8 +1060,8 @@ export default function RiskManagement() {
               </div>
 
               {/* Penilaian Residual Risk (Pasca Mitigasi) */}
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3">
-                <span className="font-bold text-teal-400 uppercase text-[10px] block">
+              <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-3">
+                <span className="font-bold text-emerald-400 uppercase text-[10px] block">
                   Penilaian Residual Risk (Sisa Risiko Setelah Mitigasi):
                 </span>
                 <div className="grid grid-cols-3 gap-3 items-center">

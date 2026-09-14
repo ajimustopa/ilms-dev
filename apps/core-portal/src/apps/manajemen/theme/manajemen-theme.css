@@ -35,20 +35,20 @@
   --mj-text-inverse: #ffffff;
 
   /* Accent Brand - Indigo / Violet */
-  --mj-primary: #4f46e5;
-  --mj-primary-hover: #4338ca;
+  --mj-primary: #059669;
+  --mj-primary-hover: #047857;
   --mj-primary-soft: rgba(79, 70, 229, 0.1);
   --mj-primary-soft-hover: rgba(79, 70, 229, 0.16);
   --mj-primary-border: rgba(79, 70, 229, 0.28);
   --mj-primary-fg: #3730a3;       /* Indigo 800 for high contrast text on soft bg */
 
   /* Accent Sky - Blue Markers & Drag Handles */
-  --mj-sky: #0284c7;
-  --mj-sky-hover: #0369a1;
+  --mj-sky: #4f46e5;
+  --mj-sky-hover: #4338ca;
   --mj-sky-soft: rgba(2, 132, 199, 0.1);
   --mj-sky-soft-hover: rgba(2, 132, 199, 0.16);
   --mj-sky-border: rgba(2, 132, 199, 0.28);
-  --mj-sky-fg: #075985;           /* Sky 800 */
+  --mj-sky-fg: #3730a3;           /* Sky 800 */
 
   /* Status Done - Emerald */
   --mj-done: #059669;
@@ -78,13 +78,13 @@
   --mj-violet-soft: rgba(124, 58, 237, 0.10);
   --mj-violet-soft-hover: rgba(124, 58, 237, 0.16);
   --mj-violet-border: rgba(124, 58, 237, 0.28);
-  --mj-violet-fg: #6d28d9;        /* Violet 700 - high contrast AA+ */
+  --mj-violet-fg: #4338ca;        /* Violet 700 - high contrast AA+ */
 
   /* Category Tag: Cyan / Teal (Dokumen & Administrasi) */
   --mj-cyan-soft: rgba(13, 148, 136, 0.10);
   --mj-cyan-soft-hover: rgba(13, 148, 136, 0.16);
   --mj-cyan-border: rgba(13, 148, 136, 0.28);
-  --mj-cyan-fg: #0f766e;          /* Teal 700 - high contrast AA+ */
+  --mj-cyan-fg: #065f46;          /* Teal 700 - high contrast AA+ */
 
   /* Category Tag: Slate / Neutral (Planned / Lainnya) */
   --mj-slate-soft: rgba(100, 116, 139, 0.10);
@@ -93,7 +93,7 @@
   --mj-slate-fg: #334155;          /* Slate 700 */
 
   /* Gradients */
-  --mj-gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --mj-gradient-primary: linear-gradient(135deg, #059669 0%, #047857 100%);
   --mj-gradient-primary-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.09) 0%, rgba(124, 58, 237, 0.09) 100%);
   --mj-gradient-surface: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   --mj-gradient-card-header: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.7) 100%);
@@ -148,7 +148,7 @@
 
   /* Accent Brand - Indigo / Violet */
   --mj-primary: #6366f1;
-  --mj-primary-hover: #4f46e5;
+  --mj-primary-hover: #059669;
   --mj-primary-soft: rgba(99, 102, 241, 0.16);
   --mj-primary-soft-hover: rgba(99, 102, 241, 0.24);
   --mj-primary-border: rgba(99, 102, 241, 0.35);
@@ -205,7 +205,7 @@
   --mj-slate-fg: #cbd5e1;
 
   /* Gradients */
-  --mj-gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --mj-gradient-primary: linear-gradient(135deg, #059669 0%, #047857 100%);
   --mj-gradient-primary-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.18) 0%, rgba(124, 58, 237, 0.18) 100%);
   --mj-gradient-surface: linear-gradient(180deg, #151f32 0%, #0f172a 100%);
   --mj-gradient-card-header: linear-gradient(180deg, rgba(21, 31, 50, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);

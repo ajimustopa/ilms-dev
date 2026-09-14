@@ -344,7 +344,7 @@ export default function DatePickerField({
       {isOpen && !disabled && (
         <div
           ref={popoverRef}
-          className={`absolute z-[99999] w-[310px] p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-md animate-scaleUp text-left transition-all ${
+          className={`absolute z-[99999] w-[310px] p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-md animate-scaleUp text-left transition-all ${
             openAbove ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
           style={{

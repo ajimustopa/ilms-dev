@@ -120,7 +120,7 @@ export default function Supervision() {
           <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
         </div>
       ) : (
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+        <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
@@ -181,7 +181,7 @@ export default function Supervision() {
       {/* Modal Create Schedule */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-800">
             <h3 className="text-sm font-bold text-white">Jadwalkan Supervisi Baru</h3>
             {error && (
               <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 flex items-center gap-2">
@@ -233,7 +233,7 @@ export default function Supervision() {
       {/* Modal Result */}
       {resultModal && selectedSchedule && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-800">
             <div className="border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white">
                 Hasil Supervisi: {selectedSchedule.supervised_name}
