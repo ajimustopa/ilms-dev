@@ -265,7 +265,7 @@ export default function AbsensiDiri() {
       {/* Header Presensi */}
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
+          <div className="w-12 h-12 rounded-xl bg-rose-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
             <MapPin className="w-6 h-6" />
           </div>
           <div>
@@ -443,7 +443,7 @@ export default function AbsensiDiri() {
                 <button
                   onClick={handleCheckIn}
                   disabled={!isWithinRadius || isSubmitting}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -456,7 +456,7 @@ export default function AbsensiDiri() {
                 <button
                   onClick={handleCheckOut}
                   disabled={todayAttendance?.check_out_time || isSubmitting}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-rose-900/30 transition active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-rose-900/30 transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

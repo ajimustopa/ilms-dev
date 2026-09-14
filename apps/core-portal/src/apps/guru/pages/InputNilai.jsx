@@ -226,7 +226,7 @@ export default function InputNilai() {
       {/* Header & Statistik Ringkas */}
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
             <Award className="w-6 h-6" />
           </div>
           <div>
@@ -242,7 +242,7 @@ export default function InputNilai() {
           <button
             onClick={() => setActiveTab('sesi')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              activeTab === 'sesi' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'sesi' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Sesi Ulangan & Tugas
@@ -250,7 +250,7 @@ export default function InputNilai() {
           <button
             onClick={() => setActiveTab('tp')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              activeTab === 'tp' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'tp' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Nilai TP (Capaian)
@@ -258,7 +258,7 @@ export default function InputNilai() {
           <button
             onClick={() => setActiveTab('sikap')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-              activeTab === 'sikap' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'sikap' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             Nilai Sikap
@@ -292,7 +292,7 @@ export default function InputNilai() {
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {classGroups.map((cg) => (
                 <option key={cg.id} value={cg.id}>{cg.name}</option>
@@ -306,7 +306,7 @@ export default function InputNilai() {
               type="text"
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -316,7 +316,7 @@ export default function InputNilai() {
               <select
                 value={assessmentType}
                 onChange={(e) => setAssessmentType(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="Tugas 1">Tugas 1 (Formatif)</option>
                 <option value="Tugas 2">Tugas 2 (Formatif)</option>
@@ -336,7 +336,7 @@ export default function InputNilai() {
               max="100"
               value={kkmScore}
               onChange={(e) => setKkmScore(Number(e.target.value))}
-              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -347,7 +347,7 @@ export default function InputNilai() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-800">
             <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Rata-Rata Kelas</span>
-              <p className="text-base font-extrabold text-violet-400 font-mono mt-0.5">{avgScore}</p>
+              <p className="text-base font-extrabold text-indigo-400 font-mono mt-0.5">{avgScore}</p>
             </div>
             <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Tertinggi (Max)</span>
@@ -359,7 +359,7 @@ export default function InputNilai() {
             </div>
             <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Kelulusan KKM</span>
-              <p className="text-base font-extrabold text-blue-400 font-mono mt-0.5">{passRate}% ({passCount}/{students.length})</p>
+              <p className="text-base font-extrabold text-indigo-400 font-mono mt-0.5">{passRate}% ({passCount}/{students.length})</p>
             </div>
           </div>
         )}
@@ -379,7 +379,7 @@ export default function InputNilai() {
           <button
             onClick={handleSaveScores}
             disabled={isSaving}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-violet-950/40 transition active:scale-95 flex items-center gap-2"
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 transition active:scale-95 flex items-center gap-2"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>Simpan Nilai</span>
@@ -431,7 +431,7 @@ export default function InputNilai() {
                           max="100"
                           value={currentVal}
                           onChange={(e) => handleScoreChange(st.id, e.target.value)}
-                          className="w-20 h-11 text-center font-mono font-extrabold text-base bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          className="w-20 h-11 text-center font-mono font-extrabold text-base bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                       <div className="flex-1 space-y-1">
@@ -449,7 +449,7 @@ export default function InputNilai() {
                             }));
                           }}
                           placeholder="Feedback catatan guru..."
-                          className="w-full px-3 py-2 text-xs bg-slate-800/90 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-full px-3 py-2 text-xs bg-slate-800/90 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
@@ -487,7 +487,7 @@ export default function InputNilai() {
                             max="100"
                             value={currentVal}
                             onChange={(e) => handleScoreChange(st.id, e.target.value)}
-                            className="w-20 px-2 py-1 text-center font-mono font-bold text-sm bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            className="w-20 px-2 py-1 text-center font-mono font-bold text-sm bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -513,7 +513,7 @@ export default function InputNilai() {
                               }));
                             }}
                             placeholder="Feedback catatan..."
-                            className="w-full px-2.5 py-1 text-xs bg-slate-800/80 border border-slate-700/80 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                            className="w-full px-2.5 py-1 text-xs bg-slate-800/80 border border-slate-700/80 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
                         </td>
                       </tr>

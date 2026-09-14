@@ -74,7 +74,7 @@ export default function Dashboard() {
         </div>
         <Link
           to="/kantin/pos"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-950/20 transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-950/20 transition"
         >
           <ShoppingCart className="w-4 h-4" />
           <span>Buka Kasir POS Sekarang</span>
@@ -119,11 +119,11 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Piutang Hak Kantin</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
               <Coins className="w-4 h-4" />
             </div>
           </div>
-          <h3 className="text-xl font-extrabold text-blue-700 mt-2">
+          <h3 className="text-xl font-extrabold text-indigo-700 mt-2">
             {formatRupiah(summary?.canteen_receivable_balance)}
           </h3>
           <p className="text-[11px] text-slate-500 mt-1">

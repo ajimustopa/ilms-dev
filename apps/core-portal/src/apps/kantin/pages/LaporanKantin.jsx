@@ -100,7 +100,7 @@ export default function LaporanKantin() {
             onClick={() => setActiveTab('products')}
             className={`px-5 py-3 border-b-2 whitespace-nowrap transition ${
               activeTab === 'products'
-                ? 'border-amber-600 text-amber-900 bg-amber-50/50'
+                ? 'border-emerald-600 text-emerald-900 bg-emerald-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -111,7 +111,7 @@ export default function LaporanKantin() {
             onClick={() => setActiveTab('vendors')}
             className={`px-5 py-3 border-b-2 whitespace-nowrap transition ${
               activeTab === 'vendors'
-                ? 'border-amber-600 text-amber-900 bg-amber-50/50'
+                ? 'border-emerald-600 text-emerald-900 bg-emerald-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -122,7 +122,7 @@ export default function LaporanKantin() {
             onClick={() => setActiveTab('cash')}
             className={`px-5 py-3 border-b-2 whitespace-nowrap transition ${
               activeTab === 'cash'
-                ? 'border-amber-600 text-amber-900 bg-amber-50/50'
+                ? 'border-emerald-600 text-emerald-900 bg-emerald-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -133,7 +133,7 @@ export default function LaporanKantin() {
             onClick={() => setActiveTab('monthly')}
             className={`px-5 py-3 border-b-2 whitespace-nowrap transition ${
               activeTab === 'monthly'
-                ? 'border-amber-600 text-amber-900 bg-amber-50/50'
+                ? 'border-emerald-600 text-emerald-900 bg-emerald-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -144,7 +144,7 @@ export default function LaporanKantin() {
             onClick={() => setActiveTab('spending')}
             className={`px-5 py-3 border-b-2 whitespace-nowrap transition ${
               activeTab === 'spending'
-                ? 'border-amber-600 text-amber-900 bg-amber-50/50'
+                ? 'border-emerald-600 text-emerald-900 bg-emerald-50/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >

@@ -210,7 +210,7 @@ export default function CalonMuridTesSeleksi() {
                             ? isPassed
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300'
                               : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border-blue-300'
+                            : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                         }`}>
                           {isGraded
                             ? isPassed ? 'LULUS (Passed)' : 'BELUM LULUS'

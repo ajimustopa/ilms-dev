@@ -278,7 +278,7 @@ export default function AbsensiKelas() {
       {/* Header Form Presensi */}
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
+          <div className="w-12 h-12 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
             <ClipboardCheck className="w-6 h-6" />
           </div>
           <div>
@@ -295,13 +295,13 @@ export default function AbsensiKelas() {
             <span className="text-[10px] text-emerald-400 font-bold block">Hadir</span>
             <span className="text-sm font-extrabold text-emerald-300">{counts.hadir}</span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center">
-            <span className="text-[10px] text-blue-400 font-bold block">Izin</span>
-            <span className="text-sm font-extrabold text-blue-300">{counts.izin}</span>
-          </div>
           <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
-            <span className="text-[10px] text-amber-400 font-bold block">Sakit</span>
-            <span className="text-sm font-extrabold text-amber-300">{counts.sakit}</span>
+            <span className="text-[10px] text-amber-400 font-bold block">Izin</span>
+            <span className="text-sm font-extrabold text-amber-300">{counts.izin}</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-center">
+            <span className="text-[10px] text-indigo-400 font-bold block">Sakit</span>
+            <span className="text-sm font-extrabold text-indigo-300">{counts.sakit}</span>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-center">
             <span className="text-[10px] text-rose-400 font-bold block">Alpa</span>
@@ -472,7 +472,7 @@ export default function AbsensiKelas() {
             <button
               onClick={handleSaveAttendance}
               disabled={isSaving}
-              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 transition active:scale-95 flex items-center gap-2"
+              className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 transition active:scale-95 flex items-center gap-2"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>Simpan Presensi</span>
@@ -523,7 +523,7 @@ export default function AbsensiKelas() {
                     onClick={() => handleStatusChange(st.id, 'izin')}
                     className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
                       currentStatus === 'izin'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30 border border-blue-500 ring-2 ring-blue-400/30'
+                        ? 'bg-amber-600 text-slate-950 shadow-md shadow-amber-900/30 border border-amber-500 ring-2 ring-amber-400/30'
                         : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
                     }`}
                   >
@@ -535,7 +535,7 @@ export default function AbsensiKelas() {
                     onClick={() => handleStatusChange(st.id, 'sakit')}
                     className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
                       currentStatus === 'sakit'
-                        ? 'bg-amber-600 text-slate-950 shadow-md shadow-amber-900/30 border border-amber-500 ring-2 ring-amber-400/30'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30 border border-indigo-500 ring-2 ring-indigo-400/30'
                         : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
                     }`}
                   >
@@ -610,7 +610,7 @@ export default function AbsensiKelas() {
                           onClick={() => handleStatusChange(st.id, 'izin')}
                           className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
                             currentStatus === 'izin'
-                              ? 'bg-blue-600 text-white shadow'
+                              ? 'bg-amber-600 text-slate-950 shadow'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
                           }`}
                         >
@@ -621,7 +621,7 @@ export default function AbsensiKelas() {
                           onClick={() => handleStatusChange(st.id, 'sakit')}
                           className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
                             currentStatus === 'sakit'
-                              ? 'bg-amber-600 text-white shadow'
+                              ? 'bg-indigo-600 text-white shadow'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
                           }`}
                         >
@@ -665,7 +665,7 @@ export default function AbsensiKelas() {
           <button
             onClick={handleSaveAttendance}
             disabled={isSaving}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 transition active:scale-95 flex items-center gap-2"
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 transition active:scale-95 flex items-center gap-2"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>Simpan Presensi Pertemuan</span>
