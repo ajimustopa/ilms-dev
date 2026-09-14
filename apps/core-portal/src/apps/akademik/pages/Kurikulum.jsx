@@ -1567,12 +1567,12 @@ export default function Kurikulum() {
                 className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-2xs transition active:scale-95"
                 title="Lihat Catatan Alasan & Riwayat Status Mata Pelajaran"
               >
-                <History className="w-4 h-4 text-teal-600" />
+                <History className="w-4 h-4 text-emerald-600" />
                 <span>Riwayat Status Mapel</span>
               </button>
               <button
                 onClick={handleOpenAddSubject}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Tambah Mata Pelajaran</span>
@@ -1584,7 +1584,7 @@ export default function Kurikulum() {
             <button
               onClick={handleSaveKkmMatrix}
               disabled={savingKkm || subjectsList.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
             >
               {savingKkm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>Simpan Penetapan KKM</span>
@@ -1595,7 +1595,7 @@ export default function Kurikulum() {
             <button
               onClick={handleSaveCurriculumStructure}
               disabled={savingCurrStruct || subjectsList.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95"
             >
               {savingCurrStruct ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>Simpan Struktur Kurikulum</span>
@@ -1605,7 +1605,7 @@ export default function Kurikulum() {
           {activeTab === 'learning_objectives' && (
             <button
               onClick={handleOpenAddTp}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Tujuan Pembelajaran</span>
@@ -1616,7 +1616,7 @@ export default function Kurikulum() {
           {activeTab === 'extracurriculars' && (
             <button
               onClick={handleOpenAddExtra}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Cabang Ekskul</span>
@@ -1635,7 +1635,7 @@ export default function Kurikulum() {
               </button>
               <button
                 onClick={handleOpenAddDuty}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Tugaskan Guru</span>
@@ -1653,7 +1653,7 @@ export default function Kurikulum() {
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -1670,7 +1670,7 @@ export default function Kurikulum() {
               onClick={() => { setActiveTab(tab.id); setSearch(''); }}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
                 isActive
-                  ? 'bg-teal-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -1682,7 +1682,7 @@ export default function Kurikulum() {
       </div>
 
       {/* Toolbar Filter & Pencarian */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         {activeTab === 'teaching_duties' ? (
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full sm:w-auto flex-1">
             <div className="relative w-full sm:w-72">
@@ -1691,7 +1691,7 @@ export default function Kurikulum() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari mapel, ekskul, atau guru..."
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -1721,8 +1721,8 @@ export default function Kurikulum() {
 
               return (
                 <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <span className="px-2.5 py-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 font-bold text-[11px] flex items-center gap-1 shadow-2xs">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
+                  <span className="px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[11px] flex items-center gap-1 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span><b>{assignedCount}</b> Terisi Guru</span>
                   </span>
                   <span className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] border flex items-center gap-1 shadow-2xs ${
@@ -1751,13 +1751,13 @@ export default function Kurikulum() {
                   ? 'Cari kode atau deskripsi TP...'
                   : 'Cari mapel, ekskul, atau nama guru...'
               }
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-slate-800">
-            <SlidersHorizontal className="w-4 h-4 text-teal-600 shrink-0" />
+            <SlidersHorizontal className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-bold">Matriks Alokasi Jam Pelajaran (JP) Kurikulum Sekolah</span>
           </div>
         )}
@@ -1830,13 +1830,13 @@ export default function Kurikulum() {
           )}
 
           {(activeTab === 'teaching_duties' || activeTab === 'learning_objectives' || activeTab === 'kkm_matrix' || activeTab === 'curriculum_structures') && (
-            <div className="flex items-center gap-1.5 bg-teal-50/70 border border-teal-200 px-3 py-1.5 rounded-xl">
-              <Calendar className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-              <span className="text-[11px] font-bold text-teal-900 shrink-0">Tahun Ajaran:</span>
+            <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200 px-3 py-1.5 rounded-xl">
+              <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              <span className="text-[11px] font-bold text-emerald-900 shrink-0">Tahun Ajaran:</span>
               <select
                 value={selectedAcademicYearId}
                 onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                className="text-xs bg-transparent font-bold text-teal-900 focus:outline-none cursor-pointer"
+                className="text-xs bg-transparent font-bold text-emerald-900 focus:outline-none cursor-pointer"
               >
                 {academicYears.map((ay) => (
                   <option key={ay.id} value={ay.id}>
@@ -1850,10 +1850,10 @@ export default function Kurikulum() {
       </div>
 
       {/* Table Data Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-slate-400">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-teal-600" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-600" />
             <p className="text-xs font-semibold">Memuat data kurikulum...</p>
           </div>
         ) : (activeTab !== 'kkm_matrix' && activeTab !== 'curriculum_structures' && activeTab !== 'teaching_duties' && filteredData.length === 0) ? (
@@ -1874,7 +1874,7 @@ export default function Kurikulum() {
                       <div className="flex items-center gap-1.5">
                         <span>Kode Mapel</span>
                         {sortField.subjects === 'code' ? (
-                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -1887,7 +1887,7 @@ export default function Kurikulum() {
                       <div className="flex items-center gap-1.5">
                         <span>Nama Mata Pelajaran</span>
                         {sortField.subjects === 'name' ? (
-                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -1900,7 +1900,7 @@ export default function Kurikulum() {
                       <div className="flex items-center gap-1.5">
                         <span>Peruntukan Tingkat</span>
                         {sortField.subjects === 'grade_level_name' ? (
-                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -1913,7 +1913,7 @@ export default function Kurikulum() {
                       <div className="flex items-center justify-center gap-1.5">
                         <span>Status</span>
                         {sortField.subjects === 'is_active' ? (
-                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.subjects === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -1929,7 +1929,7 @@ export default function Kurikulum() {
                         placeholder="Filter kode..."
                         value={columnFilters.subjects.code}
                         onChange={(e) => handleColumnFilterChange('subjects', 'code', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       />
                     </th>
                     <th className="py-1 px-2">
@@ -1938,14 +1938,14 @@ export default function Kurikulum() {
                         placeholder="Filter nama..."
                         value={columnFilters.subjects.name}
                         onChange={(e) => handleColumnFilterChange('subjects', 'name', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       />
                     </th>
                     <th className="py-1 px-2">
                       <select
                         value={columnFilters.subjects.grade_level_id}
                         onChange={(e) => handleColumnFilterChange('subjects', 'grade_level_id', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       >
                         <option value="">Semua Tingkat</option>
                         {gradeLevels.map(gl => (
@@ -1957,7 +1957,7 @@ export default function Kurikulum() {
                       <select
                         value={columnFilters.subjects.is_active}
                         onChange={(e) => handleColumnFilterChange('subjects', 'is_active', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       >
                         <option value="">Semua Status</option>
                         <option value="active">Aktif Saja</option>
@@ -1968,7 +1968,7 @@ export default function Kurikulum() {
                       {(columnFilters.subjects.code || columnFilters.subjects.name || columnFilters.subjects.grade_level_id || columnFilters.subjects.is_active) && (
                         <button
                           onClick={() => setColumnFilters(prev => ({ ...prev, subjects: { code: '', name: '', grade_level_id: '', kkm: '', is_active: '' } }))}
-                          className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                          className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                         >
                           Reset
                         </button>
@@ -2046,7 +2046,7 @@ export default function Kurikulum() {
                       <td className="py-3 px-4 font-bold text-slate-800">
                         <div className="flex items-start gap-2">
                           {isSubSubject && (
-                            <span className="text-teal-600 font-mono text-sm leading-none shrink-0 mt-0.5 pl-3">↳</span>
+                            <span className="text-emerald-600 font-mono text-sm leading-none shrink-0 mt-0.5 pl-3">↳</span>
                           )}
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -2054,15 +2054,15 @@ export default function Kurikulum() {
                                 <button
                                   type="button"
                                   onClick={() => toggleParentExpand(s.id)}
-                                  className="p-1 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 transition flex items-center gap-1 shadow-2xs border border-teal-200/80 mr-0.5"
+                                  className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition flex items-center gap-1 shadow-2xs border border-emerald-200/80 mr-0.5"
                                   title={s._isExpanded ? 'Lipat sub-mapel' : 'Buka sub-mapel'}
                                 >
                                   {s._isExpanded ? (
-                                    <ChevronDown className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                    <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                   ) : (
-                                    <ChevronRight className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                    <ChevronRight className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                   )}
-                                  <span className="text-[10px] font-bold text-teal-800 px-1">
+                                  <span className="text-[10px] font-bold text-emerald-800 px-1">
                                     {s._childrenCount} Sub
                                   </span>
                                 </button>
@@ -2127,14 +2127,14 @@ export default function Kurikulum() {
                         <button
                           onClick={() => handleOpenEditSubject(s)}
                           title="Edit Mata Pelajaran"
-                          className="p-1 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                          className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteSubject(s.id, s.name)}
                           title="Hapus Mata Pelajaran"
-                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2161,7 +2161,7 @@ export default function Kurikulum() {
                         <div className="flex items-center gap-1.5">
                           <span>Kode</span>
                           {sortField.kkm_matrix === 'code' ? (
-                            sortDirection.kkm_matrix === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            sortDirection.kkm_matrix === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
@@ -2174,15 +2174,15 @@ export default function Kurikulum() {
                         <div className="flex items-center gap-1.5">
                           <span>Mata Pelajaran</span>
                           {sortField.kkm_matrix === 'name' ? (
-                            sortDirection.kkm_matrix === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            sortDirection.kkm_matrix === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
                         </div>
                       </th>
-                      <th className="py-3 px-4 w-28 text-center bg-teal-50/50">Nilai KKM / KKTP</th>
+                      <th className="py-3 px-4 w-28 text-center bg-emerald-50/50">Nilai KKM / KKTP</th>
                       <th className="py-3 px-4 w-32 text-center bg-amber-50/40">Cukup (C)</th>
-                      <th className="py-3 px-4 w-32 text-center bg-blue-50/40">Baik (B)</th>
+                      <th className="py-3 px-4 w-32 text-center bg-indigo-50/40">Baik (B)</th>
                       <th className="py-3 px-4 w-32 text-center bg-emerald-50/40">Sangat Baik (A)</th>
                       <th className="py-3 px-4 w-56">Catatan Deskripsi</th>
                     </tr>
@@ -2196,7 +2196,7 @@ export default function Kurikulum() {
                           placeholder="Filter kode..."
                           value={columnFilters.kkm_matrix.code}
                           onChange={(e) => handleColumnFilterChange('kkm_matrix', 'code', e.target.value)}
-                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                         />
                       </th>
                       <th className="py-1 px-2">
@@ -2205,14 +2205,14 @@ export default function Kurikulum() {
                           placeholder="Filter nama..."
                           value={columnFilters.kkm_matrix.name}
                           onChange={(e) => handleColumnFilterChange('kkm_matrix', 'name', e.target.value)}
-                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                         />
                       </th>
                       <th colSpan={5} className="py-1 px-2 text-right">
                         {(columnFilters.kkm_matrix.code || columnFilters.kkm_matrix.name) && (
                           <button
                             onClick={() => setColumnFilters(prev => ({ ...prev, kkm_matrix: { code: '', name: '', kkm: '' } }))}
-                            className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                            className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                           >
                             Reset Filter
                           </button>
@@ -2245,18 +2245,18 @@ export default function Kurikulum() {
                             <td className="py-3 px-4 text-center font-medium text-slate-400">{idx + 1}</td>
                             <td className="py-3 px-4 font-mono font-bold text-slate-700">{sub.code || '-'}</td>
                             <td className="py-3 px-4 font-bold text-slate-800">{sub.name}</td>
-                            <td className="py-2.5 px-3 text-center bg-teal-50/30 border-x border-teal-100">
+                            <td className="py-2.5 px-3 text-center bg-emerald-50/30 border-x border-emerald-100">
                               <input
                                 type="number"
                                 value={item.kkm !== undefined ? item.kkm : 75}
                                 onChange={(e) => handleKkmInputChange(sub.id, 'kkm', e.target.value)}
-                                className="w-20 px-2 py-1 text-center text-xs font-black text-teal-800 bg-white border border-teal-300 rounded-lg shadow-2xs focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                className="w-20 px-2 py-1 text-center text-xs font-black text-emerald-800 bg-white border border-emerald-300 rounded-lg shadow-2xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                               />
                             </td>
                             <td className="py-2.5 px-3 text-center bg-amber-50/20 text-[11px] font-bold text-amber-700">
                               {item.threshold_c || item.kkm || 75} - {((parseFloat(item.threshold_b) || 83) - 1)}
                             </td>
-                            <td className="py-2.5 px-3 text-center bg-blue-50/20 text-[11px] font-bold text-blue-700">
+                            <td className="py-2.5 px-3 text-center bg-indigo-50/20 text-[11px] font-bold text-indigo-700">
                               {item.threshold_b || 83} - {((parseFloat(item.threshold_a) || 92) - 1)}
                             </td>
                             <td className="py-2.5 px-3 text-center bg-emerald-50/20 text-[11px] font-bold text-emerald-700">
@@ -2268,7 +2268,7 @@ export default function Kurikulum() {
                                 value={item.description || ''}
                                 onChange={(e) => handleKkmInputChange(sub.id, 'description', e.target.value)}
                                 placeholder="Opsional catatan..."
-                                className="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                className="w-full px-2 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                               />
                             </td>
                           </tr>
@@ -2292,7 +2292,7 @@ export default function Kurikulum() {
                             <div className="flex items-center gap-1.5">
                               <span>Kode</span>
                               {sortField.curriculum_structures === 'code' ? (
-                                sortDirection.curriculum_structures === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                                sortDirection.curriculum_structures === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                               ) : (
                                 <ArrowUpDown className="w-3 h-3 opacity-40" />
                               )}
@@ -2305,7 +2305,7 @@ export default function Kurikulum() {
                             <div className="flex items-center gap-1.5">
                               <span>Mata Pelajaran</span>
                               {sortField.curriculum_structures === 'name' ? (
-                                sortDirection.curriculum_structures === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                                sortDirection.curriculum_structures === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                               ) : (
                                 <ArrowUpDown className="w-3 h-3 opacity-40" />
                               )}
@@ -2314,11 +2314,11 @@ export default function Kurikulum() {
                           {gradeLevels.map((gl) => (
                             <th
                               key={gl.id}
-                              className="py-3 px-4 text-center bg-teal-50/90 border-x border-teal-100 font-extrabold text-teal-900 min-w-[130px]"
+                              className="py-3 px-4 text-center bg-emerald-50/90 border-x border-emerald-100 font-extrabold text-emerald-900 min-w-[130px]"
                             >
                               <div className="flex flex-col items-center">
                                 <span>{gl.name}</span>
-                                <span className="text-[10px] font-normal text-teal-700">(JP / Pekan)</span>
+                                <span className="text-[10px] font-normal text-emerald-700">(JP / Pekan)</span>
                               </div>
                             </th>
                           ))}
@@ -2337,7 +2337,7 @@ export default function Kurikulum() {
                             placeholder="Filter kode..."
                             value={columnFilters.curriculum_structures.code}
                             onChange={(e) => handleColumnFilterChange('curriculum_structures', 'code', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2">
@@ -2346,14 +2346,14 @@ export default function Kurikulum() {
                             placeholder="Filter nama mapel..."
                             value={columnFilters.curriculum_structures.name}
                             onChange={(e) => handleColumnFilterChange('curriculum_structures', 'name', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th colSpan={gradeLevels.length + 1} className="py-1 px-2 text-right">
                           {(columnFilters.curriculum_structures.code || columnFilters.curriculum_structures.name) && (
                             <button
                               onClick={() => setColumnFilters(prev => ({ ...prev, curriculum_structures: { code: '', name: '', hours_per_week: '' } }))}
-                              className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                              className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                             >
                               Reset Filter
                             </button>
@@ -2429,7 +2429,7 @@ export default function Kurikulum() {
 
                           // Push baris Mapel Induk
                           renderedRows.push(
-                            <tr key={`parent_${parent.id}`} className="hover:bg-teal-50/40 transition bg-white group">
+                            <tr key={`parent_${parent.id}`} className="hover:bg-emerald-50/40 transition bg-white group">
                               <td className="py-3 px-4 text-center font-bold text-slate-500">{rowNumber++}</td>
                               <td className="py-3 px-4 font-mono font-bold text-slate-700">{parent.code || '-'}</td>
                               <td className="py-3 px-4 font-bold text-slate-800">
@@ -2438,15 +2438,15 @@ export default function Kurikulum() {
                                     <button
                                       type="button"
                                       onClick={() => toggleParentExpand(parent.id)}
-                                      className="p-1 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 transition flex items-center gap-1 shadow-2xs border border-teal-200/80"
+                                      className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition flex items-center gap-1 shadow-2xs border border-emerald-200/80"
                                       title={isExpanded ? 'Sembunyikan sub-mapel' : 'Tampilkan sub-mapel'}
                                     >
                                       {isExpanded ? (
-                                        <ChevronDown className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                        <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                       ) : (
-                                        <ChevronRight className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                        <ChevronRight className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                       )}
-                                      <span className="text-[10px] font-bold text-teal-800 px-1">
+                                      <span className="text-[10px] font-bold text-emerald-800 px-1">
                                         {children.length} Sub
                                       </span>
                                     </button>
@@ -2463,7 +2463,7 @@ export default function Kurikulum() {
                                 if (typeof jpVal === 'number') totalParentJp += jpVal;
 
                                 return (
-                                  <td key={gl.id} className="py-2 px-3 text-center bg-teal-50/20 border-x border-teal-100/60">
+                                  <td key={gl.id} className="py-2 px-3 text-center bg-emerald-50/20 border-x border-emerald-100/60">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <input
                                         type="number"
@@ -2472,9 +2472,9 @@ export default function Kurikulum() {
                                         value={jpVal}
                                         onChange={(e) => handleCurrStructMatrixChange(parent.id, gl.id, e.target.value)}
                                         placeholder="0"
-                                        className={`w-16 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-teal-500 focus:outline-none transition ${
+                                        className={`w-16 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:outline-none transition ${
                                           jpVal > 0
-                                            ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                                             : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
                                         }`}
                                       />
@@ -2515,7 +2515,7 @@ export default function Kurikulum() {
                                   </td>
                                   <td className="py-2.5 px-4 font-medium text-slate-800 pl-8">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-teal-600 font-mono text-sm leading-none shrink-0">↳</span>
+                                      <span className="text-emerald-600 font-mono text-sm leading-none shrink-0">↳</span>
                                       <span className="font-semibold text-slate-800">{sub.name}</span>
                                       <span className={`px-2 py-0.5 text-[9px] font-bold rounded-md ${
                                         isIncludedInParent
@@ -2593,10 +2593,10 @@ export default function Kurikulum() {
                           let totalBlockJp = 0;
 
                           renderedRows.push(
-                            <tr key={groupKey} className="hover:bg-purple-50/40 transition bg-purple-50/20 group border-t-2 border-purple-200">
-                              <td className="py-3 px-4 text-center font-bold text-purple-700">{rowNumber++}</td>
-                              <td className="py-3 px-4 font-mono font-bold text-purple-800">
-                                <span className="px-2 py-0.5 bg-purple-100 border border-purple-300 rounded text-[10px]">
+                            <tr key={groupKey} className="hover:bg-indigo-50/40 transition bg-indigo-50/20 group border-t-2 border-indigo-200">
+                              <td className="py-3 px-4 text-center font-bold text-indigo-700">{rowNumber++}</td>
+                              <td className="py-3 px-4 font-mono font-bold text-indigo-800">
+                                <span className="px-2 py-0.5 bg-indigo-100 border border-indigo-300 rounded text-[10px]">
                                   BLOK
                                 </span>
                               </td>
@@ -2605,20 +2605,20 @@ export default function Kurikulum() {
                                   <button
                                     type="button"
                                     onClick={() => toggleParentExpand(groupKey)}
-                                    className="p-1 rounded-md bg-purple-100 hover:bg-purple-200 text-purple-800 transition flex items-center gap-1 shadow-2xs border border-purple-300"
+                                    className="p-1 rounded-md bg-indigo-100 hover:bg-indigo-200 text-indigo-800 transition flex items-center gap-1 shadow-2xs border border-indigo-300"
                                     title={isExpanded ? 'Sembunyikan opsi mapel pilihan' : 'Tampilkan opsi mapel pilihan'}
                                   >
                                     {isExpanded ? (
-                                      <ChevronDown className="w-3.5 h-3.5 text-purple-800 shrink-0" />
+                                      <ChevronDown className="w-3.5 h-3.5 text-indigo-800 shrink-0" />
                                     ) : (
-                                      <ChevronRight className="w-3.5 h-3.5 text-purple-800 shrink-0" />
+                                      <ChevronRight className="w-3.5 h-3.5 text-indigo-800 shrink-0" />
                                     )}
-                                    <span className="text-[10px] font-bold text-purple-900 px-1">
+                                    <span className="text-[10px] font-bold text-indigo-900 px-1">
                                       {groupMembers.length} Mapel Pilihan
                                     </span>
                                   </button>
-                                  <span className="text-purple-950 font-black text-sm">{groupName}</span>
-                                  <span className="px-2 py-0.5 bg-purple-600 text-white rounded-full text-[9px] font-extrabold shadow-2xs">
+                                  <span className="text-indigo-950 font-black text-sm">{groupName}</span>
+                                  <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-full text-[9px] font-extrabold shadow-2xs">
                                     Blok Pilihan
                                   </span>
                                 </div>
@@ -2636,7 +2636,7 @@ export default function Kurikulum() {
                                 if (typeof blockJpVal === 'number') totalBlockJp += blockJpVal;
 
                                 return (
-                                  <td key={gl.id} className="py-2 px-3 text-center bg-purple-100/30 border-x border-purple-200/60">
+                                  <td key={gl.id} className="py-2 px-3 text-center bg-indigo-100/30 border-x border-indigo-200/60">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <input
                                         type="number"
@@ -2651,21 +2651,21 @@ export default function Kurikulum() {
                                           });
                                         }}
                                         placeholder="0"
-                                        className={`w-16 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-purple-500 focus:outline-none transition ${
+                                        className={`w-16 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-indigo-500 focus:outline-none transition ${
                                           blockJpVal > 0
-                                            ? 'bg-purple-600 text-white border-purple-700 shadow-2xs'
-                                            : 'bg-white text-slate-400 border-purple-200 hover:border-purple-300'
+                                            ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                                            : 'bg-white text-slate-400 border-indigo-200 hover:border-indigo-300'
                                         }`}
                                       />
-                                      <span className="text-[10px] font-bold text-purple-700">JP</span>
+                                      <span className="text-[10px] font-bold text-indigo-700">JP</span>
                                     </div>
                                   </td>
                                 );
                               })}
 
-                              <td className="py-3 px-4 text-center font-extrabold text-purple-900 bg-purple-100/60">
+                              <td className="py-3 px-4 text-center font-extrabold text-indigo-900 bg-indigo-100/60">
                                 {totalBlockJp > 0 ? (
-                                  <span className="px-2.5 py-1 bg-purple-200 text-purple-950 rounded-full font-black text-xs border border-purple-300">
+                                  <span className="px-2.5 py-1 bg-indigo-200 text-indigo-950 rounded-full font-black text-xs border border-indigo-300">
                                     {totalBlockJp} JP
                                   </span>
                                 ) : (
@@ -2681,17 +2681,17 @@ export default function Kurikulum() {
                               renderedRows.push(
                                 <tr
                                   key={`block_sub_${sub.id}`}
-                                  className="transition border-l-4 border-l-purple-500 bg-purple-50/10 hover:bg-purple-50/30"
+                                  className="transition border-l-4 border-l-purple-500 bg-indigo-50/10 hover:bg-indigo-50/30"
                                 >
-                                  <td className="py-2.5 px-4 text-center font-mono text-[11px] text-purple-400">↳</td>
-                                  <td className="py-2.5 px-4 font-mono font-bold text-purple-700 text-[11px] pl-6">
+                                  <td className="py-2.5 px-4 text-center font-mono text-[11px] text-indigo-400">↳</td>
+                                  <td className="py-2.5 px-4 font-mono font-bold text-indigo-700 text-[11px] pl-6">
                                     {sub.code || '-'}
                                   </td>
                                   <td className="py-2.5 px-4 font-medium text-slate-800 pl-8">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-purple-600 font-mono text-sm leading-none shrink-0">↳</span>
+                                      <span className="text-indigo-600 font-mono text-sm leading-none shrink-0">↳</span>
                                       <span className="font-bold text-slate-800">{sub.name}</span>
-                                      <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                                      <span className="px-2 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100 text-indigo-900 border border-indigo-200">
                                         Pilihan Paralel (Rombel Pilihan)
                                       </span>
                                     </div>
@@ -2704,16 +2704,16 @@ export default function Kurikulum() {
                                     const subJp = cellData?.hours_per_week !== undefined ? cellData.hours_per_week : 0;
 
                                     return (
-                                      <td key={gl.id} className="py-2 px-3 text-center bg-purple-50/20 border-x border-purple-100/50">
-                                        <span className="text-[10px] font-extrabold text-purple-800 px-2 py-0.5 bg-purple-100/70 rounded-md border border-purple-200">
+                                      <td key={gl.id} className="py-2 px-3 text-center bg-indigo-50/20 border-x border-indigo-100/50">
+                                        <span className="text-[10px] font-extrabold text-indigo-800 px-2 py-0.5 bg-indigo-100/70 rounded-md border border-indigo-200">
                                           {subJp > 0 ? `${subJp} JP (Blok)` : '0 JP'}
                                         </span>
                                       </td>
                                     );
                                   })}
 
-                                  <td className="py-2.5 px-4 text-center font-bold text-purple-800 bg-purple-50/30">
-                                    <span className="text-[10px] text-purple-700 font-bold italic">Ikut Jam Blok</span>
+                                  <td className="py-2.5 px-4 text-center font-bold text-indigo-800 bg-indigo-50/30">
+                                    <span className="text-[10px] text-indigo-700 font-bold italic">Ikut Jam Blok</span>
                                   </td>
                                 </tr>
                               );
@@ -2752,7 +2752,7 @@ export default function Kurikulum() {
                                 const jpVal = cellData?.hours_per_week !== undefined ? cellData.hours_per_week : '';
                                 if (typeof jpVal === 'number') totalSubJp += jpVal;
                                 return (
-                                  <td key={gl.id} className="py-2 px-3 text-center bg-teal-50/20 border-x border-teal-100/60">
+                                  <td key={gl.id} className="py-2 px-3 text-center bg-emerald-50/20 border-x border-emerald-100/60">
                                     <input
                                       type="number"
                                       min="0"
@@ -2780,7 +2780,7 @@ export default function Kurikulum() {
                     {subjectsList.length > 0 && (
                       <tfoot className="bg-slate-100/95 backdrop-blur-sm border-t-2 border-slate-300 font-extrabold text-xs text-slate-800 sticky bottom-0 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.06)]">
                         <tr>
-                          <td colSpan={3} className="py-3 px-4 text-right uppercase tracking-wider text-teal-950 font-black bg-slate-100/95">
+                          <td colSpan={3} className="py-3 px-4 text-right uppercase tracking-wider text-emerald-950 font-black bg-slate-100/95">
                             Total Alokasi Beban Belajar:
                           </td>
                           {gradeLevels.map((gl) => {
@@ -2809,10 +2809,10 @@ export default function Kurikulum() {
                               }
                             });
                             return (
-                              <td key={gl.id} className="py-2.5 px-4 text-center bg-teal-100/90 border-x border-teal-200">
+                              <td key={gl.id} className="py-2.5 px-4 text-center bg-emerald-100/90 border-x border-emerald-200">
                                 <div className="flex flex-col items-center">
-                                  <span className="text-sm font-black text-teal-950">{sumGradeJp} JP</span>
-                                  <span className="text-[10px] text-teal-700 font-bold">
+                                  <span className="text-sm font-black text-emerald-950">{sumGradeJp} JP</span>
+                                  <span className="text-[10px] text-emerald-700 font-bold">
                                     {sumGradeJp * minutesPerJp} Menit / Pekan
                                   </span>
                                 </div>
@@ -2830,11 +2830,11 @@ export default function Kurikulum() {
             {activeTab === 'learning_objectives' && (
               <div className="p-4 sm:p-6 space-y-5 bg-slate-50/50 min-h-[500px]">
                 {/* A. Summary Bar & Progress Metrics */}
-                <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
+                <div className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <Target className="w-5 h-5 text-teal-600" />
+                        <Target className="w-5 h-5 text-emerald-600" />
                         <h3 className="text-sm font-bold text-slate-800">
                           Rekap Kelengkapan Tujuan Pembelajaran (TP)
                         </h3>
@@ -2846,11 +2846,11 @@ export default function Kurikulum() {
 
                     {/* Quick Metric Badges */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <div className="px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200/80 flex items-center gap-2 shadow-2xs">
-                        <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-2 shadow-2xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <div className="text-xs">
-                          <span className="font-bold text-teal-900">{tpGroupedData.summary.filledGroups}</span>
-                          <span className="text-teal-700 text-[11px] ml-1">Mapel Terisi TP</span>
+                          <span className="font-bold text-emerald-900">{tpGroupedData.summary.filledGroups}</span>
+                          <span className="text-emerald-700 text-[11px] ml-1">Mapel Terisi TP</span>
                         </div>
                       </div>
 
@@ -2924,7 +2924,7 @@ export default function Kurikulum() {
                   </div>
 
                   {search.trim().length > 0 && (
-                    <div className="text-xs text-teal-800 font-bold bg-teal-50 px-3 py-1 rounded-lg border border-teal-200">
+                    <div className="text-xs text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                       Menampilkan hasil pencarian untuk "{search}" ({tpGroupedData.groups.length} grup cocok)
                     </div>
                   )}
@@ -2932,7 +2932,7 @@ export default function Kurikulum() {
 
                 {/* C. List of Grouped Accordion Cards */}
                 {tpGroupedData.groups.length === 0 ? (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400 space-y-2">
+                  <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 space-y-2">
                     <BookOpen className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
                     <p className="text-sm font-bold text-slate-700">Tidak ada kelompok mata pelajaran yang sesuai filter</p>
                     <p className="text-xs text-slate-400">Pastikan mata pelajaran dan tingkat kelas sudah terdaftar atau sesuaikan kata kunci pencarian.</p>
@@ -2946,8 +2946,8 @@ export default function Kurikulum() {
                       return (
                         <div
                           key={group.key}
-                          className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-2xs ${
-                            isExpanded ? 'border-teal-300 ring-2 ring-teal-500/10' : 'border-slate-200/90 hover:border-slate-300'
+                          className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden shadow-2xs ${
+                            isExpanded ? 'border-emerald-300 ring-2 ring-emerald-500/10' : 'border-slate-200/90 hover:border-slate-300'
                           }`}
                         >
                           {/* Card Header */}
@@ -2960,7 +2960,7 @@ export default function Kurikulum() {
                             {/* Left: Mapel Info & Badges */}
                             <div className="flex items-center gap-3">
                               <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
-                                hasTp ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                hasTp ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
                               }`}>
                                 <BookOpen className="w-4 h-4" />
                               </div>
@@ -2979,7 +2979,7 @@ export default function Kurikulum() {
                                     {group.gradeLevel.name}
                                   </span>
                                   {group.subject.is_elective ? (
-                                    <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[10px] border border-indigo-200">
                                       Mapel Pilihan
                                     </span>
                                   ) : null}
@@ -3014,8 +3014,8 @@ export default function Kurikulum() {
 
                               {/* Semua Semester (jika ada) */}
                               {group.allSemCount > 0 && (
-                                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-                                  <span className="text-[10px] font-normal text-blue-600">Semua Sem:</span>
+                                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                                  <span className="text-[10px] font-normal text-indigo-600">Semua Sem:</span>
                                   <span>{group.allSemCount} TP</span>
                                 </span>
                               )}
@@ -3024,7 +3024,7 @@ export default function Kurikulum() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenAddTpForGroup(group.subject, group.gradeLevel)}
-                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 ml-1"
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1 ml-1"
                                 title={`Tambah TP untuk ${group.subject.name} ${group.gradeLevel.name}`}
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -3058,7 +3058,7 @@ export default function Kurikulum() {
                                     <button
                                       type="button"
                                       onClick={() => handleOpenAddTpForGroup(group.subject, group.gradeLevel)}
-                                      className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
                                     >
                                       <Plus className="w-4 h-4" />
                                       <span>Buat TP Pertama untuk Mapel Ini</span>
@@ -3071,11 +3071,11 @@ export default function Kurikulum() {
                                   <div className="space-y-2.5">
                                     <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                                       <div className="flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                                         <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
                                           Semester Ganjil
                                         </h5>
-                                        <span className="px-2 py-0.5 bg-teal-50 text-teal-800 text-[10px] font-bold rounded-md border border-teal-200">
+                                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold rounded-md border border-emerald-200">
                                           {group.ganjilTps.length} TP
                                         </span>
                                       </div>
@@ -3125,7 +3125,7 @@ export default function Kurikulum() {
                                                   </div>
                                                 </td>
                                                 <td className="py-2 px-3">
-                                                  <span className="px-2.5 py-1 bg-teal-50 text-teal-800 border border-teal-200/80 rounded-lg font-bold text-xs">
+                                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-lg font-bold text-xs">
                                                     {tp.code}
                                                   </span>
                                                 </td>
@@ -3136,7 +3136,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleOpenEditTp(tp)}
-                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                                                     title="Edit TP"
                                                   >
                                                     <Edit2 className="w-3.5 h-3.5" />
@@ -3144,7 +3144,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleDeleteTp(tp.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                                                     title="Hapus TP"
                                                   >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -3227,7 +3227,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleOpenEditTp(tp)}
-                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                                                     title="Edit TP"
                                                   >
                                                     <Edit2 className="w-3.5 h-3.5" />
@@ -3235,7 +3235,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleDeleteTp(tp.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                                                     title="Hapus TP"
                                                   >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -3254,11 +3254,11 @@ export default function Kurikulum() {
                                     <div className="space-y-2.5 pt-2">
                                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                                         <div className="flex items-center gap-2">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                          <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
                                           <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
                                             Berlaku Semua Semester
                                           </h5>
-                                          <span className="px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-bold rounded-md border border-blue-200">
+                                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-800 text-[10px] font-bold rounded-md border border-indigo-200">
                                             {group.allSemTps.length} TP
                                           </span>
                                         </div>
@@ -3303,7 +3303,7 @@ export default function Kurikulum() {
                                                   </div>
                                                 </td>
                                                 <td className="py-2 px-3">
-                                                  <span className="px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200/80 rounded-lg font-bold text-xs">
+                                                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200/80 rounded-lg font-bold text-xs">
                                                     {tp.code}
                                                   </span>
                                                 </td>
@@ -3314,7 +3314,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleOpenEditTp(tp)}
-                                                    className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                                                     title="Edit TP"
                                                   >
                                                     <Edit2 className="w-3.5 h-3.5" />
@@ -3322,7 +3322,7 @@ export default function Kurikulum() {
                                                   <button
                                                     type="button"
                                                     onClick={() => handleDeleteTp(tp.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                                                     title="Hapus TP"
                                                   >
                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -3359,7 +3359,7 @@ export default function Kurikulum() {
                       <div className="flex items-center gap-1.5">
                         <span>Nama Cabang Ekstrakurikuler</span>
                         {sortField.extracurriculars === 'name' ? (
-                          sortDirection.extracurriculars === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.extracurriculars === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -3372,7 +3372,7 @@ export default function Kurikulum() {
                       <div className="flex items-center gap-1.5">
                         <span>Jadwal Rutin Latihan</span>
                         {sortField.extracurriculars === 'schedule' ? (
-                          sortDirection.extracurriculars === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                          sortDirection.extracurriculars === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 opacity-40" />
                         )}
@@ -3388,7 +3388,7 @@ export default function Kurikulum() {
                         placeholder="Filter nama ekskul..."
                         value={columnFilters.extracurriculars.name}
                         onChange={(e) => handleColumnFilterChange('extracurriculars', 'name', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       />
                     </th>
                     <th className="py-1 px-2">
@@ -3397,14 +3397,14 @@ export default function Kurikulum() {
                         placeholder="Filter jadwal..."
                         value={columnFilters.extracurriculars.schedule}
                         onChange={(e) => handleColumnFilterChange('extracurriculars', 'schedule', e.target.value)}
-                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                        className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                       />
                     </th>
                     <th className="py-1 px-2 text-right">
                       {(columnFilters.extracurriculars.name || columnFilters.extracurriculars.schedule) && (
                         <button
                           onClick={() => setColumnFilters(prev => ({ ...prev, extracurriculars: { name: '', schedule: '' } }))}
-                          className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                          className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                         >
                           Reset
                         </button>
@@ -3433,7 +3433,7 @@ export default function Kurikulum() {
                     .map((ex) => (
                     <tr key={ex.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3 px-4 font-bold text-slate-800 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                           <Activity className="w-4 h-4" />
                         </div>
                         <span>{ex.name}</span>
@@ -3454,18 +3454,18 @@ export default function Kurikulum() {
             {activeTab === 'teaching_duties' && (
               <div className="space-y-4 p-4">
                 {/* SUB-TAB NAVIGATOR TAB 6 */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 shadow-inner">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-100/90 p-1.5 rounded-xl border border-slate-200/80 shadow-inner">
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setTeachingSubTab('by_learning')}
                       className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                         teachingSubTab === 'by_learning'
-                          ? 'bg-white text-teal-700 shadow-md border border-slate-200/70'
+                          ? 'bg-white text-emerald-700 shadow-md border border-slate-200/70'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                       }`}
                     >
-                      <BookOpen className="w-4 h-4 text-teal-600" />
+                      <BookOpen className="w-4 h-4 text-emerald-600" />
                       <span>1. Berdasarkan Pembelajaran (Mapel ➔ Guru)</span>
                     </button>
                     <button
@@ -3770,7 +3770,7 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Tipe Tugas</span>
                             {sortField.teaching_duties === 'type' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -3783,7 +3783,7 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Mata Pelajaran / Ekskul</span>
                             {sortField.teaching_duties === 'subject_name' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -3796,7 +3796,7 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Rombel / Kelas</span>
                             {sortField.teaching_duties === 'class_name' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -3809,13 +3809,13 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Guru Pengampu (Bisa 2 Guru)</span>
                             {sortField.teaching_duties === 'teacher_name' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
                           </div>
                         </th>
-                        <th className="py-3 px-4 w-36 text-center bg-teal-50/40 font-bold text-teal-900">
+                        <th className="py-3 px-4 w-36 text-center bg-emerald-50/40 font-bold text-emerald-900">
                           Beban JP / Pekan (Kurikulum)
                         </th>
                         <th
@@ -3825,7 +3825,7 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Peran Penugasan</span>
                             {sortField.teaching_duties === 'role_description' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -3838,7 +3838,7 @@ export default function Kurikulum() {
                           <div className="flex items-center gap-1.5">
                             <span>Nomor SK / Catatan</span>
                             {sortField.teaching_duties === 'sk_number' ? (
-                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              sortDirection.teaching_duties === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -3852,7 +3852,7 @@ export default function Kurikulum() {
                           <select
                             value={columnFilters.teaching_duties.type}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'type', e.target.value)}
-                            className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           >
                             <option value="">Semua</option>
                             <option value="mapel">Mapel</option>
@@ -3865,7 +3865,7 @@ export default function Kurikulum() {
                             placeholder="Filter mapel/ekskul..."
                             value={columnFilters.teaching_duties.subject_name}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'subject_name', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2">
@@ -3874,7 +3874,7 @@ export default function Kurikulum() {
                             placeholder="Filter rombel..."
                             value={columnFilters.teaching_duties.class_name}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'class_name', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2">
@@ -3883,7 +3883,7 @@ export default function Kurikulum() {
                             placeholder="Filter nama guru..."
                             value={columnFilters.teaching_duties.teacher_name}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'teacher_name', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2"></th>
@@ -3893,7 +3893,7 @@ export default function Kurikulum() {
                             placeholder="Filter peran..."
                             value={columnFilters.teaching_duties.role_description}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'role_description', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2">
@@ -3902,14 +3902,14 @@ export default function Kurikulum() {
                             placeholder="Filter SK..."
                             value={columnFilters.teaching_duties.sk_number}
                             onChange={(e) => handleColumnFilterChange('teaching_duties', 'sk_number', e.target.value)}
-                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 font-normal"
+                            className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-normal"
                           />
                         </th>
                         <th className="py-1 px-2 text-right">
                           {Object.values(columnFilters.teaching_duties).some(Boolean) && (
                             <button
                               onClick={() => setColumnFilters(prev => ({ ...prev, teaching_duties: { type: '', subject_name: '', class_name: '', teacher_name: '', role_description: '', sk_number: '', status: '' } }))}
-                              className="text-[10px] text-teal-600 hover:text-teal-800 font-bold"
+                              className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold"
                             >
                               Reset
                             </button>
@@ -3933,7 +3933,7 @@ export default function Kurikulum() {
                             <tr key={`${pair.type}_${pair.subject?.id || pair.extra?.id}_${pair.class_group?.id || 'global'}_${idx}`} className={`hover:bg-slate-50/70 transition ${!pair.is_assigned ? 'bg-amber-50/20' : ''}`}>
                               <td className="py-3 px-4">
                                 <span className={`px-2.5 py-0.5 rounded-md font-bold uppercase text-[10px] ${
-                                  isMapel ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  isMapel ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                                 }`}>
                                   {isMapel ? 'Mapel' : 'Ekskul'}
                                 </span>
@@ -3942,7 +3942,7 @@ export default function Kurikulum() {
                                 {isMapel ? (
                                   <div className="flex items-start gap-2">
                                     {pair.isSubSubject && (
-                                      <span className="text-teal-600 font-mono text-sm leading-none shrink-0 mt-0.5 pl-3">↳</span>
+                                      <span className="text-emerald-600 font-mono text-sm leading-none shrink-0 mt-0.5 pl-3">↳</span>
                                     )}
                                     <div>
                                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -3950,15 +3950,15 @@ export default function Kurikulum() {
                                           <button
                                             type="button"
                                             onClick={() => toggleParentExpand(pair.subject.id)}
-                                            className="p-1 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 transition flex items-center gap-1 shadow-2xs border border-teal-200/80 mr-0.5"
+                                            className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition flex items-center gap-1 shadow-2xs border border-emerald-200/80 mr-0.5"
                                             title={pair.isExpanded ? 'Lipat sub-mapel' : 'Buka sub-mapel'}
                                           >
                                             {pair.isExpanded ? (
-                                              <ChevronDown className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                              <ChevronDown className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                             ) : (
-                                              <ChevronRight className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                              <ChevronRight className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                             )}
-                                            <span className="text-[10px] font-bold text-teal-800 px-1">
+                                            <span className="text-[10px] font-bold text-emerald-800 px-1">
                                               {pair.childrenCount} Sub
                                             </span>
                                           </button>
@@ -3966,7 +3966,7 @@ export default function Kurikulum() {
                                         <span className="text-slate-900">{pair.subject?.name}</span>
                                         <span className="text-slate-400 font-mono font-normal">({pair.subject?.code || '-'})</span>
                                         {pair.isSubSubject && (
-                                          <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[9px] rounded font-semibold border border-teal-200">
+                                          <span className="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 text-[9px] rounded font-semibold border border-emerald-200">
                                             Sub-Mapel
                                           </span>
                                         )}
@@ -3990,7 +3990,7 @@ export default function Kurikulum() {
                                 ) : pair.class_group ? (
                                   pair.isJoinedClass ? (
                                     <div className="flex flex-col gap-1">
-                                      <span className="px-2.5 py-1 rounded-lg font-black text-[11px] inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/15 text-amber-950 border-2 border-amber-400/90 shadow-2xs">
+                                      <span className="px-2.5 py-1 rounded-lg font-black text-[11px] inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-amber-500/15 text-amber-950 border-2 border-amber-400/90 shadow-2xs">
                                         <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500 shrink-0" />
                                         <span>⚡ Rombel Gabungan: {pair.jointClassNames && pair.jointClassNames.length > 0 ? pair.jointClassNames.join(' + ') : pair.class_group?.name}</span>
                                       </span>
@@ -4016,22 +4016,22 @@ export default function Kurikulum() {
                                     type="button"
                                     onClick={() => handleOpenQuickAssign(pair)}
                                     title="Klik untuk ubah guru atau bagi JP antar 2 guru"
-                                    className="group text-left w-full p-2 rounded-xl border border-teal-200 bg-teal-50/50 hover:bg-teal-100/70 hover:border-teal-400 transition flex items-center justify-between gap-2 shadow-2xs"
+                                    className="group text-left w-full p-2 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 hover:border-emerald-400 transition flex items-center justify-between gap-2 shadow-2xs"
                                   >
                                     <div className="space-y-1.5 w-full">
                                       {pair.duties.map((d, dIdx) => (
                                         <div key={dIdx} className="flex items-center justify-between gap-2">
                                           <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="font-bold text-teal-950 text-xs group-hover:underline">
+                                            <span className="font-bold text-emerald-950 text-xs group-hover:underline">
                                               👨‍🏫 {d.teacher_name || `Employee #${d.teacher_employee_id}`}
                                             </span>
                                             {d.is_cross_unit && (
-                                              <span className="px-1.5 py-0.2 bg-purple-100 text-purple-800 border border-purple-200 text-[9px] rounded font-bold">
+                                              <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-800 border border-indigo-200 text-[9px] rounded font-bold">
                                                 Lintas Satuan
                                               </span>
                                             )}
                                           </div>
-                                          <span className="px-2 py-0.5 bg-teal-600 text-white rounded font-black text-[10px] shrink-0 shadow-2xs">
+                                          <span className="px-2 py-0.5 bg-emerald-600 text-white rounded font-black text-[10px] shrink-0 shadow-2xs">
                                             {d.allocated_hours || pair.curriculumJp || 2} JP
                                           </span>
                                         </div>
@@ -4042,7 +4042,7 @@ export default function Kurikulum() {
                                         </div>
                                       )}
                                     </div>
-                                    <Edit2 className="w-3.5 h-3.5 text-teal-600 shrink-0 opacity-70 group-hover:opacity-100 ml-1" />
+                                    <Edit2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 opacity-70 group-hover:opacity-100 ml-1" />
                                   </button>
                                 ) : (
                                   <button
@@ -4062,9 +4062,9 @@ export default function Kurikulum() {
                                   </button>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-center bg-teal-50/30">
+                              <td className="py-3 px-4 text-center bg-emerald-50/30">
                                 <div className="flex flex-col items-center">
-                                  <span className="px-2.5 py-1 bg-teal-100/80 text-teal-900 border border-teal-200 rounded-lg font-black text-xs">
+                                  <span className="px-2.5 py-1 bg-emerald-100/80 text-emerald-900 border border-emerald-200 rounded-lg font-black text-xs">
                                     {pair.curriculumJp} JP / Pekan
                                   </span>
                                   <span className="text-[9px] text-slate-500 mt-0.5 font-medium">
@@ -4088,7 +4088,7 @@ export default function Kurikulum() {
                                   <button
                                     onClick={() => handleOpenDeleteDuty(pair.duties[0])}
                                     title="Hapus Penugasan Guru (Wajib Isi Alasan)"
-                                    className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold transition"
+                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold transition"
                                   >
                                     Hapus
                                   </button>
@@ -4134,7 +4134,7 @@ export default function Kurikulum() {
                 <div className="space-y-4">
                   {/* REKAP KARTU RINGKASAN */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl p-4 shadow-md">
+                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl p-4 shadow-md">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold opacity-90">Total Guru Terdaftar</span>
                         <Users className="w-5 h-5 opacity-80" />
@@ -4143,7 +4143,7 @@ export default function Kurikulum() {
                       <p className="text-[10px] opacity-80 mt-1">Master Data Kepegawaian</p>
                     </div>
 
-                    <div className="bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-2xl p-4 shadow-md">
+                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl p-4 shadow-md">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold opacity-90">Guru Terisi Tugas</span>
                         <UserCheck className="w-5 h-5 opacity-80" />
@@ -4154,7 +4154,7 @@ export default function Kurikulum() {
                       </p>
                     </div>
 
-                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-2xl p-4 shadow-md">
+                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl p-4 shadow-md">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold opacity-90">Total Beban Jam</span>
                         <Clock className="w-5 h-5 opacity-80" />
@@ -4166,7 +4166,7 @@ export default function Kurikulum() {
 
                   {/* DAFTAR GURU & PEMBELAJARAN YANG DIENGAPU */}
                   {filteredTeachers.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
+                    <div className="text-center py-12 bg-white rounded-xl border border-slate-200 p-6">
                       <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                       <h4 className="text-sm font-bold text-slate-700">Tidak Ada Guru Ditemukan</h4>
                       <p className="text-xs text-slate-500 mt-1">Coba ubah kata kunci pencarian atau pastikan master data pegawai sudah terisi.</p>
@@ -4199,7 +4199,7 @@ export default function Kurikulum() {
                         });
 
                         return (
-                          <div key={teacher.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden hover:shadow-md transition">
+                          <div key={teacher.id} className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden hover:shadow-md transition">
                             <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
@@ -4230,7 +4230,7 @@ export default function Kurikulum() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenTeacherAssignModal(teacher)}
-                                  className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
                                 >
                                   <Plus className="w-4 h-4" />
                                   <span>Tentukan Pembelajaran</span>
@@ -4246,7 +4246,7 @@ export default function Kurikulum() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenTeacherAssignModal(teacher)}
-                                    className="mt-2 text-xs text-teal-700 hover:text-teal-800 font-bold underline"
+                                    className="mt-2 text-xs text-emerald-700 hover:text-emerald-800 font-bold underline"
                                   >
                                     + Klik di sini untuk menentukan pembelajaran guru ini
                                   </button>
@@ -4270,7 +4270,7 @@ export default function Kurikulum() {
                                         <tr key={duty.id} className="hover:bg-slate-50/80 transition">
                                           <td className="py-2.5 px-3">
                                             {duty.type === 'mapel' ? (
-                                              <span className="px-2 py-0.5 text-[10px] font-bold bg-teal-100 text-teal-800 rounded">
+                                              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded">
                                                 MAPEL
                                               </span>
                                             ) : (
@@ -4287,7 +4287,7 @@ export default function Kurikulum() {
                                             {duty.class_name || (duty.type === 'ekskul' ? 'Semua Rombel (Global)' : '-')}
                                           </td>
                                           <td className="py-2.5 px-3 text-center">
-                                            <span className="px-2 py-0.5 font-black bg-teal-50 text-teal-800 border border-teal-200 rounded text-xs">
+                                            <span className="px-2 py-0.5 font-black bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-xs">
                                               {duty.allocated_hours || 2} JP
                                             </span>
                                           </td>
@@ -4301,7 +4301,7 @@ export default function Kurikulum() {
                                             <button
                                               type="button"
                                               onClick={() => handleOpenDeleteDuty(duty)}
-                                              className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded font-semibold text-[11px] transition"
+                                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded font-semibold text-[11px] transition"
                                             >
                                               Hapus
                                             </button>
@@ -4330,7 +4330,7 @@ export default function Kurikulum() {
       {/* --- MODAL TAMBAH / EDIT MATA PELAJARAN --- */}
       {subjectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 border-b shrink-0">
               <h3 className="text-sm font-bold text-slate-800">
                 {editingSubject ? 'Edit Mata Pelajaran' : 'Tambah Mata Pelajaran Baru'}
@@ -4349,7 +4349,7 @@ export default function Kurikulum() {
                   value={subjectForm.name}
                   onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                   placeholder="Contoh: Matematika, Bahasa Arab, Fiqih"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -4360,7 +4360,7 @@ export default function Kurikulum() {
                   value={subjectForm.code}
                   onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })}
                   placeholder="Contoh: MTK, BAR, FIQ"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
                 />
               </div>
 
@@ -4369,7 +4369,7 @@ export default function Kurikulum() {
                 <select
                   value={subjectForm.grade_level_id}
                   onChange={(e) => setSubjectForm({ ...subjectForm, grade_level_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">Semua Tingkat Kelas (Berlaku Umum)</option>
                   {gradeLevels.map(gl => (
@@ -4392,7 +4392,7 @@ export default function Kurikulum() {
                       jp_allocation_mode: parentId ? (subjectForm.jp_allocation_mode === 'standalone' ? 'included_in_parent' : subjectForm.jp_allocation_mode) : 'standalone'
                     });
                   }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800"
                 >
                   <option value="">-- Mata Pelajaran Utama / Standar (Bukan Sub-Mapel) --</option>
                   {subjectsList
@@ -4423,7 +4423,7 @@ export default function Kurikulum() {
                         value="included_in_parent"
                         checked={subjectForm.jp_allocation_mode === 'included_in_parent'}
                         onChange={() => setSubjectForm({ ...subjectForm, jp_allocation_mode: 'included_in_parent' })}
-                        className="mt-0.5 text-teal-600 focus:ring-teal-500"
+                        className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div>
                         <span className="text-[11px] font-bold text-slate-800 block">
@@ -4442,7 +4442,7 @@ export default function Kurikulum() {
                         value="separate"
                         checked={subjectForm.jp_allocation_mode === 'separate'}
                         onChange={() => setSubjectForm({ ...subjectForm, jp_allocation_mode: 'separate' })}
-                        className="mt-0.5 text-teal-600 focus:ring-teal-500"
+                        className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                       />
                       <div>
                         <span className="text-[11px] font-bold text-slate-800 block">
@@ -4466,7 +4466,7 @@ export default function Kurikulum() {
                   max="100"
                   value={subjectForm.kkm}
                   onChange={(e) => setSubjectForm({ ...subjectForm, kkm: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
               </div>
 
@@ -4552,7 +4552,7 @@ export default function Kurikulum() {
                     type="checkbox"
                     checked={subjectForm.is_active}
                     onChange={(e) => setSubjectForm({ ...subjectForm, is_active: e.target.checked })}
-                    className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
                   />
                   <span className="text-[11px] font-bold text-slate-800">
                     Status Mata Pelajaran Aktif
@@ -4572,7 +4572,7 @@ export default function Kurikulum() {
                   value={subjectForm.reason || ''}
                   onChange={(e) => setSubjectForm({ ...subjectForm, reason: e.target.value })}
                   placeholder={editingSubject ? 'Contoh: Penyesuaian KKM & status kurikulum baru' : 'Contoh: Penambahan mapel muatan lokal'}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -4587,7 +4587,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>{editingSubject ? 'Simpan Perubahan' : 'Simpan Mapel'}</span>
@@ -4601,7 +4601,7 @@ export default function Kurikulum() {
       {/* --- MODAL TOGGLE AKTIF / NONAKTIF MATA PELAJARAN DENGAN KETERANGAN --- */}
       {subjectToggleModalOpen && subjectToToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <div className="flex items-center gap-2">
                 <div className={`p-2 rounded-xl ${subjectToToggle.is_active ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -4648,7 +4648,7 @@ export default function Kurikulum() {
                       ? 'Contoh: Mata pelajaran tidak lagi diajarkan pada kurikulum tahun ini / digantikan oleh mapel lain...'
                       : 'Contoh: Diaktifkan kembali sesuai SK kurikulum baru...'
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
                 />
               </div>
 
@@ -4681,10 +4681,10 @@ export default function Kurikulum() {
       {/* --- MODAL RIWAYAT AUDIT LOG STATUS MATA PELAJARAN --- */}
       {subjectLogsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-2 border-b">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-teal-50 text-teal-600 rounded-xl">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                   <History className="w-5 h-5" />
                 </div>
                 <div>
@@ -4704,7 +4704,7 @@ export default function Kurikulum() {
             <div className="flex-1 overflow-y-auto pr-1">
               {loadingSubjectLogs ? (
                 <div className="py-12 text-center text-slate-400">
-                  <Loader2 className="w-7 h-7 animate-spin mx-auto mb-2 text-teal-600" />
+                  <Loader2 className="w-7 h-7 animate-spin mx-auto mb-2 text-emerald-600" />
                   <p className="text-xs">Memuat riwayat status mapel...</p>
                 </div>
               ) : subjectLogs.length === 0 ? (
@@ -4729,7 +4729,7 @@ export default function Kurikulum() {
                                 {isNewActive ? 'Diaktifkan' : 'Dinonaktifkan'}
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
                                 {log.action}
                               </span>
                             )}
@@ -4778,7 +4778,7 @@ export default function Kurikulum() {
       {/* --- MODAL TAMBAH / EDIT TUJUAN PEMBELAJARAN (TP) --- */}
       {tpModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className={`bg-white rounded-2xl ${tpInputMode === 'bulk_table' ? 'max-w-3xl' : 'max-w-xl'} w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto`}>
+          <div className={`bg-white rounded-xl ${tpInputMode === 'bulk_table' ? 'max-w-3xl' : 'max-w-xl'} w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between pb-2 border-b">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
@@ -4801,7 +4801,7 @@ export default function Kurikulum() {
                   onClick={() => setTpInputMode('single')}
                   className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     tpInputMode === 'single'
-                      ? 'bg-white text-teal-700 shadow-2xs'
+                      ? 'bg-white text-emerald-700 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -4813,7 +4813,7 @@ export default function Kurikulum() {
                   onClick={() => setTpInputMode('bulk_text')}
                   className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     tpInputMode === 'bulk_text'
-                      ? 'bg-white text-teal-700 shadow-2xs'
+                      ? 'bg-white text-emerald-700 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -4825,7 +4825,7 @@ export default function Kurikulum() {
                   onClick={() => setTpInputMode('bulk_table')}
                   className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     tpInputMode === 'bulk_table'
-                      ? 'bg-white text-teal-700 shadow-2xs'
+                      ? 'bg-white text-emerald-700 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -4838,23 +4838,23 @@ export default function Kurikulum() {
             <form onSubmit={handleSaveTp} className="space-y-3.5 text-xs">
               {/* Context Header: Tingkat Kelas & Mata Pelajaran */}
               {tpGroupContext ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-teal-50/50 p-3.5 rounded-xl border border-teal-100 shadow-2xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 shadow-2xs">
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1">
-                      <GraduationCap className="w-3.5 h-3.5 text-teal-600" />
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Tingkat Kelas (Terkunci)</span>
                     </span>
-                    <div className="px-3 py-1.5 bg-white border border-teal-200 rounded-lg font-bold text-slate-800 text-xs shadow-2xs">
+                    <div className="px-3 py-1.5 bg-white border border-emerald-200 rounded-lg font-bold text-slate-800 text-xs shadow-2xs">
                       {tpGroupContext.gradeLevel?.name || gradeLevels.find(g => String(g.id) === String(tpForm.grade_level_id))?.name || 'Tingkat Terpilih'}
                     </div>
                   </div>
 
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-teal-800 mb-1 flex items-center gap-1">
-                      <BookOpen className="w-3.5 h-3.5 text-teal-600" />
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Mata Pelajaran (Terkunci)</span>
                     </span>
-                    <div className="px-3 py-1.5 bg-white border border-teal-200 rounded-lg font-bold text-slate-800 text-xs truncate shadow-2xs">
+                    <div className="px-3 py-1.5 bg-white border border-emerald-200 rounded-lg font-bold text-slate-800 text-xs truncate shadow-2xs">
                       {tpGroupContext.subject?.name || subjectsList.find(s => String(s.id) === String(tpForm.subject_id))?.name || 'Mata Pelajaran'}
                     </div>
                   </div>
@@ -4867,7 +4867,7 @@ export default function Kurikulum() {
                       required
                       value={tpForm.grade_level_id}
                       onChange={(e) => setTpForm({ ...tpForm, grade_level_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">-- Pilih Tingkat --</option>
                       {gradeLevels.map(gl => (
@@ -4901,7 +4901,7 @@ export default function Kurikulum() {
                         value={tpForm.code}
                         onChange={(e) => setTpForm({ ...tpForm, code: e.target.value })}
                         placeholder="Contoh: TP 1"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                       />
                     </div>
 
@@ -4912,7 +4912,7 @@ export default function Kurikulum() {
                         min={1}
                         value={tpForm.order_index}
                         onChange={(e) => setTpForm({ ...tpForm, order_index: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
@@ -4921,7 +4921,7 @@ export default function Kurikulum() {
                       <select
                         value={tpForm.semester_id}
                         onChange={(e) => setTpForm({ ...tpForm, semester_id: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
                         <option value="">Semua Semester</option>
                         {semestersList.map(sem => (
@@ -4941,7 +4941,7 @@ export default function Kurikulum() {
                       value={tpForm.description}
                       onChange={(e) => setTpForm({ ...tpForm, description: e.target.value })}
                       placeholder="Contoh: Memahami konsep bilangan bulat, operasi hitung campuran, dan penerapannya dalam menyelesaikan masalah sehari-hari..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
                     />
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       Teks ini akan otomatis dirangkai menjadi kalimat deskripsi capaian rapor saat proses kalkulasi nilai akhir.
@@ -4952,9 +4952,9 @@ export default function Kurikulum() {
 
               {/* 2. BULK TEXT / PASTE MODE */}
               {!editingTp && tpInputMode === 'bulk_text' && (
-                <div className="space-y-3 bg-teal-50/40 p-4 rounded-xl border border-teal-100">
+                <div className="space-y-3 bg-emerald-50/40 p-4 rounded-xl border border-emerald-100">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[11px] font-bold text-teal-900">
+                    <label className="block text-[11px] font-bold text-emerald-900">
                       Tempel Daftar Tujuan Pembelajaran (1 Baris = 1 TP) *
                     </label>
                     <div className="flex items-center gap-1.5">
@@ -4978,11 +4978,11 @@ export default function Kurikulum() {
                     value={bulkTpText}
                     onChange={(e) => setBulkTpText(e.target.value)}
                     placeholder={`Contoh tempel teks langsung:\nTP 1: Memahami konsep dasar bilangan bulat dan operasinya\nTP 2: Menerapkan rumus aljabar dalam pemecahan masalah nyata\nTP 3: Menyajikan dan menganalisis data dalam bentuk diagram batang`}
-                    className="w-full px-3 py-2.5 font-mono text-xs border border-teal-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 leading-relaxed"
+                    className="w-full px-3 py-2.5 font-mono text-xs border border-emerald-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 leading-relaxed"
                   />
                   <div className="text-[10px] text-slate-500 flex items-center justify-between">
                     <span>Tips: Anda bisa menyalin langsung dari Excel / Word / RPP. Format kode akan otomatis diparsing.</span>
-                    <span className="font-bold text-teal-700">
+                    <span className="font-bold text-emerald-700">
                       {bulkTpText.split('\n').filter(l => l.trim().length > 0).length} TP terdeteksi
                     </span>
                   </div>
@@ -4997,7 +4997,7 @@ export default function Kurikulum() {
                     <button
                       type="button"
                       onClick={handleAddBulkTpRow}
-                      className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Tambah Baris</span>
@@ -5052,7 +5052,7 @@ export default function Kurikulum() {
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveBulkTpRow(index)}
-                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -5077,7 +5077,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>
@@ -5100,7 +5100,7 @@ export default function Kurikulum() {
       {/* --- MODAL TAMBAH EKSTRAKURIKULER --- */}
       {extraModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <h3 className="text-sm font-bold text-slate-800">Tambah Cabang Ekstrakurikuler</h3>
               <button onClick={() => setExtraModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -5117,7 +5117,7 @@ export default function Kurikulum() {
                   value={extraForm.name}
                   onChange={(e) => setExtraForm({ ...extraForm, name: e.target.value })}
                   placeholder="Contoh: Pramuka, Futsal, Robotik, Panahan, Tahfidz Club"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -5128,7 +5128,7 @@ export default function Kurikulum() {
                   value={extraForm.schedule}
                   onChange={(e) => setExtraForm({ ...extraForm, schedule: e.target.value })}
                   placeholder="Contoh: Setiap Sabtu 08.00 - 10.00"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -5143,7 +5143,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>Simpan Cabang Ekskul</span>
@@ -5157,7 +5157,7 @@ export default function Kurikulum() {
       {/* --- MODAL PENUGASAN GURU (TUGAS MENGAJAR & EKSKUL) --- */}
       {dutyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Tugaskan Guru / Pembina</h3>
@@ -5179,7 +5179,7 @@ export default function Kurikulum() {
                       value="mapel"
                       checked={dutyForm.type === 'mapel'}
                       onChange={() => setDutyForm({ ...dutyForm, type: 'mapel', class_group_ids: [] })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="font-semibold text-slate-800">Mata Pelajaran</span>
                   </label>
@@ -5190,7 +5190,7 @@ export default function Kurikulum() {
                       value="ekskul"
                       checked={dutyForm.type === 'ekskul'}
                       onChange={() => setDutyForm({ ...dutyForm, type: 'ekskul', class_group_ids: [] })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="font-semibold text-slate-800">Ekstrakurikuler</span>
                   </label>
@@ -5203,14 +5203,14 @@ export default function Kurikulum() {
                   {/* Selected Box / Trigger */}
                   <div
                     onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-teal-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-emerald-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
                   >
                     <span className={`text-xs ${dutyForm.subject_id ? 'font-bold text-slate-800' : 'text-slate-400'}`}>
                       {dutyForm.subject_id
                         ? `${subjectsList.find(s => String(s.id) === String(dutyForm.subject_id))?.name || 'Pilih Mata Pelajaran'} (${subjectsList.find(s => String(s.id) === String(dutyForm.subject_id))?.code || '-'})`
                         : '-- Cari & Pilih Mata Pelajaran --'}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${subjectDropdownOpen ? 'rotate-180 text-teal-600' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${subjectDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                   </div>
 
                   {/* Dropdown Menu with Live Search */}
@@ -5224,7 +5224,7 @@ export default function Kurikulum() {
                           value={subjectSearch}
                           onChange={(e) => setSubjectSearch(e.target.value)}
                           placeholder="Ketik nama atau kode mapel..."
-                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 focus:bg-white"
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
                         />
                       </div>
                       <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
@@ -5250,7 +5250,7 @@ export default function Kurikulum() {
                                   setSubjectSearch('');
                                 }}
                                 className={`w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between transition ${
-                                  isSelected ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                                  isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
                                 }`}
                               >
                                 <div>
@@ -5264,7 +5264,7 @@ export default function Kurikulum() {
                                   </div>
                                   <div className="text-[10px] text-slate-400">Kode: {s.code || '-'} • {s.grade_level_name || 'Semua Tingkat'}</div>
                                 </div>
-                                {isSelected && <Check className="w-4 h-4 text-teal-600 shrink-0" />}
+                                {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                               </button>
                             );
                           })}
@@ -5287,14 +5287,14 @@ export default function Kurikulum() {
                   {/* Selected Box / Trigger */}
                   <div
                     onClick={() => setExtraDropdownOpen(!extraDropdownOpen)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-teal-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-emerald-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
                   >
                     <span className={`text-xs ${dutyForm.extracurricular_id ? 'font-bold text-slate-800' : 'text-slate-400'}`}>
                       {dutyForm.extracurricular_id
                         ? extrasList.find(ex => String(ex.id) === String(dutyForm.extracurricular_id))?.name || 'Pilih Ekstrakurikuler'
                         : '-- Cari & Pilih Ekstrakurikuler --'}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${extraDropdownOpen ? 'rotate-180 text-teal-600' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${extraDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                   </div>
 
                   {/* Dropdown Menu with Live Search */}
@@ -5308,7 +5308,7 @@ export default function Kurikulum() {
                           value={extraSearch}
                           onChange={(e) => setExtraSearch(e.target.value)}
                           placeholder="Ketik nama ekskul..."
-                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 focus:bg-white"
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
                         />
                       </div>
                       <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
@@ -5329,11 +5329,11 @@ export default function Kurikulum() {
                                   setExtraSearch('');
                                 }}
                                 className={`w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between transition ${
-                                  isSelected ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                                  isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
                                 }`}
                               >
                                 <div className="font-semibold">{ex.name}</div>
-                                {isSelected && <Check className="w-4 h-4 text-teal-600 shrink-0" />}
+                                {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                               </button>
                             );
                           })}
@@ -5410,7 +5410,7 @@ export default function Kurikulum() {
                           <button
                             type="button"
                             onClick={() => handleSelectAllClassGroups(availableIds)}
-                            className="text-[11px] font-bold text-teal-600 hover:text-teal-800 transition"
+                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-800 transition"
                           >
                             {isAllSelected ? 'Batal Pilih Semua' : 'Pilih Semua Rombel Tersedia'}
                           </button>
@@ -5474,8 +5474,8 @@ export default function Kurikulum() {
                                 onClick={() => handleToggleClassGroup(cg.id)}
                                 className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
                                   isSelected
-                                    ? 'bg-teal-50 border-teal-500 ring-1 ring-teal-500 text-teal-900 shadow-2xs'
-                                    : 'bg-white border-slate-200 hover:border-teal-300 text-slate-700'
+                                    ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500 text-emerald-900 shadow-2xs'
+                                    : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700'
                                 }`}
                               >
                                 <div className="overflow-hidden">
@@ -5483,14 +5483,14 @@ export default function Kurikulum() {
                                   <div className="text-[10px] text-slate-400">
                                     {cg.grade_level_name ? `Tk. ${cg.grade_level_name}` : (cg.type === 'ekstrakurikuler' ? 'Ekskul' : 'Reguler')}
                                     {teachersInRombel.length > 0 && (
-                                      <span className="text-teal-700 font-semibold block truncate">
+                                      <span className="text-emerald-700 font-semibold block truncate">
                                         + {teachersInRombel.map(t => t.teacher_name).join(', ')}
                                       </span>
                                     )}
                                   </div>
                                 </div>
                                 <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-1.5 ${
-                                  isSelected ? 'bg-teal-600 border-teal-600 text-white' : 'border-slate-300 bg-white'
+                                  isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
                                 }`}>
                                   {isSelected && <span className="text-[10px] font-black leading-none">✓</span>}
                                 </div>
@@ -5512,12 +5512,12 @@ export default function Kurikulum() {
               <div className="relative">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-[11px] font-semibold text-slate-700">Pilih Guru / Pegawai *</label>
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none text-[10px] text-teal-700 font-bold bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-md border border-teal-200 transition">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none text-[10px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition">
                     <input
                       type="checkbox"
                       checked={crossUnitTeacher}
                       onChange={(e) => setCrossUnitTeacher(e.target.checked)}
-                      className="rounded text-teal-600 focus:ring-0 w-3 h-3"
+                      className="rounded text-emerald-600 focus:ring-0 w-3 h-3"
                     />
                     <span>Lintas Satuan Pendidikan</span>
                   </label>
@@ -5526,7 +5526,7 @@ export default function Kurikulum() {
                 {/* Selected Trigger */}
                 <div
                   onClick={() => setTeacherDropdownOpen(!teacherDropdownOpen)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-teal-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white hover:border-emerald-400 cursor-pointer flex items-center justify-between transition shadow-2xs"
                 >
                   <span className={`text-xs ${dutyForm.teacher_employee_id ? 'font-bold text-slate-800' : 'text-slate-400'}`}>
                     {dutyForm.teacher_employee_id
@@ -5539,7 +5539,7 @@ export default function Kurikulum() {
                         })()
                       : '-- Cari & Pilih Guru / Pembina --'}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${teacherDropdownOpen ? 'rotate-180 text-teal-600' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${teacherDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                 </div>
 
                 {/* Dropdown Menu with Live Search */}
@@ -5553,7 +5553,7 @@ export default function Kurikulum() {
                         value={teacherSearch}
                         onChange={(e) => setTeacherSearch(e.target.value)}
                         placeholder="Ketik nama guru, NIP, atau unit sekolah..."
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 focus:bg-white"
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
                       />
                     </div>
                     <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
@@ -5591,14 +5591,14 @@ export default function Kurikulum() {
                                 setTeacherSearch('');
                               }}
                               className={`w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between transition ${
-                                isSelected ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                                isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
                               }`}
                             >
                               <div className="overflow-hidden pr-2">
                                 <div className="font-semibold flex items-center gap-1.5 flex-wrap">
                                   <span>{emp.full_name}</span>
                                   {isCrossUnit && (
-                                    <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[9px] rounded font-bold">
+                                    <span className="px-1.5 py-0.2 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] rounded font-bold">
                                       Lintas Unit: {unit?.name || `Unit #${emp.school_unit_id}`}
                                     </span>
                                   )}
@@ -5612,7 +5612,7 @@ export default function Kurikulum() {
                                   NIP/Kode: {emp.nip || emp.employee_code || emp.employee_number || '-'} • {emp.position_name || 'Guru'}
                                 </div>
                               </div>
-                              {isSelected && <Check className="w-4 h-4 text-teal-600 shrink-0" />}
+                              {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                             </button>
                           );
                         })}
@@ -5646,7 +5646,7 @@ export default function Kurikulum() {
                     value={dutyForm.role_description}
                     onChange={(e) => setDutyForm({ ...dutyForm, role_description: e.target.value })}
                     placeholder="Contoh: Guru Utama, Guru Pendamping"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -5659,7 +5659,7 @@ export default function Kurikulum() {
                     max={20}
                     value={dutyForm.allocated_hours || 2}
                     onChange={(e) => setDutyForm({ ...dutyForm, allocated_hours: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -5674,7 +5674,7 @@ export default function Kurikulum() {
                   value={dutyForm.reason}
                   onChange={(e) => setDutyForm({ ...dutyForm, reason: e.target.value })}
                   placeholder="Contoh: Penugasan awal tahun ajaran, Tambahan guru paralel, Penggantian pengampu"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -5689,7 +5689,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>Simpan Penugasan Guru</span>
@@ -5703,8 +5703,8 @@ export default function Kurikulum() {
       {/* --- MODAL HAPUS PENUGASAN GURU (WAJIB ISI ALASAN) --- */}
       {deleteDutyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
-            <div className="flex items-center gap-3 text-red-600 pb-2 border-b">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 pb-2 border-b">
               <ShieldAlert className="w-6 h-6 shrink-0" />
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Hapus Penugasan Guru</h3>
@@ -5729,7 +5729,7 @@ export default function Kurikulum() {
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
                   placeholder="Contoh: Guru cuti melahirkan / digantikan oleh Guru B / penyesuaian beban jam mengajar..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-800"
                 />
               </div>
 
@@ -5744,7 +5744,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving || !deleteReason.trim()}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>Konfirmasi Hapus Tugas</span>
@@ -5758,10 +5758,10 @@ export default function Kurikulum() {
       {/* --- MODAL PENETAPAN / PERGANTIAN GURU PER PEMBELAJARAN (QUICK ASSIGN LIVE SEARCH) --- */}
       {quickAssignModalOpen && quickAssignPair && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-md">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -5771,7 +5771,7 @@ export default function Kurikulum() {
                   <p className="text-[11px] text-slate-500">
                     {quickAssignPair.type === 'mapel' ? (
                       <span>
-                        Mapel: <strong className="text-teal-700">{quickAssignPair.subject?.name}</strong> • Rombel: <strong className="text-indigo-700">{quickAssignPair.class_group?.name}</strong>
+                        Mapel: <strong className="text-emerald-700">{quickAssignPair.subject?.name}</strong> • Rombel: <strong className="text-indigo-700">{quickAssignPair.class_group?.name}</strong>
                       </span>
                     ) : (
                       <span>
@@ -5789,7 +5789,7 @@ export default function Kurikulum() {
             {/* STANDAR JP STRUKTUR KURIKULUM CARD */}
             {/* PENANDA INFORMASI MAPEL PILIHAN */}
             {quickAssignPair.subject && (quickAssignPair.subject.is_elective == 1 || quickAssignPair.subject.is_elective === true || quickAssignPair.subject.is_elective === '1') && (
-              <div className="p-3 bg-gradient-to-r from-amber-500/15 to-orange-500/10 border-2 border-amber-400/80 rounded-2xl text-amber-950 text-xs space-y-1 shadow-2xs">
+              <div className="p-3 bg-gradient-to-r from-amber-500/15 to-amber-500/10 border-2 border-amber-400/80 rounded-xl text-amber-950 text-xs space-y-1 shadow-2xs">
                 <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs uppercase tracking-wide">
                   <Zap className="w-4 h-4 text-amber-600 fill-amber-500 shrink-0" />
                   <span>⚡ MATA PELAJARAN PILIHAN / PARALEL SERENTAK</span>
@@ -5802,7 +5802,7 @@ export default function Kurikulum() {
 
             {/* SEKSI PENGATURAN ROMBEL GABUNGAN (UNTUK MAPEL REGULER SEPERTI PJOK) */}
             {quickAssignPair.type === 'mapel' && (!quickAssignPair.subject || (quickAssignPair.subject.is_elective != 1 && quickAssignPair.subject.is_elective !== true && quickAssignPair.subject.is_elective !== '1')) && (
-              <div className="p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300 rounded-2xl space-y-2">
+              <div className="p-3.5 bg-gradient-to-r from-amber-500/10 to-amber-500/10 border border-amber-300 rounded-xl space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-amber-950 font-bold">
                   <input
                     type="checkbox"
@@ -5871,17 +5871,17 @@ export default function Kurikulum() {
               </div>
             )}
 
-            <div className="p-3 bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-xl text-xs flex items-center justify-between gap-2">
+            <div className="p-3 bg-gradient-to-r from-emerald-50 to-indigo-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between gap-2">
               <div>
-                <span className="text-[10px] uppercase font-black text-teal-800 tracking-wider block">Standar Beban Struktur Kurikulum:</span>
-                <span className="font-black text-teal-950 text-sm">
+                <span className="text-[10px] uppercase font-black text-emerald-800 tracking-wider block">Standar Beban Struktur Kurikulum:</span>
+                <span className="font-black text-emerald-950 text-sm">
                   {quickAssignPair.curriculumJp} JP / Pekan
                 </span>
                 <span className="text-[10px] text-slate-500 block">
                   {quickAssignPair.class_group?.grade_level_name ? `Jenjang Kelas ${quickAssignPair.class_group.grade_level_name}` : 'Kurikulum Sekolah'}
                 </span>
               </div>
-              <span className="px-2.5 py-1 bg-teal-600 text-white rounded-lg font-black text-[11px] shadow-2xs">
+              <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-black text-[11px] shadow-2xs">
                 {quickAssignPair.curriculumJp} JP Baku
               </span>
             </div>
@@ -5903,7 +5903,7 @@ export default function Kurikulum() {
                       })}
                       className={`py-2 px-3 rounded-xl font-black text-xs border transition flex items-center justify-center gap-1.5 ${
                         quickAssignForm.assign_mode === 'single'
-                          ? 'bg-teal-600 text-white border-teal-700 shadow-sm ring-2 ring-teal-400'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-400'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -5935,7 +5935,7 @@ export default function Kurikulum() {
               <form onSubmit={handleSaveQuickAssign} className="space-y-4 text-xs">
               {/* RENDERING KHUSUS MAPEL PILIHAN: LANGSUNG INPUT DAFTAR GURU PENGAMPU TANPA PEMBAGIAN JP */}
               {quickAssignPair.subject && (quickAssignPair.subject.is_elective == 1 || quickAssignPair.subject.is_elective === true || quickAssignPair.subject.is_elective === '1') ? (
-                <div className="space-y-3 p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl">
+                <div className="space-y-3 p-4 bg-amber-50/50 border border-amber-200/80 rounded-xl">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-amber-950 text-xs flex items-center gap-1">
                       <Users className="w-4 h-4 text-amber-700" />
@@ -5963,7 +5963,7 @@ export default function Kurikulum() {
                             <button
                               type="button"
                               onClick={() => handleRemoveElectiveTeacher(index)}
-                              className="text-red-500 hover:text-red-700 p-1 transition"
+                              className="text-rose-500 hover:text-rose-700 p-1 transition"
                               title="Hapus guru dari daftar"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -5999,16 +5999,16 @@ export default function Kurikulum() {
                 <React.Fragment>
                   {/* MODE 1: GURU TUNGGAL (MAPEL REGULER) */}
                   {quickAssignForm.assign_mode === 'single' && (
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-[11px] font-bold text-slate-700">Pilih Guru Pengampu *</label>
-                      <label className="flex items-center gap-1.5 cursor-pointer select-none text-[10px] text-teal-700 font-bold bg-teal-50 hover:bg-teal-100 px-2 py-0.5 rounded-md border border-teal-200 transition">
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none text-[10px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition">
                         <input
                           type="checkbox"
                           checked={crossUnitTeacher}
                           onChange={(e) => setCrossUnitTeacher(e.target.checked)}
-                          className="rounded text-teal-600 focus:ring-0 w-3 h-3"
+                          className="rounded text-emerald-600 focus:ring-0 w-3 h-3"
                         />
                         <span>Lintas Satuan</span>
                       </label>
@@ -6048,7 +6048,7 @@ export default function Kurikulum() {
                         max={20}
                         value={quickAssignForm.allocated_hours || quickAssignPair.curriculumJp || 2}
                         onChange={(e) => setQuickAssignForm({ ...quickAssignForm, allocated_hours: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-teal-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-emerald-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         required
                       />
                       <span className="text-[10px] text-slate-500">Standar Kurikulum: {quickAssignPair.curriculumJp} JP</span>
@@ -6060,7 +6060,7 @@ export default function Kurikulum() {
                         value={quickAssignForm.role_description}
                         onChange={(e) => setQuickAssignForm({ ...quickAssignForm, role_description: e.target.value })}
                         placeholder="Contoh: Guru Pengampu"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                   </div>
@@ -6079,7 +6079,7 @@ export default function Kurikulum() {
                 return (
                   <div className="space-y-3">
                     {/* GURU 1 */}
-                    <div className="p-3.5 bg-indigo-50/60 rounded-2xl border border-indigo-200 space-y-2.5">
+                    <div className="p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-200 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="font-black text-indigo-950 text-xs">👨‍🏫 Guru Pengampu 1</span>
                         <span className="px-2 py-0.5 bg-indigo-600 text-white rounded font-bold text-[10px]">
@@ -6127,10 +6127,10 @@ export default function Kurikulum() {
                     </div>
 
                     {/* GURU 2 */}
-                    <div className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-2.5">
+                    <div className="p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-200 space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-purple-950 text-xs">👨‍🏫 Guru Pengampu 2</span>
-                        <span className="px-2 py-0.5 bg-purple-600 text-white rounded font-bold text-[10px]">
+                        <span className="font-black text-indigo-950 text-xs">👨‍🏫 Guru Pengampu 2</span>
+                        <span className="px-2 py-0.5 bg-indigo-600 text-white rounded font-bold text-[10px]">
                           {jp2} JP
                         </span>
                       </div>
@@ -6157,7 +6157,7 @@ export default function Kurikulum() {
                             max={20}
                             value={quickAssignForm.allocated_hours_2}
                             onChange={(e) => setQuickAssignForm({ ...quickAssignForm, allocated_hours_2: e.target.value })}
-                            className="w-full px-2.5 py-1.5 border border-purple-300 rounded-lg font-black text-purple-950 bg-white text-xs"
+                            className="w-full px-2.5 py-1.5 border border-indigo-300 rounded-lg font-black text-indigo-950 bg-white text-xs"
                             required
                           />
                         </div>
@@ -6168,7 +6168,7 @@ export default function Kurikulum() {
                             value={quickAssignForm.role_description_2}
                             onChange={(e) => setQuickAssignForm({ ...quickAssignForm, role_description_2: e.target.value })}
                             placeholder="misal: Guru Pengampu 2"
-                            className="w-full px-2.5 py-1.5 border border-purple-300 rounded-lg text-slate-800 bg-white text-xs"
+                            className="w-full px-2.5 py-1.5 border border-indigo-300 rounded-lg text-slate-800 bg-white text-xs"
                           />
                         </div>
                       </div>
@@ -6207,7 +6207,7 @@ export default function Kurikulum() {
                     value={quickAssignForm.sk_number}
                     onChange={(e) => setQuickAssignForm({ ...quickAssignForm, sk_number: e.target.value })}
                     placeholder="Contoh: 421/SK-DIR/2026/08"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
                 <div>
@@ -6217,7 +6217,7 @@ export default function Kurikulum() {
                     value={quickAssignForm.notes}
                     onChange={(e) => setQuickAssignForm({ ...quickAssignForm, notes: e.target.value })}
                     placeholder="Catatan penugasan..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -6232,7 +6232,7 @@ export default function Kurikulum() {
                   value={quickAssignForm.reason}
                   onChange={(e) => setQuickAssignForm({ ...quickAssignForm, reason: e.target.value })}
                   placeholder="Contoh: Penetapan guru kelas semester ganjil / Pembagian JP 2 guru..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -6247,7 +6247,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Penugasan Guru</span>
@@ -6261,15 +6261,15 @@ export default function Kurikulum() {
       {/* --- MODAL TENTUKAN PEMBELAJARAN UNTUK GURU (SUB-TAB 2) --- */}
       {teacherAssignModalOpen && selectedTeacherForAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-md">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md">
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Tentukan Pembelajaran Guru</h3>
-                  <p className="text-xs text-slate-500">Guru: <strong className="text-teal-700">{selectedTeacherForAssign.full_name}</strong> ({selectedTeacherForAssign.nip || selectedTeacherForAssign.nipy || 'Tanpa NIP'})</p>
+                  <p className="text-xs text-slate-500">Guru: <strong className="text-emerald-700">{selectedTeacherForAssign.full_name}</strong> ({selectedTeacherForAssign.nip || selectedTeacherForAssign.nipy || 'Tanpa NIP'})</p>
                 </div>
               </div>
               <button onClick={() => setTeacherAssignModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -6286,7 +6286,7 @@ export default function Kurikulum() {
                     onClick={() => setTeacherAssignForm({ ...teacherAssignForm, type: 'mapel' })}
                     className={`py-2 rounded-xl font-bold border transition ${
                       teacherAssignForm.type === 'mapel'
-                        ? 'bg-teal-50 border-teal-500 text-teal-800'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-800'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -6434,7 +6434,7 @@ export default function Kurikulum() {
                     required
                     value={teacherAssignForm.allocated_hours}
                     onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, allocated_hours: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-black text-center text-teal-800"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-black text-center text-emerald-800"
                   />
                 </div>
 
@@ -6445,7 +6445,7 @@ export default function Kurikulum() {
                     value={teacherAssignForm.role_description}
                     onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, role_description: e.target.value })}
                     placeholder="Contoh: Guru Pengampu Utam / Wali Kelas"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -6457,7 +6457,7 @@ export default function Kurikulum() {
                   value={teacherAssignForm.sk_number}
                   onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, sk_number: e.target.value })}
                   placeholder="Contoh: SK/2026/08/001"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono text-xs"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                 />
               </div>
 
@@ -6469,7 +6469,7 @@ export default function Kurikulum() {
                   value={teacherAssignForm.reason}
                   onChange={(e) => setTeacherAssignForm({ ...teacherAssignForm, reason: e.target.value })}
                   placeholder="Contoh: Penugasan mengajar jam reguler per guru..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -6484,7 +6484,7 @@ export default function Kurikulum() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Pembelajaran Guru</span>
@@ -6498,7 +6498,7 @@ export default function Kurikulum() {
       {/* --- MODAL RIWAYAT & AUDIT LOG PENUGASAN GURU --- */}
       {logsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-4xl w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-2 border-b">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-indigo-600" />
@@ -6545,7 +6545,7 @@ export default function Kurikulum() {
                         <td className="py-2.5 px-3 whitespace-nowrap">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             log.action === 'penambahan' ? 'bg-emerald-100 text-emerald-800' :
-                            log.action === 'perubahan' ? 'bg-blue-100 text-blue-800' :
+                            log.action === 'perubahan' ? 'bg-indigo-100 text-indigo-800' :
                             log.action === 'penghapusan' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
                           }`}>
                             {log.action}
@@ -6561,7 +6561,7 @@ export default function Kurikulum() {
                             <span className="text-slate-400 italic text-[10px]">Semua Rombel</span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 font-bold text-teal-800">{log.teacher_name || '-'}</td>
+                        <td className="py-2.5 px-3 font-bold text-emerald-800">{log.teacher_name || '-'}</td>
                         <td className="py-2.5 px-3 text-slate-500">
                           {log.previous_teacher_name ? (
                             <span className="line-through text-slate-400">{log.previous_teacher_name}</span>

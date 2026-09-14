@@ -194,7 +194,7 @@ export default function PSBProcess() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <CalendarDays className="w-6 h-6" />
             </div>
             <span>Periode & Proses PSB</span>
@@ -206,7 +206,7 @@ export default function PSBProcess() {
 
         <button
           onClick={() => handleOpenModal()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-teal-900/20 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Buat Periode PSB Baru</span>
@@ -215,7 +215,7 @@ export default function PSBProcess() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -240,7 +240,7 @@ export default function PSBProcess() {
               {loading ? (
                 <tr>
                   <td colSpan="7" className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat data proses PSB...</span>
                   </td>
                 </tr>
@@ -259,14 +259,14 @@ export default function PSBProcess() {
                         <div className="font-bold text-slate-900">{p.name}</div>
                         <div className="text-[10px] text-slate-400 truncate max-w-xs">{p.description || '-'}</div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-teal-700">
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
                         {p.target_academic_year}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                           isYayasan
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                         }`}>
                           {isYayasan ? 'Gabungan Yayasan' : 'Per Satuan'}
                         </span>
@@ -292,7 +292,7 @@ export default function PSBProcess() {
                             return (
                               <div key={u.id || u.satuan_pendidikan_id} className="text-[11px] flex items-center gap-1.5">
                                 <span className="font-semibold text-slate-800">{unitName}:</span>
-                                <span className="font-mono text-teal-600 font-bold">[{u.code_prefix}]</span>
+                                <span className="font-mono text-emerald-600 font-bold">[{u.code_prefix}]</span>
                                 <span className="text-slate-400">Target: {u.target_registrants} (L: {u.quota_male} | P: {u.quota_female})</span>
                               </div>
                             );
@@ -338,7 +338,7 @@ export default function PSBProcess() {
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <p className="font-semibold">{errorMsg}</p>
               </div>
@@ -353,7 +353,7 @@ export default function PSBProcess() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     placeholder="Contoh: Penerimaan Santri Baru 2026/2027 Gelombang 1"
                   />
                 </div>
@@ -365,7 +365,7 @@ export default function PSBProcess() {
                     required
                     value={formData.target_academic_year}
                     onChange={(e) => setFormData({ ...formData, target_academic_year: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     placeholder="2026/2027"
                   />
                 </div>
@@ -375,7 +375,7 @@ export default function PSBProcess() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     <option value="draft">Draft (Persiapan)</option>
                     <option value="open">Open (Pendaftaran Dibuka)</option>
@@ -388,7 +388,7 @@ export default function PSBProcess() {
                   <select
                     value={formData.context_type}
                     onChange={(e) => handleContextChange(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-teal-700"
+                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-emerald-700"
                   >
                     <option value="satuan">Per Satuan Pendidikan</option>
                     <option value="yayasan">Gabungan Seluruh Yayasan</option>
@@ -402,7 +402,7 @@ export default function PSBProcess() {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -411,7 +411,7 @@ export default function PSBProcess() {
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -422,7 +422,7 @@ export default function PSBProcess() {
                     rows={2}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -430,7 +430,7 @@ export default function PSBProcess() {
               {/* Sub-form Pengaturan Unit & Kuota */}
               <div className="pt-3 border-t border-slate-100 space-y-3">
                 <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-teal-600" />
+                  <Building2 className="w-4 h-4 text-emerald-600" />
                   <span>Pengaturan Kuota & Kode Awalan per Satuan Pendidikan</span>
                 </h4>
 
@@ -438,7 +438,7 @@ export default function PSBProcess() {
                   {formData.units.map((u, idx) => {
                     const unitName = schoolUnits.find((s) => s.id === u.satuan_pendidikan_id)?.name || `Unit ID ${u.satuan_pendidikan_id}`;
                     return (
-                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                         <div className="font-bold text-slate-800 text-xs">{unitName}</div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           <div>
@@ -500,7 +500,7 @@ export default function PSBProcess() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>Simpan Periode PSB</span>

@@ -409,7 +409,7 @@ export default function KalenderAkademik() {
     }
 
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
         {/* Month Header */}
         <div>
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
@@ -480,7 +480,7 @@ export default function KalenderAkademik() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <CalendarIcon className="w-6 h-6" />
             </div>
             <span>Kalender Pendidikan (Kaldik)</span>
@@ -511,13 +511,13 @@ export default function KalenderAkademik() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
           <span className="font-semibold">{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span className="font-semibold">{errorMsg}</span>
         </div>
@@ -602,8 +602,8 @@ export default function KalenderAkademik() {
         {/* Version Actions & Status Badges */}
         <div className="flex items-center gap-2.5 flex-wrap">
           {activeVersion?.status === 'published' ? (
-            <span className="px-3 py-1.5 rounded-xl bg-teal-50 text-teal-800 border border-teal-200 font-bold flex items-center gap-1.5">
-              <FileCheck2 className="w-4 h-4 text-teal-600" />
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-1.5">
+              <FileCheck2 className="w-4 h-4 text-emerald-600" />
               <span>Disahkan: {activeVersion.decree_number || 'SK Resmi'}</span>
             </span>
           ) : (
@@ -644,7 +644,7 @@ export default function KalenderAkademik() {
       </div>
 
       {/* Category Legend Bar */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-4 flex-wrap text-xs">
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-4 flex-wrap text-xs">
         <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Kategori:</span>
         {categories.map((cat) => (
           <div key={cat.id} className="flex items-center gap-1.5">

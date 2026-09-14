@@ -138,7 +138,7 @@ export default function PSBPlacement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <GraduationCap className="w-6 h-6" />
             </div>
             <span>Penempatan Rombel Calon Murid (Placement)</span>
@@ -148,12 +148,12 @@ export default function PSBPlacement() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-semibold text-slate-500">Proses PSB:</span>
           <select
             value={selectedProcessId}
             onChange={(e) => setSelectedProcessId(e.target.value)}
-            className="text-xs font-bold text-teal-700 bg-transparent focus:outline-none"
+            className="text-xs font-bold text-emerald-700 bg-transparent focus:outline-none"
           >
             {processes.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.target_academic_year})</option>
@@ -164,7 +164,7 @@ export default function PSBPlacement() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -197,7 +197,7 @@ export default function PSBPlacement() {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat antrean penempatan...</span>
                   </td>
                 </tr>
@@ -210,7 +210,7 @@ export default function PSBPlacement() {
               ) : (
                 candidates.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-teal-700">
+                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
                       {c.registration_number}
                     </td>
                     <td className="py-3.5 px-4">
@@ -219,9 +219,9 @@ export default function PSBPlacement() {
                     </td>
                     <td className="py-3.5 px-4 font-semibold">
                       {c.candidate_gender === 'L' ? (
-                        <span className="text-blue-600">Laki-laki</span>
+                        <span className="text-indigo-600">Laki-laki</span>
                       ) : (
-                        <span className="text-pink-600">Perempuan</span>
+                        <span className="text-rose-700">Perempuan</span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-slate-800 font-semibold">
@@ -229,7 +229,7 @@ export default function PSBPlacement() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        c.status === 'test_passed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                        c.status === 'test_passed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                       }`}>
                         {c.status === 'test_passed' ? 'Lulus Seleksi' : 'Terdaftar (Tanpa Tes)'}
                       </span>
@@ -237,7 +237,7 @@ export default function PSBPlacement() {
                     <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => handleOpenPlaceModal(c)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold text-xs shadow-xs transition"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-xs transition"
                       >
                         <span>Tempatkan ke Rombel</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -258,7 +258,7 @@ export default function PSBPlacement() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900">Peresmian Penempatan Santri</h3>
-                <p className="text-[11px] text-teal-700 font-semibold mt-0.5">
+                <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
                   {selectedCandidate.full_name} ({selectedCandidate.registration_number})
                 </p>
               </div>
@@ -266,7 +266,7 @@ export default function PSBPlacement() {
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <p className="font-semibold">{errorMsg}</p>
               </div>
@@ -279,7 +279,7 @@ export default function PSBPlacement() {
                   required
                   value={placeForm.target_class_group_id}
                   onChange={(e) => setPlaceForm({ ...placeForm, target_class_group_id: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-800 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="">-- Pilih Rombel --</option>
                   {classGroups.map((cg) => {
@@ -302,7 +302,7 @@ export default function PSBPlacement() {
                   required
                   value={placeForm.nipd}
                   onChange={(e) => setPlaceForm({ ...placeForm, nipd: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-teal-700 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-emerald-700 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   placeholder="Contoh: 260012"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
@@ -331,7 +331,7 @@ export default function PSBPlacement() {
                 <button
                   type="submit"
                   disabled={savingPlace}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {savingPlace ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>Resmikan Penempatan</span>

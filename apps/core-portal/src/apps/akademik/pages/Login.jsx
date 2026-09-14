@@ -60,10 +60,10 @@ export default function AkademikLogin() {
         </div>
 
         {/* Card Login */}
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+        <div className="bg-white rounded-xl shadow-xl border border-slate-100 p-8">
           {/* Logo & Header */}
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold text-xl mx-auto shadow-md mb-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-xl mx-auto shadow-md mb-3">
               A
             </div>
             <h2 className="text-xl font-bold text-slate-800">Modul Akademik Login</h2>
@@ -75,7 +75,7 @@ export default function AkademikLogin() {
           {/* Form Login */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-start gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="font-semibold">{errorMsg}</p>
@@ -101,7 +101,7 @@ export default function AkademikLogin() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username atau NIS..."
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
@@ -118,7 +118,7 @@ export default function AkademikLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password Anda..."
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
@@ -127,7 +127,7 @@ export default function AkademikLogin() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-sm"
             >
               {isLoading ? (
                 <>
@@ -143,14 +143,14 @@ export default function AkademikLogin() {
           {/* Akun Cepat untuk Uji Coba */}
           <div className="mt-6 pt-5 border-t border-slate-100">
             <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold mb-2">
-              <Info className="w-3.5 h-3.5 text-teal-600" />
+              <Info className="w-3.5 h-3.5 text-emerald-600" />
               <span>Pilihan Akun Demo (Uji Coba Cepat):</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleFillDemo('superadmin', 'Password123!')}
-                className="p-2 border border-slate-200 rounded-lg text-left hover:bg-teal-50 hover:border-teal-300 transition text-[11px]"
+                className="p-2 border border-slate-200 rounded-lg text-left hover:bg-emerald-50 hover:border-emerald-300 transition text-[11px]"
               >
                 <p className="font-bold text-slate-800">Super Admin</p>
                 <p className="text-[10px] text-slate-500">Akses Penuh</p>
@@ -158,7 +158,7 @@ export default function AkademikLogin() {
               <button
                 type="button"
                 onClick={() => handleFillDemo('ahmad.fauzi', 'Password123!')}
-                className="p-2 border border-slate-200 rounded-lg text-left hover:bg-teal-50 hover:border-teal-300 transition text-[11px]"
+                className="p-2 border border-slate-200 rounded-lg text-left hover:bg-emerald-50 hover:border-emerald-300 transition text-[11px]"
               >
                 <p className="font-bold text-slate-800">Guru / Wali Kelas</p>
                 <p className="text-[10px] text-slate-500">Ahmad Fauzi</p>
@@ -170,7 +170,7 @@ export default function AkademikLogin() {
           <div className="mt-6 pt-4 border-t border-slate-100 text-center">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-teal-600 transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Pusat Akses 14 Modul</span>

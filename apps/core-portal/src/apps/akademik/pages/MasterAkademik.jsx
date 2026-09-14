@@ -302,11 +302,11 @@ export default function MasterAkademik() {
   return (
     <div className="space-y-6">
       {/* Selector Satuan Pendidikan & Header */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-teal-600" />
+              <Building2 className="w-5 h-5 text-emerald-600" />
               <span>Master Data Akademik</span>
             </h2>
           </div>
@@ -327,13 +327,13 @@ export default function MasterAkademik() {
             <span>Reload Data</span>
           </button>
 
-          <div className="flex items-center gap-2 bg-teal-50/80 p-2 rounded-2xl border border-teal-200">
-            <School className="w-4 h-4 text-teal-700 ml-1 shrink-0" />
-            <span className="text-xs font-bold text-teal-900 whitespace-nowrap">Pilih Sekolah:</span>
+          <div className="flex items-center gap-2 bg-emerald-50/80 p-2 rounded-xl border border-emerald-200">
+            <School className="w-4 h-4 text-emerald-700 ml-1 shrink-0" />
+            <span className="text-xs font-bold text-emerald-900 whitespace-nowrap">Pilih Sekolah:</span>
             <select
               value={currentUnitId || ''}
               onChange={(e) => handleUnitChange(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-teal-300 rounded-xl text-xs font-extrabold text-teal-950 shadow-2xs focus:ring-2 focus:ring-teal-500 cursor-pointer"
+              className="px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-extrabold text-emerald-950 shadow-2xs focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
               {schoolUnits && schoolUnits.length > 0 ? (
                 schoolUnits.map((unit) => (
@@ -350,9 +350,9 @@ export default function MasterAkademik() {
       </div>
 
       {/* Banner Info Satuan Pendidikan Aktif */}
-      <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-xs">
+      <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
             <School className="w-5 h-5" />
           </div>
           <div>
@@ -365,7 +365,7 @@ export default function MasterAkademik() {
           </div>
         </div>
         <div className="text-right hidden sm:block">
-          <span className="text-[10px] text-teal-300 bg-teal-950/80 px-2.5 py-1 rounded-lg border border-teal-800/80 font-mono">
+          <span className="text-[10px] text-emerald-300 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/80 font-mono">
             Data Terisolasi Per Unit
           </span>
         </div>
@@ -396,7 +396,7 @@ export default function MasterAkademik() {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                 isActive
-                  ? 'bg-teal-600 text-white shadow-xs'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
             >
@@ -404,7 +404,7 @@ export default function MasterAkademik() {
               <span>{t.label}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  isActive ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'
+                  isActive ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 {t.count}
@@ -416,14 +416,14 @@ export default function MasterAkademik() {
 
       {loading ? (
         <div className="py-24 text-center text-slate-400">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-teal-600 mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-3" />
           <p className="text-xs">Memuat data master untuk {selectedUnitObj?.name}...</p>
         </div>
       ) : (
         <>
           {/* TAB 1: TAHUN AJARAN */}
           {activeTab === 'tahun_ajaran' && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Daftar Tahun Ajaran ({selectedUnitObj?.name})</h3>
@@ -434,7 +434,7 @@ export default function MasterAkademik() {
                     setYearForm({ id: null, name: '', start_date: '', end_date: '', is_active: false });
                     setShowYearModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Tambah Tahun Ajaran</span>
@@ -473,7 +473,7 @@ export default function MasterAkademik() {
                             ) : (
                               <button
                                 onClick={() => handleActivateYear(y.id)}
-                                className="text-[10px] font-semibold text-teal-600 hover:underline"
+                                className="text-[10px] font-semibold text-emerald-600 hover:underline"
                               >
                                 Set Sebagai Aktif
                               </button>
@@ -491,7 +491,7 @@ export default function MasterAkademik() {
                                 });
                                 setShowYearModal(true);
                               }}
-                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
                               title="Edit"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -515,7 +515,7 @@ export default function MasterAkademik() {
 
           {/* TAB 2: SEMESTER */}
           {activeTab === 'semester' && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Daftar Semester Belajar ({selectedUnitObj?.name})</h3>
@@ -534,7 +534,7 @@ export default function MasterAkademik() {
                     });
                     setShowSemesterModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Tambah Semester</span>
@@ -573,7 +573,7 @@ export default function MasterAkademik() {
                             ) : (
                               <button
                                 onClick={() => handleActivateSemester(s.id)}
-                                className="text-[10px] font-semibold text-teal-600 hover:underline"
+                                className="text-[10px] font-semibold text-emerald-600 hover:underline"
                               >
                                 Set Sebagai Aktif
                               </button>
@@ -591,7 +591,7 @@ export default function MasterAkademik() {
                                 });
                                 setShowSemesterModal(true);
                               }}
-                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
                               title="Edit"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -615,7 +615,7 @@ export default function MasterAkademik() {
 
           {/* TAB 3: ANGKATAN (COHORTS) */}
           {activeTab === 'angkatan' && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Daftar Angkatan Siswa ({selectedUnitObj?.name})</h3>
@@ -628,7 +628,7 @@ export default function MasterAkademik() {
                     setCohortForm({ id: null, year: new Date().getFullYear().toString(), name: `Angkatan ${new Date().getFullYear()}`, description: '', is_active: true });
                     setShowCohortModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Tambah Angkatan</span>
@@ -645,7 +645,7 @@ export default function MasterAkademik() {
                     <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-sm text-slate-800">{c.name}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                           Tahun {c.year}
                         </span>
                       </div>
@@ -666,7 +666,7 @@ export default function MasterAkademik() {
                               });
                               setShowCohortModal(true);
                             }}
-                            className="p-1 text-slate-600 hover:text-blue-600"
+                            className="p-1 text-slate-600 hover:text-indigo-600"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -687,7 +687,7 @@ export default function MasterAkademik() {
 
           {/* TAB 4: TINGKAT KELAS */}
           {activeTab === 'tingkat_kelas' && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Daftar Tingkat / Jenjang Kelas ({selectedUnitObj?.name})</h3>
@@ -698,7 +698,7 @@ export default function MasterAkademik() {
                     setGradeForm({ id: null, name: '', order: gradeLevels.length + 1, is_active: true });
                     setShowGradeModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Tambah Tingkat</span>
@@ -729,7 +729,7 @@ export default function MasterAkademik() {
                           <tr key={g.id} className={`hover:bg-slate-50/60 transition ${!isActive ? 'bg-slate-50/50 opacity-70' : ''}`}>
                             <td className="py-3 px-4 font-bold text-slate-800">{g.order}</td>
                             <td className="py-3 px-4 font-bold text-slate-800">
-                              <span className={isActive ? 'text-teal-700 font-extrabold' : 'text-slate-500 line-through'}>
+                              <span className={isActive ? 'text-emerald-700 font-extrabold' : 'text-slate-500 line-through'}>
                                 {g.name}
                               </span>
                             </td>
@@ -754,7 +754,7 @@ export default function MasterAkademik() {
                                   setGradeForm({ id: g.id, name: g.name, order: g.order, is_active: isActive });
                                   setShowGradeModal(true);
                                 }}
-                                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
                                 title="Edit Tingkat Kelas"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -782,11 +782,11 @@ export default function MasterAkademik() {
       {/* MODAL TAHUN AJARAN */}
       {showYearModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-1">
               {yearForm.id ? 'Edit Tahun Ajaran' : 'Tambah Tahun Ajaran Baru'}
             </h3>
-            <p className="text-xs text-teal-700 font-semibold mb-4 pb-2 border-b border-slate-100">
+            <p className="text-xs text-emerald-700 font-semibold mb-4 pb-2 border-b border-slate-100">
               Satuan Pendidikan: {selectedUnitObj?.name}
             </p>
             <form onSubmit={handleSaveYear} className="space-y-3.5 text-xs">
@@ -830,7 +830,7 @@ export default function MasterAkademik() {
                     type="checkbox"
                     checked={yearForm.is_active}
                     onChange={(e) => setYearForm({ ...yearForm, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded text-teal-600 focus:ring-0"
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-0"
                   />
                   <span>Set Sebagai Tahun Ajaran Aktif di Unit Ini</span>
                 </label>
@@ -846,7 +846,7 @@ export default function MasterAkademik() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-xs"
                 >
                   Simpan Tahun Ajaran
                 </button>
@@ -859,11 +859,11 @@ export default function MasterAkademik() {
       {/* MODAL SEMESTER */}
       {showSemesterModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-1">
               {semesterForm.id ? 'Edit Semester' : 'Tambah Semester Baru'}
             </h3>
-            <p className="text-xs text-teal-700 font-semibold mb-4 pb-2 border-b border-slate-100">
+            <p className="text-xs text-emerald-700 font-semibold mb-4 pb-2 border-b border-slate-100">
               Satuan Pendidikan: {selectedUnitObj?.name}
             </p>
             <form onSubmit={handleSaveSemester} className="space-y-3.5 text-xs">
@@ -907,7 +907,7 @@ export default function MasterAkademik() {
                     type="checkbox"
                     checked={semesterForm.is_active}
                     onChange={(e) => setSemesterForm({ ...semesterForm, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded text-teal-600 focus:ring-0"
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-0"
                   />
                   <span>Set Sebagai Semester Belajar Aktif di Unit Ini</span>
                 </label>
@@ -923,7 +923,7 @@ export default function MasterAkademik() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-xs"
                 >
                   Simpan Semester
                 </button>
@@ -936,11 +936,11 @@ export default function MasterAkademik() {
       {/* MODAL ANGKATAN */}
       {showCohortModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-1">
               {cohortForm.id ? 'Edit Data Angkatan' : 'Tambah Angkatan Siswa Baru'}
             </h3>
-            <p className="text-xs text-teal-700 font-semibold mb-4 pb-2 border-b border-slate-100">
+            <p className="text-xs text-emerald-700 font-semibold mb-4 pb-2 border-b border-slate-100">
               Satuan Pendidikan: {selectedUnitObj?.name}
             </p>
             <form onSubmit={handleSaveCohort} className="space-y-3.5 text-xs">
@@ -989,7 +989,7 @@ export default function MasterAkademik() {
                     type="checkbox"
                     checked={cohortForm.is_active}
                     onChange={(e) => setCohortForm({ ...cohortForm, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded text-teal-600 focus:ring-0"
+                    className="w-4 h-4 rounded text-emerald-600 focus:ring-0"
                   />
                   <span>Angkatan Aktif Menerima Siswa</span>
                 </label>
@@ -1005,7 +1005,7 @@ export default function MasterAkademik() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-xs"
                 >
                   Simpan Angkatan
                 </button>
@@ -1018,11 +1018,11 @@ export default function MasterAkademik() {
       {/* MODAL TINGKAT KELAS */}
       {showGradeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-1">
               {gradeForm.id ? 'Edit Tingkat Kelas' : 'Tambah Tingkat Kelas Baru'}
             </h3>
-            <p className="text-xs text-teal-700 font-semibold mb-4 pb-2 border-b border-slate-100">
+            <p className="text-xs text-emerald-700 font-semibold mb-4 pb-2 border-b border-slate-100">
               Satuan Pendidikan: {selectedUnitObj?.name}
             </p>
             <form onSubmit={handleSaveGrade} className="space-y-3.5 text-xs">
@@ -1055,7 +1055,7 @@ export default function MasterAkademik() {
                   id="grade_is_active"
                   checked={gradeForm.is_active}
                   onChange={(e) => setGradeForm({ ...gradeForm, is_active: e.target.checked })}
-                  className="w-4 h-4 text-teal-600 rounded"
+                  className="w-4 h-4 text-emerald-600 rounded"
                 />
                 <div>
                   <label htmlFor="grade_is_active" className="font-bold text-slate-800 text-xs block cursor-pointer">
@@ -1077,7 +1077,7 @@ export default function MasterAkademik() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-xs"
                 >
                   Simpan Tingkat
                 </button>

@@ -566,14 +566,14 @@ export default function RombelManagement() {
   return (
     <div className="space-y-6">
       {/* Header Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-teal-600" />
+              <GraduationCap className="w-5 h-5 text-emerald-600" />
               <span>Manajemen Rombongan Belajar (Rombel)</span>
             </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-teal-50 text-teal-800 border border-teal-200">
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
               Unit: {activeSchoolUnit?.name || 'Semua Unit'}
             </span>
           </div>
@@ -604,7 +604,7 @@ export default function RombelManagement() {
             <select
               value={selectedYearId}
               onChange={(e) => setSelectedYearId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500"
             >
               {academicYears.map((y) => (
                 <option key={y.id} value={y.id}>
@@ -619,7 +619,7 @@ export default function RombelManagement() {
               <select
                 value={selectedGradeId}
                 onChange={(e) => setSelectedGradeId(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Semua Tingkat</option>
                 {gradeLevels.map((g) => (
@@ -641,7 +641,7 @@ export default function RombelManagement() {
 
           <button
             onClick={handleOpenAddClassModal}
-            className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-2xs transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs transition"
           >
             <Plus className="w-4 h-4" />
             <span>{rombelTab === 'reguler' ? '+ Tambah Rombel Reguler' : rombelTab === 'pilihan' ? '+ Tambah Rombel Mapel Pilihan' : '+ Tambah Rombel Ekskul'}</span>
@@ -655,7 +655,7 @@ export default function RombelManagement() {
           onClick={() => { setRombelTab('reguler'); setSelectedClass(null); }}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition ${
             rombelTab === 'reguler'
-              ? 'bg-teal-600 text-white shadow-sm'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
@@ -677,7 +677,7 @@ export default function RombelManagement() {
           onClick={() => { setRombelTab('ekstrakurikuler'); setSelectedClass(null); }}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition ${
             rombelTab === 'ekstrakurikuler'
-              ? 'bg-teal-600 text-white shadow-sm'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
@@ -689,7 +689,7 @@ export default function RombelManagement() {
       {/* Kartu Statistik Penempatan Siswa dalam Rombel */}
       {!selectedClass && rombelTab === 'reguler' && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-3.5">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5" />
             </div>
@@ -701,7 +701,7 @@ export default function RombelManagement() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-emerald-100/80 bg-emerald-50/20 shadow-xs flex items-center gap-3.5">
+          <div className="bg-white p-4 rounded-xl border border-emerald-100/80 bg-emerald-50/20 shadow-xs flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -716,7 +716,7 @@ export default function RombelManagement() {
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-amber-100/80 bg-amber-50/20 shadow-xs flex items-center gap-3.5">
+          <div className="bg-white p-4 rounded-xl border border-amber-100/80 bg-amber-50/20 shadow-xs flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shrink-0">
               <AlertCircle className="w-5 h-5" />
             </div>
@@ -768,18 +768,18 @@ export default function RombelManagement() {
 
           {loading ? (
             <div className="py-24 text-center text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-teal-600 mb-3" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-3" />
               <p className="text-xs">Memuat daftar rombongan belajar...</p>
             </div>
           ) : filteredClasses.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-100 text-center text-slate-400 space-y-3">
+            <div className="bg-white p-12 rounded-xl border border-slate-100 text-center text-slate-400 space-y-3">
               <GraduationCap className="w-12 h-12 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold">
                 Belum ada {rombelTab === 'reguler' ? 'rombel reguler' : 'rombel ekstrakurikuler'} pada tahun ajaran ini.
               </p>
               <button
                 onClick={handleOpenAddClassModal}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Buat {rombelTab === 'reguler' ? 'Rombel Reguler' : 'Rombel Ekskul'} Baru</span>
@@ -795,7 +795,7 @@ export default function RombelManagement() {
                 return (
                   <div
                     key={cg.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-teal-400 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
+                    className="bg-white p-5 rounded-xl border border-slate-200/80 hover:border-emerald-400 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4"
                   >
                     <div>
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -812,12 +812,12 @@ export default function RombelManagement() {
                                 <span>Mapel Pilihan (Lintas Kelas)</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/60">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
                                 {cg.grade_level_name || 'Tingkat'}
                               </span>
                             )}
                             {cg.is_cross_unit ? (
-                              <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded flex items-center gap-1">
                                 <Building2 className="w-2.5 h-2.5" />
                                 <span>Gabungan Satuan</span>
                               </span>
@@ -828,7 +828,7 @@ export default function RombelManagement() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleOpenEditClassModal(cg)}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
                             title="Edit Rombel"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -850,13 +850,13 @@ export default function RombelManagement() {
                             {cg.type === 'ekstrakurikuler' ? 'Peserta Terdaftar:' : 'Kapasitas Terisi:'}
                           </span>
                           <span className="font-bold text-slate-800">
-                            <span className="text-teal-700 font-extrabold">{filled}</span> / {cap} Siswa
+                            <span className="text-emerald-700 font-extrabold">{filled}</span> / {cap} Siswa
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
-                              percent >= 100 ? 'bg-rose-500' : percent >= 80 ? 'bg-amber-500' : 'bg-teal-500'
+                              percent >= 100 ? 'bg-rose-500' : percent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
                             }`}
                             style={{ width: `${percent}%` }}
                           />
@@ -878,9 +878,9 @@ export default function RombelManagement() {
 
                     <button
                       onClick={() => handleOpenClassMembers(cg)}
-                      className="w-full py-2.5 bg-slate-50 hover:bg-teal-50 hover:text-teal-700 text-slate-700 border border-slate-200 hover:border-teal-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                      className="w-full py-2.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border border-slate-200 hover:border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
-                      <Users className="w-3.5 h-3.5 text-teal-600" />
+                      <Users className="w-3.5 h-3.5 text-emerald-600" />
                       <span>
                         {cg.type === 'ekstrakurikuler' ? 'Kelola Peserta Ekskul' : 'Kelola Anggota Rombel'} ({filled})
                       </span>
@@ -893,7 +893,7 @@ export default function RombelManagement() {
         </div>
       ) : (
         /* VIEW 2: KELOLA ANGGOTA KELAS / PESERTA EKSKUL TERPILIH */
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
             <div className="flex items-center gap-3">
               <button
@@ -911,7 +911,7 @@ export default function RombelManagement() {
                       ? 'bg-amber-50 text-amber-800 border border-amber-200'
                       : selectedClass.type === 'pilihan'
                       ? 'bg-amber-50 text-amber-900 border border-amber-200'
-                      : 'bg-teal-50 text-teal-800 border border-teal-200'
+                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                   }`}>
                     {selectedClass.type === 'ekstrakurikuler'
                       ? `Ekskul: ${selectedClass.extracurricular_name || 'Umum'}`
@@ -955,7 +955,7 @@ export default function RombelManagement() {
               </button>
               <button
                 onClick={handleOpenAddMembers}
-                className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>
@@ -968,7 +968,7 @@ export default function RombelManagement() {
           {/* Table Anggota */}
           {loadingMembers ? (
             <div className="py-20 text-center text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-teal-600 mb-2" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-2" />
               <p className="text-xs">Memuat daftar anggota...</p>
             </div>
           ) : members.length === 0 ? (
@@ -977,7 +977,7 @@ export default function RombelManagement() {
               <p className="text-sm font-semibold">Belum ada siswa yang terdaftar di rombel ini.</p>
               <button
                 onClick={handleOpenAddMembers}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>
@@ -1019,8 +1019,8 @@ export default function RombelManagement() {
                         {selectedClass?.type === 'ekstrakurikuler' && (
                           <td className="py-3 px-4">
                             {m.regular_class_name ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200 shadow-2xs">
-                                <Layers className="w-3 h-3 text-teal-600 shrink-0" />
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                <Layers className="w-3 h-3 text-emerald-600 shrink-0" />
                                 <span>{m.regular_class_name}</span>
                               </span>
                             ) : (
@@ -1032,7 +1032,7 @@ export default function RombelManagement() {
                         )}
                         {selectedClass?.is_cross_unit && (
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-semibold text-[10px]">
+                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-semibold text-[10px]">
                               {unit?.name || `Unit #${m.satuan_pendidikan_id}`}
                             </span>
                           </td>
@@ -1040,7 +1040,7 @@ export default function RombelManagement() {
                         <td className="py-3 px-4">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              m.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
+                              m.gender === 'L' ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'
                             }`}
                           >
                             {m.gender === 'L' ? 'L' : 'P'}
@@ -1056,7 +1056,7 @@ export default function RombelManagement() {
                           {selectedClass.type === 'reguler' && (
                             <button
                               onClick={() => handleOpenTransferModal(m.enrollment_id, m.full_name, m.nis)}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition"
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition"
                               title="Pindah ke Rombel Lain"
                             >
                               <ArrowRightLeft className="w-3 h-3" />
@@ -1085,7 +1085,7 @@ export default function RombelManagement() {
       {/* --- MODAL TAMBAH/EDIT ROMBEL --- */}
       {showClassModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">
               {classForm.id ? 'Edit Rombel' : (classForm.type === 'ekstrakurikuler' ? 'Tambah Rombel Ekstrakurikuler' : 'Tambah Rombel Reguler')}
             </h3>
@@ -1100,7 +1100,7 @@ export default function RombelManagement() {
                       value="reguler"
                       checked={classForm.type === 'reguler'}
                       onChange={() => setClassForm({ ...classForm, type: 'reguler' })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="font-semibold text-slate-800">Rombel Reguler (Kelas Pokok)</span>
                   </label>
@@ -1122,7 +1122,7 @@ export default function RombelManagement() {
                       value="ekstrakurikuler"
                       checked={classForm.type === 'ekstrakurikuler'}
                       onChange={() => setClassForm({ ...classForm, type: 'ekstrakurikuler' })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="font-semibold text-slate-800">Rombel Ekstrakurikuler</span>
                   </label>
@@ -1264,7 +1264,7 @@ export default function RombelManagement() {
 
               {/* FITUR GABUNG DENGAN SATUAN PENDIDIKAN LAIN (KHUSUS EKSKUL) */}
               {classForm.type === 'ekstrakurikuler' && (
-                <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2.5">
+                <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -1279,22 +1279,22 @@ export default function RombelManagement() {
                             : []
                         });
                       }}
-                      className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                      className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                     />
                     <div className="flex flex-col">
-                      <span className="font-bold text-purple-950 text-xs flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-purple-700" />
+                      <span className="font-bold text-indigo-950 text-xs flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-indigo-700" />
                         Digabung dengan Satuan Pendidikan Lain
                       </span>
-                      <span className="text-[10px] text-purple-700">
+                      <span className="text-[10px] text-indigo-700">
                         Mengizinkan santri/siswa dari unit lain (mis. gabungan SMP & SMA) bergabung ke rombel ekskul ini.
                       </span>
                     </div>
                   </label>
 
                   {classForm.is_cross_unit && (
-                    <div className="pt-2 border-t border-purple-200 space-y-1.5">
-                      <span className="text-[11px] font-semibold text-purple-900 block">
+                    <div className="pt-2 border-t border-indigo-200 space-y-1.5">
+                      <span className="text-[11px] font-semibold text-indigo-900 block">
                         Pilih Satuan Pendidikan yang Digabung:
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -1305,8 +1305,8 @@ export default function RombelManagement() {
                               key={unit.id}
                               className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition ${
                                 isIncluded
-                                  ? 'bg-white border-purple-400 text-purple-950 font-bold shadow-2xs'
-                                  : 'bg-purple-50/50 border-purple-200 text-slate-600'
+                                  ? 'bg-white border-indigo-400 text-indigo-950 font-bold shadow-2xs'
+                                  : 'bg-indigo-50/50 border-indigo-200 text-slate-600'
                               }`}
                             >
                               <input
@@ -1325,7 +1325,7 @@ export default function RombelManagement() {
                                     });
                                   }
                                 }}
-                                className="rounded text-purple-600 focus:ring-0 w-3.5 h-3.5"
+                                className="rounded text-indigo-600 focus:ring-0 w-3.5 h-3.5"
                               />
                               <span className="truncate">{unit.name} ({unit.level})</span>
                             </label>
@@ -1358,7 +1358,7 @@ export default function RombelManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-xs"
                 >
                   Simpan Rombel
                 </button>
@@ -1371,17 +1371,17 @@ export default function RombelManagement() {
       {/* --- MODAL TAMBAH ANGGOTA ROMBEL --- */}
       {showAddMembersModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-teal-600" />
+                  <UserPlus className="w-4 h-4 text-emerald-600" />
                   <span>
                     {selectedClass?.type === 'ekstrakurikuler' ? 'Pilih Peserta Ekstrakurikuler' : 'Pilih Siswa Belum Masuk Rombel'}
                   </span>
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Rombel Tujuan: <span className="font-bold text-teal-700">{selectedClass?.name}</span> ({selectedClass?.academic_year_name})
+                  Rombel Tujuan: <span className="font-bold text-emerald-700">{selectedClass?.name}</span> ({selectedClass?.academic_year_name})
                 </p>
               </div>
               <button
@@ -1441,7 +1441,7 @@ export default function RombelManagement() {
             <div className="flex-1 overflow-y-auto py-2">
               {loadingCandidates ? (
                 <div className="py-16 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-teal-600 mb-2" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
                   <p className="text-xs">Mencari siswa calon anggota...</p>
                 </div>
               ) : filteredCandidates.length === 0 ? (
@@ -1456,11 +1456,11 @@ export default function RombelManagement() {
                         <button
                           type="button"
                           onClick={() => handleSelectAllCandidates(filteredCandidates)}
-                          className="text-teal-600 hover:text-teal-800"
+                          className="text-emerald-600 hover:text-emerald-800"
                           title="Pilih Semua"
                         >
                           {selectedStudentIds.length === filteredCandidates.length && filteredCandidates.length > 0 ? (
-                            <CheckSquare className="w-4 h-4 text-teal-600" />
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
                           ) : (
                             <Square className="w-4 h-4 text-slate-400" />
                           )}
@@ -1473,7 +1473,7 @@ export default function RombelManagement() {
                         <div className="flex items-center gap-1.5">
                           <span>NIS / NISN</span>
                           {candidateSortField === 'nis' ? (
-                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
@@ -1486,7 +1486,7 @@ export default function RombelManagement() {
                         <div className="flex items-center gap-1.5">
                           <span>Nama Siswa</span>
                           {candidateSortField === 'full_name' ? (
-                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
@@ -1500,7 +1500,7 @@ export default function RombelManagement() {
                           <div className="flex items-center gap-1.5">
                             <span>Satuan Pendidikan</span>
                             {candidateSortField === 'satuan_pendidikan_id' ? (
-                              candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                              candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 opacity-40" />
                             )}
@@ -1514,7 +1514,7 @@ export default function RombelManagement() {
                         <div className="flex items-center gap-1.5">
                           <span>L/P</span>
                           {candidateSortField === 'gender' ? (
-                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
@@ -1527,7 +1527,7 @@ export default function RombelManagement() {
                         <div className="flex items-center gap-1.5">
                           <span>Angkatan</span>
                           {candidateSortField === 'cohort_title' ? (
-                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                            candidateSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                           ) : (
                             <ArrowUpDown className="w-3 h-3 opacity-40" />
                           )}
@@ -1545,7 +1545,7 @@ export default function RombelManagement() {
                           placeholder="Filter NIS..."
                           value={searchCandidate}
                           onChange={(e) => setSearchCandidate(e.target.value)}
-                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500"
+                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                         />
                       </th>
                       <th className="py-1 px-2">
@@ -1554,7 +1554,7 @@ export default function RombelManagement() {
                           placeholder="Filter Nama..."
                           value={searchCandidate}
                           onChange={(e) => setSearchCandidate(e.target.value)}
-                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500"
+                          className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                         />
                       </th>
                       {selectedClass?.is_cross_unit && (
@@ -1562,7 +1562,7 @@ export default function RombelManagement() {
                           <select
                             value={filterCandidateSatuanId}
                             onChange={(e) => setFilterCandidateSatuanId(e.target.value)}
-                            className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500"
+                            className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                           >
                             <option value="">Semua</option>
                             {schoolUnitsList.map((u) => (
@@ -1577,7 +1577,7 @@ export default function RombelManagement() {
                         <select
                           value={filterCandidateGender}
                           onChange={(e) => setFilterCandidateGender(e.target.value)}
-                          className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500"
+                          className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                         >
                           <option value="">Semua</option>
                           <option value="L">L</option>
@@ -1588,7 +1588,7 @@ export default function RombelManagement() {
                         <select
                           value={filterCohortId}
                           onChange={(e) => setFilterCohortId(e.target.value)}
-                          className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500"
+                          className="w-full px-1.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                         >
                           <option value="">Semua</option>
                           {cohorts.map((c) => (
@@ -1619,7 +1619,7 @@ export default function RombelManagement() {
                           key={s.id}
                           onClick={() => handleToggleSelectStudent(s.id)}
                           className={`cursor-pointer transition ${
-                            isSelected ? 'bg-teal-50/70 font-semibold' : 'hover:bg-slate-50/60'
+                            isSelected ? 'bg-emerald-50/70 font-semibold' : 'hover:bg-slate-50/60'
                           }`}
                         >
                           <td className="py-2.5 px-3 text-center">
@@ -1627,7 +1627,7 @@ export default function RombelManagement() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => {}}
-                              className="rounded text-teal-600 focus:ring-0 cursor-pointer"
+                              className="rounded text-emerald-600 focus:ring-0 cursor-pointer"
                             />
                           </td>
                           <td className="py-2.5 px-3 font-mono font-bold text-slate-800">
@@ -1637,7 +1637,7 @@ export default function RombelManagement() {
                           <td className="py-2.5 px-3 font-bold text-slate-800">{s.full_name}</td>
                           {selectedClass?.is_cross_unit && (
                             <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-semibold text-[10px]">
+                              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-semibold text-[10px]">
                                 {unit?.name || `Unit #${s.satuan_pendidikan_id}`}
                               </span>
                             </td>
@@ -1645,7 +1645,7 @@ export default function RombelManagement() {
                           <td className="py-2.5 px-3">
                             <span
                               className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                s.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
+                                s.gender === 'L' ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'
                               }`}
                             >
                               {s.gender === 'L' ? 'L' : 'P'}
@@ -1665,7 +1665,7 @@ export default function RombelManagement() {
             {/* Footer Modal */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0 text-xs">
               <span className="font-bold text-slate-700">
-                <span className="text-teal-700 font-extrabold">{selectedStudentIds.length}</span> Siswa Terpilih
+                <span className="text-emerald-700 font-extrabold">{selectedStudentIds.length}</span> Siswa Terpilih
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -1679,7 +1679,7 @@ export default function RombelManagement() {
                   type="button"
                   disabled={selectedStudentIds.length === 0}
                   onClick={handleSaveAddMembers}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-xs transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-xs transition flex items-center gap-1.5"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Masukkan ke {selectedClass?.name}</span>
@@ -1712,7 +1712,7 @@ export default function RombelManagement() {
               </button>
             </div>
 
-            <div className="bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100 text-xs space-y-1">
+            <div className="bg-rose-50/50 p-3.5 rounded-xl border border-rose-100 text-xs space-y-1">
               <div className="text-slate-600">
                 Nama Siswa: <span className="font-bold text-slate-900">{removeTarget.student_name}</span>
               </div>
@@ -1818,7 +1818,7 @@ export default function RombelManagement() {
             </div>
 
             {/* Log Table Body */}
-            <div className="overflow-y-auto flex-1 min-h-[250px] border border-slate-100 rounded-2xl">
+            <div className="overflow-y-auto flex-1 min-h-[250px] border border-slate-100 rounded-xl">
               {loadingRemovalLogs ? (
                 <div className="py-16 text-center text-slate-400 space-y-2">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-amber-600" />
@@ -1905,9 +1905,9 @@ export default function RombelManagement() {
       {/* MODAL PINDAH ROMBEL */}
       {showTransferModal && transferTarget && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4 text-blue-600" />
+              <ArrowRightLeft className="w-4 h-4 text-indigo-600" />
               <span>Pindah Rombel Siswa</span>
             </h3>
 
@@ -1952,7 +1952,7 @@ export default function RombelManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs transition"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs transition"
                 >
                   Pindahkan Siswa
                 </button>

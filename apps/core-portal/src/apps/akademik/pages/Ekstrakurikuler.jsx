@@ -115,7 +115,7 @@ export default function Ekstrakurikuler() {
           </button>
           <button
             onClick={() => { setErrorMsg(''); setCreateModalOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Ekstrakurikuler</span>
@@ -131,7 +131,7 @@ export default function Ekstrakurikuler() {
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -140,19 +140,19 @@ export default function Ekstrakurikuler() {
       {/* Grid Ekstrakurikuler */}
       {loading ? (
         <div className="py-16 text-center text-slate-400">
-          <Loader2 className="w-7 h-7 animate-spin mx-auto mb-2 text-teal-600" />
+          <Loader2 className="w-7 h-7 animate-spin mx-auto mb-2 text-emerald-600" />
           <span>Memuat data ekstrakurikuler...</span>
         </div>
       ) : extracurriculars.length === 0 ? (
-        <div className="py-16 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+        <div className="py-16 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
           Belum ada data ekstrakurikuler. Klik tombol "Tambah Ekstrakurikuler" di atas.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {extracurriculars.map((ex) => (
-            <div key={ex.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 hover:shadow-md transition">
+            <div key={ex.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4 hover:shadow-md transition">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                   <Activity className="w-5 h-5" />
                 </div>
                 <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded-full">
@@ -178,7 +178,7 @@ export default function Ekstrakurikuler() {
               <div className="pt-2 flex justify-end">
                 <button
                   onClick={() => { setSelectedExtra(ex); setErrorMsg(''); setMemberModalOpen(true); }}
-                  className="w-full py-2 bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5"
+                  className="w-full py-2 bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold rounded-xl border border-slate-200 transition flex items-center justify-center gap-1.5"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Daftarkan Anggota Siswa</span>
@@ -192,7 +192,7 @@ export default function Ekstrakurikuler() {
       {/* Modal Tambah Ekskul */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <h3 className="text-sm font-bold text-slate-800">Tambah Ekstrakurikuler Baru</h3>
               <button onClick={() => setCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -234,7 +234,7 @@ export default function Ekstrakurikuler() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
                 >
                   Simpan Ekstrakurikuler
                 </button>
@@ -247,7 +247,7 @@ export default function Ekstrakurikuler() {
       {/* Modal Tambah Anggota */}
       {memberModalOpen && selectedExtra && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <h3 className="text-sm font-bold text-slate-800">
                 Pendaftaran Anggota: {selectedExtra.name}
@@ -296,7 +296,7 @@ export default function Ekstrakurikuler() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
                 >
                   Daftarkan Siswa
                 </button>

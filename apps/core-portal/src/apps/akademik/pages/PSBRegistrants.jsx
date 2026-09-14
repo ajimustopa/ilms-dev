@@ -219,9 +219,9 @@ export default function PSBRegistrants() {
       case 'placed':
         return { text: 'Diterima Definitif', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
       case 'test_passed':
-        return { text: 'Lulus Tes', bg: 'bg-teal-50 text-teal-700 border-teal-200' };
+        return { text: 'Lulus Tes', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
       case 'testing':
-        return { text: 'Tahap Tes', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+        return { text: 'Tahap Tes', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
       case 'test_failed':
         return { text: 'Belum Lulus Tes', bg: 'bg-amber-50 text-amber-700 border-amber-200' };
       case 'rejected':
@@ -238,7 +238,7 @@ export default function PSBRegistrants() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <Users2 className="w-6 h-6" />
             </div>
             <span>Pendataan Calon Murid & Pendaftar PSB</span>
@@ -250,7 +250,7 @@ export default function PSBRegistrants() {
 
         <button
           onClick={handleOpenManualModal}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-teal-900/20 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Input Pendaftar Manual</span>
@@ -259,7 +259,7 @@ export default function PSBRegistrants() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -272,7 +272,7 @@ export default function PSBRegistrants() {
           <select
             value={filters.psb_process_id}
             onChange={(e) => setFilters({ ...filters, psb_process_id: e.target.value })}
-            className="w-full text-xs rounded-xl border border-slate-200 p-2 font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full text-xs rounded-xl border border-slate-200 p-2 font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             {processes.map((p) => (
               <option key={p.id} value={p.id}>{p.name} ({p.target_academic_year})</option>
@@ -285,7 +285,7 @@ export default function PSBRegistrants() {
           <select
             value={filters.psb_group_id}
             onChange={(e) => setFilters({ ...filters, psb_group_id: e.target.value })}
-            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Semua Gelombang</option>
             {groups.map((g) => (
@@ -299,7 +299,7 @@ export default function PSBRegistrants() {
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Semua Status</option>
             <option value="registered">Terdaftar (Registered)</option>
@@ -316,7 +316,7 @@ export default function PSBRegistrants() {
           <select
             value={filters.source}
             onChange={(e) => setFilters({ ...filters, source: e.target.value })}
-            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full text-xs rounded-xl border border-slate-200 p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Semua Sumber</option>
             <option value="public_website">Website Utama (PPDB Online)</option>
@@ -332,7 +332,7 @@ export default function PSBRegistrants() {
               placeholder="Ketik nama / no reg..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full text-xs rounded-xl border border-slate-200 pl-8 pr-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="w-full text-xs rounded-xl border border-slate-200 pl-8 pr-3 py-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           </div>
@@ -359,7 +359,7 @@ export default function PSBRegistrants() {
               {loading ? (
                 <tr>
                   <td colSpan="8" className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat data calon murid...</span>
                   </td>
                 </tr>
@@ -374,13 +374,13 @@ export default function PSBRegistrants() {
                   const badge = getStatusBadge(r.status);
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/70 transition">
-                      <td className="py-3.5 px-4 font-mono font-bold text-teal-700">
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
                         {r.registration_number}
                       </td>
                       <td className="py-3.5 px-4">
                         <Link
                           to={`/akademik/psb/pendataan/${r.id}`}
-                          className="font-bold text-slate-900 hover:text-teal-600 transition block"
+                          className="font-bold text-slate-900 hover:text-emerald-600 transition block"
                         >
                           {r.full_name}
                         </Link>
@@ -390,16 +390,16 @@ export default function PSBRegistrants() {
                       </td>
                       <td className="py-3.5 px-4 font-bold">
                         {r.candidate_gender === 'L' ? (
-                          <span className="text-blue-600">Laki-laki</span>
+                          <span className="text-indigo-600">Laki-laki</span>
                         ) : (
-                          <span className="text-pink-600">Perempuan</span>
+                          <span className="text-rose-700">Perempuan</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-semibold text-slate-800 text-[11px]">
                           {r.psb_group_name || <span className="text-slate-400 italic">Belum di-assign</span>}
                         </div>
-                        <div className="text-[10px] text-teal-600 font-medium">
+                        <div className="text-[10px] text-emerald-600 font-medium">
                           {r.fee_group_name_snapshot || 'Biaya Standar'}
                         </div>
                       </td>
@@ -437,7 +437,7 @@ export default function PSBRegistrants() {
                           </button>
                           <Link
                             to={`/akademik/psb/pendataan/${r.id}`}
-                            className="p-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 transition"
+                            className="p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition"
                             title="Lihat Detail Lengkap"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -471,7 +471,7 @@ export default function PSBRegistrants() {
                     required
                     value={manualForm.full_name}
                     onChange={(e) => setManualForm({ ...manualForm, full_name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                     placeholder="Nama sesuai akta"
                   />
                 </div>
@@ -482,7 +482,7 @@ export default function PSBRegistrants() {
                     type="text"
                     value={manualForm.nisn}
                     onChange={(e) => setManualForm({ ...manualForm, nisn: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                     placeholder="10 digit nomor NISN"
                   />
                 </div>
@@ -492,7 +492,7 @@ export default function PSBRegistrants() {
                   <select
                     value={manualForm.candidate_gender}
                     onChange={(e) => setManualForm({ ...manualForm, candidate_gender: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none font-bold"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none font-bold"
                   >
                     <option value="L">Laki-laki (Ikhwan)</option>
                     <option value="P">Perempuan (Akhwat)</option>
@@ -505,7 +505,7 @@ export default function PSBRegistrants() {
                     type="text"
                     value={manualForm.candidate_birth_place}
                     onChange={(e) => setManualForm({ ...manualForm, candidate_birth_place: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -515,7 +515,7 @@ export default function PSBRegistrants() {
                     type="date"
                     value={manualForm.candidate_birth_date}
                     onChange={(e) => setManualForm({ ...manualForm, candidate_birth_date: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -525,7 +525,7 @@ export default function PSBRegistrants() {
                     type="text"
                     value={manualForm.previous_school_name}
                     onChange={(e) => setManualForm({ ...manualForm, previous_school_name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                     placeholder="SDIT / SMP sebelumnya"
                   />
                 </div>
@@ -536,7 +536,7 @@ export default function PSBRegistrants() {
                     type="text"
                     value={manualForm.father_name}
                     onChange={(e) => setManualForm({ ...manualForm, father_name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -547,7 +547,7 @@ export default function PSBRegistrants() {
                     required
                     value={manualForm.parent_contact}
                     onChange={(e) => setManualForm({ ...manualForm, parent_contact: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                     placeholder="0812-xxxx-xxxx"
                   />
                 </div>
@@ -564,7 +564,7 @@ export default function PSBRegistrants() {
                 <button
                   type="submit"
                   disabled={savingManual}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {savingManual ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   <span>Daftarkan Sekarang</span>
@@ -592,7 +592,7 @@ export default function PSBRegistrants() {
                 <select
                   value={assignForm.psb_group_id}
                   onChange={(e) => setAssignForm({ ...assignForm, psb_group_id: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="">-- Pilih Gelombang --</option>
                   {groups.map((g) => (
@@ -606,7 +606,7 @@ export default function PSBRegistrants() {
                 <select
                   value={assignForm.fee_group_id}
                   onChange={(e) => setAssignForm({ ...assignForm, fee_group_id: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="">-- Standar Biaya Unit --</option>
                   {feeGroups.map((f) => (
@@ -626,7 +626,7 @@ export default function PSBRegistrants() {
                 <button
                   type="submit"
                   disabled={savingAssign}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {savingAssign ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>Simpan Perubahan</span>
@@ -641,7 +641,7 @@ export default function PSBRegistrants() {
       {accountResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
           <div className="bg-slate-900 text-white rounded-3xl max-w-sm w-full p-6 border border-slate-800 shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
               <KeyRound className="w-6 h-6" />
             </div>
             <div>
@@ -651,7 +651,7 @@ export default function PSBRegistrants() {
               </p>
             </div>
 
-            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 space-y-2 text-xs font-mono text-left">
+            <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-2 text-xs font-mono text-left">
               <div className="flex justify-between">
                 <span className="text-slate-400">Username:</span>
                 <span className="font-bold text-white">{accountResultModal.username}</span>

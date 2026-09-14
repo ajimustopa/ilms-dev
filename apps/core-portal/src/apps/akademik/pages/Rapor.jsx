@@ -152,7 +152,7 @@ export default function Rapor() {
           <button
             onClick={handleGenerateClassReports}
             disabled={generating || !selectedClassId}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition"
           >
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             <span>Generate Rapor Rombel Ini</span>
@@ -168,20 +168,20 @@ export default function Rapor() {
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Filter Panel */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
         <div className="w-full sm:w-56">
           <label className="block text-[10px] font-semibold text-slate-500 mb-1">Pilih Rombel:</label>
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
           >
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -192,7 +192,7 @@ export default function Rapor() {
           <select
             value={selectedSemesterId}
             onChange={(e) => setSelectedSemesterId(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 font-semibold"
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
           >
             {semesters.map(s => (
               <option key={s.id} value={s.id}>
@@ -207,7 +207,7 @@ export default function Rapor() {
           <select
             value={selectedDataSource}
             onChange={(e) => setSelectedDataSource(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="">Semua Sumber Data</option>
             <option value="generated">Digenerate Sistem (Otomatis)</option>
@@ -218,7 +218,7 @@ export default function Rapor() {
       </div>
 
       {/* Tabel Data Rapor */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
@@ -236,7 +236,7 @@ export default function Rapor() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat daftar rapor...</span>
                   </td>
                 </tr>
@@ -251,10 +251,10 @@ export default function Rapor() {
                   const isLegacy = !!report.is_legacy;
                   const sourceBadge =
                     report.data_source === 'bulk_import'
-                      ? { text: 'Impor Riwayat', bg: 'bg-purple-50 text-purple-700 border-purple-200' }
+                      ? { text: 'Impor Riwayat', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
                       : report.data_source === 'manual_input'
                       ? { text: 'Input Manual', bg: 'bg-amber-50 text-amber-700 border-amber-200' }
-                      : { text: 'Digenerate', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+                      : { text: 'Digenerate', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
 
                   return (
                     <tr key={report.id} className="hover:bg-slate-50/80 transition-colors">
@@ -288,14 +288,14 @@ export default function Rapor() {
                         <button
                           onClick={() => handleViewDetail(report.id)}
                           title="Lihat Detail Nilai Lengkap"
-                          className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                          className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenNoteModal(report)}
                           title="Tulis Catatan Wali Kelas"
-                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -312,7 +312,7 @@ export default function Rapor() {
       {/* Modal Detail Rapor Lengkap */}
       {detailModalOpen && selectedReportDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
@@ -349,7 +349,7 @@ export default function Rapor() {
                           <div className="text-[10px] text-slate-400 font-normal">{s.subject_code || ''}</div>
                         </td>
                         <td className="py-2.5 px-3 text-slate-500 text-center align-top">{s.kkm_snapshot || 75}</td>
-                        <td className="py-2.5 px-3 font-extrabold text-teal-700 text-sm text-center align-top">{s.score || '-'}</td>
+                        <td className="py-2.5 px-3 font-extrabold text-emerald-700 text-sm text-center align-top">{s.score || '-'}</td>
                         <td className="py-2.5 px-3 font-bold text-slate-700 text-center align-top">{s.predikat || '-'}</td>
                         <td className="py-2.5 px-3 text-slate-700 text-xs leading-relaxed align-top">
                           {s.notes ? (
@@ -376,7 +376,7 @@ export default function Rapor() {
                             <div className="text-[10px] text-slate-400 font-normal">{s.code || s.score_type?.toUpperCase()}</div>
                           </td>
                           <td className="py-2.5 px-3 text-slate-500 text-center align-top">{s.kkm || 75}</td>
-                          <td className="py-2.5 px-3 font-extrabold text-teal-700 text-sm text-center align-top">{s.score || '-'}</td>
+                          <td className="py-2.5 px-3 font-extrabold text-emerald-700 text-sm text-center align-top">{s.score || '-'}</td>
                           <td className="py-2.5 px-3 font-bold text-slate-700 text-center align-top">-</td>
                           <td className="py-2.5 px-3 text-slate-700 text-xs leading-relaxed align-top">
                             {s.competency_description ? (
@@ -414,13 +414,13 @@ export default function Rapor() {
                     {selectedReportDetail.tp_scores.map(tp => (
                       <tr key={tp.id}>
                         <td className="py-2 px-3 font-semibold text-slate-700">{tp.subject_name}</td>
-                        <td className="py-2 px-3 font-bold text-teal-800">{tp.tp_code}</td>
+                        <td className="py-2 px-3 font-bold text-emerald-800">{tp.tp_code}</td>
                         <td className="py-2 px-3 text-slate-600">{tp.tp_description}</td>
                         <td className="py-2 px-3 font-bold text-slate-800">{tp.score !== null ? tp.score : '-'}</td>
                         <td className="py-2 px-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             tp.mastery_status === 'tercapai_optimal' ? 'bg-emerald-100 text-emerald-800' :
-                            tp.mastery_status === 'tercapai' ? 'bg-teal-100 text-teal-800' :
+                            tp.mastery_status === 'tercapai' ? 'bg-emerald-100 text-emerald-800' :
                             tp.mastery_status === 'cukup' ? 'bg-amber-100 text-amber-800' :
                             'bg-rose-100 text-rose-800'
                           }`}>
@@ -448,7 +448,7 @@ export default function Rapor() {
       {/* Modal Input Catatan Wali */}
       {noteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">Catatan Wali Kelas</h3>
               <button onClick={() => setNoteModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -467,7 +467,7 @@ export default function Rapor() {
                   value={noteForm.homeroom_note}
                   onChange={(e) => setNoteForm({ ...noteForm, homeroom_note: e.target.value })}
                   placeholder="Tuliskan catatan kemajuan belajar, kedisiplinan, dan motivasi untuk siswa..."
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -481,7 +481,7 @@ export default function Rapor() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm"
                 >
                   Simpan Catatan
                 </button>

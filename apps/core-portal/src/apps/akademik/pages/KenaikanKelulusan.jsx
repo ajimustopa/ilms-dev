@@ -202,7 +202,7 @@ export default function KenaikanKelulusan() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <GraduationCap className="w-6 h-6" />
             </div>
             <span>Kenaikan Kelas & Kelulusan Santri</span>
@@ -213,7 +213,7 @@ export default function KenaikanKelulusan() {
         </div>
 
         {/* Workflow Switcher */}
-        <div className="inline-flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold self-start sm:self-auto">
+        <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setWorkflowMode('promotion')}
@@ -230,7 +230,7 @@ export default function KenaikanKelulusan() {
             onClick={() => setWorkflowMode('graduation')}
             className={`px-4 py-2 rounded-xl transition ${
               workflowMode === 'graduation'
-                ? 'bg-teal-600 text-white shadow-md shadow-teal-900/20'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/20'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -241,13 +241,13 @@ export default function KenaikanKelulusan() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
           <p className="font-semibold">{successMsg}</p>
         </div>
       )}
       {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <p className="font-semibold">{errorMsg}</p>
         </div>
@@ -328,7 +328,7 @@ export default function KenaikanKelulusan() {
                 required
                 value={graduationDate}
                 onChange={(e) => setGraduationDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-teal-700 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-emerald-700 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -341,7 +341,7 @@ export default function KenaikanKelulusan() {
                 required
                 value={decreeNumber}
                 onChange={(e) => setDecreeNumber(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-slate-800 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-300 p-2.5 font-mono font-bold text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                 placeholder="mis. SK/2026/088/LULUS"
               />
             </div>
@@ -389,7 +389,7 @@ export default function KenaikanKelulusan() {
               <button
                 type="button"
                 onClick={() => handleSetAllAction('graduate')}
-                className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-teal-700 font-bold transition flex items-center gap-1 text-[11px]"
+                className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-emerald-700 font-bold transition flex items-center gap-1 text-[11px]"
               >
                 <Award className="w-3.5 h-3.5" />
                 <span>Set Semua Lulus</span>
@@ -480,7 +480,7 @@ export default function KenaikanKelulusan() {
                             <option value="retain">Tinggal Kelas (Retain)</option>
                           </select>
                         ) : (
-                          <span className="text-[11px] font-bold px-3 py-1 bg-teal-50 text-teal-800 rounded-full border border-teal-200">
+                          <span className="text-[11px] font-bold px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
                             Lulus (Alumni)
                           </span>
                         )}

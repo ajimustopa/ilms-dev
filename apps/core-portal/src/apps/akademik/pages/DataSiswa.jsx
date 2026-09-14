@@ -560,7 +560,7 @@ export default function DataSiswa() {
           </button>
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Siswa Baru</span>
@@ -577,7 +577,7 @@ export default function DataSiswa() {
       )}
 
       {/* Toolbar Filter & Pencarian */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
           <div className="relative w-full sm:w-80">
             <input
@@ -585,25 +585,25 @@ export default function DataSiswa() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari nama, NIS, atau NISN..."
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
 
           {/* Badge Jumlah Data Ditampilkan */}
           <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 whitespace-nowrap self-start sm:self-auto shadow-2xs">
-            <Users className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>
-              Menampilkan: <strong className="text-teal-700 font-bold">{students.length}</strong> Siswa
+              Menampilkan: <strong className="text-emerald-700 font-bold">{students.length}</strong> Siswa
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {/* Filter Tahun Ajaran (Periodik) */}
-          <div className="flex items-center bg-teal-50/80 hover:bg-teal-50 border border-teal-200/90 rounded-2xl p-1 shadow-2xs transition">
-            <div className="flex items-center gap-1.5 pl-2.5 pr-1 text-teal-900 font-bold text-xs shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-teal-600" />
+          <div className="flex items-center bg-emerald-50/80 hover:bg-emerald-50 border border-emerald-200/90 rounded-xl p-1 shadow-2xs transition">
+            <div className="flex items-center gap-1.5 pl-2.5 pr-1 text-emerald-900 font-bold text-xs shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">T.A.:</span>
             </div>
             <div className="min-w-[190px] sm:min-w-[215px]">
@@ -641,7 +641,7 @@ export default function DataSiswa() {
           <select
             value={rombelFilter}
             onChange={(e) => setRombelFilter(e.target.value)}
-            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
             title="Filter Berdasarkan Rombongan Belajar (Rombel)"
           >
             <option value="">Semua Rombel</option>
@@ -656,7 +656,7 @@ export default function DataSiswa() {
           <select
             value={registrationTypeFilter}
             onChange={(e) => setRegistrationTypeFilter(e.target.value)}
-            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto font-medium text-slate-700 shadow-2xs"
             title="Filter Berdasarkan Jenis Pendaftaran"
           >
             <option value="">Semua Jenis Pendaftaran</option>
@@ -667,7 +667,7 @@ export default function DataSiswa() {
           <select
             value={cohortFilter}
             onChange={(e) => setCohortFilter(e.target.value)}
-            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto font-semibold"
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto font-semibold"
           >
             <option value="">Semua Angkatan</option>
             {cohorts.map((c) => (
@@ -680,7 +680,7 @@ export default function DataSiswa() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-auto"
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto"
           >
             <option value="">Semua Status</option>
             <option value="aktif">Aktif</option>
@@ -693,7 +693,7 @@ export default function DataSiswa() {
       </div>
 
       {/* Tabel Data Siswa */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto max-h-[calc(100vh-280px)] overflow-y-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
@@ -705,7 +705,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>NIS / NISN</span>
                     {sortField === 'nis' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -718,7 +718,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Nama Lengkap</span>
                     {sortField === 'full_name' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -731,7 +731,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Rombel Reguler</span>
                     {sortField === 'class_group_name' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -744,7 +744,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Jenis Kelamin</span>
                     {sortField === 'gender' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -757,7 +757,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Jenis Pendaftaran</span>
                     {sortField === 'registration_type' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -770,7 +770,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Tempat, Tgl Lahir</span>
                     {sortField === 'birth_date' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -783,7 +783,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Status Siswa</span>
                     {sortField === 'status' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -796,7 +796,7 @@ export default function DataSiswa() {
                   <div className="flex items-center gap-1.5">
                     <span>Status Dapodik</span>
                     {sortField === 'dapodik_status' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-teal-600" /> : <ArrowDown className="w-3.5 h-3.5 text-teal-600" />
+                      sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-40" />
                     )}
@@ -809,7 +809,7 @@ export default function DataSiswa() {
               {loading ? (
                 <tr>
                   <td colSpan={9} className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat data siswa...</span>
                   </td>
                 </tr>
@@ -845,14 +845,14 @@ export default function DataSiswa() {
                         <span className="text-slate-400 font-mono text-xs font-semibold">-</span>
                       ) : student.class_group_name ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-teal-50 text-teal-800 border border-teal-200/90 shadow-2xs">
-                            <Layers className="w-3 h-3 text-teal-600 shrink-0" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs">
+                            <Layers className="w-3 h-3 text-emerald-600 shrink-0" />
                             <span>{student.class_group_name}</span>
                           </span>
                           <button
                             onClick={() => handleOpenAssignRombelModal(student)}
                             title="Pindah / Ganti Rombel"
-                            className="p-1 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition border border-transparent hover:border-teal-200"
+                            className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition border border-transparent hover:border-emerald-200"
                           >
                             <ArrowRightLeft className="w-3 h-3" />
                           </button>
@@ -864,7 +864,7 @@ export default function DataSiswa() {
                           </span>
                           <button
                             onClick={() => handleOpenAssignRombelModal(student)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-2xs transition active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition active:scale-95"
                             title="Masukkan Siswa ke Rombel"
                           >
                             <UserPlus className="w-3 h-3" />
@@ -875,7 +875,7 @@ export default function DataSiswa() {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-md ${
-                        student.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
+                        student.gender === 'L' ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700'
                       }`}>
                         {student.gender === 'L' ? 'Laki-Laki' : 'Perempuan'}
                       </span>
@@ -911,7 +911,7 @@ export default function DataSiswa() {
                     </td>
                     <td className="py-3 px-4">
                       {student.dapodik_status === 'sudah_masuk_dapodik' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                           Sudah Dapodik
                         </span>
                       )}
@@ -937,14 +937,14 @@ export default function DataSiswa() {
                       <button
                         onClick={() => handleOpenGuardianModal(student)}
                         title="Kelola Orang Tua / Wali Cepat"
-                        className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                        className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                       >
                         <Users className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleOpenEditModal(student)}
                         title="Edit Cepat"
-                        className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -960,7 +960,7 @@ export default function DataSiswa() {
       {/* Modal Tambah / Edit Siswa */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {editingStudent ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}
@@ -971,7 +971,7 @@ export default function DataSiswa() {
             </div>
 
             {errorMsg && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -988,7 +988,7 @@ export default function DataSiswa() {
                     required
                     value={formData.nis}
                     onChange={(e) => setFormData({ ...formData, nis: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="Contoh: 202601004"
                   />
                 </div>
@@ -1000,7 +1000,7 @@ export default function DataSiswa() {
                     type="text"
                     value={formData.nisn}
                     onChange={(e) => setFormData({ ...formData, nisn: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="10 digit nomor NISN"
                   />
                 </div>
@@ -1016,7 +1016,7 @@ export default function DataSiswa() {
                     required
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     placeholder="Masukkan nama lengkap siswa..."
                   />
                 </div>
@@ -1034,7 +1034,7 @@ export default function DataSiswa() {
                         cohort_name: selectedCohort?.name || ''
                       });
                     }}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-semibold"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold"
                   >
                     <option value="">-- Pilih Angkatan --</option>
                     {cohorts.map((c) => (
@@ -1054,7 +1054,7 @@ export default function DataSiswa() {
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
                     <option value="L">Laki-Laki</option>
                     <option value="P">Perempuan</option>
@@ -1067,7 +1067,7 @@ export default function DataSiswa() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
                     <option value="aktif">Aktif</option>
                     <option value="calon">Calon</option>
@@ -1104,7 +1104,7 @@ export default function DataSiswa() {
                         setAvailableClassGroups([]);
                       }
                     }}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-semibold"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold"
                   >
                     <option value="">-- Pilih Tahun Ajaran --</option>
                     {academicYears.map((ay) => (
@@ -1121,7 +1121,7 @@ export default function DataSiswa() {
                   <select
                     value={formData.class_group_id || ''}
                     onChange={(e) => setFormData({ ...formData, class_group_id: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-semibold"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold"
                   >
                     <option value="">-- Belum Masuk Rombel --</option>
                     {availableClassGroups.map((cg) => (
@@ -1143,7 +1143,7 @@ export default function DataSiswa() {
                     <select
                       value={formData.registration_type}
                       onChange={(e) => setFormData({ ...formData, registration_type: e.target.value })}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-bold text-teal-800"
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-bold text-emerald-800"
                     >
                       <option value="Siswa Baru">Siswa Baru</option>
                       <option value="Siswa Pindahan">Siswa Pindahan</option>
@@ -1173,7 +1173,7 @@ export default function DataSiswa() {
                         required
                         value={formData.initial_grade_level_id || ''}
                         onChange={(e) => setFormData({ ...formData, initial_grade_level_id: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white font-semibold text-slate-800"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold text-slate-800"
                       >
                         <option value="">-- Pilih Kelas Masuk --</option>
                         {gradeLevels.map((gl) => (
@@ -1192,7 +1192,7 @@ export default function DataSiswa() {
                         type="text"
                         value={formData.previous_school_name}
                         onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                         placeholder="Contoh: SMP Negeri 1 / MTs..."
                       />
                     </div>
@@ -1205,7 +1205,7 @@ export default function DataSiswa() {
                         type="text"
                         value={formData.previous_school_address}
                         onChange={(e) => setFormData({ ...formData, previous_school_address: e.target.value })}
-                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                         placeholder="Alamat sekolah asal siswa pindahan..."
                       />
                     </div>
@@ -1221,7 +1221,7 @@ export default function DataSiswa() {
                       type="text"
                       value={formData.previous_school_name}
                       onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                       placeholder="Contoh: SDN 01 Depok / MI..."
                     />
                   </div>
@@ -1237,7 +1237,7 @@ export default function DataSiswa() {
                     type="text"
                     value={formData.birth_place}
                     onChange={(e) => setFormData({ ...formData, birth_place: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1260,7 +1260,7 @@ export default function DataSiswa() {
                   rows={2}
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="Alamat domisili lengkap..."
                 />
               </div>
@@ -1276,7 +1276,7 @@ export default function DataSiswa() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingStudent ? 'Simpan Perubahan' : 'Tambah Siswa'}</span>
@@ -1290,7 +1290,7 @@ export default function DataSiswa() {
       {/* Modal Kelola Orang Tua / Wali */}
       {guardianModalOpen && selectedStudentForGuardian && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
@@ -1314,14 +1314,14 @@ export default function DataSiswa() {
                     <div key={g.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-800">{g.full_name}</span>
-                        <span className="text-[10px] px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full font-semibold uppercase">
+                        <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-semibold uppercase">
                           {g.relationship}
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500">Pekerjaan: {g.occupation || '-'}</div>
                       <div className="text-[11px] text-slate-500">Kontak: {g.phone || '-'}</div>
                       {g.is_primary_contact && (
-                        <span className="inline-block text-[9px] text-teal-600 font-bold bg-teal-50 px-1.5 py-0.5 rounded">
+                        <span className="inline-block text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
                           Kontak Utama
                         </span>
                       )}
@@ -1345,7 +1345,7 @@ export default function DataSiswa() {
                       required
                       value={guardianForm.full_name}
                       onChange={(e) => setGuardianForm({ ...guardianForm, full_name: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 font-medium"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                     />
                   </div>
                   <div>
@@ -1355,7 +1355,7 @@ export default function DataSiswa() {
                     <select
                       value={guardianForm.relationship}
                       onChange={(e) => setGuardianForm({ ...guardianForm, relationship: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                     >
                       <option value="ayah">Ayah</option>
                       <option value="ibu">Ibu</option>
@@ -1374,7 +1374,7 @@ export default function DataSiswa() {
                       type="text"
                       value={guardianForm.phone}
                       onChange={(e) => setGuardianForm({ ...guardianForm, phone: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -1385,7 +1385,7 @@ export default function DataSiswa() {
                       type="text"
                       value={guardianForm.occupation}
                       onChange={(e) => setGuardianForm({ ...guardianForm, occupation: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -1394,7 +1394,7 @@ export default function DataSiswa() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
                   >
                     {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     <span>Simpan & Kaitkan Wali</span>
@@ -1409,10 +1409,10 @@ export default function DataSiswa() {
       {/* Modal Masukkan / Pindah Siswa ke Rombel */}
       {assignRombelModalOpen && selectedStudentForRombel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-teal-600" />
+                <UserPlus className="w-4 h-4 text-emerald-600" />
                 <span>{selectedStudentForRombel.class_group_name ? 'Pindah Rombel Siswa' : 'Masukkan Siswa ke Rombel'}</span>
               </h3>
               <button
@@ -1434,7 +1434,7 @@ export default function DataSiswa() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500 font-medium">Rombel Saat Ini:</span>
-                <span className="font-bold text-teal-700">
+                <span className="font-bold text-emerald-700">
                   {selectedStudentForRombel.class_group_name || 'Belum Masuk Rombel'}
                 </span>
               </div>
@@ -1449,7 +1449,7 @@ export default function DataSiswa() {
                   required
                   value={targetClassGroupId}
                   onChange={(e) => setTargetClassGroupId(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">-- Pilih Rombel --</option>
                   {availableClassGroups.map((cg) => (
@@ -1476,7 +1476,7 @@ export default function DataSiswa() {
                 <button
                   type="submit"
                   disabled={savingRombel || !targetClassGroupId}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-300 text-white rounded-xl font-semibold shadow-xs transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl font-semibold shadow-xs transition flex items-center gap-1.5"
                 >
                   {savingRombel && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Simpan ke Rombel</span>
@@ -1490,7 +1490,7 @@ export default function DataSiswa() {
       {/* Modal Kenaikan Kelas / Roll-over Tahun Ajaran */}
       {promoteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />

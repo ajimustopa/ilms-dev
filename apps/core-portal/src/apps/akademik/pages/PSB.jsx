@@ -72,14 +72,14 @@ export default function PSB() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Banner & Hub Header */}
-      <div className="bg-gradient-to-r from-teal-900 via-slate-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-teal-800/40">
+      <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-emerald-800/40">
         {/* Ambient Decorative Background */}
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute left-1/3 bottom-0 -mb-10 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-[11px] font-bold tracking-wide uppercase">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-bold tracking-wide uppercase">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Sistem Penerimaan Murid Baru (PSB / PMB)</span>
             </div>
@@ -92,8 +92,8 @@ export default function PSB() {
           </div>
 
           {/* Quick Stats / Info Widget */}
-          <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl shrink-0 self-start md:self-auto">
-            <div className="w-10 h-10 rounded-xl bg-teal-600/30 border border-teal-400/40 flex items-center justify-center text-teal-300">
+          <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 p-3.5 rounded-xl shrink-0 self-start md:self-auto">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
               <Compass className="w-5 h-5" />
             </div>
             <div>
@@ -115,13 +115,13 @@ export default function PSB() {
                 key={tab.key}
                 type="button"
                 onClick={() => handleTabChange(tab.key)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-teal-500 text-slate-950 shadow-lg shadow-teal-500/25 font-black scale-[1.02]'
+                    ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-teal-500/25 font-black scale-[1.02]'
                     : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white border border-white/5'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-teal-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-emerald-400'}`} />
                 <span>{idx + 1}. {tab.label}</span>
               </button>
             );

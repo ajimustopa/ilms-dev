@@ -121,7 +121,7 @@ export default function Kesiswaan() {
           </button>
           <button
             onClick={() => { setErrorMsg(''); setModalOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
             <span>
@@ -140,7 +140,7 @@ export default function Kesiswaan() {
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -151,7 +151,7 @@ export default function Kesiswaan() {
         <button
           onClick={() => setActiveTab('disciplinary')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-            activeTab === 'disciplinary' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+            activeTab === 'disciplinary' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
@@ -160,7 +160,7 @@ export default function Kesiswaan() {
         <button
           onClick={() => setActiveTab('achievements')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-            activeTab === 'achievements' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+            activeTab === 'achievements' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Award className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function Kesiswaan() {
           <button
             onClick={() => setActiveTab('counseling')}
             className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-              activeTab === 'counseling' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+              activeTab === 'counseling' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
             <HeartHandshake className="w-4 h-4" />
@@ -180,10 +180,10 @@ export default function Kesiswaan() {
       </div>
 
       {/* Table Data */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-5">
         {loading ? (
           <div className="py-12 text-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
             <span>Memuat data kesiswaan...</span>
           </div>
         ) : dataList.length === 0 ? (
@@ -209,7 +209,7 @@ export default function Kesiswaan() {
                       <td className="py-3 px-4 font-mono text-slate-600">{d.incident_date?.split('T')[0]}</td>
                       <td className="py-3 px-4 font-bold text-slate-800">{d.student_name}</td>
                       <td className="py-3 px-4 text-slate-700">{d.violation_type}</td>
-                      <td className="py-3 px-4 font-bold text-red-600">+{d.points} Poin</td>
+                      <td className="py-3 px-4 font-bold text-rose-600">+{d.points} Poin</td>
                       <td className="py-3 px-4 text-slate-600">{d.notes || '-'}</td>
                     </tr>
                   ))}
@@ -233,7 +233,7 @@ export default function Kesiswaan() {
                     <tr key={a.id}>
                       <td className="py-3 px-4 font-mono text-slate-600">{a.achieved_at?.split('T')[0]}</td>
                       <td className="py-3 px-4 font-bold text-slate-800">{a.student_name}</td>
-                      <td className="py-3 px-4 font-semibold text-teal-800">{a.achievement_type}</td>
+                      <td className="py-3 px-4 font-semibold text-emerald-800">{a.achievement_type}</td>
                       <td className="py-3 px-4 uppercase text-[10px] font-bold text-slate-600">{a.level || '-'}</td>
                       <td className="py-3 px-4 text-slate-600">{a.notes || '-'}</td>
                     </tr>
@@ -277,7 +277,7 @@ export default function Kesiswaan() {
       {/* Modal Form Tambah Data */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <h3 className="text-sm font-bold text-slate-800 border-b pb-2">
               {activeTab === 'disciplinary' ? 'Catat Pelanggaran Siswa' :
                activeTab === 'achievements' ? 'Catat Prestasi Siswa' : 'Catat Sesi Bimbingan Konseling'}
@@ -442,7 +442,7 @@ export default function Kesiswaan() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl"
                 >
                   Simpan Data
                 </button>

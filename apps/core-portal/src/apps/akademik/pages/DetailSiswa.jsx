@@ -503,7 +503,7 @@ export default function DetailSiswa() {
   return (
     <div className="space-y-6 pb-16">
       {/* Header Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <button
             onClick={() => navigate('/akademik/students')}
@@ -519,7 +519,7 @@ export default function DetailSiswa() {
                 NIS: {student?.nis}
               </span>
               {formData.dapodik_status === 'sudah_masuk_dapodik' && (
-                <span className="text-[11px] px-2 py-0.5 rounded-md font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-[11px] px-2 py-0.5 rounded-md font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Sudah Dapodik
                 </span>
               )}
@@ -604,7 +604,7 @@ export default function DetailSiswa() {
       {/* TAB 1: IDENTITAS & KONTAK SISWA */}
       {activeTab === 'pribadi' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-6">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
               <User className="w-4 h-4 text-emerald-600" />
               <span>Data Pokok & Identitas Pribadi Siswa</span>
@@ -883,7 +883,7 @@ export default function DetailSiswa() {
           </div>
 
           {/* Alamat Domisili & Kontak */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
               <Home className="w-4 h-4 text-emerald-600" />
               <span>Alamat Tempat Tinggal & Kontak Siswa</span>
@@ -1002,7 +1002,7 @@ export default function DetailSiswa() {
       {activeTab === 'fisik' && (
         <div className="space-y-6">
           {/* Data Fisik Pokok */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
               <Heart className="w-4 h-4 text-rose-500" />
               <span>Data Fisik & Catatan Kesehatan Siswa</span>
@@ -1072,7 +1072,7 @@ export default function DetailSiswa() {
           </div>
 
           {/* Riwayat Update Fisik Periodik */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1143,7 +1143,7 @@ export default function DetailSiswa() {
       {/* TAB 3: DATA ORANG TUA & WALI */}
       {activeTab === 'ortu' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1193,7 +1193,7 @@ export default function DetailSiswa() {
                         {g.relationship === 'ayah' ? 'Ayah Kandung' : g.relationship === 'ibu' ? 'Ibu Kandung' : 'Wali Murid'}
                       </span>
                       {g.validation_status === 'verified' ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-md">
                           Terverifikasi
                         </span>
                       ) : (
@@ -1294,7 +1294,7 @@ export default function DetailSiswa() {
       {activeTab === 'kelembagaan' && (
         <div className="space-y-6">
           {/* Data Registrasi Masuk */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2">
               <Building className="w-4 h-4 text-emerald-600" />
               <span>Data Kelembagaan & Registrasi Masuk Siswa</span>
@@ -1368,7 +1368,7 @@ export default function DetailSiswa() {
           </div>
 
           {/* Kelengkapan Berkas & Unggah Dokumen Scan */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1430,9 +1430,9 @@ export default function DetailSiswa() {
                               ...formData,
                               document_checklist: { ...formData.document_checklist, [verKey]: e.target.checked }
                             })}
-                            className="rounded text-blue-600 focus:ring-0"
+                            className="rounded text-indigo-600 focus:ring-0"
                           />
-                          <span className="text-[11px] text-blue-700 font-bold">Verifikasi</span>
+                          <span className="text-[11px] text-indigo-700 font-bold">Verifikasi</span>
                         </label>
                       </div>
                     </div>
@@ -1498,7 +1498,7 @@ export default function DetailSiswa() {
 
       {/* TAB 5: KELENGKAPAN REKAP & SCAN RAPOR PER SEMESTER */}
       {activeTab === 'rapor' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1598,16 +1598,16 @@ export default function DetailSiswa() {
                               updated[idx].din_status = e.target.checked;
                               setReportRecaps(updated);
                             }}
-                            className="w-4 h-4 rounded text-blue-600 focus:ring-0"
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
                           />
-                          <span className={`text-[11px] font-bold ${item.din_status ? 'text-blue-700' : 'text-slate-400'}`}>
+                          <span className={`text-[11px] font-bold ${item.din_status ? 'text-indigo-700' : 'text-slate-400'}`}>
                             {item.din_status ? 'Lengkap (DIN)' : 'Belum Ada'}
                           </span>
                         </label>
 
                         <div className="flex items-center gap-1.5">
                           <label className="px-2 py-0.5 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold text-slate-600 cursor-pointer flex items-center gap-1">
-                            <UploadCloud className="w-3 h-3 text-blue-600" />
+                            <UploadCloud className="w-3 h-3 text-indigo-600" />
                             <span>{item.file_url_din ? 'Ganti Scan' : 'Upload Scan DIN'}</span>
                             <input
                               type="file"
@@ -1625,7 +1625,7 @@ export default function DetailSiswa() {
                             <button
                               type="button"
                               onClick={() => setPreviewFile({ name: `Rapor DIN - ${item.grade_name} ${item.semester}`, url: item.file_url_din })}
-                              className="p-1 text-blue-600 hover:text-blue-800"
+                              className="p-1 text-indigo-600 hover:text-indigo-800"
                               title="Lihat Berkas Scan DIN"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -1659,7 +1659,7 @@ export default function DetailSiswa() {
       {/* TAB 6: KELULUSAN & PINDAH KELUAR */}
       {activeTab === 'kelulusan' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1749,7 +1749,7 @@ export default function DetailSiswa() {
       {/* TAB 7: RIWAYAT ROMBEL & KENAIKAN KELAS */}
       {activeTab === 'riwayat_rombel' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1763,7 +1763,7 @@ export default function DetailSiswa() {
             </div>
 
             {classHistory.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <History className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                 <p className="text-xs font-semibold">Belum ada catatan riwayat rombel tersimpan untuk santri ini.</p>
               </div>
@@ -1784,11 +1784,11 @@ export default function DetailSiswa() {
                     {classHistory.map((h) => {
                       let typeBadge = { text: 'Manual', bg: 'bg-slate-50 text-slate-700 border-slate-200' };
                       if (h.enrollment_type === 'psb_placement') {
-                        typeBadge = { text: 'PSB Masuk', bg: 'bg-teal-50 text-teal-700 border-teal-200' };
+                        typeBadge = { text: 'PSB Masuk', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
                       } else if (h.enrollment_type === 'promotion') {
                         typeBadge = { text: 'Kenaikan Kelas', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
                       } else if (h.enrollment_type === 'transfer') {
-                        typeBadge = { text: 'Transfer / Pindah', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+                        typeBadge = { text: 'Transfer / Pindah', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
                       }
 
                       return (
@@ -1830,7 +1830,7 @@ export default function DetailSiswa() {
       {/* TAB 8: RIWAYAT RAPOR & NILAI SEMESTER (LINTAS TAHUN AJARAN) */}
       {activeTab === 'riwayat_rapor' && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1870,7 +1870,7 @@ export default function DetailSiswa() {
                   return (
                     <div
                       key={rc.id}
-                      className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs transition hover:border-indigo-200"
+                      className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs transition hover:border-indigo-200"
                     >
                       {/* Header Kartu Rapor */}
                       <div className="p-4 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
@@ -1983,7 +1983,7 @@ export default function DetailSiswa() {
       {/* MODAL PREVIEW FILE SCAN */}
       {previewFile && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Eye className="w-4 h-4 text-emerald-600" />
@@ -2029,7 +2029,7 @@ export default function DetailSiswa() {
       {/* MODAL TAMBAH DATA FISIK PERIODIK */}
       {showPeriodicModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">
               Catat Data Fisik Periodik Baru
             </h3>
@@ -2123,7 +2123,7 @@ export default function DetailSiswa() {
       {/* MODAL ORANG TUA / WALI */}
       {showGuardianModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 shrink-0">
               {guardianForm.guardian_id ? 'Edit Data Orang Tua / Wali' : 'Tambah Orang Tua / Wali Baru'}
             </h3>
@@ -2309,7 +2309,7 @@ export default function DetailSiswa() {
       {/* MODAL MUTASI / KELULUSAN */}
       {showMutationModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <h3 className="text-sm font-bold text-slate-800 pb-3 border-b border-slate-100 shrink-0">
               Pencatatan Kelulusan / Mutasi Siswa
             </h3>

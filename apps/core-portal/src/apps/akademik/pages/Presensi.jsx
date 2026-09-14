@@ -364,7 +364,7 @@ export default function Presensi() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Clock className="w-6 h-6 text-teal-600" />
+            <Clock className="w-6 h-6 text-emerald-600" />
             <span>Presensi & Absensi Siswa</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -373,11 +373,11 @@ export default function Presensi() {
         </div>
 
         {/* Sub-Tabs Nav */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-semibold overflow-x-auto self-start sm:self-auto">
+        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold overflow-x-auto self-start sm:self-auto">
           <button
             onClick={() => setActiveSubTab('daily')}
             className={`px-3 py-1.5 rounded-xl transition ${
-              activeSubTab === 'daily' ? 'bg-white text-teal-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeSubTab === 'daily' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Presensi Harian
@@ -385,7 +385,7 @@ export default function Presensi() {
           <button
             onClick={() => setActiveSubTab('lesson')}
             className={`px-3 py-1.5 rounded-xl transition ${
-              activeSubTab === 'lesson' ? 'bg-white text-teal-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeSubTab === 'lesson' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Presensi Pelajaran
@@ -393,7 +393,7 @@ export default function Presensi() {
           <button
             onClick={() => setActiveSubTab('activity')}
             className={`px-3 py-1.5 rounded-xl transition ${
-              activeSubTab === 'activity' ? 'bg-white text-teal-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeSubTab === 'activity' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Presensi Kegiatan
@@ -401,7 +401,7 @@ export default function Presensi() {
           <button
             onClick={() => setActiveSubTab('leaves')}
             className={`px-3 py-1.5 rounded-xl transition ${
-              activeSubTab === 'leaves' ? 'bg-white text-teal-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeSubTab === 'leaves' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Pengajuan Izin
@@ -417,7 +417,7 @@ export default function Presensi() {
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -428,13 +428,13 @@ export default function Presensi() {
       {/* ======================================================== */}
       {activeSubTab === 'daily' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
             <div className="w-full sm:w-64">
               <label className="block text-[10px] font-semibold text-slate-500 mb-1">Rombel:</label>
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -445,16 +445,16 @@ export default function Presensi() {
                 type="date"
                 value={attendanceDate}
                 onChange={(e) => setAttendanceDate(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           <form onSubmit={handleSaveAttendance}>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-teal-600" />
+                  <Clock className="w-4 h-4 text-emerald-600" />
                   <h2 className="text-xs font-bold text-slate-800">
                     Form Absensi Harian ({students.length} Siswa)
                   </h2>
@@ -462,7 +462,7 @@ export default function Presensi() {
                 <button
                   type="submit"
                   disabled={saving || students.length === 0}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Simpan Presensi Harian</span>
@@ -499,12 +499,12 @@ export default function Presensi() {
                                     value={st}
                                     checked={statusMap[s.student_id] === st}
                                     onChange={() => setStatusMap({ ...statusMap, [s.student_id]: st })}
-                                    className="text-teal-600 focus:ring-teal-500"
+                                    className="text-emerald-600 focus:ring-emerald-500"
                                   />
                                   <span className={`text-[11px] font-semibold uppercase ${
                                     st === 'hadir' ? 'text-emerald-700' :
-                                    st === 'izin' ? 'text-blue-700' :
-                                    st === 'sakit' ? 'text-amber-700' : 'text-red-700'
+                                    st === 'izin' ? 'text-indigo-700' :
+                                    st === 'sakit' ? 'text-amber-700' : 'text-rose-700'
                                   }`}>
                                     {st}
                                   </span>
@@ -518,7 +518,7 @@ export default function Presensi() {
                               value={notesMap[s.student_id] || ''}
                               onChange={(e) => setNotesMap({ ...notesMap, [s.student_id]: e.target.value })}
                               placeholder="Catatan tambahan..."
-                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                           </td>
                         </tr>
@@ -537,13 +537,13 @@ export default function Presensi() {
       {/* ======================================================== */}
       {activeSubTab === 'lesson' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[10px] font-semibold text-slate-500 mb-1">Rombel:</label>
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -554,7 +554,7 @@ export default function Presensi() {
               <select
                 value={selectedScheduleId}
                 onChange={(e) => setSelectedScheduleId(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {schedules.length === 0 ? (
                   <option value="">(Tidak ada jadwal terdaftar pada rombel ini)</option>
@@ -574,7 +574,7 @@ export default function Presensi() {
                 type="date"
                 value={attendanceDate}
                 onChange={(e) => setAttendanceDate(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -582,38 +582,38 @@ export default function Presensi() {
           {/* Metric Summary */}
           {lessonSummary && (
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-              <div className="p-3 bg-white rounded-2xl border border-slate-200 text-center">
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
                 <span className="text-[10px] font-bold text-slate-400 block">Total Santri</span>
                 <span className="text-lg font-bold text-slate-800">{lessonSummary.total}</span>
               </div>
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-center">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
                 <span className="text-[10px] font-bold text-emerald-600 block">Hadir (Present)</span>
                 <span className="text-lg font-bold text-emerald-800">{lessonSummary.present}</span>
               </div>
-              <div className="p-3 bg-blue-50 rounded-2xl border border-blue-200 text-center">
-                <span className="text-[10px] font-bold text-blue-600 block">Izin (Permitted)</span>
-                <span className="text-lg font-bold text-blue-800">{lessonSummary.permitted}</span>
+              <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-center">
+                <span className="text-[10px] font-bold text-indigo-600 block">Izin (Permitted)</span>
+                <span className="text-lg font-bold text-indigo-800">{lessonSummary.permitted}</span>
               </div>
-              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-center">
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
                 <span className="text-[10px] font-bold text-amber-600 block">Sakit (Sick)</span>
                 <span className="text-lg font-bold text-amber-800">{lessonSummary.sick}</span>
               </div>
-              <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-center">
+              <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-center">
                 <span className="text-[10px] font-bold text-rose-600 block">Alpa (Absent)</span>
                 <span className="text-lg font-bold text-rose-800">{lessonSummary.absent}</span>
               </div>
-              <div className="p-3 bg-teal-50 rounded-2xl border border-teal-200 text-center">
-                <span className="text-[10px] font-bold text-teal-600 block">Persentase</span>
-                <span className="text-lg font-bold text-teal-800">{lessonSummary.attendance_rate}%</span>
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+                <span className="text-[10px] font-bold text-emerald-600 block">Persentase</span>
+                <span className="text-lg font-bold text-emerald-800">{lessonSummary.attendance_rate}%</span>
               </div>
             </div>
           )}
 
           <form onSubmit={handleSaveLessonAttendance}>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-teal-600" />
+                  <BookOpen className="w-4 h-4 text-emerald-600" />
                   <h2 className="text-xs font-bold text-slate-800">
                     Presensi Jam Pelajaran ({students.length} Santri)
                   </h2>
@@ -621,7 +621,7 @@ export default function Presensi() {
                 <button
                   type="submit"
                   disabled={saving || students.length === 0}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Simpan Presensi Jam Pelajaran</span>
@@ -653,9 +653,9 @@ export default function Presensi() {
                               {[
                                 { key: 'present', label: 'Hadir', col: 'text-emerald-700' },
                                 { key: 'sick', label: 'Sakit', col: 'text-amber-700' },
-                                { key: 'permitted', label: 'Izin', col: 'text-blue-700' },
+                                { key: 'permitted', label: 'Izin', col: 'text-indigo-700' },
                                 { key: 'absent', label: 'Alpa', col: 'text-rose-700' },
-                                { key: 'late', label: 'Terlambat', col: 'text-purple-700' }
+                                { key: 'late', label: 'Terlambat', col: 'text-indigo-700' }
                               ].map(st => (
                                 <label key={st.key} className="inline-flex items-center gap-1 cursor-pointer">
                                   <input
@@ -664,7 +664,7 @@ export default function Presensi() {
                                     value={st.key}
                                     checked={lessonStatusMap[s.student_id] === st.key}
                                     onChange={() => setLessonStatusMap({ ...lessonStatusMap, [s.student_id]: st.key })}
-                                    className="text-teal-600 focus:ring-teal-500"
+                                    className="text-emerald-600 focus:ring-emerald-500"
                                   />
                                   <span className={`text-[11px] font-semibold ${st.col}`}>
                                     {st.label}
@@ -679,7 +679,7 @@ export default function Presensi() {
                               value={lessonNotesMap[s.student_id] || ''}
                               onChange={(e) => setLessonNotesMap({ ...lessonNotesMap, [s.student_id]: e.target.value })}
                               placeholder="Catatan keaktifan / KBM..."
-                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                           </td>
                         </tr>
@@ -698,13 +698,13 @@ export default function Presensi() {
       {/* ======================================================== */}
       {activeSubTab === 'activity' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label className="block text-[10px] font-semibold text-slate-500 mb-1">Rombel Santri:</label>
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -715,7 +715,7 @@ export default function Presensi() {
               <select
                 value={activityType}
                 onChange={(e) => setActivityType(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="ekskul">Ekstrakurikuler</option>
                 <option value="acara_sekolah">Acara / Tabligh / PHBI</option>
@@ -733,7 +733,7 @@ export default function Presensi() {
                     const found = extracurriculars.find(x => String(x.id) === String(e.target.value));
                     if (found) setActivityName(found.name);
                   }}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-bold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   {extracurriculars.map(x => (
                     <option key={x.id} value={x.id}>{x.name}</option>
@@ -745,7 +745,7 @@ export default function Presensi() {
                   value={activityName}
                   onChange={(e) => setActivityName(e.target.value)}
                   placeholder="Nama acara sekolah..."
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               )}
             </div>
@@ -756,7 +756,7 @@ export default function Presensi() {
                 type="date"
                 value={attendanceDate}
                 onChange={(e) => setAttendanceDate(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -764,34 +764,34 @@ export default function Presensi() {
           {/* Activity Metric Summary */}
           {activitySummary && (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="p-3 bg-white rounded-2xl border border-slate-200 text-center">
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-center">
                 <span className="text-[10px] font-bold text-slate-400 block">Total Santri</span>
                 <span className="text-lg font-bold text-slate-800">{activitySummary.total}</span>
               </div>
-              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-center">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
                 <span className="text-[10px] font-bold text-emerald-600 block">Hadir (Present)</span>
                 <span className="text-lg font-bold text-emerald-800">{activitySummary.present}</span>
               </div>
-              <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-center">
+              <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-center">
                 <span className="text-[10px] font-bold text-rose-600 block">Tidak Hadir (Absent)</span>
                 <span className="text-lg font-bold text-rose-800">{activitySummary.absent}</span>
               </div>
-              <div className="p-3 bg-blue-50 rounded-2xl border border-blue-200 text-center">
-                <span className="text-[10px] font-bold text-blue-600 block">Dispensasi (Excused)</span>
-                <span className="text-lg font-bold text-blue-800">{activitySummary.excused}</span>
+              <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-center">
+                <span className="text-[10px] font-bold text-indigo-600 block">Dispensasi (Excused)</span>
+                <span className="text-lg font-bold text-indigo-800">{activitySummary.excused}</span>
               </div>
-              <div className="p-3 bg-teal-50 rounded-2xl border border-teal-200 text-center">
-                <span className="text-[10px] font-bold text-teal-600 block">Tingkat Kehadiran</span>
-                <span className="text-lg font-bold text-teal-800">{activitySummary.attendance_rate}%</span>
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+                <span className="text-[10px] font-bold text-emerald-600 block">Tingkat Kehadiran</span>
+                <span className="text-lg font-bold text-emerald-800">{activitySummary.attendance_rate}%</span>
               </div>
             </div>
           )}
 
           <form onSubmit={handleSaveActivityAttendance}>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-teal-600" />
+                  <Activity className="w-4 h-4 text-emerald-600" />
                   <h2 className="text-xs font-bold text-slate-800">
                     Presensi Kegiatan: {activityName} ({students.length} Santri)
                   </h2>
@@ -799,7 +799,7 @@ export default function Presensi() {
                 <button
                   type="submit"
                   disabled={saving || students.length === 0}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-2"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Simpan Presensi Kegiatan</span>
@@ -831,7 +831,7 @@ export default function Presensi() {
                               {[
                                 { key: 'present', label: 'Hadir', col: 'text-emerald-700' },
                                 { key: 'absent', label: 'Tidak Hadir', col: 'text-rose-700' },
-                                { key: 'excused', label: 'Dispensasi', col: 'text-blue-700' }
+                                { key: 'excused', label: 'Dispensasi', col: 'text-indigo-700' }
                               ].map(st => (
                                 <label key={st.key} className="inline-flex items-center gap-1 cursor-pointer">
                                   <input
@@ -840,7 +840,7 @@ export default function Presensi() {
                                     value={st.key}
                                     checked={activityStatusMap[s.student_id] === st.key}
                                     onChange={() => setActivityStatusMap({ ...activityStatusMap, [s.student_id]: st.key })}
-                                    className="text-teal-600 focus:ring-teal-500"
+                                    className="text-emerald-600 focus:ring-emerald-500"
                                   />
                                   <span className={`text-[11px] font-semibold ${st.col}`}>
                                     {st.label}
@@ -855,7 +855,7 @@ export default function Presensi() {
                               value={activityNotesMap[s.student_id] || ''}
                               onChange={(e) => setActivityNotesMap({ ...activityNotesMap, [s.student_id]: e.target.value })}
                               placeholder="Catatan keikutsertaan..."
-                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                           </td>
                         </tr>
@@ -873,7 +873,7 @@ export default function Presensi() {
       {/* 4. PENGAJUAN IZIN */}
       {/* ======================================================== */}
       {activeSubTab === 'leaves' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto max-h-[calc(100vh-340px)] overflow-y-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
@@ -900,7 +900,7 @@ export default function Presensi() {
                       <td className="py-3 px-4 font-mono text-slate-700">{l.leave_date}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
-                          l.leave_type === 'sakit' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                          l.leave_type === 'sakit' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'
                         }`}>
                           {l.leave_type}
                         </span>
@@ -909,7 +909,7 @@ export default function Presensi() {
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
                           l.approval_status === 'disetujui' ? 'bg-emerald-100 text-emerald-700' :
-                          l.approval_status === 'ditolak' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                          l.approval_status === 'ditolak' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {l.approval_status}
                         </span>
@@ -925,7 +925,7 @@ export default function Presensi() {
                             </button>
                             <button
                               onClick={() => handleApproveLeave(l.id, 'ditolak')}
-                              className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg text-xs"
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-lg text-xs"
                             >
                               Tolak
                             </button>

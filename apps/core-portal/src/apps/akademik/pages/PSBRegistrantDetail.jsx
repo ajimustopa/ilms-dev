@@ -76,7 +76,7 @@ export default function PSBRegistrantDetail() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 text-teal-600 animate-spin mb-2" />
+        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
         <span className="text-xs text-slate-500 font-semibold">Memuat profil calon murid...</span>
       </div>
     );
@@ -87,7 +87,7 @@ export default function PSBRegistrantDetail() {
       <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
         <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
         <p className="text-sm font-bold text-slate-800">Data calon murid tidak ditemukan</p>
-        <Link to="/akademik/psb?tab=pendataan" className="text-xs text-teal-600 font-bold hover:underline">
+        <Link to="/akademik/psb?tab=pendataan" className="text-xs text-emerald-600 font-bold hover:underline">
           ← Kembali ke Daftar Pendaftar
         </Link>
       </div>
@@ -109,14 +109,14 @@ export default function PSBRegistrantDetail() {
         <div className="flex items-center gap-3">
           <Link
             to="/akademik/psb?tab=pendataan"
-            className="p-2 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold text-slate-900">{registrant.full_name}</h1>
-              <span className="font-mono font-bold text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full border border-teal-200">
+              <span className="font-mono font-bold text-xs bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
                 {registrant.registration_number}
               </span>
             </div>
@@ -135,7 +135,7 @@ export default function PSBRegistrantDetail() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -150,9 +150,9 @@ export default function PSBRegistrantDetail() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shrink-0 ${
                 isActive
-                  ? 'bg-teal-600 text-white shadow-md shadow-teal-900/20'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/20'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -180,7 +180,7 @@ export default function PSBRegistrantDetail() {
               
               {/* Data Diri */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-teal-700">
+                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-emerald-700">
                   <User className="w-4 h-4" />
                   <span>Identitas Pribadi</span>
                 </h3>
@@ -210,7 +210,7 @@ export default function PSBRegistrantDetail() {
 
               {/* Sekolah Asal & Biaya */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-teal-700">
+                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-emerald-700">
                   <School className="w-4 h-4" />
                   <span>Asal Sekolah & Biaya</span>
                 </h3>
@@ -221,7 +221,7 @@ export default function PSBRegistrantDetail() {
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Kelompok Biaya</span>
-                    <span className="font-semibold text-teal-700">{registrant.fee_group_name_snapshot || 'Standar Unit'}</span>
+                    <span className="font-semibold text-emerald-700">{registrant.fee_group_name_snapshot || 'Standar Unit'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Sumber Pendaftaran</span>
@@ -234,7 +234,7 @@ export default function PSBRegistrantDetail() {
 
               {/* Data Ortu */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-teal-700">
+                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-emerald-700">
                   <Users2 className="w-4 h-4" />
                   <span>Data Orang Tua / Wali</span>
                 </h3>
@@ -256,7 +256,7 @@ export default function PSBRegistrantDetail() {
 
               {/* Domisili */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-teal-700">
+                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 flex items-center gap-2 text-emerald-700">
                   <MapPin className="w-4 h-4" />
                   <span>Alamat Domisili</span>
                 </h3>
@@ -281,7 +281,7 @@ export default function PSBRegistrantDetail() {
                 {documents.map((doc) => {
                   const isVerified = !!doc.verified_at;
                   return (
-                    <div key={doc.id} className="p-4 rounded-2xl border border-slate-200 space-y-3 bg-slate-50/50">
+                    <div key={doc.id} className="p-4 rounded-xl border border-slate-200 space-y-3 bg-slate-50/50">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h4 className="text-xs font-bold text-slate-900">{doc.document_name}</h4>
@@ -301,7 +301,7 @@ export default function PSBRegistrantDetail() {
                           href={doc.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-teal-600 hover:underline flex items-center gap-1 font-bold text-[11px]"
+                          className="text-emerald-600 hover:underline flex items-center gap-1 font-bold text-[11px]"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Buka File Dokumen</span>
@@ -344,14 +344,14 @@ export default function PSBRegistrantDetail() {
             ) : (
               <div className="space-y-3">
                 {testSessions.map((sess) => (
-                  <div key={sess.id} className="p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div key={sess.id} className="p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <h4 className="text-xs font-bold text-slate-900">{sess.test_name}</h4>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                           sess.status === 'graded'
                             ? sess.is_passed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                         }`}>
                           {sess.status === 'graded' ? (sess.is_passed ? 'LULUS (Passed)' : 'TIDAK LULUS') : 'Sedang/Akan Ujian'}
                         </span>
@@ -363,7 +363,7 @@ export default function PSBRegistrantDetail() {
 
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 block">Total Nilai Diperoleh:</span>
-                      <span className="text-base font-extrabold text-teal-700">{sess.total_score} Poin</span>
+                      <span className="text-base font-extrabold text-emerald-700">{sess.total_score} Poin</span>
                     </div>
                   </div>
                 ))}
@@ -390,7 +390,7 @@ export default function PSBRegistrantDetail() {
                       </span>
                     </div>
                     <div className="text-slate-500">
-                      NIPD Definitif: <strong className="text-teal-700 font-mono">{log.assigned_nipd}</strong> • Catatan: {log.notes || '-'}
+                      NIPD Definitif: <strong className="text-emerald-700 font-mono">{log.assigned_nipd}</strong> • Catatan: {log.notes || '-'}
                     </div>
                   </div>
                 ))}

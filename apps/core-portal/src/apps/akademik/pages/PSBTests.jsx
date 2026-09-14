@@ -266,7 +266,7 @@ export default function PSBTests() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <FileCheck2 className="w-6 h-6" />
             </div>
             <span>Builder Tes & Ujian Seleksi PSB</span>
@@ -277,12 +277,12 @@ export default function PSBTests() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
             <span className="text-xs font-semibold text-slate-500">Proses PSB:</span>
             <select
               value={selectedProcessId}
               onChange={(e) => setSelectedProcessId(e.target.value)}
-              className="text-xs font-bold text-teal-700 bg-transparent focus:outline-none"
+              className="text-xs font-bold text-emerald-700 bg-transparent focus:outline-none"
             >
               {processes.map((p) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.target_academic_year})</option>
@@ -293,7 +293,7 @@ export default function PSBTests() {
           <button
             onClick={() => handleOpenTestModal()}
             disabled={!selectedProcessId}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-teal-900/20 transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             <span>Buat Tes Baru</span>
@@ -303,7 +303,7 @@ export default function PSBTests() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -313,7 +313,7 @@ export default function PSBTests() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {loading ? (
           <div className="col-span-2 py-10 text-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
             <span>Memuat modul tes...</span>
           </div>
         ) : tests.length === 0 ? (
@@ -322,14 +322,14 @@ export default function PSBTests() {
           </div>
         ) : (
           tests.map((t) => (
-            <div key={t.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-teal-500 transition">
+            <div key={t.id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-500 transition">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full border border-teal-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
                     Durasi: {t.duration_minutes} Menit
                   </span>
                   <span className="text-[10px] font-bold text-slate-400">
-                    Passing Grade: <strong className="text-teal-700">{t.passing_score} Poin</strong>
+                    Passing Grade: <strong className="text-emerald-700">{t.passing_score} Poin</strong>
                   </span>
                 </div>
 
@@ -340,7 +340,7 @@ export default function PSBTests() {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => handleOpenTestModal(t)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-teal-600 transition"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-600 transition"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   <span>Edit Soal & Bobot</span>
@@ -348,7 +348,7 @@ export default function PSBTests() {
 
                 <button
                   onClick={() => handleOpenAssignModal(t.id)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold shadow-sm transition"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Tugaskan Ujian</span>
@@ -379,7 +379,7 @@ export default function PSBTests() {
                     required
                     value={testForm.name}
                     onChange={(e) => setTestForm({ ...testForm, name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-900 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 font-bold text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                     placeholder="Contoh: Tes Pemetaan Potensi Santri Baru"
                   />
                 </div>
@@ -390,7 +390,7 @@ export default function PSBTests() {
                     rows={2}
                     value={testForm.description}
                     onChange={(e) => setTestForm({ ...testForm, description: e.target.value })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -402,7 +402,7 @@ export default function PSBTests() {
                     required
                     value={testForm.duration_minutes}
                     onChange={(e) => setTestForm({ ...testForm, duration_minutes: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -414,7 +414,7 @@ export default function PSBTests() {
                     required
                     value={testForm.passing_score}
                     onChange={(e) => setTestForm({ ...testForm, passing_score: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -456,9 +456,9 @@ export default function PSBTests() {
 
                 <div className="space-y-4">
                   {testForm.questions.map((q, qIdx) => (
-                    <div key={qIdx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div key={qIdx} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
                       <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                        <span className="font-bold text-teal-700">Soal #{qIdx + 1} ({q.question_type.replace('_', ' ')})</span>
+                        <span className="font-bold text-emerald-700">Soal #{qIdx + 1} ({q.question_type.replace('_', ' ')})</span>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1">
                             <span className="text-[10px] text-slate-500">Bobot:</span>
@@ -487,7 +487,7 @@ export default function PSBTests() {
                           required
                           value={q.question_text}
                           onChange={(e) => handleQuestionChange(qIdx, 'question_text', e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 p-2 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                          className="w-full rounded-xl border border-slate-300 p-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                           placeholder="Tuliskan pertanyaan soal..."
                         />
                       </div>
@@ -504,7 +504,7 @@ export default function PSBTests() {
                                   name={`correct_q_${qIdx}`}
                                   checked={q.correct_answer === opt && !!opt}
                                   onChange={() => handleQuestionChange(qIdx, 'correct_answer', opt)}
-                                  className="text-teal-600"
+                                  className="text-emerald-600"
                                   title="Tandai sebagai kunci jawaban benar"
                                 />
                                 <input
@@ -549,7 +549,7 @@ export default function PSBTests() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>Simpan Modul Ujian</span>
@@ -577,7 +577,7 @@ export default function PSBTests() {
                     type="button"
                     onClick={() => setAssignTargetType('group')}
                     className={`py-2 rounded-xl border text-xs font-bold transition ${
-                      assignTargetType === 'group' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-600 border-slate-200'
+                      assignTargetType === 'group' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200'
                     }`}
                   >
                     Seluruh Kelompok / Gelombang
@@ -586,7 +586,7 @@ export default function PSBTests() {
                     type="button"
                     onClick={() => setAssignTargetType('registrant')}
                     className={`py-2 rounded-xl border text-xs font-bold transition ${
-                      assignTargetType === 'registrant' ? 'bg-teal-600 text-white border-teal-600' : 'bg-slate-50 text-slate-600 border-slate-200'
+                      assignTargetType === 'registrant' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200'
                     }`}
                   >
                     Per Calon Murid Spesifik
@@ -646,7 +646,7 @@ export default function PSBTests() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   <span>Jadwalkan Tes</span>

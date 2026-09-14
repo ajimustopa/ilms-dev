@@ -132,7 +132,7 @@ function CustomFilterSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[240px] w-full max-w-[340px] bg-white rounded-2xl border border-slate-200 shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[240px] w-full max-w-[340px] bg-white rounded-xl border border-slate-200 shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
           {searchable && options.length > 4 && (
             <div className="p-1">
               <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -841,9 +841,9 @@ export default function InputNilaiEkstrakurikuler() {
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-5">
       {/* Header Halaman */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20">
             <Award className="w-6 h-6" />
           </div>
           <div>
@@ -903,7 +903,7 @@ export default function InputNilaiEkstrakurikuler() {
               <button
                 onClick={handleSaveProcessedReport}
                 disabled={processingReport || reportItems.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95"
               >
                 {processingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 <span>Simpan & Kunci Nilai Rapor Ekskul</span>
@@ -1038,7 +1038,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* ======================================================== */}
       {activeTab === 'assessment_types' && (
         <div className="space-y-4">
-          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs ${
+          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs ${
             totalWeight === 100
               ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
               : 'bg-amber-50 border-amber-300 text-amber-950'
@@ -1067,7 +1067,7 @@ export default function InputNilaiEkstrakurikuler() {
             </span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                 <tr>
@@ -1134,7 +1134,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* ======================================================== */}
       {activeTab === 'assessment_sessions' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800 text-xs">
@@ -1233,7 +1233,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* ======================================================== */}
       {activeTab === 'recap_matrix' && (
         <div className="space-y-4">
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs flex-wrap gap-2">
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-700">Matriks Nilai Rombel Ekskul:</span>
               <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 rounded font-bold">{activeClassName}</span>
@@ -1244,7 +1244,7 @@ export default function InputNilaiEkstrakurikuler() {
             </span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                 <tr>
@@ -1326,7 +1326,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* ======================================================== */}
       {activeTab === 'report_processor' && (
         <div className="space-y-4">
-          <div className="p-4 bg-gradient-to-r from-amber-50 via-indigo-50 to-teal-50 border border-amber-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="p-4 bg-gradient-to-r from-amber-50 via-indigo-50 to-emerald-50 border border-amber-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
             <div>
               <span className="font-black text-amber-950 text-sm block flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-600" />
@@ -1347,7 +1347,7 @@ export default function InputNilaiEkstrakurikuler() {
               <button
                 onClick={handleSaveProcessedReport}
                 disabled={processingReport || reportItems.length === 0}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
               >
                 {processingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 <span>Simpan & Kunci Nilai Rapor</span>
@@ -1355,7 +1355,7 @@ export default function InputNilaiEkstrakurikuler() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                 <tr>
@@ -1420,7 +1420,7 @@ export default function InputNilaiEkstrakurikuler() {
                           }}
                           className={`w-32 px-2 py-1 text-xs font-black rounded-lg border focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer ${
                             item.predicate === 'Sangat Baik' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
-                            item.predicate === 'Baik' ? 'bg-teal-100 text-teal-900 border-teal-300' :
+                            item.predicate === 'Baik' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
                             item.predicate === 'Cukup' ? 'bg-amber-100 text-amber-900 border-amber-300' :
                             'bg-rose-100 text-rose-900 border-rose-300'
                           }`}
@@ -1460,7 +1460,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* ======================================================== */}
       {activeTab === 'ledger_print' && (
         <div className="space-y-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-black text-slate-900 text-sm uppercase tracking-wide">
@@ -1512,7 +1512,7 @@ export default function InputNilaiEkstrakurikuler() {
                         <td className="py-2.5 px-3 text-center border-r border-slate-100">
                           <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] ${
                             st.predicate === 'Sangat Baik' ? 'bg-emerald-100 text-emerald-900' :
-                            st.predicate === 'Baik' ? 'bg-teal-100 text-teal-900' :
+                            st.predicate === 'Baik' ? 'bg-emerald-100 text-emerald-900' :
                             st.predicate === 'Cukup' ? 'bg-amber-100 text-amber-900' :
                             'bg-rose-100 text-rose-900'
                           }`}>
@@ -1539,7 +1539,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* Modal 1: Tambah / Edit Jenis Penilaian Ekskul */}
       {typeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-black text-slate-800">
                 {editingType ? 'Edit Jenis Penilaian Ekskul' : 'Tambah Jenis Penilaian Ekskul'}
@@ -1625,7 +1625,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* Modal 2: Buat / Edit Sesi Penilaian Ekskul */}
       {sessionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-black text-slate-800">
                 {editingSession ? 'Edit Sesi Penilaian Ekskul' : 'Buat Sesi Ujian / Latihan Baru'}
@@ -1723,7 +1723,7 @@ export default function InputNilaiEkstrakurikuler() {
       {/* Modal 3: Input Nilai Sesi Ekskul Siswa */}
       {sessionScoreModalOpen && activeSessionDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">

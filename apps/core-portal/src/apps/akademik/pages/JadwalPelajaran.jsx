@@ -87,7 +87,7 @@ function TimeInput24({ value = '07:00', onChange, disabled = false }) {
         disabled={disabled}
         value={hour}
         onChange={handleHourChange}
-        className="bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 px-2 py-1 cursor-pointer"
+        className="bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 px-2 py-1 cursor-pointer"
       >
         {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
           <option key={h} value={h}>{h}</option>
@@ -98,13 +98,13 @@ function TimeInput24({ value = '07:00', onChange, disabled = false }) {
         disabled={disabled}
         value={minute}
         onChange={handleMinuteChange}
-        className="bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 px-2 py-1 cursor-pointer"
+        className="bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 px-2 py-1 cursor-pointer"
       >
         {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map((m) => (
           <option key={m} value={m}>{m}</option>
         ))}
       </select>
-      <span className="text-[10px] font-black text-teal-800 bg-teal-100/80 px-2 py-0.5 rounded-md border border-teal-200 ml-auto select-none">
+      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-200 ml-auto select-none">
         24 Jam
       </span>
     </div>
@@ -1935,16 +1935,16 @@ export default function JadwalPelajaran() {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* HEADER UTAMA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md">
               <Calendar className="w-5 h-5" />
             </div>
             <h2 className="text-lg font-black text-slate-800 tracking-tight">
               Sistem Penjadwalan Pembelajaran (Timetable)
             </h2>
-            <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-teal-50 text-teal-800 border border-teal-200">
+            <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
               Unit: {activeSchoolUnit?.name || 'Semua Unit'}
             </span>
             <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 flex items-center gap-1">
@@ -1969,7 +1969,7 @@ export default function JadwalPelajaran() {
           <select
             value={selectedYearId}
             onChange={(e) => setSelectedYearId(e.target.value)}
-            className="px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl font-bold text-teal-950 text-xs focus:ring-2 focus:ring-teal-500 shadow-2xs"
+            className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl font-bold text-emerald-950 text-xs focus:ring-2 focus:ring-emerald-500 shadow-2xs"
           >
             {academicYears.map((y) => (
               <option key={y.id} value={y.id}>
@@ -2018,7 +2018,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {/* 5-STAGE NAVIGATION STEPPER HEADER          */}
       {/* ========================================== */}
-      <div className="bg-slate-900 p-2.5 rounded-2xl border border-slate-800 shadow-lg">
+      <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 shadow-lg">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs font-bold">
           {/* 1. TAHAP 1: STRUKTUR WAKTU */}
           <button
@@ -2026,18 +2026,18 @@ export default function JadwalPelajaran() {
             onClick={() => setMainTab('stage1_time')}
             className={`flex items-center gap-2.5 p-3 rounded-xl transition text-left cursor-pointer ${
               mainTab === 'stage1_time'
-                ? 'bg-teal-500 text-slate-950 font-black shadow-md ring-2 ring-teal-400'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-md ring-2 ring-emerald-400'
                 : 'hover:bg-slate-800 text-slate-300'
             }`}
           >
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-black text-xs ${
-              mainTab === 'stage1_time' ? 'bg-slate-950 text-teal-400' : 'bg-slate-800 text-slate-300'
+              mainTab === 'stage1_time' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-slate-300'
             }`}>
               1
             </div>
             <div className="min-w-0">
               <div className="truncate">1. Struktur Waktu</div>
-              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage1_time' ? 'text-teal-950 font-semibold' : 'text-slate-400'}`}>
+              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage1_time' ? 'text-emerald-950 font-semibold' : 'text-slate-400'}`}>
                 {timeSlots.length} Rentang JP & Non-JP
               </div>
             </div>
@@ -2049,18 +2049,18 @@ export default function JadwalPelajaran() {
             onClick={() => setMainTab('stage2_lessons')}
             className={`flex items-center gap-2.5 p-3 rounded-xl transition text-left cursor-pointer ${
               mainTab === 'stage2_lessons'
-                ? 'bg-teal-500 text-slate-950 font-black shadow-md ring-2 ring-teal-400'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-md ring-2 ring-emerald-400'
                 : 'hover:bg-slate-800 text-slate-300'
             }`}
           >
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-black text-xs ${
-              mainTab === 'stage2_lessons' ? 'bg-slate-950 text-teal-400' : 'bg-slate-800 text-slate-300'
+              mainTab === 'stage2_lessons' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-slate-300'
             }`}>
               2
             </div>
             <div className="min-w-0">
               <div className="truncate">2. Beban Pelajaran</div>
-              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage2_lessons' ? 'text-teal-950 font-semibold' : 'text-slate-400'}`}>
+              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage2_lessons' ? 'text-emerald-950 font-semibold' : 'text-slate-400'}`}>
                 {lessonsList.length} Sesi ({readyLessons.length} Siap Guru)
               </div>
             </div>
@@ -2072,18 +2072,18 @@ export default function JadwalPelajaran() {
             onClick={() => setMainTab('stage3_constraints')}
             className={`flex items-center gap-2.5 p-3 rounded-xl transition text-left cursor-pointer ${
               mainTab === 'stage3_constraints'
-                ? 'bg-teal-500 text-slate-950 font-black shadow-md ring-2 ring-teal-400'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-md ring-2 ring-emerald-400'
                 : 'hover:bg-slate-800 text-slate-300'
             }`}
           >
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-black text-xs ${
-              mainTab === 'stage3_constraints' ? 'bg-slate-950 text-teal-400' : 'bg-slate-800 text-slate-300'
+              mainTab === 'stage3_constraints' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-slate-300'
             }`}>
               3
             </div>
             <div className="min-w-0">
               <div className="truncate">3. Aturan Khusus</div>
-              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage3_constraints' ? 'text-teal-950 font-semibold' : 'text-slate-400'}`}>
+              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage3_constraints' ? 'text-emerald-950 font-semibold' : 'text-slate-400'}`}>
                 Ketersediaan Guru/Rombel
               </div>
             </div>
@@ -2120,18 +2120,18 @@ export default function JadwalPelajaran() {
             onClick={() => setMainTab('stage5_editor')}
             className={`flex items-center gap-2.5 p-3 rounded-xl transition text-left cursor-pointer ${
               mainTab === 'stage5_editor'
-                ? 'bg-teal-500 text-slate-950 font-black shadow-md ring-2 ring-teal-400'
+                ? 'bg-emerald-500 text-slate-950 font-black shadow-md ring-2 ring-emerald-400'
                 : 'hover:bg-slate-800 text-slate-300'
             }`}
           >
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-black text-xs ${
-              mainTab === 'stage5_editor' ? 'bg-slate-950 text-teal-400' : 'bg-slate-800 text-slate-300'
+              mainTab === 'stage5_editor' ? 'bg-slate-950 text-emerald-400' : 'bg-slate-800 text-slate-300'
             }`}>
               5
             </div>
             <div className="min-w-0">
               <div className="truncate">5. Visual Jadwal</div>
-              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage5_editor' ? 'text-teal-950 font-semibold' : 'text-slate-400'}`}>
+              <div className={`text-[10px] font-normal truncate ${mainTab === 'stage5_editor' ? 'text-emerald-950 font-semibold' : 'text-slate-400'}`}>
                 {schedules.length} Sesi Terjadwal
               </div>
             </div>
@@ -2141,13 +2141,13 @@ export default function JadwalPelajaran() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-2xl flex items-center gap-2.5 shadow-sm">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2.5 shadow-sm">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span className="font-semibold">{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-2xl flex items-center gap-2.5 shadow-sm">
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2.5 shadow-sm">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
           <span className="font-semibold">{errorMsg}</span>
         </div>
@@ -2159,13 +2159,13 @@ export default function JadwalPelajaran() {
       {mainTab === 'stage1_time' && (
         <div className="space-y-6">
           {/* Info Stage Card */}
-          <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-0.5 bg-teal-400 text-teal-950 font-black text-xs rounded-full uppercase tracking-wider">
+                <span className="px-3 py-0.5 bg-emerald-400 text-emerald-950 font-black text-xs rounded-full uppercase tracking-wider">
                   Tahap 1
                 </span>
-                <span className="text-xs text-teal-200">Penetapan Rentang Waktu (JP & Non-JP)</span>
+                <span className="text-xs text-emerald-200">Penetapan Rentang Waktu (JP & Non-JP)</span>
                 {currentSelectedPreset && (
                   <span className="px-2.5 py-0.5 bg-indigo-500/80 text-white font-bold text-xs rounded-full border border-indigo-300/40">
                     Opsi: {currentSelectedPreset.name} {currentSelectedPreset.is_active ? '★ (Aktif)' : ''}
@@ -2173,7 +2173,7 @@ export default function JadwalPelajaran() {
                 )}
               </div>
               <h3 className="text-xl font-black">Struktur Waktu Harian Sekolah</h3>
-              <p className="text-xs text-teal-100 leading-relaxed">
+              <p className="text-xs text-emerald-100 leading-relaxed">
                 Tentukan rentang jam harian untuk opsi <b>{currentSelectedPreset?.name || 'Jadwal'}</b>. Rentang waktu terdiri dari 2 jenis: <b>JP (Jam Pelajaran)</b> dengan durasi baku <b>{minutesPerJp} Menit / JP</b> sesuai Struktur Kurikulum, serta <b>Non-JP (Kegiatan / Istirahat / Sholat)</b>.
               </p>
             </div>
@@ -2219,7 +2219,7 @@ export default function JadwalPelajaran() {
                 className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs border border-white/20 shadow-md transition active:scale-95 flex items-center gap-2"
                 title="Salin pola struktur waktu dari tahun ajaran, preset, atau satuan pendidikan lain"
               >
-                <Copy className="w-4 h-4 text-teal-300" />
+                <Copy className="w-4 h-4 text-emerald-300" />
                 <span>📋 Salin dari Jadwal Lain</span>
               </button>
               <button
@@ -2233,7 +2233,7 @@ export default function JadwalPelajaran() {
               <button
                 type="button"
                 onClick={() => handleOpenAddTimeSlot(1)}
-                className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Tambah Rentang Manual</span>
@@ -2242,7 +2242,7 @@ export default function JadwalPelajaran() {
           </div>
 
           {/* Filter Hari & Daftar Slot */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
@@ -2252,7 +2252,7 @@ export default function JadwalPelajaran() {
                       type="button"
                       onClick={() => setSlotDayFilter('')}
                       className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                        slotDayFilter === '' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        slotDayFilter === '' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
                       Semua Hari
@@ -2263,7 +2263,7 @@ export default function JadwalPelajaran() {
                         type="button"
                         onClick={() => setSlotDayFilter(String(d.id))}
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                          slotDayFilter === String(d.id) ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          slotDayFilter === String(d.id) ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
                         {d.name}
@@ -2281,7 +2281,7 @@ export default function JadwalPelajaran() {
                       title="Tampilan Responsif / Wrap Default"
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition ${
                         timeSlotLayout === 'wrap'
-                          ? 'bg-white text-teal-800 font-bold shadow-2xs'
+                          ? 'bg-white text-emerald-800 font-bold shadow-2xs'
                           : 'text-slate-600 hover:text-slate-800'
                       }`}
                     >
@@ -2294,7 +2294,7 @@ export default function JadwalPelajaran() {
                       title="Mensejajarkan Semua Hari dalam 1 Baris Pekan Horizontal"
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition ${
                         timeSlotLayout === 'row'
-                          ? 'bg-white text-teal-800 font-bold shadow-2xs'
+                          ? 'bg-white text-emerald-800 font-bold shadow-2xs'
                           : 'text-slate-600 hover:text-slate-800'
                       }`}
                     >
@@ -2319,7 +2319,7 @@ export default function JadwalPelajaran() {
                 (() => {
                   if (timeSlots.length === 0) {
                     return (
-                      <div className="py-16 px-4 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 text-slate-400 min-w-[850px]">
+                      <div className="py-16 px-4 text-center bg-slate-50/80 rounded-xl border border-dashed border-slate-200 text-slate-400 min-w-[850px]">
                         <Clock className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-[1.5]" />
                         <p className="font-black text-sm text-slate-700">Belum ada struktur rentang waktu yang ditetapkan</p>
                         <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
@@ -2375,7 +2375,7 @@ export default function JadwalPelajaran() {
                   const currentNowTop = (currentNowMinutes - operationalStartMinutes) * PIXELS_PER_MINUTE;
 
                   return (
-                    <div className="min-w-[1080px] xl:min-w-full bg-white rounded-2xl border border-slate-200/90 shadow-xs select-none">
+                    <div className="min-w-[1080px] xl:min-w-full bg-white rounded-xl border border-slate-200/90 shadow-xs select-none">
                       {/* 1. STICKY HEADER NAMA HARI */}
                       <div className="grid grid-cols-[68px_repeat(7,1fr)] sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
                         {/* Sudut Kiri Atas (Waktu UTC/Zona) */}
@@ -2393,20 +2393,20 @@ export default function JadwalPelajaran() {
                             <div
                               key={day.id}
                               className={`p-2.5 text-center border-r border-slate-200 last:border-r-0 transition ${
-                                isToday ? 'bg-teal-50/60' : 'bg-slate-50/40'
+                                isToday ? 'bg-emerald-50/60' : 'bg-slate-50/40'
                               }`}
                             >
                               <div className="flex items-center justify-center gap-1.5">
-                                <span className={`font-black text-xs ${isToday ? 'text-teal-900' : 'text-slate-800'}`}>
+                                <span className={`font-black text-xs ${isToday ? 'text-emerald-900' : 'text-slate-800'}`}>
                                   {day.name}
                                 </span>
                                 {isToday && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" title="Hari Ini" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Hari Ini" />
                                 )}
                               </div>
                               <div className="mt-1 flex items-center justify-center">
                                 <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
-                                  isToday ? 'bg-teal-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-600'
+                                  isToday ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-600'
                                 }`}>
                                   {jpCount} JP
                                 </span>
@@ -2493,7 +2493,7 @@ export default function JadwalPelajaran() {
                               onMouseLeave={() => setHoverGridSlot(null)}
                               onClick={handleColumnClick}
                               className={`relative border-r border-slate-200 last:border-r-0 cursor-pointer ${
-                                isToday ? 'bg-teal-50/15' : 'bg-slate-50/40'
+                                isToday ? 'bg-emerald-50/15' : 'bg-slate-50/40'
                               }`}
                               title={`Klik di area kosong ${day.name} untuk tambah rentang waktu baru`}
                             >
@@ -2511,23 +2511,23 @@ export default function JadwalPelajaran() {
                               {/* Ghost Highlight Preview Slot Saat Hover Area Kosong (Ala Google Calendar) */}
                               {hoverGridSlot && hoverGridSlot.dayId === day.id && (
                                 <div
-                                  className="absolute left-1 right-1 rounded-xl border-2 border-dashed border-teal-500 bg-teal-500/15 backdrop-blur-2xs z-15 pointer-events-none transition-all duration-75 flex flex-col justify-between p-1.5 shadow-sm animate-pulse"
+                                  className="absolute left-1 right-1 rounded-xl border-2 border-dashed border-emerald-500 bg-emerald-500/15 backdrop-blur-2xs z-15 pointer-events-none transition-all duration-75 flex flex-col justify-between p-1.5 shadow-sm animate-pulse"
                                   style={{
                                     top: `${hoverGridSlot.topPx}px`,
                                     height: `${hoverGridSlot.heightPx}px`
                                   }}
                                 >
                                   <div className="flex items-center gap-1">
-                                    <span className="px-1 py-0.2 rounded font-black text-[8px] bg-teal-600 text-white shadow-2xs">
+                                    <span className="px-1 py-0.2 rounded font-black text-[8px] bg-emerald-600 text-white shadow-2xs">
                                       + BARU
                                     </span>
-                                    <span className="font-bold text-[10px] text-teal-900 truncate">
+                                    <span className="font-bold text-[10px] text-emerald-900 truncate">
                                       Klik untuk menetapkan slot
                                     </span>
                                   </div>
-                                  <div className="flex items-center justify-between text-[9px] font-mono font-bold text-teal-800">
+                                  <div className="flex items-center justify-between text-[9px] font-mono font-bold text-emerald-800">
                                     <span>{hoverGridSlot.startTime} - {hoverGridSlot.endTime}</span>
-                                    <span className="bg-white/80 px-1 py-0.2 rounded border border-teal-300 text-[8px]">
+                                    <span className="bg-white/80 px-1 py-0.2 rounded border border-emerald-300 text-[8px]">
                                       {calculateDurationText(hoverGridSlot.startTime, hoverGridSlot.endTime)}
                                     </span>
                                   </div>
@@ -2593,7 +2593,7 @@ export default function JadwalPelajaran() {
                                       <button
                                         type="button"
                                         onClick={() => handleOpenEditTimeSlot(s)}
-                                        className="p-1 rounded-md text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition"
+                                        className="p-1 rounded-md text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition"
                                         title="Edit rentang waktu"
                                       >
                                         <Edit2 className="w-3 h-3" />
@@ -2655,7 +2655,7 @@ export default function JadwalPelajaran() {
                         <div key={day.id} className="bg-slate-50/70 rounded-xl border border-slate-200 flex flex-col shadow-2xs relative w-full h-full">
                           <div className="sticky top-0 z-30 bg-slate-100/95 backdrop-blur-md px-2.5 py-2 font-black text-[11px] text-slate-800 border-b border-slate-200 flex items-center justify-between rounded-t-xl shadow-xs">
                             <span>{day.name}</span>
-                            <span className="text-[9px] font-bold text-teal-800 bg-teal-100/90 px-1.5 py-0.5 rounded shadow-2xs">
+                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded shadow-2xs">
                               {jpSlots.length} JP
                             </span>
                           </div>
@@ -2669,7 +2669,7 @@ export default function JadwalPelajaran() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenAddTimeSlot(day.id)}
-                                  className="mt-2.5 px-2.5 py-1 text-[10px] font-bold bg-white text-teal-700 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-lg shadow-2xs transition inline-flex items-center gap-1"
+                                  className="mt-2.5 px-2.5 py-1 text-[10px] font-bold bg-white text-emerald-700 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-lg shadow-2xs transition inline-flex items-center gap-1"
                                 >
                                   <Plus className="w-3 h-3" />
                                   <span>Tetapkan Slot</span>
@@ -2710,7 +2710,7 @@ export default function JadwalPelajaran() {
                                         <button
                                           type="button"
                                           onClick={() => handleOpenEditTimeSlot(s)}
-                                          className="p-1 rounded text-slate-400 hover:text-teal-700 hover:bg-white/90 transition"
+                                          className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-white/90 transition"
                                           title="Edit rentang waktu"
                                         >
                                           <Edit2 className="w-3 h-3" />
@@ -2749,7 +2749,7 @@ export default function JadwalPelajaran() {
                             <button
                               type="button"
                               onClick={() => handleOpenAddTimeSlot(day.id)}
-                              className="text-[10px] font-bold text-teal-700 hover:text-teal-900 flex items-center justify-center gap-1 w-full py-0.5"
+                              className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center justify-center gap-1 w-full py-0.5"
                             >
                               <Plus className="w-3 h-3" />
                               <span>Tambah Slot {day.name}</span>
@@ -2768,7 +2768,7 @@ export default function JadwalPelajaran() {
             <button
               type="button"
               onClick={() => handleOpenAddTimeSlot(1)}
-              className="w-14 h-14 bg-teal-600 hover:bg-teal-500 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 border-2 border-white ring-4 ring-teal-600/30"
+              className="w-14 h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 border-2 border-white ring-4 ring-emerald-600/30"
               title="Tambah Rentang Waktu Baru"
             >
               <Plus className="w-7 h-7 stroke-[2.5]" />
@@ -2787,16 +2787,16 @@ export default function JadwalPelajaran() {
       {mainTab === 'stage2_lessons' && (
         <div className="space-y-6">
           {/* Header Card */}
-          <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-0.5 bg-teal-400 text-teal-950 font-black text-xs rounded-full uppercase tracking-wider">
+                <span className="px-3 py-0.5 bg-emerald-400 text-emerald-950 font-black text-xs rounded-full uppercase tracking-wider">
                   Tahap 2
                 </span>
-                <span className="text-xs text-teal-200">Kebutuhan Beban Belajar Mapel & Validasi Guru</span>
+                <span className="text-xs text-emerald-200">Kebutuhan Beban Belajar Mapel & Validasi Guru</span>
               </div>
               <h3 className="text-xl font-black">Beban Pelajaran Per Rombel & Kuota JP</h3>
-              <p className="text-xs text-teal-100 leading-relaxed">
+              <p className="text-xs text-emerald-100 leading-relaxed">
                 Menghitung alokasi kuota JP <b>Mata Pelajaran</b> per rombel dari <b>Struktur Kurikulum</b> dan mencocokkannya dengan <b>Pembagian Tugas Mengajar Guru</b>. Pembelajaran mapel yang <b>belum ada guru yang ditugaskan TIDAK BISA dialokasikan jadwalnya</b>.
               </p>
             </div>
@@ -2829,7 +2829,7 @@ export default function JadwalPelajaran() {
                   });
                   setLessonModalOpen(true);
                 }}
-                className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Tambah Beban Mapel</span>
@@ -2882,7 +2882,7 @@ export default function JadwalPelajaran() {
 
             return (
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     {lessonFilterClass ? `Kebutuhan JP (${selectedClassName})` : 'Total Kebutuhan JP Mapel'}
                   </span>
@@ -2892,7 +2892,7 @@ export default function JadwalPelajaran() {
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     {lessonFilterClass ? `Mata Pelajaran (${selectedClassName})` : 'Total Mata Pelajaran'}
                   </span>
@@ -2902,13 +2902,13 @@ export default function JadwalPelajaran() {
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Siap Dijadwalkan</span>
                   <h4 className="text-xl font-black text-emerald-700 mt-1">{filteredReady.length} Unit (Ada Guru)</h4>
                   <span className="text-[10px] text-emerald-600 font-bold">100% Siap dialokasikan</span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Belum Ada Guru</span>
                   <h4 className={`text-xl font-black mt-1 ${filteredUnassigned.length > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
                     {filteredUnassigned.length} Unit
@@ -2923,7 +2923,7 @@ export default function JadwalPelajaran() {
 
           {/* Alert Warning if unassigned lessons exist */}
           {unassignedLessons.length > 0 && (
-            <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-900 shadow-xs">
+            <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3 text-xs text-amber-900 shadow-xs">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <h5 className="font-extrabold text-sm">Peringatan: Terdapat {unassignedLessons.length} Pembelajaran Tanpa Guru Pengampu</h5>
@@ -2935,13 +2935,13 @@ export default function JadwalPelajaran() {
           )}
 
           {/* Table Beban Pelajaran */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             {/* Banner Informasi Mapel Pilihan Non-Akumulatif */}
-            <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex items-start gap-2.5 text-xs text-purple-900 shadow-2xs">
-              <Sparkles className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+            <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-start gap-2.5 text-xs text-indigo-900 shadow-2xs">
+              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <span className="font-extrabold text-purple-950">Informasi Alokasi Waktu Mapel Pilihan:</span>
-                <p className="mt-0.5 text-[11px] text-purple-800">
+                <span className="font-extrabold text-indigo-950">Informasi Alokasi Waktu Mapel Pilihan:</span>
+                <p className="mt-0.5 text-[11px] text-indigo-800">
                   Mata pelajaran pilihan (berlatar ungu) berjalan serentak / paralel pada waktu yang sama di rombel gabungan. Kuota jam <b>tidak diakumulasi ganda</b> (misal: 2 JP + 2 JP = tetap dihitung <b>2 JP beban rombel</b>), dan penginputan mata pelajaran apa saja yang masuk di JP tersebut dapat diatur secara manual pada tahap penetapan jadwal.
                 </p>
               </div>
@@ -3024,13 +3024,13 @@ export default function JadwalPelajaran() {
                         const cleanSubjectName = les.subject_name || subObj?.name || (les.name ? les.name.replace(/\s*\([^)]*\)\s*$/, '').trim() : 'Mata Pelajaran');
 
                         return (
-                          <tr key={les.id} className={`hover:bg-slate-50 transition ${isElective ? 'bg-purple-50/20' : !hasTeacher ? 'bg-rose-50/30' : ''}`}>
+                          <tr key={les.id} className={`hover:bg-slate-50 transition ${isElective ? 'bg-indigo-50/20' : !hasTeacher ? 'bg-rose-50/30' : ''}`}>
                             <td className="p-3 font-semibold text-center text-slate-400">{idx + 1}</td>
                             <td className="p-3 font-bold text-slate-900">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span>{cleanSubjectName}</span>
                                 {isElective ? (
-                                  <span className="px-2 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded-md font-bold text-[9px]">
+                                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-md font-bold text-[9px]">
                                     Mapel Pilihan (Paralel)
                                   </span>
                                 ) : null}
@@ -3044,7 +3044,7 @@ export default function JadwalPelajaran() {
                             <td className="p-3">
                               <div className="flex flex-wrap gap-1">
                                 {classNames.map((cn, i) => (
-                                  <span key={i} className={`px-2 py-0.5 rounded font-semibold text-[10px] border ${isElective ? 'bg-purple-50 text-purple-900 border-purple-200' : 'bg-teal-50 text-teal-900 border-teal-200'}`}>
+                                  <span key={i} className={`px-2 py-0.5 rounded font-semibold text-[10px] border ${isElective ? 'bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-emerald-50 text-emerald-900 border-emerald-200'}`}>
                                     {cn}
                                   </span>
                                 ))}
@@ -3070,7 +3070,7 @@ export default function JadwalPelajaran() {
                               <div className="flex flex-col items-center">
                                 <span className="font-black text-indigo-700 text-xs">{les.total_hours_per_week} JP</span>
                                 {isElective && (
-                                  <span className="text-[8.5px] font-bold text-purple-700 bg-purple-100/70 px-1.5 py-0.2 rounded mt-0.5">
+                                  <span className="text-[8.5px] font-bold text-indigo-700 bg-indigo-100/70 px-1.5 py-0.2 rounded mt-0.5">
                                     Paralel (1x JP)
                                   </span>
                                 )}
@@ -3117,16 +3117,16 @@ export default function JadwalPelajaran() {
       {mainTab === 'stage3_constraints' && (
         <div className="space-y-6">
           {/* Header Card */}
-          <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-0.5 bg-teal-400 text-teal-950 font-black text-xs rounded-full uppercase tracking-wider">
+                <span className="px-3 py-0.5 bg-emerald-400 text-emerald-950 font-black text-xs rounded-full uppercase tracking-wider">
                   Tahap 3
                 </span>
-                <span className="text-xs text-teal-200">Ketersediaan Waktu & Batasan Khusus</span>
+                <span className="text-xs text-emerald-200">Ketersediaan Waktu & Batasan Khusus</span>
               </div>
               <h3 className="text-xl font-black">Aturan Waktu Khusus (Guru, Rombel & Mapel)</h3>
-              <p className="text-xs text-teal-100 leading-relaxed">
+              <p className="text-xs text-emerald-100 leading-relaxed">
                 Tandai rentang waktu tertentu dari Tahap 1 yang <b>TIDAK BISA dialokasikan</b> untuk guru tertentu (hari libur/kegiatan lain), rombel tertentu (praktikum/kegiatan pesantren), atau mapel tertentu (misal PJOK hanya di jam pagi).
               </p>
             </div>
@@ -3137,7 +3137,7 @@ export default function JadwalPelajaran() {
                 type="button"
                 onClick={() => setConstraintTab('teacher')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  constraintTab === 'teacher' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                  constraintTab === 'teacher' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 Ketersediaan Guru
@@ -3146,7 +3146,7 @@ export default function JadwalPelajaran() {
                 type="button"
                 onClick={() => setConstraintTab('class')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  constraintTab === 'class' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                  constraintTab === 'class' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 Ketersediaan Rombel
@@ -3155,7 +3155,7 @@ export default function JadwalPelajaran() {
                 type="button"
                 onClick={() => setConstraintTab('subject')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  constraintTab === 'subject' ? 'bg-teal-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                  constraintTab === 'subject' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:text-white'
                 }`}
               >
                 Batasan Mata Pelajaran
@@ -3210,7 +3210,7 @@ export default function JadwalPelajaran() {
             });
 
             return (
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
                     <h4 className="font-extrabold text-sm text-slate-800">Matriks Ketersediaan Guru Mengajar</h4>
@@ -3221,10 +3221,10 @@ export default function JadwalPelajaran() {
                   <div className="relative w-full sm:w-72">
                     <div
                       onClick={() => setTeacherAvailDropdownOpen(!teacherAvailDropdownOpen)}
-                      className="px-3.5 py-2 bg-slate-50 border border-slate-300 hover:border-teal-500 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between cursor-pointer shadow-2xs transition"
+                      className="px-3.5 py-2 bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between cursor-pointer shadow-2xs transition"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <User className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                        <User className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span className="truncate">
                           {selectedTeacherObj ? selectedTeacherObj.full_name : '-- Pilih Guru Pengampu --'}
                         </span>
@@ -3233,7 +3233,7 @@ export default function JadwalPelajaran() {
                     </div>
 
                     {teacherAvailDropdownOpen && (
-                      <div className="absolute right-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 space-y-1.5 animate-in fade-in zoom-in-95">
+                      <div className="absolute right-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-2 space-y-1.5 animate-in fade-in zoom-in-95">
                         {/* Live Search Input */}
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -3243,7 +3243,7 @@ export default function JadwalPelajaran() {
                             value={teacherAvailSearchQuery}
                             onChange={(e) => setTeacherAvailSearchQuery(e.target.value)}
                             placeholder="Cari nama guru / NIP..."
-                            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             onClick={(e) => e.stopPropagation()}
                           />
                         </div>
@@ -3267,7 +3267,7 @@ export default function JadwalPelajaran() {
                                 }}
                                 className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition flex items-center justify-between ${
                                   String(selectedTeacherForAvail) === String(t.id)
-                                    ? 'bg-teal-50 text-teal-900 font-bold'
+                                    ? 'bg-emerald-50 text-emerald-900 font-bold'
                                     : 'hover:bg-slate-50 text-slate-700 font-medium'
                                 }`}
                               >
@@ -3276,7 +3276,7 @@ export default function JadwalPelajaran() {
                                   <div className="text-[10px] text-slate-400">{t.nip || 'Guru Reguler'}</div>
                                 </div>
                                 {String(selectedTeacherForAvail) === String(t.id) && (
-                                  <span className="text-teal-600 font-bold text-xs">✓</span>
+                                  <span className="text-emerald-600 font-bold text-xs">✓</span>
                                 )}
                               </button>
                             ))
@@ -3407,7 +3407,7 @@ export default function JadwalPelajaran() {
             });
 
             return (
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
                     <h4 className="font-extrabold text-sm text-slate-800">Matriks Waktu KBM Rombongan Belajar</h4>
@@ -3418,10 +3418,10 @@ export default function JadwalPelajaran() {
                   <div className="relative w-full sm:w-72">
                     <div
                       onClick={() => setClassAvailDropdownOpen(!classAvailDropdownOpen)}
-                      className="px-3.5 py-2 bg-slate-50 border border-slate-300 hover:border-teal-500 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between cursor-pointer shadow-2xs transition"
+                      className="px-3.5 py-2 bg-slate-50 border border-slate-300 hover:border-emerald-500 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between cursor-pointer shadow-2xs transition"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <Layers className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                        <Layers className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span className="truncate">
                           {selectedClassObj ? `${selectedClassObj.name} (${selectedClassObj.grade_level_name || 'Reguler'})` : '-- Pilih Rombel --'}
                         </span>
@@ -3430,7 +3430,7 @@ export default function JadwalPelajaran() {
                     </div>
 
                     {classAvailDropdownOpen && (
-                      <div className="absolute right-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-2 space-y-1.5 animate-in fade-in zoom-in-95">
+                      <div className="absolute right-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-2 space-y-1.5 animate-in fade-in zoom-in-95">
                         {/* Live Search Input */}
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -3440,7 +3440,7 @@ export default function JadwalPelajaran() {
                             value={classAvailSearchQuery}
                             onChange={(e) => setClassAvailSearchQuery(e.target.value)}
                             placeholder="Cari nama rombel..."
-                            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             onClick={(e) => e.stopPropagation()}
                           />
                         </div>
@@ -3464,7 +3464,7 @@ export default function JadwalPelajaran() {
                                 }}
                                 className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition flex items-center justify-between ${
                                   String(selectedClassForAvail) === String(cg.id)
-                                    ? 'bg-teal-50 text-teal-900 font-bold'
+                                    ? 'bg-emerald-50 text-emerald-900 font-bold'
                                     : 'hover:bg-slate-50 text-slate-700 font-medium'
                                 }`}
                               >
@@ -3473,7 +3473,7 @@ export default function JadwalPelajaran() {
                                   <div className="text-[10px] text-slate-400">{cg.grade_level_name || 'Rombel Reguler'}</div>
                                 </div>
                                 {String(selectedClassForAvail) === String(cg.id) && (
-                                  <span className="text-teal-600 font-bold text-xs">✓</span>
+                                  <span className="text-emerald-600 font-bold text-xs">✓</span>
                                 )}
                               </button>
                             ))
@@ -3583,7 +3583,7 @@ export default function JadwalPelajaran() {
             });
 
             return (
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                   <div>
                     <h4 className="font-extrabold text-sm text-slate-800">Batasan Waktu Khusus Mata Pelajaran</h4>
@@ -3598,7 +3598,7 @@ export default function JadwalPelajaran() {
                       value={subjectConstraintSearchQuery}
                       onChange={(e) => setSubjectConstraintSearchQuery(e.target.value)}
                       placeholder="Cari mata pelajaran..."
-                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -3618,11 +3618,11 @@ export default function JadwalPelajaran() {
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="text-[10px] text-slate-500 font-mono">{sub.code || 'MAPEL'}</span>
                               {sub.is_elective ? (
-                                <span className="text-[9px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded">
+                                <span className="text-[9px] font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded">
                                   Pilihan
                                 </span>
                               ) : (
-                                <span className="text-[9px] font-bold text-teal-700 bg-teal-100 px-1.5 py-0.2 rounded">
+                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
                                   Reguler
                                 </span>
                               )}
@@ -3636,7 +3636,7 @@ export default function JadwalPelajaran() {
                                 [sub.id]: e.target.value
                               });
                             }}
-                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-teal-500 shrink-0"
+                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 shrink-0"
                           >
                             <option value="any">Bebas Sepanjang Hari</option>
                             <option value="morning_only">Hanya Jam Pagi (JP 1-3)</option>
@@ -3660,7 +3660,7 @@ export default function JadwalPelajaran() {
       {mainTab === 'stage4_generator' && (
         <div className="space-y-6">
           {/* Generator Hero Card */}
-          <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white p-6 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 text-white p-6 rounded-xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2 max-w-2xl">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-amber-400 text-amber-950 font-black text-xs rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm">
@@ -3680,7 +3680,7 @@ export default function JadwalPelajaran() {
                 type="button"
                 onClick={handleRunGenerator}
                 disabled={isGenerating || readyLessons.length === 0}
-                className="w-full sm:w-auto px-6 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl text-sm shadow-xl transition active:scale-95 flex items-center justify-center gap-2.5 disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-sm shadow-xl transition active:scale-95 flex items-center justify-center gap-2.5 disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>
@@ -3699,7 +3699,7 @@ export default function JadwalPelajaran() {
 
           {/* Real-time Progress & Activity Log saat Generating */}
           {isGenerating && (
-            <div className="bg-slate-900 border border-slate-700 text-white p-5 rounded-2xl shadow-xl space-y-3 animate-in fade-in zoom-in-95">
+            <div className="bg-slate-900 border border-slate-700 text-white p-5 rounded-xl shadow-xl space-y-3 animate-in fade-in zoom-in-95">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-3 h-3 bg-amber-400 rounded-full animate-ping" />
@@ -3730,8 +3730,8 @@ export default function JadwalPelajaran() {
 
           {/* Pre-flight Checklist */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
@@ -3740,7 +3740,7 @@ export default function JadwalPelajaran() {
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
                 <BookOpen className="w-5 h-5" />
               </div>
@@ -3750,7 +3750,7 @@ export default function JadwalPelajaran() {
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -3760,7 +3760,7 @@ export default function JadwalPelajaran() {
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
                 <UserX className="w-5 h-5" />
               </div>
@@ -3775,7 +3775,7 @@ export default function JadwalPelajaran() {
 
           {/* Generator Result Report */}
           {generatorReport && (
-            <div className={`p-6 rounded-2xl border ${
+            <div className={`p-6 rounded-xl border ${
               generatorReport.success ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950' : 'bg-amber-50/90 border-amber-300 text-amber-950'
             } shadow-sm space-y-4`}>
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -3825,7 +3825,7 @@ export default function JadwalPelajaran() {
                       <li key={i} className="text-rose-700">{r}</li>
                     ))}
                     {generatorReport.diagnostics.recommendations?.map((rec, i) => (
-                      <li key={i} className="text-teal-700 font-semibold">{rec}</li>
+                      <li key={i} className="text-emerald-700 font-semibold">{rec}</li>
                     ))}
                   </ul>
                 </div>
@@ -3834,7 +3834,7 @@ export default function JadwalPelajaran() {
           )}
 
           {/* Generator Runs History & Matrix Preview */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <h4 className="font-bold text-sm text-slate-800 flex items-center justify-between">
               <span>Riwayat Hasil Generate ({generatorRuns.length})</span>
             </h4>
@@ -3877,7 +3877,7 @@ export default function JadwalPelajaran() {
       {mainTab === 'stage5_editor' && (
         <div className="space-y-6">
           {/* FILTER & PRESET SELECTOR BAR */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-slate-600 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5 text-slate-400" />
@@ -3904,7 +3904,7 @@ export default function JadwalPelajaran() {
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Semua Rombel</option>
                 {classGroups.map((cg) => (
@@ -3918,7 +3918,7 @@ export default function JadwalPelajaran() {
               <select
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-teal-500"
+                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Semua Hari</option>
                 {DAYS.map((d) => (
@@ -3938,7 +3938,7 @@ export default function JadwalPelajaran() {
               <button
                 type="button"
                 onClick={handleOpenAddModal}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-2xs flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-2xs flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Sesi Manual</span>
@@ -3954,7 +3954,7 @@ export default function JadwalPelajaran() {
                   type="button"
                   onClick={() => setViewMode('matrix')}
                   className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                    viewMode === 'matrix' ? 'bg-white text-teal-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
+                    viewMode === 'matrix' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
                   }`}
                 >
                   <Grid className="w-3.5 h-3.5" />
@@ -3964,7 +3964,7 @@ export default function JadwalPelajaran() {
                   type="button"
                   onClick={() => setViewMode('calendar')}
                   className={`px-3 py-1.5 rounded-lg transition ${
-                    viewMode === 'calendar' ? 'bg-white text-teal-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
+                    viewMode === 'calendar' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
                   }`}
                 >
                   2. Kalender Mingguan
@@ -3973,7 +3973,7 @@ export default function JadwalPelajaran() {
                   type="button"
                   onClick={() => setViewMode('table')}
                   className={`px-3 py-1.5 rounded-lg transition ${
-                    viewMode === 'table' ? 'bg-white text-teal-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
+                    viewMode === 'table' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600 hover:text-slate-800'
                   }`}
                 >
                   3. Daftar Tabel Sesi
@@ -3988,7 +3988,7 @@ export default function JadwalPelajaran() {
                     onClick={() => setMatrixPerspective('class')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       matrixPerspective === 'class'
-                        ? 'bg-teal-600 text-white shadow-2xs'
+                        ? 'bg-emerald-600 text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
@@ -3999,7 +3999,7 @@ export default function JadwalPelajaran() {
                     onClick={() => setMatrixPerspective('teacher')}
                     className={`px-2.5 py-1 rounded-lg transition ${
                       matrixPerspective === 'teacher'
-                        ? 'bg-teal-600 text-white shadow-2xs'
+                        ? 'bg-emerald-600 text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
@@ -4113,7 +4113,7 @@ export default function JadwalPelajaran() {
             };
 
             return (
-              <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col transition-all ${
+              <div className={`bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col transition-all ${
                 isMatrixFullscreen ? 'fixed inset-0 w-screen h-screen z-[9999] rounded-none border-none p-3 bg-slate-900/80 backdrop-blur-md flex flex-col items-stretch overflow-hidden' : 'overflow-hidden'
               }`}>
                 {/* TOOLBAR INFO MATRIKS + BATCH ACTIONS SEJAJAR */}
@@ -4121,7 +4121,7 @@ export default function JadwalPelajaran() {
                   isMatrixFullscreen ? 'bg-white rounded-xl shadow-md mb-2.5' : 'bg-slate-50'
                 }`}>
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="px-2.5 py-1 bg-teal-100 text-teal-900 rounded-lg font-extrabold text-[11px] shadow-2xs">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg font-extrabold text-[11px] shadow-2xs">
                       {matrixPerspective === 'class' ? 'Matriks KBM Seluruh Rombel' : 'Matriks KBM Seluruh Guru'}
                     </span>
                     <span className="text-slate-300">|</span>
@@ -4134,7 +4134,7 @@ export default function JadwalPelajaran() {
                       <>
                         <span className="text-slate-300">|</span>
                         <div className="flex items-center gap-2 bg-slate-900 text-white px-3 py-1 rounded-xl shadow-md animate-in fade-in zoom-in-95">
-                          <div className="w-5 h-5 rounded-md bg-teal-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
+                          <div className="w-5 h-5 rounded-md bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
                             {selectedScheduleIds.length}
                           </div>
                           <div className="flex flex-col leading-tight">
@@ -4176,7 +4176,7 @@ export default function JadwalPelajaran() {
                       <span className="text-slate-600 font-medium">KBM Reguler (1 / 2 JP)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded bg-purple-100 border border-purple-400"></span>
+                      <span className="w-3 h-3 rounded bg-indigo-100 border border-indigo-400"></span>
                       <span className="text-slate-600 font-medium">Mapel Pilihan / Paralel (Split)</span>
                     </div>
 
@@ -4187,7 +4187,7 @@ export default function JadwalPelajaran() {
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${
                         isMatrixFullscreen
                           ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-600 shadow-md'
-                          : 'bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-700 border-slate-300'
+                          : 'bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border-slate-300'
                       }`}
                       title={isMatrixFullscreen ? 'Keluar dari Mode Layar Penuh (Fokus)' : 'Buka Matriks Mode Layar Penuh (Fokus)'}
                     >
@@ -4198,7 +4198,7 @@ export default function JadwalPelajaran() {
                         </>
                       ) : (
                         <>
-                          <Maximize2 className="w-3.5 h-3.5 text-teal-600" />
+                          <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Layar Penuh (Fokus)</span>
                         </>
                       )}
@@ -4249,10 +4249,10 @@ export default function JadwalPelajaran() {
                           {activeDays.map((d, dIdx) => {
                             const slotCount = uniquePeriodsByDay[d.id]?.length || 1;
                             const dayHeaders = [
-                              { bg: 'bg-teal-900', border: 'border-teal-700', badge: 'bg-teal-800 text-teal-200' },
+                              { bg: 'bg-emerald-900', border: 'border-emerald-700', badge: 'bg-emerald-800 text-emerald-200' },
                               { bg: 'bg-indigo-900', border: 'border-indigo-700', badge: 'bg-indigo-800 text-indigo-200' },
-                              { bg: 'bg-blue-900', border: 'border-blue-700', badge: 'bg-blue-800 text-blue-200' },
-                              { bg: 'bg-purple-900', border: 'border-purple-700', badge: 'bg-purple-800 text-purple-200' },
+                              { bg: 'bg-indigo-900', border: 'border-indigo-700', badge: 'bg-indigo-800 text-indigo-200' },
+                              { bg: 'bg-indigo-900', border: 'border-indigo-700', badge: 'bg-indigo-800 text-indigo-200' },
                               { bg: 'bg-emerald-900', border: 'border-emerald-700', badge: 'bg-emerald-800 text-emerald-200' },
                               { bg: 'bg-amber-900', border: 'border-amber-700', badge: 'bg-amber-800 text-amber-200' },
                             ];
@@ -4345,7 +4345,7 @@ export default function JadwalPelajaran() {
                                     <span>{matrixPerspective === 'class' ? `${rowSchedules.length} Sesi` : (rowItem.nip || 'Guru')}</span>
                                     {!activeSchoolUnit?.id && matrixPerspective === 'class' && unitCode && (
                                       <span className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded shadow-2xs ${
-                                        unitId === 2 ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-teal-100 text-teal-800 border border-teal-200'
+                                        unitId === 2 ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                       }`}>
                                         {unitCode}
                                       </span>
@@ -4411,8 +4411,8 @@ export default function JadwalPelajaran() {
                                             isLastSlotOfDay ? 'border-r-2 border-r-slate-300' : 'border-r border-slate-100'
                                           } ${
                                             isOverThisCell
-                                              ? 'bg-teal-100 border-2 border-dashed border-teal-600 ring-2 ring-teal-400 z-10'
-                                              : isOddDay ? 'bg-slate-50/50 hover:bg-teal-50/60' : 'bg-white hover:bg-teal-50/60'
+                                              ? 'bg-emerald-100 border-2 border-dashed border-emerald-600 ring-2 ring-emerald-400 z-10'
+                                              : isOddDay ? 'bg-slate-50/50 hover:bg-emerald-50/60' : 'bg-white hover:bg-emerald-50/60'
                                           } ${draggedSchedule ? 'cursor-copy' : 'cursor-pointer'}`}
                                           title={
                                             draggedSchedule
@@ -4421,11 +4421,11 @@ export default function JadwalPelajaran() {
                                           }
                                         >
                                           {isOverThisCell ? (
-                                            <span className="font-extrabold text-teal-800 text-[10px] animate-pulse">
+                                            <span className="font-extrabold text-emerald-800 text-[10px] animate-pulse">
                                               ⬇ Lepas Di Sini
                                             </span>
                                           ) : (
-                                            <span className="opacity-0 group-hover/cell:opacity-100 font-bold text-teal-600 text-xs">
+                                            <span className="opacity-0 group-hover/cell:opacity-100 font-bold text-emerald-600 text-xs">
                                               +
                                             </span>
                                           )}
@@ -4494,7 +4494,7 @@ export default function JadwalPelajaran() {
                                                 }}
                                                 className={`p-1.5 rounded-lg border text-left cursor-grab active:cursor-grabbing transition shadow-2xs relative group/card w-full h-full flex flex-col justify-between select-none ${
                                                   isSelected ? 'ring-2 ring-rose-500 bg-rose-50' : ''
-                                                } ${isBeingDragged ? 'opacity-40 scale-95 border-dashed border-teal-500 ring-2 ring-teal-300' : 'hover:shadow-md'}`}
+                                                } ${isBeingDragged ? 'opacity-40 scale-95 border-dashed border-emerald-500 ring-2 ring-emerald-300' : 'hover:shadow-md'}`}
                                                 style={{
                                                   backgroundColor: isSelected ? undefined : colors.bg,
                                                   borderColor: isSelected ? '#f43f5e' : colors.border
@@ -4531,14 +4531,14 @@ export default function JadwalPelajaran() {
                                                       )}
                                                       {isElective && groupName ? (
                                                         <span
-                                                          className="text-[8px] font-black px-1 py-0.2 rounded bg-purple-600 text-white shadow-2xs"
+                                                          className="text-[8px] font-black px-1 py-0.2 rounded bg-indigo-600 text-white shadow-2xs"
                                                           title={`Blok Pilihan: ${groupName}`}
                                                         >
                                                           ✨ Blok
                                                         </span>
                                                       ) : ((sch.is_combined_class || (sch.class_groups && sch.class_groups.length > 1)) && (
                                                         <span
-                                                          className="text-[8px] font-black px-1 py-0.2 rounded bg-purple-600 text-white shadow-2xs"
+                                                          className="text-[8px] font-black px-1 py-0.2 rounded bg-indigo-600 text-white shadow-2xs"
                                                           title={`Rombel Gabungan: ${sch.class_groups ? sch.class_groups.map(c => c.name).join(', ') : ''}`}
                                                         >
                                                           👥 Gabung
@@ -4561,7 +4561,7 @@ export default function JadwalPelajaran() {
                                                   </div>
 
                                                   {(sch.is_combined_class || (sch.class_groups && sch.class_groups.length > 1)) && matrixPerspective === 'class' && (
-                                                    <div className="text-[7.5px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded mt-0.5 break-words border border-purple-200 leading-tight">
+                                                    <div className="text-[7.5px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded mt-0.5 break-words border border-indigo-200 leading-tight">
                                                       Kelas: {sch.class_groups ? sch.class_groups.map(c => c.name).join(' & ') : ''}
                                                     </div>
                                                   )}
@@ -4597,10 +4597,10 @@ export default function JadwalPelajaran() {
               }
             >
               {schedulesByDay.map(day => (
-                <div key={day.id} className="bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-col relative">
-                  <div className="sticky top-0 z-20 bg-teal-50/95 backdrop-blur-xs px-4 py-3 font-black text-xs text-teal-950 border-b border-teal-100 flex items-center justify-between shadow-2xs rounded-t-2xl">
+                <div key={day.id} className="bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col relative">
+                  <div className="sticky top-0 z-20 bg-emerald-50/95 backdrop-blur-xs px-4 py-3 font-black text-xs text-emerald-950 border-b border-emerald-100 flex items-center justify-between shadow-2xs rounded-t-2xl">
                     <span>{day.name}</span>
-                    <span className="text-[10px] font-bold text-teal-800 bg-white px-2 py-0.5 rounded-md border border-teal-200">
+                    <span className="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
                       {day.items.length} Sesi
                     </span>
                   </div>
@@ -4674,7 +4674,7 @@ export default function JadwalPelajaran() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenEditModal(sch)}
-                                    className="p-0.5 text-slate-400 hover:text-teal-700 rounded hover:bg-white/80 transition"
+                                    className="p-0.5 text-slate-400 hover:text-emerald-700 rounded hover:bg-white/80 transition"
                                     title="Edit Jadwal"
                                   >
                                     <Edit2 className="w-3 h-3" />
@@ -4719,7 +4719,7 @@ export default function JadwalPelajaran() {
 
           {/* TABLE VIEW */}
           {viewMode === 'table' && (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
@@ -4762,7 +4762,7 @@ export default function JadwalPelajaran() {
                               />
                             </td>
                             <td className="p-3 font-bold">{DAYS.find(d => d.id === sch.day_of_week)?.name || '-'}</td>
-                            <td className="p-3 font-mono whitespace-nowrap">{formatTime24(sch.start_time)} - {formatTime24(sch.end_time)} <span className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1 py-0.5 rounded border border-teal-100 ml-1">({calculateDurationText(sch.start_time, sch.end_time)})</span></td>
+                            <td className="p-3 font-mono whitespace-nowrap">{formatTime24(sch.start_time)} - {formatTime24(sch.end_time)} <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100 ml-1">({calculateDurationText(sch.start_time, sch.end_time)})</span></td>
                             <td className="p-3">
                               <div className="flex items-center gap-1.5">
                                 {sch.schedule_type === 'ekskul' ? (
@@ -4770,7 +4770,7 @@ export default function JadwalPelajaran() {
                                     EKSKUL
                                   </span>
                                 ) : (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-teal-100 text-teal-900 border border-teal-300">
+                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
                                     MAPEL
                                   </span>
                                 )}
@@ -4784,7 +4784,7 @@ export default function JadwalPelajaran() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditModal(sch)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-teal-700 hover:bg-slate-100 mr-1 transition"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-slate-100 mr-1 transition"
                                 title="Edit Jadwal"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -4816,7 +4816,7 @@ export default function JadwalPelajaran() {
       {/* DRAG CONFLICT RESOLUTION MODAL (MUNCUL DI ATAS FULLSCREEN z-[10005]) */}
       {dragConflictModal && (
         <div className="fixed inset-0 z-[10005] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-xs">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-lg border border-slate-100 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white p-6 rounded-xl w-full max-w-lg border border-slate-100 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-black">
@@ -4861,7 +4861,7 @@ export default function JadwalPelajaran() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Guru Pengampu:</span>
-                <span className="font-bold text-teal-700">
+                <span className="font-bold text-emerald-700">
                   {dragConflictModal.draggedSchedule.teacher_name || 'Belum Ditentukan'}
                 </span>
               </div>
@@ -4873,7 +4873,7 @@ export default function JadwalPelajaran() {
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-slate-200">
                 <span className="text-slate-500 font-semibold">Kandidat Rombel Gabungan:</span>
-                <span className="font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded text-[11px]">
+                <span className="font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded text-[11px]">
                   {(allSchoolClassGroups.length > 0 ? allSchoolClassGroups : classGroups)
                     .filter(c => dragConflictModal.joinableClassGroupIds.includes(c.id))
                     .map(c => c.name)
@@ -4883,12 +4883,12 @@ export default function JadwalPelajaran() {
             </div>
 
             {/* REKOMENDASI SOLUSI CERDAS */}
-            <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs space-y-1">
-              <div className="font-bold text-purple-950 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-purple-700 shrink-0" />
+            <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl text-xs space-y-1">
+              <div className="font-bold text-indigo-950 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-indigo-700 shrink-0" />
                 <span>Solusi Mode Rombel Gabungan (Kelas Gabung):</span>
               </div>
-              <p className="text-[11px] text-purple-800 leading-relaxed">
+              <p className="text-[11px] text-indigo-800 leading-relaxed">
                 Jika Anda ingin 1 guru mengajar mata pelajaran ini kepada beberapa kelas sekaligus pada jam yang sama, aktifkan <b>Mode Rombel Gabungan</b>.
               </p>
             </div>
@@ -4919,7 +4919,7 @@ export default function JadwalPelajaran() {
                 type="button"
                 disabled={isMovingSchedule}
                 onClick={handleConfirmJoinClassFromDrag}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md transition flex items-center justify-center gap-1.5 order-1 sm:order-3 animate-pulse hover:animate-none"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md transition flex items-center justify-center gap-1.5 order-1 sm:order-3 animate-pulse hover:animate-none"
               >
                 <Users className="w-4 h-4" />
                 <span>{isMovingSchedule ? 'Memproses...' : '👥 Jadikan Rombel Gabungan'}</span>
@@ -4937,7 +4937,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {timeSlotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 my-auto">
+          <div className="bg-white rounded-xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 my-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 shrink-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-sm text-slate-800">
@@ -4956,7 +4956,7 @@ export default function JadwalPelajaran() {
                     });
                     setCopyTimeSlotModalOpen(true);
                   }}
-                  className="px-2.5 py-1 text-[10px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg flex items-center gap-1 transition"
+                  className="px-2.5 py-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition"
                   title="Salin pola struktur waktu dari jadwal / unit lain"
                 >
                   <Copy className="w-3 h-3" />
@@ -4981,7 +4981,7 @@ export default function JadwalPelajaran() {
                       onClick={() => setTimeSlotForm({ ...timeSlotForm, edit_scope: 'single' })}
                       className={`py-2 px-2.5 rounded-xl font-bold text-xs border transition text-center flex items-center justify-center gap-1.5 ${
                         timeSlotForm.edit_scope === 'single'
-                          ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -4992,7 +4992,7 @@ export default function JadwalPelajaran() {
                       onClick={() => setTimeSlotForm({ ...timeSlotForm, edit_scope: 'multiple' })}
                       className={`py-2 px-2.5 rounded-xl font-bold text-xs border transition text-center flex items-center justify-center gap-1.5 ${
                         timeSlotForm.edit_scope === 'multiple'
-                          ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -5006,7 +5006,7 @@ export default function JadwalPelajaran() {
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-600">Pilih Hari Penerapan:</span>
                       {editingTimeSlot && (
-                        <span className="text-[10px] font-bold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
                           Sinkronisasi Massal
                         </span>
                       )}
@@ -5019,7 +5019,7 @@ export default function JadwalPelajaran() {
                         onClick={() => setTimeSlotForm({ ...timeSlotForm, selected_days: [1, 2, 3, 4, 5, 6] })}
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${
                           timeSlotForm.selected_days?.length === 6 && !timeSlotForm.selected_days?.includes(7)
-                            ? 'bg-teal-600 text-white border-teal-700'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
                             : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                       >
@@ -5030,7 +5030,7 @@ export default function JadwalPelajaran() {
                         onClick={() => setTimeSlotForm({ ...timeSlotForm, selected_days: [1, 2, 3, 4, 5] })}
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${
                           timeSlotForm.selected_days?.length === 5 && !timeSlotForm.selected_days?.includes(6)
-                            ? 'bg-teal-600 text-white border-teal-700'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
                             : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                       >
@@ -5041,7 +5041,7 @@ export default function JadwalPelajaran() {
                         onClick={() => setTimeSlotForm({ ...timeSlotForm, selected_days: [1, 2, 3, 4, 5, 6, 7] })}
                         className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${
                           timeSlotForm.selected_days?.length === 7
-                            ? 'bg-teal-600 text-white border-teal-700'
+                            ? 'bg-emerald-600 text-white border-emerald-700'
                             : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
                         }`}
                       >
@@ -5066,12 +5066,12 @@ export default function JadwalPelajaran() {
                             }}
                             className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center flex flex-col items-center justify-center ${
                               isSelected
-                                ? 'bg-teal-50 border-teal-500 text-teal-900 shadow-2xs'
+                                ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-2xs'
                                 : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                             }`}
                           >
                             <span>{d.name.slice(0, 3)}</span>
-                            <span className={`text-[9px] font-black mt-0.5 ${isSelected ? 'text-teal-600' : 'text-slate-300'}`}>
+                            <span className={`text-[9px] font-black mt-0.5 ${isSelected ? 'text-emerald-600' : 'text-slate-300'}`}>
                               {isSelected ? '✓' : '-'}
                             </span>
                           </button>
@@ -5079,7 +5079,7 @@ export default function JadwalPelajaran() {
                       })}
                     </div>
 
-                    <div className="text-[11px] text-teal-800 bg-teal-50/80 border border-teal-200/80 px-2.5 py-1.5 rounded-xl font-medium">
+                    <div className="text-[11px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl font-medium">
                       💡 {editingTimeSlot 
                         ? `Perubahan jam ${timeSlotForm.label || 'slot ini'} akan disinkronkan ke ${timeSlotForm.selected_days?.length || 0} hari terpilih.`
                         : `Rentang waktu ini akan diterapkan pada ${timeSlotForm.selected_days?.length || 0} hari terpilih.`
@@ -5106,7 +5106,7 @@ export default function JadwalPelajaran() {
                     }}
                     className={`py-2 px-2 rounded-xl font-bold border transition text-center text-xs flex flex-col items-center justify-center ${
                       timeSlotForm.type === 'lesson'
-                        ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                     }`}
                   >
@@ -5129,7 +5129,7 @@ export default function JadwalPelajaran() {
                     }}
                     className={`py-2 px-2 rounded-xl font-bold border transition text-center text-xs flex flex-col items-center justify-center ${
                       timeSlotForm.type === 'elective'
-                        ? 'bg-purple-600 text-white border-purple-700 shadow-2xs'
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                     }`}
                   >
@@ -5200,7 +5200,7 @@ export default function JadwalPelajaran() {
               </div>
 
               {timeSlotForm.type === 'lesson' && (
-                <div className="p-2.5 bg-teal-50 border border-teal-200 rounded-xl text-[11px] text-teal-900 font-medium">
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-medium">
                   💡 Durasi otomatis dihitung <b>{minutesPerJp} Menit</b> sesuai standar Struktur Kurikulum.
                 </div>
               )}
@@ -5218,7 +5218,7 @@ export default function JadwalPelajaran() {
               </div>
 
               {/* FITUR WARNA RENTANG WAKTU */}
-              <div className="bg-slate-50/70 p-3 rounded-2xl border border-slate-200 space-y-2">
+              <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="block font-bold text-slate-700 text-xs">Warna Tampilan Rentang Waktu</label>
@@ -5298,7 +5298,7 @@ export default function JadwalPelajaran() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition"
                 >
                   {saving ? 'Menyimpan...' : 'Simpan Rentang Waktu'}
                 </button>
@@ -5313,7 +5313,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {wizardModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
@@ -5430,10 +5430,10 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {copyTimeSlotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
                   <Copy className="w-4 h-4" />
                 </div>
                 <div>
@@ -5447,14 +5447,14 @@ export default function JadwalPelajaran() {
             </div>
 
             <form onSubmit={handleExecuteCopyTimeSlots} className="space-y-3.5 text-xs">
-              <div className="p-3 bg-teal-50/80 rounded-xl border border-teal-200 space-y-1">
-                <div className="flex items-center justify-between font-bold text-teal-950">
+              <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 space-y-1">
+                <div className="flex items-center justify-between font-bold text-emerald-950">
                   <span>Target Penempatan:</span>
-                  <span className="bg-teal-600 text-white px-2 py-0.5 rounded text-[10px]">
+                  <span className="bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px]">
                     {academicYears.find(y => String(y.id) === String(selectedYearId))?.name || 'Tahun Ajaran Aktif'}
                   </span>
                 </div>
-                <p className="text-[10px] text-teal-800">
+                <p className="text-[10px] text-emerald-800">
                   Struktur waktu akan disalin ke Satuan Pendidikan: <b>{activeSchoolUnit?.name || 'Unit Aktif'}</b>.
                 </p>
               </div>
@@ -5479,7 +5479,7 @@ export default function JadwalPelajaran() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-bold text-slate-700">Tahun Ajaran Sumber (Jadwal Acuan) *</label>
                   {loadingSourceYears && (
-                    <span className="text-[10px] text-teal-600 font-bold animate-pulse">Memuat tahun ajaran...</span>
+                    <span className="text-[10px] text-emerald-600 font-bold animate-pulse">Memuat tahun ajaran...</span>
                   )}
                 </div>
                 <select
@@ -5502,7 +5502,7 @@ export default function JadwalPelajaran() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="font-bold text-slate-700">Opsi Jadwal / Preset Sumber</label>
                   {loadingSourcePresets ? (
-                    <span className="text-[10px] text-teal-600 font-bold animate-pulse">Memuat opsi jadwal...</span>
+                    <span className="text-[10px] text-emerald-600 font-bold animate-pulse">Memuat opsi jadwal...</span>
                   ) : (
                     <span className="text-[10px] text-slate-400 font-semibold">
                       {sourcePresetsList.length > 0 ? `${sourcePresetsList.length} opsi tersedia` : 'Belum ada opsi jadwal'}
@@ -5544,7 +5544,7 @@ export default function JadwalPelajaran() {
                   id="replace_existing_slots"
                   checked={copyTimeSlotForm.replace_existing}
                   onChange={(e) => setCopyTimeSlotForm({ ...copyTimeSlotForm, replace_existing: e.target.checked })}
-                  className="w-4 h-4 text-teal-600 rounded"
+                  className="w-4 h-4 text-emerald-600 rounded"
                 />
                 <label htmlFor="replace_existing_slots" className="font-bold text-slate-700 text-[11px] cursor-pointer">
                   Gantikan (timpa) seluruh struktur waktu yang sudah ada pada jadwal saat ini
@@ -5562,7 +5562,7 @@ export default function JadwalPelajaran() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>{saving ? 'Menyalin...' : 'Salin Struktur Waktu Sekarang'}</span>
@@ -5578,7 +5578,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {lessonModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <h3 className="font-extrabold text-sm text-slate-800">
                 {editingLesson ? 'Edit Beban Pelajaran' : 'Tambah Beban Pelajaran Manual'}
@@ -5692,7 +5692,7 @@ export default function JadwalPelajaran() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md"
                 >
                   {saving ? 'Menyimpan...' : 'Simpan Beban Pelajaran'}
                 </button>
@@ -5707,7 +5707,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {modalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <h3 className="font-extrabold text-sm text-slate-800">
                 {editingSchedule ? 'Edit Sesi Jadwal Pelajaran' : 'Tambah Sesi Jadwal Manual'}
@@ -5805,15 +5805,15 @@ export default function JadwalPelajaran() {
 
             <form onSubmit={handleSaveSchedule} className="space-y-4 text-xs">
               {/* PANEL INFORMASI SESI WAKTU & GURU (TEKS INFORMATIF ELEGAN) */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     <span className="font-extrabold text-slate-800 text-xs">
                       {DAYS.find(d => d.id === form.day_of_week)?.name || 'Hari'}
                     </span>
                     <span className="text-slate-400 font-normal">|</span>
-                    <span className="font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-lg text-[11px]">
+                    <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-[11px]">
                       {form.period_label || 'Slot Jam Pelajaran'}
                     </span>
                   </div>
@@ -5853,11 +5853,11 @@ export default function JadwalPelajaran() {
                 <div
                   onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
                   className={`px-3.5 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between cursor-pointer shadow-2xs transition ${
-                    subjectDropdownOpen ? 'border-teal-500 ring-2 ring-teal-100 bg-white' : 'border-slate-200 hover:border-teal-400'
+                    subjectDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-100 bg-white' : 'border-slate-200 hover:border-emerald-400'
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <BookOpen className="w-4 h-4 text-teal-600 shrink-0" />
+                    <BookOpen className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span className="truncate">
                       {(() => {
                         const curSub = subjectsList.find(s => String(s.id) === String(form.subject_id));
@@ -5871,12 +5871,12 @@ export default function JadwalPelajaran() {
                       })()}
                     </span>
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${subjectDropdownOpen ? 'rotate-180 text-teal-600' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${subjectDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                 </div>
 
                 {/* POPOVER CONTAINER GRID MAPEL (HANYA MUNCUL SAAT DIKLIK) */}
                 {subjectDropdownOpen && (
-                  <div className="mt-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-xl space-y-2 animate-in fade-in zoom-in-95 z-30">
+                  <div className="mt-2 p-3 bg-white border border-slate-200 rounded-xl shadow-xl space-y-2 animate-in fade-in zoom-in-95 z-30">
                     {/* SEARCH LIVE FILTER UNTUK GRID MAPEL */}
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -5886,7 +5886,7 @@ export default function JadwalPelajaran() {
                         value={subjectSearch}
                         onChange={(e) => setSubjectSearch(e.target.value)}
                         placeholder="Ketik untuk cari mapel / blok (misal: Matematika, Arab)..."
-                        className="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition"
+                        className="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition"
                         onClick={(e) => e.stopPropagation()}
                       />
                       {subjectSearch && (
@@ -6032,10 +6032,10 @@ export default function JadwalPelajaran() {
                                 className={`p-2 rounded-xl border text-left transition flex flex-col justify-between relative group ${
                                   isSelected
                                     ? (item.isBlock
-                                        ? 'bg-purple-600 text-white border-purple-700 shadow-md ring-2 ring-purple-300'
-                                        : 'bg-teal-600 text-white border-teal-700 shadow-md ring-2 ring-teal-300')
+                                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-300'
+                                        : 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300')
                                     : (item.isBlock
-                                        ? 'bg-purple-50 hover:bg-purple-100/80 border-purple-200 text-purple-950 shadow-2xs'
+                                        ? 'bg-indigo-50 hover:bg-indigo-100/80 border-indigo-200 text-indigo-950 shadow-2xs'
                                         : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800 shadow-2xs')
                                 }`}
                               >
@@ -6044,13 +6044,13 @@ export default function JadwalPelajaran() {
                                     <span className={`text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded ${
                                       isSelected
                                         ? 'bg-white/20 text-white'
-                                        : (item.isBlock ? 'bg-purple-200 text-purple-900' : 'bg-slate-100 text-slate-600')
+                                        : (item.isBlock ? 'bg-indigo-200 text-indigo-900' : 'bg-slate-100 text-slate-600')
                                     }`}>
                                       {item.code}
                                     </span>
                                     {item.isBlock ? (
                                       <span className={`text-[7.5px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                                        isSelected ? 'bg-white text-purple-700' : 'bg-purple-600 text-white'
+                                        isSelected ? 'bg-white text-indigo-700' : 'bg-indigo-600 text-white'
                                       }`}>
                                         ✨ Blok
                                       </span>
@@ -6067,7 +6067,7 @@ export default function JadwalPelajaran() {
 
                                 {item.isBlock && (
                                   <div className={`text-[8px] mt-1 pt-1 border-t leading-tight truncate ${
-                                    isSelected ? 'border-white/20 text-purple-100' : 'border-purple-200 text-purple-700 font-medium'
+                                    isSelected ? 'border-white/20 text-indigo-100' : 'border-indigo-200 text-indigo-700 font-medium'
                                   }`} title={item.memberNames}>
                                     {item.memberNames}
                                   </div>
@@ -6089,18 +6089,18 @@ export default function JadwalPelajaran() {
                     Rombongan Belajar (Pilih Satu atau Centang Banyak untuk Gabung Rombel) *
                   </label>
                   {form.class_group_ids.length > 1 && (
-                    <span className="text-[10px] font-black text-purple-800 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                    <span className="text-[10px] font-black text-indigo-800 bg-indigo-100 border border-indigo-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                       <span>👥 Rombel Gabungan ({form.class_group_ids.length} Kelas)</span>
                     </span>
                   )}
                 </div>
 
                 {form.class_group_ids.length > 1 && (
-                  <div className="mb-2 p-2.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 text-xs flex items-center gap-2">
-                    <Users className="w-4 h-4 text-purple-700 shrink-0" />
+                  <div className="mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 text-xs flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-700 shrink-0" />
                     <div>
                       <span className="font-bold">Mode Gabung Rombel Aktif: </span>
-                      <span className="font-bold text-purple-950">
+                      <span className="font-bold text-indigo-950">
                         {(allSchoolClassGroups.length > 0 ? allSchoolClassGroups : classGroups)
                           .filter(c => form.class_group_ids.includes(c.id))
                           .map(c => {
@@ -6109,14 +6109,14 @@ export default function JadwalPelajaran() {
                           })
                           .join(' & ')}
                       </span>
-                      <span className="text-[11px] text-purple-700 block mt-0.5">
+                      <span className="text-[11px] text-indigo-700 block mt-0.5">
                         Jadwal sesi ini akan sinkron dan muncul otomatis di seluruh rombel yang dicentang (termasuk jika lintas satuan pendidikan).
                       </span>
                     </div>
                   </div>
                 )}
 
-                <div className="p-2 bg-slate-50 border border-slate-200 rounded-2xl max-h-52 overflow-y-auto scrollbar-thin space-y-2.5">
+                <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl max-h-52 overflow-y-auto scrollbar-thin space-y-2.5">
                   {(() => {
                     const availableRombels = (allSchoolClassGroups.length > 0 ? allSchoolClassGroups : classGroups)
                       .filter(cg => !cg.type || cg.type === 'reguler');
@@ -6141,7 +6141,7 @@ export default function JadwalPelajaran() {
                         {Object.values(unitGroups).map(group => (
                           <div key={group.unitId} className="space-y-1">
                             <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-1.5 pt-1">
-                              <span className={`w-2 h-2 rounded-full ${group.unitId === 2 ? 'bg-indigo-500' : 'bg-teal-500'}`}></span>
+                              <span className={`w-2 h-2 rounded-full ${group.unitId === 2 ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
                               <span>{group.unitName} ({group.rombels.length} Rombel)</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -6154,7 +6154,7 @@ export default function JadwalPelajaran() {
                                       isChecked
                                         ? (group.unitId === 2
                                             ? 'bg-indigo-50 border-indigo-400 text-indigo-950 shadow-2xs'
-                                            : 'bg-teal-50 border-teal-400 text-teal-950 shadow-2xs')
+                                            : 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-2xs')
                                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                                     }`}
                                   >
@@ -6168,7 +6168,7 @@ export default function JadwalPelajaran() {
                                           setForm({ ...form, class_group_ids: form.class_group_ids.filter(id => id !== cg.id) });
                                         }
                                       }}
-                                      className={`w-3.5 h-3.5 rounded cursor-pointer ${group.unitId === 2 ? 'text-indigo-600' : 'text-teal-600'}`}
+                                      className={`w-3.5 h-3.5 rounded cursor-pointer ${group.unitId === 2 ? 'text-indigo-600' : 'text-emerald-600'}`}
                                     />
                                     <span className="truncate">{cg.name}</span>
                                   </label>
@@ -6193,7 +6193,7 @@ export default function JadwalPelajaran() {
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
                   placeholder="misal: Penyesuaian jadwal KBM / penggabungan rombel"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"
                 />
               </div>
 
@@ -6208,7 +6208,7 @@ export default function JadwalPelajaran() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md"
                 >
                   {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
                 </button>
@@ -6223,7 +6223,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {deleteModalOpen && scheduleToDelete && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
@@ -6301,7 +6301,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {bulkDeleteModalOpen && selectedScheduleIds.length > 0 && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black">
@@ -6378,7 +6378,7 @@ export default function JadwalPelajaran() {
       {/* ========================================== */}
       {presetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">
@@ -6437,7 +6437,7 @@ export default function JadwalPelajaran() {
             {presetModalTab === 'list' && (
               <div className="space-y-2.5 overflow-y-auto flex-1 pr-1">
                 {presets.length === 0 ? (
-                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 space-y-2">
+                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200 text-slate-500 space-y-2">
                     <Calendar className="w-8 h-8 mx-auto text-slate-300" />
                     <p className="text-xs font-bold text-slate-700">Belum ada opsi jadwal tersimpan</p>
                     <p className="text-[11px] text-slate-400">Klik tombol di atas untuk membuat Jadwal 1 atau opsi pertama.</p>
@@ -6449,7 +6449,7 @@ export default function JadwalPelajaran() {
                     return (
                       <div
                         key={p.id}
-                        className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        className={`p-4 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                           isCurrentActive
                             ? 'bg-emerald-50/70 border-emerald-300 shadow-2xs ring-1 ring-emerald-400'
                             : isViewing
@@ -6519,7 +6519,7 @@ export default function JadwalPelajaran() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditPreset(p)}
-                            className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 hover:text-teal-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition"
+                            className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 hover:text-emerald-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition"
                             title="Edit nama / info opsi jadwal"
                           >
                             <Edit2 className="w-3.5 h-3.5" />

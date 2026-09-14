@@ -562,9 +562,9 @@ export default function RiwayatAkademik() {
   return (
     <div className="space-y-6 pb-20">
       {/* Header Halaman */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
             <History className="w-6 h-6" />
           </div>
           <div>
@@ -649,7 +649,7 @@ export default function RiwayatAkademik() {
       {activeTab === 'tambah_siswa' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Input Tambah Cepat */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-6">
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-6">
             <div>
               <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-indigo-600" />
@@ -794,7 +794,7 @@ export default function RiwayatAkademik() {
 
           {/* Panel Deteksi Duplikasi Live */}
           <div className="space-y-4">
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
                   <Search className="w-3.5 h-3.5 text-indigo-600" />
@@ -863,7 +863,7 @@ export default function RiwayatAkademik() {
       {/* ========================================================= */}
       {activeTab === 'struktur_historis' && (
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-indigo-600" />
@@ -888,7 +888,7 @@ export default function RiwayatAkademik() {
             {structureByYear.map((yr) => (
               <div
                 key={yr.id}
-                className={`bg-white rounded-2xl border transition ${
+                className={`bg-white rounded-xl border transition ${
                   yr.is_active ? 'border-emerald-200 shadow-xs' : 'border-slate-200 shadow-2xs'
                 }`}
               >
@@ -989,7 +989,7 @@ export default function RiwayatAkademik() {
       {activeTab === 'input_rapor' && (
         <div className="space-y-6">
           {/* Header Panel Filter & Mode Toggle */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1087,7 +1087,7 @@ export default function RiwayatAkademik() {
 
           {/* SUBMODE A: INPUT MANUAL MATRIKS */}
           {raporMode === 'manual' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
               <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between gap-4">
                 <div>
                   <h3 className="font-bold text-slate-800 text-xs">
@@ -1187,7 +1187,7 @@ export default function RiwayatAkademik() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Langkah 1: Unduh Template */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 font-bold text-slate-800 text-sm">
                     <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
                       1
@@ -1209,7 +1209,7 @@ export default function RiwayatAkademik() {
                 </div>
 
                 {/* Langkah 2: Upload File */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 font-bold text-slate-800 text-sm">
                     <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
                       2
@@ -1250,7 +1250,7 @@ export default function RiwayatAkademik() {
 
               {/* Preview Hasil Parsing */}
               {importPreviewSummary && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
                     <div>
                       <h3 className="font-bold text-slate-800 text-sm">Preview Baris Data File Excel</h3>
@@ -1295,7 +1295,7 @@ export default function RiwayatAkademik() {
                                   Cocok ({r._matchedStudent?.full_name})
                                 </span>
                               ) : autoCreateMissing ? (
-                                <span className="px-2 py-0.5 rounded font-bold bg-blue-100 text-blue-700 text-[10px]">
+                                <span className="px-2 py-0.5 rounded font-bold bg-indigo-100 text-indigo-700 text-[10px]">
                                   Akan dibuat otomatis
                                 </span>
                               ) : (
@@ -1321,7 +1321,7 @@ export default function RiwayatAkademik() {
       {/* ========================================================= */}
       {showBulkYearModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-600" />
@@ -1434,7 +1434,7 @@ export default function RiwayatAkademik() {
       {/* ========================================================= */}
       {importResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -1454,13 +1454,13 @@ export default function RiwayatAkademik() {
                 <div className="text-emerald-700">Baris Berhasil</div>
                 <div className="text-lg font-bold text-emerald-800 mt-0.5">{importResultModal.success_count}</div>
               </div>
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="text-blue-700">Siswa Baru Dibuat</div>
-                <div className="text-lg font-bold text-blue-800 mt-0.5">{importResultModal.created_students_count}</div>
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                <div className="text-indigo-700">Siswa Baru Dibuat</div>
+                <div className="text-lg font-bold text-indigo-800 mt-0.5">{importResultModal.created_students_count}</div>
               </div>
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
-                <div className="text-purple-700">Siswa Cocok Existing</div>
-                <div className="text-lg font-bold text-purple-800 mt-0.5">{importResultModal.matched_students_count}</div>
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                <div className="text-indigo-700">Siswa Cocok Existing</div>
+                <div className="text-lg font-bold text-indigo-800 mt-0.5">{importResultModal.matched_students_count}</div>
               </div>
             </div>
 

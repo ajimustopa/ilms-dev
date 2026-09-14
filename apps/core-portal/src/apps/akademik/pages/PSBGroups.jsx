@@ -142,7 +142,7 @@ export default function PSBGroups() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-2xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <Users className="w-6 h-6" />
             </div>
             <span>Kelompok & Gelombang PSB</span>
@@ -153,12 +153,12 @@ export default function PSBGroups() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
             <span className="text-xs font-semibold text-slate-500">Proses PSB:</span>
             <select
               value={selectedProcessId}
               onChange={(e) => setSelectedProcessId(e.target.value)}
-              className="text-xs font-bold text-teal-700 bg-transparent focus:outline-none"
+              className="text-xs font-bold text-emerald-700 bg-transparent focus:outline-none"
             >
               {processes.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -171,7 +171,7 @@ export default function PSBGroups() {
           <button
             onClick={() => handleOpenModal()}
             disabled={!selectedProcessId}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-teal-900/20 transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Gelombang</span>
@@ -181,7 +181,7 @@ export default function PSBGroups() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
@@ -205,7 +205,7 @@ export default function PSBGroups() {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="py-10 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                     <span>Memuat data kelompok PSB...</span>
                   </td>
                 </tr>
@@ -235,13 +235,13 @@ export default function PSBGroups() {
                       <td className="py-3.5 px-4">
                         <div className="w-36 space-y-1">
                           <div className="flex justify-between text-[10px]">
-                            <span className="font-bold text-teal-700">{filledCount} Santri</span>
+                            <span className="font-bold text-emerald-700">{filledCount} Santri</span>
                             <span className="text-slate-400">{percentage}%</span>
                           </div>
                           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all ${
-                                percentage >= 100 ? 'bg-rose-500' : percentage >= 80 ? 'bg-amber-500' : 'bg-teal-500'
+                                percentage >= 100 ? 'bg-rose-500' : percentage >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
                               }`}
                               style={{ width: `${percentage}%` }}
                             />
@@ -296,7 +296,7 @@ export default function PSBGroups() {
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs flex items-center gap-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <p className="font-semibold">{errorMsg}</p>
               </div>
@@ -310,7 +310,7 @@ export default function PSBGroups() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="Contoh: Gelombang 1 - Jalur Reguler"
                 />
               </div>
@@ -323,7 +323,7 @@ export default function PSBGroups() {
                   required
                   value={formData.quota}
                   onChange={(e) => setFormData({ ...formData, quota: Number(e.target.value) })}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -333,7 +333,7 @@ export default function PSBGroups() {
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -343,7 +343,7 @@ export default function PSBGroups() {
                   id="is_active_grp"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="is_active_grp" className="text-xs font-semibold text-slate-700">
                   Aktifkan gelombang ini untuk penerimaan pendaftar
@@ -361,7 +361,7 @@ export default function PSBGroups() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-teal-900/20"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   <span>Simpan Gelombang</span>

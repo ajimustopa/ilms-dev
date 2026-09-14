@@ -104,10 +104,10 @@ function CustomFilterSelect({
       tag: 'bg-indigo-100 text-indigo-800 border-indigo-200'
     },
     teal: {
-      button: 'bg-white hover:bg-teal-50/40 border-teal-200 text-teal-950 focus:border-teal-400 shadow-xs',
-      iconBox: 'bg-teal-50 text-teal-700',
-      activeItem: 'bg-teal-50 text-teal-950 font-bold',
-      tag: 'bg-teal-100 text-teal-800 border-teal-200'
+      button: 'bg-white hover:bg-emerald-50/40 border-emerald-200 text-emerald-950 focus:border-emerald-400 shadow-xs',
+      iconBox: 'bg-emerald-50 text-emerald-700',
+      activeItem: 'bg-emerald-50 text-emerald-950 font-bold',
+      tag: 'bg-emerald-100 text-emerald-800 border-emerald-200'
     },
     amber: {
       button: 'bg-white hover:bg-amber-50/40 border-amber-300 text-amber-950 focus:border-amber-400 shadow-xs',
@@ -127,7 +127,7 @@ function CustomFilterSelect({
         }}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs transition-all duration-150 ${
           colorStyles.button
-        } ${isOpen ? 'ring-2 ring-teal-500/20 shadow-md border-teal-500' : ''}`}
+        } ${isOpen ? 'ring-2 ring-emerald-500/20 shadow-md border-emerald-500' : ''}`}
       >
         <div className="flex items-center gap-2 min-w-0 text-left">
           {Icon && (
@@ -142,7 +142,7 @@ function CustomFilterSelect({
             <div className="font-black text-slate-800 text-xs truncate flex items-center gap-1.5 mt-0.5">
               <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
               {selectedOption?.badge && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-teal-100 text-teal-800 shrink-0">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 shrink-0">
                   {selectedOption.badge}
                 </span>
               )}
@@ -151,13 +151,13 @@ function CustomFilterSelect({
         </div>
         <ChevronDown
           className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-teal-600' : ''
+            isOpen ? 'rotate-180 text-emerald-600' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[240px] w-full max-w-[340px] bg-white rounded-2xl border border-slate-200 shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[240px] w-full max-w-[340px] bg-white rounded-xl border border-slate-200 shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
           {searchable && options.length > 4 && (
             <div className="p-1">
               <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -219,7 +219,7 @@ function CustomFilterSelect({
                       )}
                     </div>
                     {isSelected && (
-                      <div className="w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
                         <Check className="w-2.5 h-2.5 stroke-[3]" />
                       </div>
                     )}
@@ -2483,15 +2483,15 @@ export default function InputNilai() {
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-5">
       {/* Header Halaman */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-teal-500/20">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-teal-500/20">
             <ClipboardList className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <span>Input Nilai Mata Pelajaran (Mapel)</span>
-              <span className="text-[10px] px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full font-bold uppercase tracking-wider">
+              <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold uppercase tracking-wider">
                 Kurikulum Merdeka
               </span>
             </h1>
@@ -2506,7 +2506,7 @@ export default function InputNilai() {
           {activeTab === 'assessment_types' && (
             <button
               onClick={handleOpenAddType}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 shadow-teal-600/20"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 shadow-teal-600/20"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Jenis Pengujian</span>
@@ -2516,7 +2516,7 @@ export default function InputNilai() {
           {activeTab === 'assessment_sessions' && (
             <button
               onClick={handleOpenAddSession}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 shadow-teal-600/20"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 shadow-teal-600/20"
             >
               <Plus className="w-4 h-4" />
               <span>Buat Sesi Ujian / Tugas</span>
@@ -2571,7 +2571,7 @@ export default function InputNilai() {
                 type="button"
                 onClick={() => handleOpenSaveModal('manual')}
                 disabled={processingReport || reportItems.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95"
               >
                 <Save className="w-4 h-4" />
                 <span>Simpan Nilai Rapor</span>
@@ -2622,7 +2622,7 @@ export default function InputNilai() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition whitespace-nowrap ${
                 isActive
-                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-teal-600/20'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-white border border-slate-200'
               }`}
             >
@@ -2707,7 +2707,7 @@ export default function InputNilai() {
       {activeTab === 'assessment_types' && (
         <div className="space-y-4">
           {/* Summary Bobot Bar */}
-          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs ${
+          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs ${
             totalWeight === 100
               ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
               : 'bg-amber-50 border-amber-300 text-amber-950'
@@ -2737,7 +2737,7 @@ export default function InputNilai() {
           </div>
 
           {/* Table Assessment Types */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                 <tr>
@@ -2746,7 +2746,7 @@ export default function InputNilai() {
                   <th className="py-3 px-4">Nama Jenis Pengujian</th>
                   <th className="py-3 px-4">Deskripsi</th>
                   <th className="py-3 px-4 w-32 text-center">Ruang Lingkup</th>
-                  <th className="py-3 px-4 w-32 text-center bg-teal-50/60 font-black text-teal-900">
+                  <th className="py-3 px-4 w-32 text-center bg-emerald-50/60 font-black text-emerald-900">
                     Bobot Rapor (%)
                   </th>
                   <th className="py-3 px-4 text-right w-24">Aksi</th>
@@ -2763,8 +2763,8 @@ export default function InputNilai() {
                   assessmentTypes.map((type, idx) => (
                     <tr key={type.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3.5 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-teal-700">
-                        <span className="px-2 py-0.5 bg-teal-50 border border-teal-200 rounded-md">
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
+                        <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md">
                           {type.code}
                         </span>
                       </td>
@@ -2779,15 +2779,15 @@ export default function InputNilai() {
                           {type.is_tp_based ? 'Per Tujuan Pembelajaran (TP)' : 'Sumatif Global'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center bg-teal-50/30">
-                        <span className="px-3 py-1 bg-teal-600 text-white rounded-lg font-black text-xs shadow-2xs">
+                      <td className="py-3.5 px-4 text-center bg-emerald-50/30">
+                        <span className="px-3 py-1 bg-emerald-600 text-white rounded-lg font-black text-xs shadow-2xs">
                           {type.weight_percentage}%
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
                         <button
                           onClick={() => handleOpenEditType(type)}
-                          className="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                           title="Edit Jenis Pengujian"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -2814,11 +2814,11 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {activeTab === 'assessment_sessions' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800 text-xs">
-                  Daftar Sesi Pengujian & Tugas: <span className="text-teal-700">{activeSubjectName}</span> ({activeClassName})
+                  Daftar Sesi Pengujian & Tugas: <span className="text-emerald-700">{activeSubjectName}</span> ({activeClassName})
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   Setiap jenis penilaian dapat dilaksanakan berkali-kali per Tujuan Pembelajaran (TP). Klik tombol <strong>Input Nilai Siswa</strong> untuk mengisi skor.
@@ -2826,7 +2826,7 @@ export default function InputNilai() {
               </div>
               <button
                 onClick={handleOpenAddSession}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Sesi Baru</span>
@@ -2842,7 +2842,7 @@ export default function InputNilai() {
                   <th className="py-3 px-4 min-w-[200px]">Judul Sesi Penilaian</th>
                   <th className="py-3 px-4 min-w-[220px]">Tujuan Pembelajaran (TP) yang Diujikan</th>
                   <th className="py-3 px-4 w-28 text-center">Siswa Dinilai</th>
-                  <th className="py-3 px-4 w-28 text-center bg-teal-50/50">Rata-Rata</th>
+                  <th className="py-3 px-4 w-28 text-center bg-emerald-50/50">Rata-Rata</th>
                   <th className="py-3 px-4 text-right w-48">Aksi</th>
                 </tr>
               </thead>
@@ -2873,7 +2873,7 @@ export default function InputNilai() {
                         {session.learning_objectives && session.learning_objectives.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {session.learning_objectives.map(tp => (
-                              <span key={tp.id} className="px-2 py-0.5 bg-teal-50 text-teal-800 border border-teal-200 rounded text-[10px] font-mono font-bold" title={tp.description}>
+                              <span key={tp.id} className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[10px] font-mono font-bold" title={tp.description}>
                                 {tp.code}
                               </span>
                             ))}
@@ -2887,13 +2887,13 @@ export default function InputNilai() {
                           {session.scored_students_count} Siswa
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center bg-teal-50/30 font-black text-teal-800">
+                      <td className="py-3.5 px-4 text-center bg-emerald-50/30 font-black text-emerald-800">
                         {session.average_score !== null ? `${session.average_score}` : '-'}
                       </td>
                       <td className="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
                         <button
                           onClick={() => handleOpenSessionScoring(session.id)}
-                          className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold text-xs transition shadow-2xs inline-flex items-center gap-1"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition shadow-2xs inline-flex items-center gap-1"
                           title="Input Nilai Siswa untuk Sesi Ini"
                         >
                           <Edit2 className="w-3 h-3" />
@@ -2901,7 +2901,7 @@ export default function InputNilai() {
                         </button>
                         <button
                           onClick={() => handleOpenEditSession(session)}
-                          className="p-1 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+                          className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
                           title="Edit Pengaturan Sesi"
                         >
                           <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -2928,10 +2928,10 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {activeTab === 'recap_matrix' && (
         <div className="space-y-4">
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between text-xs gap-3">
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between text-xs gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-slate-700">Matriks Nilai Rombel:</span>
-              <span className="px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded font-bold">{activeClassName}</span>
+              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">{activeClassName}</span>
               <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold">{activeSubjectName}</span>
               <span className="text-slate-400">• Standar KKM: <b>{recapData?.kkm || 75}</b></span>
             </div>
@@ -2944,7 +2944,7 @@ export default function InputNilai() {
                 className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
                 title="Unduh format spreadsheet Excel (.xlsx) untuk rekap nilai TP dan Jenis Ujian rombel ini"
               >
-                <Download className="w-3.5 h-3.5 text-teal-600" />
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Unduh Template Excel</span>
               </button>
               <button
@@ -2959,7 +2959,7 @@ export default function InputNilai() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 select-none">
                 <tr>
@@ -2971,7 +2971,7 @@ export default function InputNilai() {
                   {recapData?.learning_objectives && recapData.learning_objectives.length > 0 && (
                     <th
                       colSpan={recapData.learning_objectives.length}
-                      className="py-2 px-3 text-center bg-teal-50/70 border-r border-teal-200 text-teal-950 font-black"
+                      className="py-2 px-3 text-center bg-emerald-50/70 border-r border-emerald-200 text-emerald-950 font-black"
                     >
                       Rata-Rata Nilai per Tujuan Pembelajaran (TP)
                     </th>
@@ -2987,14 +2987,14 @@ export default function InputNilai() {
                     </th>
                   )}
 
-                  <th rowSpan={2} className="py-3 px-4 text-center bg-teal-600 text-white font-black w-28">
+                  <th rowSpan={2} className="py-3 px-4 text-center bg-emerald-600 text-white font-black w-28">
                     Estimasi NA
                   </th>
                 </tr>
                 <tr className="border-t border-slate-200 bg-slate-100/70 text-[11px]">
                   {/* Sub-header TP Codes */}
                   {recapData?.learning_objectives?.map(tp => (
-                    <th key={tp.id} className="py-2 px-3 text-center font-mono font-bold text-teal-900 border-r border-slate-200" title={tp.description}>
+                    <th key={tp.id} className="py-2 px-3 text-center font-mono font-bold text-emerald-900 border-r border-slate-200" title={tp.description}>
                       {tp.code}
                     </th>
                   ))}
@@ -3038,7 +3038,7 @@ export default function InputNilai() {
                             <td key={tp.id} className="py-2 px-3 text-center border-r border-slate-100">
                               {val !== null && val !== undefined ? (
                                 <span className={`px-2 py-0.5 rounded font-black text-xs ${
-                                  isPass ? 'text-teal-900 bg-teal-50' : 'text-rose-700 bg-rose-50'
+                                  isPass ? 'text-emerald-900 bg-emerald-50' : 'text-rose-700 bg-rose-50'
                                 }`}>
                                   {val}
                                 </span>
@@ -3066,9 +3066,9 @@ export default function InputNilai() {
                         })}
 
                         {/* Estimasi Nilai Akhir */}
-                        <td className="py-2.5 px-4 text-center bg-teal-50/40 font-black text-teal-900 text-xs">
+                        <td className="py-2.5 px-4 text-center bg-emerald-50/40 font-black text-emerald-900 text-xs">
                           {estimatedFinal !== null && estimatedFinal !== undefined ? (
-                            <span className="px-2.5 py-1 bg-teal-600 text-white rounded-lg font-black text-xs shadow-2xs">
+                            <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-black text-xs shadow-2xs">
                               {estimatedFinal}
                             </span>
                           ) : (
@@ -3091,13 +3091,13 @@ export default function InputNilai() {
       {activeTab === 'report_processor' && (
         <div className="space-y-4">
           {/* Sub-Tab Navigation Bar */}
-          <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/80 overflow-x-auto shadow-2xs">
+          <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-xl border border-slate-200/80 overflow-x-auto shadow-2xs">
             <button
               type="button"
               onClick={() => setReportSubTab('academic')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                 reportSubTab === 'academic'
-                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-teal-600/20'
                   : 'text-slate-600 hover:text-slate-950 hover:bg-white/60'
               }`}
             >
@@ -3164,9 +3164,9 @@ export default function InputNilai() {
           {/* ---------------------------------------------------- */}
           {reportSubTab === 'academic' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-teal-50 via-indigo-50 to-amber-50 border border-teal-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="p-4 bg-gradient-to-r from-emerald-50 via-indigo-50 to-amber-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
                 <div>
-                  <span className="font-black text-teal-950 text-sm block flex items-center gap-2">
+                  <span className="font-black text-emerald-950 text-sm block flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-600" />
                     <span>Pengolahan Nilai Akhir & Narasi Capaian Mata Pelajaran</span>
                   </span>
@@ -3184,7 +3184,7 @@ export default function InputNilai() {
                     <History className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Riwayat & Versi Nilai</span>
                     {historyList.length > 0 && (
-                      <span className="px-1.5 py-0.2 bg-teal-500 text-slate-950 rounded-full text-[10px] font-black">
+                      <span className="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-black">
                         {historyList.length}
                       </span>
                     )}
@@ -3204,7 +3204,7 @@ export default function InputNilai() {
                     className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
                     title="Unduh format spreadsheet Excel (.xlsx) nilai rapor & deskripsi capaian"
                   >
-                    <Download className="w-3.5 h-3.5 text-teal-600" />
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Unduh Template</span>
                   </button>
                   <button
@@ -3228,7 +3228,7 @@ export default function InputNilai() {
                     type="button"
                     onClick={() => handleOpenSaveModal('manual')}
                     disabled={processingReport || reportItems.length === 0}
-                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl text-xs shadow-md transition active:scale-95 flex items-center gap-1.5"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>Simpan Nilai Rapor</span>
@@ -3241,9 +3241,9 @@ export default function InputNilai() {
                 const activeVersion = historyList.find(h => h.is_active);
                 if (!activeVersion) return null;
                 return (
-                  <div className="p-3.5 bg-teal-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-teal-800">
+                  <div className="p-3.5 bg-emerald-900 text-white rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-emerald-800">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 bg-teal-500/20 rounded-xl text-teal-300">
+                      <div className="p-1.5 bg-emerald-500/20 rounded-xl text-emerald-300">
                         <ShieldCheck className="w-5 h-5" />
                       </div>
                       <div>
@@ -3255,7 +3255,7 @@ export default function InputNilai() {
                             {activeVersion.method === 'calculated_from_components' ? 'Otomatis Terbobot' : 'Input Manual'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-teal-200 mt-0.5">
+                        <p className="text-[11px] text-emerald-200 mt-0.5">
                           Catatan: <em>{activeVersion.user_notes || 'Tanpa keterangan'}</em> • Disimpan oleh <strong>{activeVersion.recorded_by_name || 'Staf'}</strong> ({new Date(activeVersion.created_at).toLocaleString('id-ID')})
                         </p>
                       </div>
@@ -3266,21 +3266,21 @@ export default function InputNilai() {
                       onClick={() => setHistoryModalOpen(true)}
                       className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
                     >
-                      <History className="w-3.5 h-3.5 text-teal-300" />
+                      <History className="w-3.5 h-3.5 text-emerald-300" />
                       <span>Kelola Versi</span>
                     </button>
                   </div>
                 );
               })()}
 
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
                       <th className="py-3 px-4 w-12 text-center">No</th>
                       <th className="py-3 px-4 w-24">NIS</th>
                       <th className="py-3 px-4 w-48">Nama Siswa</th>
-                      <th className="py-3 px-4 w-28 text-center bg-teal-50 font-black text-teal-900">
+                      <th className="py-3 px-4 w-28 text-center bg-emerald-50 font-black text-emerald-900">
                         Nilai Akhir (NA) *
                       </th>
                       <th className="py-3 px-4 w-20 text-center">Predikat</th>
@@ -3309,7 +3309,7 @@ export default function InputNilai() {
                             <td className="py-3 px-4 font-bold text-slate-900">{item.student_name}</td>
                             
                             {/* Input Nilai Akhir */}
-                            <td className="py-3 px-4 text-center bg-teal-50/30">
+                            <td className="py-3 px-4 text-center bg-emerald-50/30">
                               <input
                                 type="number"
                                 min="0"
@@ -3327,9 +3327,9 @@ export default function InputNilai() {
                                   else updated[idx].predicate = 'D';
                                   setReportItems(updated);
                                 }}
-                                className={`w-20 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-teal-500 focus:outline-none ${
+                                className={`w-20 px-2 py-1.5 text-center text-xs font-black rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                                   isPass
-                                    ? 'bg-teal-600 text-white border-teal-700'
+                                    ? 'bg-emerald-600 text-white border-emerald-700'
                                     : 'bg-rose-50 text-rose-800 border-rose-300'
                                 }`}
                               />
@@ -3339,7 +3339,7 @@ export default function InputNilai() {
                             <td className="py-3 px-4 text-center">
                               <span className={`px-2.5 py-1 rounded-lg font-black text-xs ${
                                 item.predicate === 'A' ? 'bg-emerald-100 text-emerald-900' :
-                                item.predicate === 'B' ? 'bg-teal-100 text-teal-900' :
+                                item.predicate === 'B' ? 'bg-emerald-100 text-emerald-900' :
                                 item.predicate === 'C' ? 'bg-amber-100 text-amber-900' :
                                 'bg-rose-100 text-rose-900'
                               }`}>
@@ -3358,7 +3358,7 @@ export default function InputNilai() {
                                   setReportItems(updated);
                                 }}
                                 placeholder="Contoh: Mencapai kompetensi dengan sangat baik dalam ... Perlu peningkatan dalam ..."
-                                className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none leading-relaxed text-slate-800"
+                                className="w-full p-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed text-slate-800"
                               />
                             </td>
                           </tr>
@@ -3376,7 +3376,7 @@ export default function InputNilai() {
           {/* ---------------------------------------------------- */}
           {reportSubTab === 'attitude' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 border border-amber-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="p-4 bg-gradient-to-r from-amber-50 via-amber-50 to-amber-50 border border-amber-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
                 <div>
                   <span className="font-black text-amber-950 text-sm block flex items-center gap-2">
                     <HeartHandshake className="w-4 h-4 text-amber-600" />
@@ -3441,7 +3441,7 @@ export default function InputNilai() {
               </div>
 
               {/* Dimension Selector Pills */}
-              <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+              <div className="flex items-center gap-2 p-1.5 bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-xs">
                 <span className="text-[11px] font-bold text-slate-400 px-3 uppercase tracking-wider shrink-0">
                   Pilih Dimensi:
                 </span>
@@ -3495,7 +3495,7 @@ export default function InputNilai() {
               })()}
 
               {/* Table Attitude Scores */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
@@ -3584,7 +3584,7 @@ export default function InputNilai() {
           {/* ---------------------------------------------------- */}
           {reportSubTab === 'extracurricular' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-indigo-50 via-blue-50 to-teal-50 border border-indigo-200 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 via-indigo-50 to-emerald-50 border border-indigo-200 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs shadow-xs">
                 <div>
                   <span className="font-black text-indigo-950 text-sm block flex items-center gap-2">
                     <Compass className="w-4 h-4 text-indigo-600" />
@@ -3640,7 +3640,7 @@ export default function InputNilai() {
               </div>
 
               {/* Selector Ekstrakurikuler Dropdown */}
-              <div className="p-3.5 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="p-3.5 bg-white border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-center gap-3 flex-1">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
                     Pilih Ekstrakurikuler:
@@ -3682,7 +3682,7 @@ export default function InputNilai() {
               </div>
 
               {/* Table Extra Scores */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
@@ -3769,10 +3769,10 @@ export default function InputNilai() {
           {/* ---------------------------------------------------- */}
           {reportSubTab === 'homeroom_notes' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-slate-100 via-slate-50 to-teal-50 border border-slate-300 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="p-4 bg-gradient-to-r from-slate-100 via-slate-50 to-emerald-50 border border-slate-300 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs shadow-xs">
                 <div>
                   <span className="font-black text-slate-900 text-sm block flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-teal-600" />
+                    <MessageSquare className="w-4 h-4 text-emerald-600" />
                     <span>Catatan Wali Kelas untuk Buku Rapor Siswa</span>
                   </span>
                   <p className="text-[11px] text-slate-600 mt-0.5">
@@ -3788,7 +3788,7 @@ export default function InputNilai() {
                     className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
                     title="Unduh format spreadsheet Excel (.xlsx) catatan wali kelas"
                   >
-                    <Download className="w-3.5 h-3.5 text-teal-600" />
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Unduh Template</span>
                   </button>
 
@@ -3839,7 +3839,7 @@ export default function InputNilai() {
                         setSuccessMsg('Template catatan diterapkan pada kolom yang masih kosong!');
                         setTimeout(() => setSuccessMsg(''), 3000);
                       }}
-                      className="px-2.5 py-1 bg-white hover:bg-teal-50 hover:text-teal-900 hover:border-teal-300 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-medium transition text-left"
+                      className="px-2.5 py-1 bg-white hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-300 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-medium transition text-left"
                     >
                       "{tpl}"
                     </button>
@@ -3848,7 +3848,7 @@ export default function InputNilai() {
               </div>
 
               {/* Table Homeroom Notes */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
@@ -3922,7 +3922,7 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {activeTab === 'ledger_print' && (
         <div className="space-y-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-black text-slate-900 text-sm uppercase tracking-wide">
@@ -3954,7 +3954,7 @@ export default function InputNilai() {
                       </th>
                     ))}
                     <th className="py-3 px-3 text-center bg-indigo-50 font-black text-indigo-950 w-20">Total</th>
-                    <th className="py-3 px-3 text-center bg-teal-50 font-black text-teal-950 w-20">Rata2</th>
+                    <th className="py-3 px-3 text-center bg-emerald-50 font-black text-emerald-950 w-20">Rata2</th>
                     <th className="py-3 px-3 text-center w-24">Aksi</th>
                   </tr>
                 </thead>
@@ -3991,11 +3991,11 @@ export default function InputNilai() {
                         })}
 
                         <td className="py-2.5 px-3 text-center bg-indigo-50/30 font-black text-indigo-950">{st.total_score}</td>
-                        <td className="py-2.5 px-3 text-center bg-teal-50/30 font-black text-teal-900">{st.average_score}</td>
+                        <td className="py-2.5 px-3 text-center bg-emerald-50/30 font-black text-emerald-900">{st.average_score}</td>
                         <td className="py-2.5 px-3 text-center">
                           <button
                             onClick={() => handleOpenStudentReportPreview(st)}
-                            className="px-2 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 w-full"
+                            className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1 w-full"
                           >
                             <Eye className="w-3 h-3" />
                             <span>Rapor</span>
@@ -4018,7 +4018,7 @@ export default function InputNilai() {
       {/* Modal 1: Tambah / Edit Jenis Pengujian */}
       {typeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-black text-slate-800">
                 {editingType ? 'Edit Jenis Pengujian' : 'Tambah Jenis Pengujian Baru'}
@@ -4037,7 +4037,7 @@ export default function InputNilai() {
                   value={typeForm.name}
                   onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
                   placeholder="Contoh: Formatif (Tugas Harian), Sumatif Tengah Semester (STS)"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-800"
                 />
               </div>
 
@@ -4050,7 +4050,7 @@ export default function InputNilai() {
                     value={typeForm.code}
                     onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value.toUpperCase() })}
                     placeholder="misal: FORMATIF, STS, SAS"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono uppercase focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -4063,7 +4063,7 @@ export default function InputNilai() {
                     required
                     value={typeForm.weight_percentage}
                     onChange={(e) => setTypeForm({ ...typeForm, weight_percentage: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-teal-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-emerald-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -4076,7 +4076,7 @@ export default function InputNilai() {
                     onClick={() => setTypeForm({ ...typeForm, is_tp_based: true })}
                     className={`py-2 px-3 rounded-xl font-bold text-xs border transition ${
                       typeForm.is_tp_based
-                        ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
@@ -4087,7 +4087,7 @@ export default function InputNilai() {
                     onClick={() => setTypeForm({ ...typeForm, is_tp_based: false })}
                     className={`py-2 px-3 rounded-xl font-bold text-xs border transition ${
                       !typeForm.is_tp_based
-                        ? 'bg-teal-600 text-white border-teal-700 shadow-2xs'
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
@@ -4103,7 +4103,7 @@ export default function InputNilai() {
                   value={typeForm.description}
                   onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
                   placeholder="Keterangan pengujian..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -4118,7 +4118,7 @@ export default function InputNilai() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Jenis Pengujian</span>
@@ -4132,7 +4132,7 @@ export default function InputNilai() {
       {/* Modal 2: Buat / Edit Sesi Penilaian */}
       {sessionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-black text-slate-800">
                 {editingSession ? 'Edit Sesi Penilaian' : 'Buat Sesi Ujian / Tugas Baru'}
@@ -4149,7 +4149,7 @@ export default function InputNilai() {
                   required
                   value={sessionForm.assessment_type_id}
                   onChange={(e) => setSessionForm({ ...sessionForm, assessment_type_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-bold text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-slate-800"
                 >
                   <option value="">-- Pilih Jenis Pengujian --</option>
                   {assessmentTypes.map(t => (
@@ -4166,7 +4166,7 @@ export default function InputNilai() {
                   value={sessionForm.title}
                   onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })}
                   placeholder="Contoh: Formatif 1 - Pola Bilangan, Ulangan Bab 2"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800 font-bold"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-800 font-bold"
                 />
               </div>
 
@@ -4178,7 +4178,7 @@ export default function InputNilai() {
                     required
                     value={sessionForm.assessment_date}
                     onChange={(e) => setSessionForm({ ...sessionForm, assessment_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-mono"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
                   />
                 </div>
                 <div>
@@ -4189,7 +4189,7 @@ export default function InputNilai() {
                     max="1000"
                     value={sessionForm.max_score}
                     onChange={(e) => setSessionForm({ ...sessionForm, max_score: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-teal-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-emerald-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -4211,7 +4211,7 @@ export default function InputNilai() {
                         <label
                           key={tp.id}
                           className={`flex items-start gap-2 p-2 rounded-lg text-xs cursor-pointer transition border ${
-                            isSelected ? 'bg-teal-50 border-teal-300 text-teal-950 font-bold' : 'bg-white border-slate-200 text-slate-700'
+                            isSelected ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold' : 'bg-white border-slate-200 text-slate-700'
                           }`}
                         >
                           <input
@@ -4223,10 +4223,10 @@ export default function InputNilai() {
                               const updated = checked ? [...current, tp.id] : current.filter(id => id !== tp.id);
                               setSessionForm({ ...sessionForm, learning_objective_ids: updated });
                             }}
-                            className="rounded text-teal-600 focus:ring-0 mt-0.5 w-3.5 h-3.5"
+                            className="rounded text-emerald-600 focus:ring-0 mt-0.5 w-3.5 h-3.5"
                           />
                           <div>
-                            <span className="font-mono text-teal-700 font-black mr-1.5">{tp.code}</span>
+                            <span className="font-mono text-emerald-700 font-black mr-1.5">{tp.code}</span>
                             <span className="text-[11px] font-normal">{tp.description}</span>
                           </div>
                         </label>
@@ -4243,7 +4243,7 @@ export default function InputNilai() {
                   value={sessionForm.notes}
                   onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
                   placeholder="Catatan pelaksanaan..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -4258,7 +4258,7 @@ export default function InputNilai() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Sesi Ujian</span>
@@ -4272,14 +4272,14 @@ export default function InputNilai() {
       {/* Modal 3: Input Nilai Siswa per Sesi */}
       {sessionScoreModalOpen && activeSessionDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-5xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Input Nilai: {activeSessionDetail.session?.title}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Jenis: <strong className="text-indigo-700">{activeSessionDetail.session?.assessment_type_name}</strong> • Mapel: <strong className="text-teal-700">{activeSubjectName}</strong> • Rombel: <strong className="text-slate-800">{activeClassName}</strong>
+                  Jenis: <strong className="text-indigo-700">{activeSessionDetail.session?.assessment_type_name}</strong> • Mapel: <strong className="text-emerald-700">{activeSubjectName}</strong> • Rombel: <strong className="text-slate-800">{activeClassName}</strong>
                 </p>
               </div>
 
@@ -4290,7 +4290,7 @@ export default function InputNilai() {
                   className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs shadow-2xs transition flex items-center gap-1.5"
                   title="Unduh template spreadsheet Excel (.xlsx) dengan daftar siswa rombel ini"
                 >
-                  <Download className="w-3.5 h-3.5 text-teal-600" />
+                  <Download className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Unduh Template</span>
                 </button>
                 <button
@@ -4319,7 +4319,7 @@ export default function InputNilai() {
                       
                       {/* Kolom per TP jika sesi ini menguji TP spesifik */}
                       {activeSessionDetail.session?.learning_objectives?.map(tp => (
-                        <th key={tp.id} className="py-2.5 px-3 text-center bg-teal-50 font-black text-teal-900 w-28" title={tp.description}>
+                        <th key={tp.id} className="py-2.5 px-3 text-center bg-emerald-50 font-black text-emerald-900 w-28" title={tp.description}>
                           {tp.code} (0-100)
                         </th>
                       ))}
@@ -4341,7 +4341,7 @@ export default function InputNilai() {
 
                           {/* Inputs per TP */}
                           {activeSessionDetail.session?.learning_objectives?.map(tp => (
-                            <td key={tp.id} className="py-2 px-3 text-center bg-teal-50/20">
+                            <td key={tp.id} className="py-2 px-3 text-center bg-emerald-50/20">
                               <input
                                 type="number"
                                 min="0"
@@ -4368,7 +4368,7 @@ export default function InputNilai() {
                                     };
                                   });
                                 }}
-                                className="w-16 px-2 py-1 text-center font-black text-teal-900 bg-white border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                                className="w-16 px-2 py-1 text-center font-black text-emerald-900 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                 placeholder="0"
                               />
                             </td>
@@ -4413,7 +4413,7 @@ export default function InputNilai() {
                                 }));
                               }}
                               placeholder="Catatan guru..."
-                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                              className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                           </td>
                         </tr>
@@ -4434,7 +4434,7 @@ export default function InputNilai() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Nilai Sesi</span>
@@ -4448,7 +4448,7 @@ export default function InputNilai() {
       {/* Modal 4: Pratinjau Lembar Rapor Siswa */}
       {reportModalOpen && previewStudentReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">
@@ -4466,7 +4466,7 @@ export default function InputNilai() {
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <span className="font-bold text-slate-700">Rata-Rata Nilai Akhir:</span>
-                <span className="font-black text-sm text-teal-800">{previewStudentReport.average_score}</span>
+                <span className="font-black text-sm text-emerald-800">{previewStudentReport.average_score}</span>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <span className="font-bold text-slate-700">Total Akumulasi Nilai:</span>
@@ -4491,7 +4491,7 @@ export default function InputNilai() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-1.5"
               >
                 <Printer className="w-4 h-4" />
                 <span>Cetak Lembar Rapor</span>
@@ -4506,7 +4506,7 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {importModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
@@ -4517,7 +4517,7 @@ export default function InputNilai() {
                     Pratinjau Hasil Import Spreadsheet
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    File: <strong className="text-slate-800">{importFileName}</strong> • Target: <strong className="text-teal-700 uppercase">{importTargetType === 'session' ? 'Sesi Penilaian' : importTargetType === 'recap' ? 'Matriks Nilai' : 'Nilai Rapor'}</strong>
+                    File: <strong className="text-slate-800">{importFileName}</strong> • Target: <strong className="text-emerald-700 uppercase">{importTargetType === 'session' ? 'Sesi Penilaian' : importTargetType === 'recap' ? 'Matriks Nilai' : 'Nilai Rapor'}</strong>
                   </p>
                 </div>
               </div>
@@ -4588,15 +4588,15 @@ export default function InputNilai() {
                             {r.homeroom_note || '-'}
                           </span>
                         ) : r.score !== null && r.score !== undefined ? (
-                          <span className="px-2 py-0.5 bg-teal-50 text-teal-900 border border-teal-200 rounded font-black">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded font-black">
                             {r.score}
                           </span>
                         ) : r.final_score !== null && r.final_score !== undefined ? (
-                          <span className="px-2 py-0.5 bg-teal-50 text-teal-900 border border-teal-200 rounded font-black">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded font-black">
                             {r.final_score}
                           </span>
                         ) : r.tp_averages && Object.keys(r.tp_averages).length > 0 ? (
-                          <span className="text-[11px] text-teal-800">
+                          <span className="text-[11px] text-emerald-800">
                             {Object.keys(r.tp_averages).length} TP Terisi
                           </span>
                         ) : (
@@ -4637,7 +4637,7 @@ export default function InputNilai() {
                   type="button"
                   onClick={handleApplyImport}
                   disabled={importStats.matchedCount === 0}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   <span>Terapkan {importStats.matchedCount} Nilai</span>
@@ -4657,7 +4657,7 @@ export default function InputNilai() {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-teal-50 text-teal-700 rounded-xl">
+                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
                   <Save className="w-5 h-5" />
                 </div>
                 <div>
@@ -4678,14 +4678,14 @@ export default function InputNilai() {
                   <button
                     type="button"
                     onClick={() => setSaveForm({ ...saveForm, method: 'manual' })}
-                    className={`p-3 rounded-2xl border text-left transition ${
+                    className={`p-3 rounded-xl border text-left transition ${
                       saveForm.method === 'manual'
-                        ? 'bg-teal-50 border-teal-500 text-teal-950 font-bold shadow-xs'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Edit2 className="w-3.5 h-3.5 text-teal-600" />
+                      <Edit2 className="w-3.5 h-3.5 text-emerald-600" />
                       <span className="font-black text-xs">Input Manual</span>
                     </div>
                     <span className="text-[10px] text-slate-500 leading-tight block">
@@ -4696,7 +4696,7 @@ export default function InputNilai() {
                   <button
                     type="button"
                     onClick={() => setSaveForm({ ...saveForm, method: 'calculated_from_components' })}
-                    className={`p-3 rounded-2xl border text-left transition ${
+                    className={`p-3 rounded-xl border text-left transition ${
                       saveForm.method === 'calculated_from_components'
                         ? 'bg-indigo-50 border-indigo-500 text-indigo-950 font-bold shadow-xs'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -4720,7 +4720,7 @@ export default function InputNilai() {
                   value={saveForm.version_label}
                   onChange={(e) => setSaveForm({ ...saveForm, version_label: e.target.value })}
                   placeholder="misal: Versi 1 (Final Semester), Versi Perbaikan Remedial"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800 font-semibold"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-800 font-semibold"
                 />
               </div>
 
@@ -4731,13 +4731,13 @@ export default function InputNilai() {
                   value={saveForm.notes}
                   onChange={(e) => setSaveForm({ ...saveForm, notes: e.target.value })}
                   placeholder="Tuliskan keterangan penginputan nilai ini (misal: Nilai rapor semester 1 santri angkatan 2019)..."
-                  className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none text-slate-800 leading-relaxed"
+                  className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none text-slate-800 leading-relaxed"
                 />
               </div>
 
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-[11px] text-slate-600 font-medium">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-[11px] text-slate-600 font-medium">
                 <span>Jumlah Siswa yang Disimpan:</span>
-                <strong className="text-teal-800 font-black">{reportItems.length} Siswa</strong>
+                <strong className="text-emerald-800 font-black">{reportItems.length} Siswa</strong>
               </div>
 
               {/* Action Buttons */}
@@ -4753,7 +4753,7 @@ export default function InputNilai() {
                   type="button"
                   onClick={handleConfirmSaveReport}
                   disabled={processingReport}
-                  className="flex items-center gap-2 px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition active:scale-95"
+                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md transition active:scale-95"
                 >
                   {processingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Simpan Versi Nilai</span>
@@ -4792,7 +4792,7 @@ export default function InputNilai() {
             <div className="overflow-y-auto space-y-3 pr-1 grow">
               {loadingHistory ? (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                   <span>Memuat riwayat penginputan nilai...</span>
                 </div>
               ) : historyList.length === 0 ? (
@@ -4804,9 +4804,9 @@ export default function InputNilai() {
                 historyList.map((h) => (
                   <div
                     key={h.id}
-                    className={`p-4 rounded-2xl border transition ${
+                    className={`p-4 rounded-xl border transition ${
                       h.is_active
-                        ? 'bg-teal-50/40 border-teal-300 shadow-xs'
+                        ? 'bg-emerald-50/40 border-emerald-300 shadow-xs'
                         : 'bg-white border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -4853,7 +4853,7 @@ export default function InputNilai() {
                           <button
                             type="button"
                             onClick={() => handleActivateHistoryVersion(h.id)}
-                            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 flex items-center gap-1"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition active:scale-95 flex items-center gap-1"
                             title="Tetapkan versi ini sebagai nilai rapor resmi aktif"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
@@ -4911,7 +4911,7 @@ export default function InputNilai() {
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] flex flex-col animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200 shadow-xs">
                   <HeartHandshake className="w-5 h-5" />
                 </div>
                 <div>
