@@ -211,7 +211,7 @@ export default function DataSiswaKantin() {
                           type="button"
                           onClick={() => handleResetChildPin(s.student_id)}
                           title="Reset PIN Anak"
-                          className="px-2 py-1 bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-[11px] font-semibold transition"
+                          className="px-2 py-1 bg-slate-100 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg text-[11px] font-semibold transition"
                         >
                           PIN Anak
                         </button>

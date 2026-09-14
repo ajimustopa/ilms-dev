@@ -209,7 +209,7 @@ export default function TopUpTarikTunai() {
                     key={q}
                     type="button"
                     onClick={() => setAmount(q)}
-                    className="py-1 text-[10px] font-bold bg-slate-100 hover:bg-amber-100 hover:text-amber-900 rounded-lg text-slate-600 transition"
+                    className="py-1 text-[10px] font-bold bg-slate-100 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 hover:text-emerald-900 dark:hover:text-emerald-300 rounded-lg text-slate-600 transition"
                   >
                     {q / 1000}k
                   </button>

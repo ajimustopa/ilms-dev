@@ -475,13 +475,59 @@ export default function AbsensiDiri() {
 
       {/* TAB 2: RIWAYAT BULANAN */}
       {activeTab === 'riwayat' && (
-        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-4 sm:p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-bold text-white">Riwayat Kehadiran Bulan Ini</h3>
             <span className="text-xs text-emerald-400 font-semibold">Tingkat Kehadiran: 100%</span>
           </div>
 
-          <div className="table-container">
+          {/* Mobile Card Stack (md:hidden) */}
+          <div className="block md:hidden space-y-3">
+            {attendanceHistory.length === 0 ? (
+              <div className="p-4 text-center text-xs text-slate-400 bg-slate-800/40 rounded-xl">
+                Belum ada riwayat presensi bulan ini.
+              </div>
+            ) : (
+              attendanceHistory.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/70 space-y-3 shadow-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-white">{item.attendance_date}</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                      {item.status || 'present'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-medium">Check-In</span>
+                      <span className="font-mono font-bold text-emerald-400 text-sm">
+                        {item.check_in_time || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-medium">Check-Out</span>
+                      <span className="font-mono font-bold text-slate-300 text-sm">
+                        {item.check_out_time || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <span>Validasi Lokasi:</span>
+                    <span className="font-medium text-slate-300">
+                      {item.distance_meters ? `~${item.distance_meters}m (Valid GPS)` : 'Area Kampus'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
                 <tr>

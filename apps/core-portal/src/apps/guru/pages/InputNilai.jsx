@@ -386,51 +386,58 @@ export default function InputNilai() {
           </button>
         </div>
 
-        {/* TAB 1: Sesi Nilai Standard */}
+        {/* TAB 1: Sesi Nilai Standard (Dual Layout) */}
         {activeTab === 'sesi' && (
-          <div className="table-container">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
-                <tr>
-                  <th className="py-3 px-3 w-12 text-center rounded-l-xl">No</th>
-                  <th className="py-3 px-3">NIS</th>
-                  <th className="py-3 px-3">Nama Santri</th>
-                  <th className="py-3 px-3 text-center w-36">Nilai (0-100)</th>
-                  <th className="py-3 px-3 text-center w-32">Status KKM</th>
-                  <th className="py-3 px-3 rounded-r-xl">Catatan Pendidik</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {students.map((st, idx) => {
-                  const currentVal = scoresMap[st.id]?.score ?? 0;
-                  const isPass = currentVal >= kkmScore;
-                  return (
-                    <tr key={st.id} className="hover:bg-slate-800/40 transition">
-                      <td className="py-3 px-3 text-center text-slate-400">{idx + 1}</td>
-                      <td className="py-3 px-3 font-mono text-slate-300">{st.nis}</td>
-                      <td className="py-3 px-3 font-bold text-white">{st.full_name}</td>
-                      <td className="py-3 px-3 text-center">
+          <div>
+            {/* Mobile Card Stack (md:hidden) */}
+            <div className="block md:hidden space-y-3">
+              {students.map((st, idx) => {
+                const currentVal = scoresMap[st.id]?.score ?? 0;
+                const isPass = currentVal >= kkmScore;
+                return (
+                  <div
+                    key={st.id}
+                    className="p-4 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-3 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{st.full_name}</h4>
+                          <p className="text-[11px] text-slate-400 font-mono">NIS: {st.nis}</p>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
+                          isPass
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        }`}
+                      >
+                        {isPass ? 'Tuntas' : 'Remedial'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+                      <div className="shrink-0 text-center">
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+                          Nilai Siswa
+                        </span>
                         <input
                           type="number"
                           min="0"
                           max="100"
                           value={currentVal}
                           onChange={(e) => handleScoreChange(st.id, e.target.value)}
-                          className="w-20 px-2 py-1 text-center font-mono font-bold text-sm bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          className="w-20 h-11 text-center font-mono font-extrabold text-base bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
                         />
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            isPass
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          }`}
-                        >
-                          {isPass ? 'Tuntas' : 'Remedial'}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+                          Catatan Guru
                         </span>
-                      </td>
-                      <td className="py-3 px-3">
                         <input
                           type="text"
                           value={scoresMap[st.id]?.feedback || ''}
@@ -441,15 +448,80 @@ export default function InputNilai() {
                               [st.id]: { ...p[st.id], feedback: val }
                             }));
                           }}
-                          placeholder="Feedback catatan..."
-                          className="w-full px-2.5 py-1 text-xs bg-slate-800/80 border border-slate-700/80 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          placeholder="Feedback catatan guru..."
+                          className="w-full px-3 py-2 text-xs bg-slate-800/90 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
                         />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (hidden md:block) */}
+            <div className="hidden md:block table-container">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
+                  <tr>
+                    <th className="py-3 px-3 w-12 text-center rounded-l-xl">No</th>
+                    <th className="py-3 px-3">NIS</th>
+                    <th className="py-3 px-3">Nama Santri</th>
+                    <th className="py-3 px-3 text-center w-36">Nilai (0-100)</th>
+                    <th className="py-3 px-3 text-center w-32">Status KKM</th>
+                    <th className="py-3 px-3 rounded-r-xl">Catatan Pendidik</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {students.map((st, idx) => {
+                    const currentVal = scoresMap[st.id]?.score ?? 0;
+                    const isPass = currentVal >= kkmScore;
+                    return (
+                      <tr key={st.id} className="hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-3 text-center text-slate-400">{idx + 1}</td>
+                        <td className="py-3 px-3 font-mono text-slate-300">{st.nis}</td>
+                        <td className="py-3 px-3 font-bold text-white">{st.full_name}</td>
+                        <td className="py-3 px-3 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={currentVal}
+                            onChange={(e) => handleScoreChange(st.id, e.target.value)}
+                            className="w-20 px-2 py-1 text-center font-mono font-bold text-sm bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                          />
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              isPass
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            }`}
+                          >
+                            {isPass ? 'Tuntas' : 'Remedial'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <input
+                            type="text"
+                            value={scoresMap[st.id]?.feedback || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setScoresMap((p) => ({
+                                ...p,
+                                [st.id]: { ...p[st.id], feedback: val }
+                              }));
+                            }}
+                            placeholder="Feedback catatan..."
+                            className="w-full px-2.5 py-1 text-xs bg-slate-800/80 border border-slate-700/80 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

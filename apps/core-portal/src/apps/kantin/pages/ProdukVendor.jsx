@@ -269,7 +269,7 @@ export default function ProdukVendor() {
                         <button
                           type="button"
                           onClick={() => openEditModal(p)}
-                          className="px-2.5 py-1 rounded-lg text-slate-600 hover:text-amber-700 hover:bg-amber-50 text-xs font-semibold transition inline-flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg text-slate-600 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-semibold transition inline-flex items-center gap-1"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                           <span>Edit</span>

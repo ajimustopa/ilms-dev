@@ -116,7 +116,7 @@ export default function CalonMuridDokumen() {
             setErrorMsg('');
             setUploadModalOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
+          className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-emerald-900/20 transition"
         >
           <Plus className="w-4 h-4" />
           <span>Unggah Berkas Baru</span>
@@ -256,7 +256,7 @@ export default function CalonMuridDokumen() {
                       document_name: found ? `Scan ${found.label}` : 'Dokumen Tambahan'
                     });
                   }}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                 >
                   {standardDocuments.map((s) => (
                     <option key={s.key} value={s.key}>{s.label}</option>
@@ -273,7 +273,7 @@ export default function CalonMuridDokumen() {
                   required
                   value={docForm.document_name}
                   onChange={(e) => setDocForm({ ...docForm, document_name: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                 />
               </div>
 
@@ -287,7 +287,7 @@ export default function CalonMuridDokumen() {
                   placeholder="https://drive.google.com/... atau /uploads/doc.pdf"
                   value={docForm.file_url}
                   onChange={(e) => setDocForm({ ...docForm, file_url: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
                   Masukkan link Google Drive publik atau URL penyimpanan berkas Anda.

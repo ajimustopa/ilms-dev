@@ -100,7 +100,7 @@ export default function CalonMuridDataLengkap() {
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
+          className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-emerald-900/20 transition"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan Data'}</span>
@@ -165,7 +165,7 @@ export default function CalonMuridDataLengkap() {
                     required
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                     placeholder="Nama lengkap pendaftar"
                   />
                 </div>
@@ -178,7 +178,7 @@ export default function CalonMuridDataLengkap() {
                     type="text"
                     value={formData.nisn}
                     onChange={(e) => setFormData({ ...formData, nisn: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                     placeholder="10 digit nomor NISN"
                   />
                 </div>
@@ -191,7 +191,7 @@ export default function CalonMuridDataLengkap() {
                     type="text"
                     value={formData.candidate_birth_place}
                     onChange={(e) => setFormData({ ...formData, candidate_birth_place: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                     placeholder="Kota kelahiran"
                   />
                 </div>
@@ -204,7 +204,7 @@ export default function CalonMuridDataLengkap() {
                     type="date"
                     value={formData.candidate_birth_date}
                     onChange={(e) => setFormData({ ...formData, candidate_birth_date: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                   />
                 </div>
 
@@ -215,7 +215,7 @@ export default function CalonMuridDataLengkap() {
                   <select
                     value={formData.candidate_gender}
                     onChange={(e) => setFormData({ ...formData, candidate_gender: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                   >
                     <option value="L">Laki-laki (Ikhwan)</option>
                     <option value="P">Perempuan (Akhwat)</option>
@@ -229,7 +229,7 @@ export default function CalonMuridDataLengkap() {
                   <select
                     value={formData.entry_type}
                     onChange={(e) => setFormData({ ...formData, entry_type: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                   >
                     <option value="reguler">Siswa Baru (Reguler)</option>
                     <option value="pindahan">Siswa Pindahan</option>
@@ -268,7 +268,7 @@ export default function CalonMuridDataLengkap() {
                   type="text"
                   value={formData.parent_contact}
                   onChange={(e) => setFormData({ ...formData, parent_contact: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                   placeholder="0812-xxxx-xxxx"
                 />
               </div>
@@ -292,7 +292,7 @@ export default function CalonMuridDataLengkap() {
                     type="text"
                     value={formData.father_name}
                     onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                     placeholder="Nama ayah kandung"
                   />
                 </div>
@@ -305,7 +305,7 @@ export default function CalonMuridDataLengkap() {
                     type="text"
                     value={formData.mother_name}
                     onChange={(e) => setFormData({ ...formData, mother_name: e.target.value })}
-                    className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                     placeholder="Nama ibu kandung"
                   />
                 </div>
@@ -329,7 +329,7 @@ export default function CalonMuridDataLengkap() {
                   type="text"
                   value={formData.previous_school_name}
                   onChange={(e) => setFormData({ ...formData, previous_school_name: e.target.value })}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                   placeholder="Contoh: SDIT Al-Hidayah Bogor / SMP Negeri 1 Cijeruk"
                 />
               </div>
@@ -341,7 +341,7 @@ export default function CalonMuridDataLengkap() {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-900/30 transition active:scale-95"
+              className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-emerald-900/30 transition"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>Simpan Formulir Lengkap</span>

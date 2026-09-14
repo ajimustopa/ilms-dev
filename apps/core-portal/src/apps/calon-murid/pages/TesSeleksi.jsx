@@ -339,7 +339,7 @@ export default function CalonMuridTesSeleksi() {
                               return (
                                 <label
                                   key={oIdx}
-                                  className={`flex items-center gap-3 p-3.5 rounded-xl border text-xs font-medium cursor-pointer transition ${
+                                  className={`flex items-center gap-3.5 p-4 min-h-[48px] rounded-xl border text-xs sm:text-sm font-medium cursor-pointer transition ${
                                     isChecked
                                       ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-100 font-bold shadow-2xs'
                                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'

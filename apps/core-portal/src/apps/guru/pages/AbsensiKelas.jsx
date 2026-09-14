@@ -480,8 +480,97 @@ export default function AbsensiKelas() {
           </div>
         </div>
 
-        {/* Tabel Siswa */}
-        <div className="table-container">
+        {/* Roster Santri: Dual Layout */}
+        {/* Mobile Card Stack (md:hidden) */}
+        <div className="block md:hidden space-y-3">
+          {students.map((st, idx) => {
+            const currentStatus = attendanceMap[st.id]?.status || 'hadir';
+            return (
+              <div
+                key={st.id}
+                className="p-4 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-3 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">{st.full_name}</h4>
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        NIS: {st.nis} • {st.gender === 'L' ? 'Ikhwan' : 'Akhwat'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Touch Target Status Chips: Min 44px height */}
+                <div className="grid grid-cols-4 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(st.id, 'hadir')}
+                    className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
+                      currentStatus === 'hadir'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 border border-emerald-500 ring-2 ring-emerald-400/30'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <span className="text-xs">Hadir</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(st.id, 'izin')}
+                    className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
+                      currentStatus === 'izin'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30 border border-blue-500 ring-2 ring-blue-400/30'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <span className="text-xs">Izin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(st.id, 'sakit')}
+                    className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
+                      currentStatus === 'sakit'
+                        ? 'bg-amber-600 text-slate-950 shadow-md shadow-amber-900/30 border border-amber-500 ring-2 ring-amber-400/30'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <span className="text-xs">Sakit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange(st.id, 'alpa')}
+                    className={`min-h-[44px] rounded-xl font-extrabold text-xs flex flex-col items-center justify-center transition active:scale-95 ${
+                      currentStatus === 'alpa'
+                        ? 'bg-rose-600 text-white shadow-md shadow-rose-900/30 border border-rose-500 ring-2 ring-rose-400/30'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <span className="text-xs">Alpa</span>
+                  </button>
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    value={attendanceMap[st.id]?.notes || ''}
+                    onChange={(e) => handleNoteChange(st.id, e.target.value)}
+                    placeholder="Catatan presensi (opsional)..."
+                    className="w-full px-3 py-2.5 text-xs bg-slate-900/90 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table View (hidden md:block) */}
+        <div className="hidden md:block table-container">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
               <tr>
