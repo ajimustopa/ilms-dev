@@ -4,6 +4,10 @@ import api from '../../../shared/services/api';
 import * as XLSX from 'xlsx';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import DatePickerField from '../../../shared/components/DatePickerField';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatPercentage, formatDate } from '../../../shared/utils/formatters';
 import {
   Landmark,
   Calendar,
@@ -67,6 +71,24 @@ const MONTH_NAMES_FULL = [
 const cleanAccountName = (name) => {
   if (!name) return 'Bank';
   return String(name).replace(/\s*\(.*?\)/g, '').trim() || 'Bank';
+};
+
+const parseInputDecimal = (val) => {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return Math.abs(val);
+  let s = String(val).trim().replace(/^Rp\.?\s*/i, '').replace(/\s+/g, '');
+  if (!s) return 0;
+  if (s.includes(',') && !s.includes('.')) {
+    s = s.replace(',', '.');
+  } else if (s.includes('.') && s.includes(',')) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.abs(n);
 };
 
 export default function BankStatements() {
@@ -386,7 +408,7 @@ export default function BankStatements() {
   const statusOptions = [
     { value: 'all', label: 'Semua Status' },
     { value: 'unreconciled', label: 'Belum Tertaut / Bersisa Plafon (🟡)', badge: 'Sisa/Belum', badgeClass: 'bg-amber-100 text-amber-800 font-semibold' },
-    { value: 'partial', label: 'Terpakai Sebagian (⚡)', badge: 'Sebagian', badgeClass: 'bg-blue-100 text-blue-800 font-semibold' },
+    { value: 'partial', label: 'Terpakai Sebagian (⚡)', badge: 'Sebagian', badgeClass: 'bg-indigo-100 text-indigo-800 font-semibold' },
     { value: 'reconciled', label: 'Habis / Cocok Penuh (🟢)', badge: 'Habis', badgeClass: 'bg-emerald-100 text-emerald-800 font-semibold' }
   ];
 
@@ -547,7 +569,9 @@ export default function BankStatements() {
         reference_id: refId,
         notes: notes || null
       };
-      if (amount) payload.amount = parseFloat(amount);
+      if (amount !== null && amount !== undefined && amount !== '') {
+        payload.amount = parseInputDecimal(amount);
+      }
       const res = await api.post(`/keuangan/bank-statements/${reconcileTarget.id}/reconcile`, payload);
 
       if (res.data?.success) {
@@ -626,8 +650,16 @@ export default function BankStatements() {
     try {
       setSavingManual(true);
       const savedAccountId = manualForm.cash_account_id || selectedAccountId;
+      const parsedAmount = parseInputDecimal(manualForm.amount);
+      if (parsedAmount <= 0) {
+        showNotification('error', 'Nominal mutasi harus lebih besar dari 0');
+        setSavingManual(false);
+        return;
+      }
       const res = await api.post('/keuangan/bank-statements', {
         ...manualForm,
+        amount: parsedAmount,
+        running_balance: manualForm.running_balance !== '' && manualForm.running_balance !== null ? parseInputDecimal(manualForm.running_balance) : null,
         cash_account_id: savedAccountId,
         academic_year_id: selectedAcademicYearId || null
       });
@@ -702,14 +734,20 @@ export default function BankStatements() {
     if (!editTarget) return;
     try {
       setSavingEdit(true);
+      const parsedAmount = parseInputDecimal(editForm.amount);
+      if (parsedAmount <= 0) {
+        showNotification('error', 'Nominal mutasi harus lebih besar dari 0');
+        setSavingEdit(false);
+        return;
+      }
       const res = await api.put(`/keuangan/bank-statements/${editTarget.id}`, {
         cash_account_id: editForm.cash_account_id || editTarget.cash_account_id,
         transaction_date: editForm.transaction_date,
         journal_number: editForm.journal_number || null,
         description: editForm.description,
-        amount: editForm.amount,
+        amount: parsedAmount,
         dc_type: editForm.dc_type,
-        running_balance: editForm.running_balance !== '' ? editForm.running_balance : null
+        running_balance: editForm.running_balance !== '' && editForm.running_balance !== null ? parseInputDecimal(editForm.running_balance) : null
       });
 
       if (res.data?.success) {
@@ -728,13 +766,18 @@ export default function BankStatements() {
   // Export to Excel
   const handleExportExcel = async () => {
     try {
-      const params = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate
-      });
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      if (selectedYear) params.append('year', selectedYear);
+      if (selectedMonth) params.append('month', selectedMonth);
       if (selectedAccountId) params.append('cash_account_id', selectedAccountId);
-      if (statusFilter !== 'all') params.append('is_reconciled', statusFilter === 'reconciled');
+      if (selectedAcademicYearId) params.append('academic_year_id', selectedAcademicYearId);
+      if (statusFilter === 'reconciled') params.append('is_reconciled', 'true');
+      else if (statusFilter === 'unreconciled') params.append('is_reconciled', 'false');
+      else if (statusFilter === 'partial') params.append('is_reconciled', 'partial');
       if (dcFilter) params.append('dc_type', dcFilter);
+      if (debouncedSearch) params.append('search', debouncedSearch);
 
       const response = await api.get(`/keuangan/bank-statements/export?${params.toString()}`, {
         responseType: 'blob'
@@ -743,7 +786,8 @@ export default function BankStatements() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `rekening-koran-${startDate}-sd-${endDate}.xlsx`);
+      const fileLabel = startDate && endDate ? `${startDate}-sd-${endDate}` : (selectedYear ? `tahun-${selectedYear}` : 'lengkap');
+      link.setAttribute('download', `rekening-koran-${fileLabel}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -852,11 +896,14 @@ export default function BankStatements() {
   };
 
   const formatCurrency = (val) => {
+    const num = parseFloat(val || 0);
+    const hasFraction = num % 1 !== 0;
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(val || 0);
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: 4
+    }).format(num);
   };
 
   return (
@@ -888,10 +935,10 @@ export default function BankStatements() {
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200/80 shadow-sm">
         <div>
           <div className="flex items-center space-x-3 mb-1">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
               <Landmark className="w-6 h-6" />
             </div>
             <div>
@@ -908,8 +955,8 @@ export default function BankStatements() {
               <Building2 className="w-3.5 h-3.5 text-slate-500" />
               {activeSchoolUnit?.name || 'Seluruh Satuan'}
             </span>
-            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md font-medium flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md font-medium flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
               Instrumen Referensi Satu Arah
             </span>
           </div>
@@ -953,7 +1000,7 @@ export default function BankStatements() {
               }));
               setShowManualModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-xs transition-all"
           >
             <Plus className="w-4 h-4" />
             Catat Manual
@@ -962,110 +1009,55 @@ export default function BankStatements() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Saldo Awal Bank */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Saldo Awal Bank
-            </span>
-            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-xl">
-              <Landmark className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-lg font-bold text-slate-800 font-mono">
-            {formatCurrency(summary.opening_balance || 0)}
-          </p>
-          <p className="text-[10px] text-slate-400 mt-1 truncate">
-            {selectedAccountId ? 'Saldo awal akun bank terpilih' : 'Total saldo awal seluruh bank'}
-          </p>
-        </div>
+        <StatRibbonCard
+          label="Saldo Awal Bank"
+          value={formatCurrency(summary.opening_balance || 0)}
+          context={selectedAccountId ? 'Saldo awal akun bank terpilih' : 'Total saldo awal seluruh bank'}
+          status="neutral"
+          icon={Landmark}
+        />
 
         {/* Total Mutasi Masuk (Kredit) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Total Masuk (CR)
-            </span>
-            <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-xl">
-              <ArrowDownLeft className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-lg font-bold text-emerald-700 font-mono">
-            +{formatCurrency(summary.total_credit || 0)}
-          </p>
-          <p className="text-[10px] text-slate-400 mt-1 truncate">
-            Uang masuk mutasi bank
-          </p>
-        </div>
+        <StatRibbonCard
+          label="Total Masuk (CR)"
+          value={`+${formatCurrency(summary.total_credit || 0)}`}
+          context="Uang masuk mutasi bank"
+          status="success"
+          icon={ArrowDownLeft}
+        />
 
         {/* Total Mutasi Keluar (Debit) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Total Keluar (DB)
-            </span>
-            <div className="p-1.5 bg-rose-50 text-rose-600 rounded-xl">
-              <ArrowUpRight className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-lg font-bold text-rose-700 font-mono">
-            -{formatCurrency(summary.total_debit || 0)}
-          </p>
-          <p className="text-[10px] text-slate-400 mt-1 truncate">
-            Uang keluar mutasi bank
-          </p>
-        </div>
+        <StatRibbonCard
+          label="Total Keluar (DB)"
+          value={`-${formatCurrency(summary.total_debit || 0)}`}
+          context="Uang keluar mutasi bank"
+          status="danger"
+          icon={ArrowUpRight}
+        />
 
-        {/* Saldo Kas Berjalan (Saldo Awal + Net Mutasi) */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-blue-200 uppercase tracking-wider">
-              Saldo Kas Berjalan
-            </span>
-            <div className="p-1.5 bg-blue-500/20 text-blue-300 rounded-xl border border-blue-500/30">
-              <Layers className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-lg font-extrabold text-white font-mono">
-            {formatCurrency(summary.final_balance !== undefined ? summary.final_balance : (summary.opening_balance || 0) + summary.net_mutation)}
-          </p>
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-300 mt-1 font-medium">
-            <span>Saldo Awal</span>
-            <span className={summary.net_mutation >= 0 ? 'text-emerald-400 font-mono' : 'text-rose-400 font-mono'}>
-              {summary.net_mutation >= 0 ? `+${formatCurrency(summary.net_mutation)}` : formatCurrency(summary.net_mutation)}
-            </span>
-          </div>
-        </div>
+        {/* Saldo Kas Berjalan */}
+        <StatRibbonCard
+          label="Saldo Kas Berjalan"
+          value={formatCurrency(summary.final_balance !== undefined ? summary.final_balance : (summary.opening_balance || 0) + summary.net_mutation)}
+          context={`Net mutasi: ${summary.net_mutation >= 0 ? '+' : ''}${formatCurrency(summary.net_mutation)}`}
+          status="info"
+          icon={Layers}
+        />
 
         {/* Progress Rekonsiliasi */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Rekonsiliasi
-            </span>
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-lg text-[10px] font-bold">
-              {summary.reconciliation_rate}%
-            </span>
-          </div>
-          <div className="flex items-baseline space-x-1.5">
-            <p className="text-lg font-bold text-slate-800 font-mono">
-              {summary.reconciled_count}
-            </p>
-            <span className="text-[11px] text-slate-400">/ {summary.total_rows} cocok</span>
-          </div>
-          {/* Progress Bar */}
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-            <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, summary.reconciliation_rate)}%` }}
-            />
-          </div>
-        </div>
+        <StatRibbonCard
+          label="Progres Rekonsiliasi"
+          value={`${summary.reconciled_count} / ${summary.total_rows}`}
+          context={`${summary.reconciliation_rate}% baris mutasi cocok`}
+          status={summary.reconciliation_rate === 100 ? 'success' : summary.reconciliation_rate > 0 ? 'warning' : 'neutral'}
+          icon={ShieldCheck}
+        />
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {/* Rekening Bank (SearchableSelect) */}
           <div>
@@ -1197,7 +1189,7 @@ export default function BankStatements() {
 
         {/* Academic Year Active Banner / Quick View Toggle */}
         {selectedAcademicYearId && selectedAyObj && (
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50/50 border border-indigo-200/80 rounded-xl text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-indigo-50/60 border border-indigo-200/80 rounded-xl text-xs">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm shadow-indigo-200 flex-shrink-0">
                 <Calendar className="w-4 h-4" />
@@ -1218,8 +1210,8 @@ export default function BankStatements() {
                       : `📅 Bulan: ${MONTH_OPTIONS.find(m => m.value === selectedMonth)?.label || selectedMonth}`}
                   </span>
                   {selectedAccountId && (
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-bold rounded-md text-[10px] flex items-center gap-1 border border-blue-200/60">
-                      <Landmark className="w-3 h-3 text-blue-600" />
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 font-bold rounded-md text-[10px] flex items-center gap-1 border border-indigo-200/60">
+                      <Landmark className="w-3 h-3 text-indigo-600" />
                       {cleanAccountName(bankAccounts.find(b => String(b.id) === String(selectedAccountId))?.name) || 'Rekening Terpilih'}
                     </span>
                   )}
@@ -1306,7 +1298,7 @@ export default function BankStatements() {
                 setSearchTerm(e.target.value);
                 setPagination(p => (p.current_page === 1 ? p : { ...p, current_page: 1 }));
               }}
-              className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
             {searchTerm && (
               <button
@@ -1329,7 +1321,7 @@ export default function BankStatements() {
             onClick={() => setShowCustomDateRange(prev => !prev)}
             className={`px-3 py-2 border rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
               showCustomDateRange || startDate || endDate
-                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -1369,9 +1361,9 @@ export default function BankStatements() {
 
       {/* Bulk Action Bar (When rows selected) */}
       {selectedIds.length > 0 && (
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4 border border-slate-700/80 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-xl flex flex-wrap items-center justify-between gap-4 border border-slate-700/80 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-500/30">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
               {selectedIds.length}
             </div>
             <div>
@@ -1413,8 +1405,8 @@ export default function BankStatements() {
       )}
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="table-container overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold select-none">
@@ -1423,7 +1415,7 @@ export default function BankStatements() {
                     type="checkbox"
                     checked={statements.length > 0 && selectedIds.length === statements.length}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
                     title="Pilih Semua di Halaman Ini"
                   />
                 </th>
@@ -1439,9 +1431,9 @@ export default function BankStatements() {
                     <span>Tanggal</span>
                     {sortBy === 'transaction_date' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1456,13 +1448,13 @@ export default function BankStatements() {
                   title="Klik untuk sortir berdasarkan rekening bank"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Landmark className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600" />
+                    <Landmark className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600" />
                     <span>Rekening Bank</span>
                     {sortBy === 'cash_account_name' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1480,9 +1472,9 @@ export default function BankStatements() {
                     <span>No. Referensi</span>
                     {sortBy === 'journal_number' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1500,9 +1492,9 @@ export default function BankStatements() {
                     <span>Uraian Mutasi Bank</span>
                     {sortBy === 'description' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1520,9 +1512,9 @@ export default function BankStatements() {
                     <span>Tipe</span>
                     {sortBy === 'dc_type' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1540,9 +1532,9 @@ export default function BankStatements() {
                     <span>Nominal</span>
                     {sortBy === 'amount' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1560,9 +1552,9 @@ export default function BankStatements() {
                     <span>Saldo Berjalan</span>
                     {sortBy === 'running_balance' ? (
                       sortDir === 'asc' ? (
-                        <ArrowUp className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       ) : (
-                        <ArrowDown className="w-3.5 h-3.5 text-blue-600 font-bold" />
+                        <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
                       )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 group-hover:opacity-100" />
@@ -1579,7 +1571,7 @@ export default function BankStatements() {
                 <tr>
                   <td colSpan={11} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center space-y-2">
-                      <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+                      <RefreshCw className="w-6 h-6 animate-spin text-indigo-500" />
                       <span className="text-xs font-medium">Memuat data rekening koran...</span>
                     </div>
                   </td>
@@ -1595,7 +1587,7 @@ export default function BankStatements() {
                             Tidak Ada Mutasi Rekening Koran yang Cocok
                           </p>
                           <p className="text-xs text-slate-500 max-w-md">
-                            Tidak ditemukan data dengan kata kunci pencarian <span className="font-mono font-bold text-blue-700">"{debouncedSearch}"</span>
+                            Tidak ditemukan data dengan kata kunci pencarian <span className="font-bold tnum text-indigo-700">"{debouncedSearch}"</span>
                             {(selectedYear || selectedMonth || selectedAcademicYearId || selectedAccountId || statusFilter !== 'all' || dcFilter) ? ' pada filter aktif saat ini.' : '.'}
                           </p>
                           {(selectedYear || selectedMonth || selectedAcademicYearId || selectedAccountId || statusFilter !== 'all' || dcFilter) && (
@@ -1612,7 +1604,7 @@ export default function BankStatements() {
                                 setDcFilter('');
                                 setPagination(p => ({ ...p, current_page: 1 }));
                               }}
-                              className="mt-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                              className="mt-2 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                             >
                               🔍 Cari Kata Kunci Ini di Semua Periode & Rekening
                             </button>
@@ -1638,7 +1630,7 @@ export default function BankStatements() {
                       key={row.id}
                       className={`transition-colors ${
                         isSelected
-                          ? 'bg-blue-50/80 font-medium'
+                          ? 'bg-indigo-50/80 font-medium'
                           : (row.is_reconciled ? 'bg-emerald-50/10 hover:bg-slate-50/60' : 'hover:bg-slate-50/60')
                       }`}
                     >
@@ -1647,10 +1639,10 @@ export default function BankStatements() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleSelectRow(row.id)}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
                         />
                       </td>
-                      <td className="py-3 px-3 text-center text-slate-400 font-mono text-[11px]">
+                      <td className="py-3 px-3 text-center text-slate-400 text-[11px]">
                         {rowNumber}
                       </td>
                       <td className="py-3 px-4 font-medium text-slate-700 whitespace-nowrap">
@@ -1658,7 +1650,7 @@ export default function BankStatements() {
                           {row.transaction_date_formatted || '-'}
                         </div>
                         {row.transaction_time_formatted && (
-                          <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-slate-400" />
                             {row.transaction_time_formatted}
                           </div>
@@ -1666,16 +1658,16 @@ export default function BankStatements() {
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
-                          <Landmark className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <Landmark className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                           <span>{cleanAccountName(row.cash_account_name)}</span>
                         </div>
                         {row.bank_account_number && (
-                          <div className="text-[10px] text-slate-400 font-mono pl-5">
+                          <div className="text-[10px] text-slate-400 pl-5">
                             No. {row.bank_account_number}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">
+                      <td className="py-3 px-4 text-slate-600 text-[11px]">
                         {row.journal_number || '-'}
                       </td>
                       <td className="py-3 px-4 text-slate-800 font-medium leading-relaxed">
@@ -1700,7 +1692,7 @@ export default function BankStatements() {
                           <div className="mt-1 space-y-0.5 text-[10px]">
                             <div className="flex items-center justify-between gap-1 text-slate-500">
                               <span>Sisa:</span>
-                              <span className={`font-mono font-bold ${row.remaining_amount > 0.01 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                              <span className={`font-bold tnum ${row.remaining_amount > 0.01 ? 'text-emerald-700' : 'text-slate-400'}`}>
                                 {formatCurrency(row.remaining_amount)}
                               </span>
                             </div>
@@ -1713,7 +1705,7 @@ export default function BankStatements() {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right text-slate-600 font-mono text-[11px] whitespace-nowrap">
+                      <td className="py-3 px-4 text-right text-slate-600 text-[11px] whitespace-nowrap">
                         {row.running_balance !== null ? formatCurrency(row.running_balance) : '-'}
                       </td>
                       <td className="py-3 px-4 min-w-[240px]">
@@ -1722,15 +1714,15 @@ export default function BankStatements() {
                             {/* Status Badge */}
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {row.remaining_amount <= 0.01 ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <StatusPill variant="success">
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   Cocok Penuh ({row.references.length} Transaksi)
-                                </span>
+                                </StatusPill>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                                <StatusPill variant="warning">
                                   <Clock className="w-3 h-3 text-amber-600" />
                                   Terpakai Sebagian ({row.references.length} Transaksi • Sisa {formatCurrency(row.remaining_amount)})
-                                </span>
+                                </StatusPill>
                               )}
                             </div>
 
@@ -1743,7 +1735,7 @@ export default function BankStatements() {
                                 >
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1">
-                                      <span className="px-1 py-0.2 bg-blue-100 text-blue-800 rounded font-bold uppercase text-[9px] shrink-0">
+                                      <span className="px-1 py-0.2 bg-indigo-100 text-indigo-800 rounded font-bold uppercase text-[9px] shrink-0">
                                         {refItem.reference_type === 'student_bill_payment' ? 'SPP/Tagihan' : refItem.reference_type}
                                       </span>
                                       <span className="font-semibold text-slate-800 truncate" title={refItem.label}>
@@ -1757,7 +1749,7 @@ export default function BankStatements() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className="font-mono font-bold text-slate-700">
+                                    <span className="font-bold tnum text-slate-700">
                                       {formatCurrency(refItem.amount)}
                                     </span>
                                     <button
@@ -1775,10 +1767,10 @@ export default function BankStatements() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200/80">
+                            <StatusPill variant="warning">
                               <Clock className="w-3 h-3 text-amber-600" />
                               Belum Ditautkan
-                            </span>
+                            </StatusPill>
                           </div>
                         )}
                       </td>
@@ -1788,10 +1780,10 @@ export default function BankStatements() {
                           {row.remaining_amount > 0.01 && (
                             <button
                               onClick={() => openReconcileModal(row)}
-                              className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                               title={`Tautkan Transaksi Internal (Sisa Tersedia: ${formatCurrency(row.remaining_amount)})`}
                             >
-                              <LinkIcon className="w-3 h-3 text-blue-600" />
+                              <LinkIcon className="w-3 h-3 text-indigo-600" />
                               <span>{row.allocated_amount > 0 ? '+ Tautkan' : 'Tautkan'}</span>
                             </button>
                           )}
@@ -1812,7 +1804,7 @@ export default function BankStatements() {
                             <>
                               <button
                                 onClick={() => openEditModal(row)}
-                                className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Mutasi Rekening Koran"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
@@ -1846,19 +1838,19 @@ export default function BankStatements() {
               <b>{pagination.total_records}</b> total baris mutasi
             </span>
             {(selectedMonth || selectedYear) && (
-              <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-lg font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
-                <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+              <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 rounded-lg font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-600" />
                 Periode: {selectedMonth ? MONTH_NAMES_FULL[parseInt(selectedMonth, 10)] : 'Semua Bulan'} {selectedYear ? selectedYear : ''}
               </span>
             )}
           </div>
 
           {/* Center: Monthly Paginator / Quick Monthly Navigator */}
-          <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="px-2 py-1 hover:bg-slate-100 text-slate-700 hover:text-blue-700 rounded-lg transition-colors flex items-center gap-1 font-semibold text-xs cursor-pointer"
+              className="px-2 py-1 hover:bg-slate-100 text-slate-700 hover:text-indigo-700 rounded-lg transition-colors flex items-center gap-1 font-semibold text-xs cursor-pointer"
               title="Pindah ke Bulan Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1878,7 +1870,7 @@ export default function BankStatements() {
                   }
                   setPagination(p => ({ ...p, current_page: 1 }));
                 }}
-                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Semua Bulan</option>
                 {MONTH_OPTIONS.filter(o => o.value).map(m => (
@@ -1892,7 +1884,7 @@ export default function BankStatements() {
                   setSelectedYear(e.target.value);
                   setPagination(p => ({ ...p, current_page: 1 }));
                 }}
-                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Semua Thn</option>
                 {yearOptions.map(y => (
@@ -1906,7 +1898,7 @@ export default function BankStatements() {
             <button
               type="button"
               onClick={handleNextMonth}
-              className="px-2 py-1 hover:bg-slate-100 text-slate-700 hover:text-blue-700 rounded-lg transition-colors flex items-center gap-1 font-semibold text-xs cursor-pointer"
+              className="px-2 py-1 hover:bg-slate-100 text-slate-700 hover:text-indigo-700 rounded-lg transition-colors flex items-center gap-1 font-semibold text-xs cursor-pointer"
               title="Pindah ke Bulan Berikutnya"
             >
               <span className="hidden sm:inline">Bulan Depan</span>
@@ -1933,12 +1925,14 @@ export default function BankStatements() {
             <select
               value={pagination.per_page}
               onChange={(e) => setPagination(p => ({ ...p, per_page: Number(e.target.value), current_page: 1 }))}
-              className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option value={10}>10 / hal</option>
               <option value={25}>25 / hal</option>
               <option value={50}>50 / hal</option>
               <option value={100}>100 / hal</option>
+              <option value={250}>250 / hal</option>
+              <option value={500}>500 / hal</option>
             </select>
 
             <div className="flex items-center space-x-1">
@@ -1969,12 +1963,12 @@ export default function BankStatements() {
       {/* MODAL 1: Tautkan Rekonsiliasi */}
       {showReconcileModal && reconcileTarget && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
                 <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4 text-blue-600" />
+                  <LinkIcon className="w-4 h-4 text-indigo-600" />
                   Tautkan Rekonsiliasi Transaksi
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1997,11 +1991,11 @@ export default function BankStatements() {
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs font-mono font-bold text-slate-700">
+                    <span className="text-xs font-bold tnum text-slate-700">
                       {reconcileTarget.transaction_date_formatted}
                     </span>
                     {reconcileTarget.journal_number && (
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono">
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px]">
                         {reconcileTarget.journal_number}
                       </span>
                     )}
@@ -2026,22 +2020,22 @@ export default function BankStatements() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div className="p-2.5 bg-white rounded-xl border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-bold uppercase">Plafon Mutasi:</span>
-                  <div className="font-mono font-black text-slate-800 text-xs mt-0.5">
+                  <div className="font-black tnum text-slate-800 text-xs mt-0.5">
                     {formatCurrency(reconcileTarget.amount)}
                   </div>
                 </div>
-                <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200/70">
-                  <span className="text-[10px] text-blue-700 font-bold uppercase">Sudah Teralokasi:</span>
-                  <div className="font-mono font-black text-blue-800 text-xs mt-0.5">
+                <div className="p-2.5 bg-indigo-50/70 rounded-xl border border-indigo-200/70">
+                  <span className="text-[10px] text-indigo-700 font-bold uppercase">Sudah Teralokasi:</span>
+                  <div className="font-black tnum text-indigo-800 text-xs mt-0.5">
                     {formatCurrency(reconcileTarget.allocated_amount || 0)}
                   </div>
-                  <span className="text-[9px] text-blue-600">
+                  <span className="text-[9px] text-indigo-600">
                     ({reconcileTarget.references?.length || 0} rujukan aktif)
                   </span>
                 </div>
                 <div className="p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200/70">
                   <span className="text-[10px] text-emerald-700 font-bold uppercase">Sisa Plafon Tersedia:</span>
-                  <div className="font-mono font-black text-emerald-800 text-xs mt-0.5">
+                  <div className="font-black tnum text-emerald-800 text-xs mt-0.5">
                     {formatCurrency(reconcileTarget.remaining_amount !== undefined ? reconcileTarget.remaining_amount : reconcileTarget.amount)}
                   </div>
                 </div>
@@ -2051,10 +2045,10 @@ export default function BankStatements() {
             <div className="p-5 space-y-5">
               {/* Existing References Section if any */}
               {reconcileTarget.references && reconcileTarget.references.length > 0 && (
-                <div className="space-y-2 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="space-y-2 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-blue-600" />
+                      <Layers className="w-4 h-4 text-indigo-600" />
                       Rujukan Transaksi yang Sudah Tertaut ({reconcileTarget.references.length}):
                     </span>
                     <button
@@ -2073,7 +2067,7 @@ export default function BankStatements() {
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded font-bold uppercase text-[9px]">
+                            <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-800 rounded font-bold uppercase text-[9px]">
                               {refItem.reference_type === 'student_bill_payment' ? 'SPP/Tagihan' : refItem.reference_type}
                             </span>
                             <span className="font-bold text-slate-800 text-[11px] truncate">
@@ -2087,7 +2081,7 @@ export default function BankStatements() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-mono font-bold text-slate-800">
+                          <span className="font-bold tnum text-slate-800">
                             {formatCurrency(refItem.amount)}
                           </span>
                           <button
@@ -2109,7 +2103,7 @@ export default function BankStatements() {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center justify-between">
                   <span>Rekomendasi Transaksi Internal yang Cocok</span>
-                  {loadingCandidates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+                  {loadingCandidates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-600" />}
                 </h4>
 
                 {loadingCandidates ? (
@@ -2129,7 +2123,7 @@ export default function BankStatements() {
                       return (
                         <div
                           key={cIdx}
-                          className="p-3 bg-white hover:bg-blue-50/50 border border-slate-200 hover:border-blue-300 rounded-xl flex items-center justify-between transition-all gap-2"
+                          className="p-3 bg-white hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-300 rounded-xl flex items-center justify-between transition-all gap-2"
                         >
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center space-x-2">
@@ -2138,7 +2132,7 @@ export default function BankStatements() {
                               }`}>
                                 Akurasi: {cand.confidence}
                               </span>
-                              <span className="text-xs text-slate-500 font-mono">
+                              <span className="text-xs text-slate-500">
                                 {cand.date} (selisih {cand.diff_days} hari)
                               </span>
                             </div>
@@ -2147,13 +2141,13 @@ export default function BankStatements() {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2.5 shrink-0">
-                            <span className="text-xs font-bold text-slate-800 font-mono">
+                            <span className="text-xs font-bold text-slate-800">
                               {formatCurrency(cand.amount)}
                             </span>
                             <button
                               onClick={() => handleReconcile(cand.reference_type, cand.reference_id, `Cocok otomatis (${cand.confidence})`, allocAmt)}
                               disabled={reconciling || maxPossible <= 0.01}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer"
                             >
                               Pilih ({formatCurrency(allocAmt)})
                             </button>
@@ -2205,11 +2199,12 @@ export default function BankStatements() {
                       Nominal Alokasi (Rp) *
                     </label>
                     <input
-                      type="number"
-                      placeholder="Nominal alokasi"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Nominal alokasi (misal: 0,5)"
                       value={customReconcileForm.amount}
                       onChange={(e) => setCustomReconcileForm(p => ({ ...p, amount: e.target.value }))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-800 font-mono"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-800"
                     />
                   </div>
                 </div>
@@ -2250,7 +2245,7 @@ export default function BankStatements() {
       {/* MODAL 2: Import File Excel Rekening Koran */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-3xl w-full my-auto min-h-[460px] shadow-2xl border border-slate-100 p-6 space-y-5 flex flex-col justify-between">
+          <div className="bg-white rounded-xl max-w-3xl w-full my-auto min-h-[460px] shadow-2xl border border-slate-100 p-6 space-y-5 flex flex-col justify-between">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
@@ -2271,7 +2266,7 @@ export default function BankStatements() {
               </div>
 
               {/* Target Bank Account */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 relative z-30">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/80 relative z-30">
                 <div className="relative z-40">
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Rekening Bank Tujuan Import <span className="text-rose-500">*</span>
@@ -2304,9 +2299,9 @@ export default function BankStatements() {
 
             {/* Row Count & File Info Alert (When file is selected/parsed) */}
             {parsedRows.length > 0 ? (
-              <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-2xl animate-in fade-in duration-200">
+              <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl animate-in fade-in duration-200">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
                     <FileSpreadsheet className="w-6 h-6" />
                   </div>
                   <div>
@@ -2314,7 +2309,7 @@ export default function BankStatements() {
                       <span className="text-xs font-bold text-emerald-950">
                         Berkas Mutasi Terbaca:
                       </span>
-                      <span className="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-black font-mono shadow-sm">
+                      <span className="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-black shadow-sm">
                         {parsedRows.length} Baris Data Siap Diimpor
                       </span>
                     </div>
@@ -2325,7 +2320,7 @@ export default function BankStatements() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-500">
+              <div className="flex items-center gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
                 <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />
                 <span>Pilih berkas Excel mutasi bank di atas untuk membaca jumlah baris transaksi dan memulai pemetaan kolom.</span>
               </div>
@@ -2337,7 +2332,7 @@ export default function BankStatements() {
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                     <span>Pemetaan Kolom Excel</span>
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-lg text-[11px] font-bold font-mono">
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-lg text-[11px] font-bold">
                       {parsedRows.length} Baris
                     </span>
                   </h4>
@@ -2515,11 +2510,11 @@ export default function BankStatements() {
       {/* MODAL 3: Catat Manual Mutasi */}
       {showManualModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 p-6 space-y-5">
+          <div className="bg-white rounded-xl max-w-xl w-full shadow-2xl border border-slate-100 p-6 space-y-5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                   <Landmark className="w-5 h-5" />
                 </div>
                 <div>
@@ -2559,13 +2554,13 @@ export default function BankStatements() {
               </div>
 
               {/* Quick Smart Paste Bar untuk Tanggal & Waktu Lengkap */}
-              <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl space-y-1.5">
+              <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <label className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                     Tempel / Ketik Teks Tanggal & Waktu Sekaligus
                   </label>
-                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-100/70 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-full">
                     Auto-Detect
                   </span>
                 </div>
@@ -2586,11 +2581,11 @@ export default function BankStatements() {
                         }));
                       }
                     }}
-                    className="w-full pl-3 pr-8 py-2 bg-white border border-blue-200 rounded-xl text-xs font-mono font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    className="w-full pl-3 pr-8 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-medium tnum text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
                   />
-                  <Clock className="w-3.5 h-3.5 text-blue-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Clock className="w-3.5 h-3.5 text-indigo-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <p className="text-[10px] text-blue-700/80 leading-tight">
+                <p className="text-[10px] text-indigo-700/80 leading-tight">
                   Teks tanggal dan jam otomatis diurai dan mengisi kolom di bawah secara serentak.
                 </p>
               </div>
@@ -2640,14 +2635,14 @@ export default function BankStatements() {
                           transaction_date: `${datePart}T${e.target.value}`
                         }));
                       }}
-                      className="col-span-2 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="col-span-2 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                     <input
                       type="text"
                       placeholder="Ref/Jurnal (Opsional)"
                       value={manualForm.journal_number}
                       onChange={(e) => setManualForm(p => ({ ...p, journal_number: e.target.value }))}
-                      className="col-span-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                      className="col-span-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -2664,7 +2659,7 @@ export default function BankStatements() {
                   value={manualForm.description}
                   onChange={(e) => setManualForm(p => ({ ...p, description: e.target.value }))}
                   required
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed font-medium"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 leading-relaxed font-medium"
                 />
               </div>
 
@@ -2709,13 +2704,13 @@ export default function BankStatements() {
                       Rp
                     </span>
                     <input
-                      type="number"
-                      min="1"
-                      placeholder="0"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0 atau pecahan (contoh: 0,5)"
                       value={manualForm.amount}
                       onChange={(e) => setManualForm(p => ({ ...p, amount: e.target.value }))}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -2731,11 +2726,12 @@ export default function BankStatements() {
                     Rp
                   </span>
                   <input
-                    type="number"
-                    placeholder="Contoh: 54500000"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Contoh: 54500000 atau 54500000,50"
                     value={manualForm.running_balance}
                     onChange={(e) => setManualForm(p => ({ ...p, running_balance: e.target.value }))}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -2752,7 +2748,7 @@ export default function BankStatements() {
                 <button
                   type="submit"
                   disabled={savingManual || !manualForm.amount || !manualForm.description}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-sm shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-sm shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   {savingManual ? (
                     <>
@@ -2775,10 +2771,10 @@ export default function BankStatements() {
       {/* MODAL 4: Konfirmasi Hapus Masal Rekening Koran */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 p-6 space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl border border-slate-100 p-6 space-y-5 animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-start gap-3.5">
-              <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
@@ -2792,10 +2788,10 @@ export default function BankStatements() {
             </div>
 
             {/* Breakdown & Warning Content */}
-            <div className="p-4 bg-rose-50/70 border border-rose-200/80 rounded-2xl space-y-3 text-xs">
+            <div className="p-4 bg-rose-50/70 border border-rose-200/80 rounded-xl space-y-3 text-xs">
               <div className="flex items-center justify-between text-xs font-bold text-rose-950 pb-2.5 border-b border-rose-200/80">
                 <span>Total Baris Mutasi yang Dipilih:</span>
-                <span className="text-sm font-black text-rose-700 font-mono bg-white px-2.5 py-0.5 rounded-lg border border-rose-200">
+                <span className="text-sm font-black text-rose-700 bg-white px-2.5 py-0.5 rounded-lg border border-rose-200">
                   {selectedIds.length} Baris
                 </span>
               </div>
@@ -2807,7 +2803,7 @@ export default function BankStatements() {
                     <Clock className="w-3.5 h-3.5 text-amber-500" />
                     Belum Tertaut:
                   </div>
-                  <div className="text-lg font-bold text-amber-700 font-mono">
+                  <div className="text-lg font-bold text-amber-700">
                     {selectedUnreconciledCount} <span className="text-xs font-normal text-slate-500">baris</span>
                   </div>
                   <p className="text-[10px] text-slate-500">
@@ -2820,7 +2816,7 @@ export default function BankStatements() {
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     Sudah Tertaut (Cocok):
                   </div>
-                  <div className="text-lg font-bold text-emerald-700 font-mono">
+                  <div className="text-lg font-bold text-emerald-700">
                     {selectedReconciledCount} <span className="text-xs font-normal text-slate-500">baris</span>
                   </div>
                   <p className="text-[10px] text-slate-500">
@@ -2877,11 +2873,11 @@ export default function BankStatements() {
       {/* MODAL 5: Edit Mutasi Rekening Koran */}
       {showEditModal && editTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 p-6 space-y-5">
+          <div className="bg-white rounded-xl max-w-xl w-full shadow-2xl border border-slate-100 p-6 space-y-5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
@@ -2924,13 +2920,13 @@ export default function BankStatements() {
               </div>
 
               {/* Quick Smart Paste Bar untuk Tanggal & Waktu Lengkap */}
-              <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl space-y-1.5">
+              <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <label className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                     Tempel / Ketik Teks Tanggal & Waktu Sekaligus
                   </label>
-                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-100/70 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-full">
                     Auto-Detect
                   </span>
                 </div>
@@ -2951,11 +2947,11 @@ export default function BankStatements() {
                         }));
                       }
                     }}
-                    className="w-full pl-3 pr-8 py-2 bg-white border border-blue-200 rounded-xl text-xs font-mono font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    className="w-full pl-3 pr-8 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-medium tnum text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
                   />
-                  <Clock className="w-3.5 h-3.5 text-blue-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Clock className="w-3.5 h-3.5 text-indigo-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <p className="text-[10px] text-blue-700/80 leading-tight">
+                <p className="text-[10px] text-indigo-700/80 leading-tight">
                   Teks tanggal dan jam otomatis diurai dan mengisi kolom di bawah secara serentak.
                 </p>
               </div>
@@ -3005,14 +3001,14 @@ export default function BankStatements() {
                           transaction_date: `${datePart}T${e.target.value}`
                         }));
                       }}
-                      className="col-span-2 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="col-span-2 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                     <input
                       type="text"
                       placeholder="Ref/Jurnal (Opsional)"
                       value={editForm.journal_number}
                       onChange={(e) => setEditForm(p => ({ ...p, journal_number: e.target.value }))}
-                      className="col-span-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                      className="col-span-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -3029,7 +3025,7 @@ export default function BankStatements() {
                   value={editForm.description}
                   onChange={(e) => setEditForm(p => ({ ...p, description: e.target.value }))}
                   required
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed font-medium"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 leading-relaxed font-medium"
                 />
               </div>
 
@@ -3074,13 +3070,13 @@ export default function BankStatements() {
                       Rp
                     </span>
                     <input
-                      type="number"
-                      min="1"
-                      placeholder="0"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0 atau pecahan (contoh: 0,5)"
                       value={editForm.amount}
                       onChange={(e) => setEditForm(p => ({ ...p, amount: e.target.value }))}
                       required
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -3096,11 +3092,12 @@ export default function BankStatements() {
                     Rp
                   </span>
                   <input
-                    type="number"
-                    placeholder="Contoh: 54500000"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Contoh: 54500000 atau 54500000,50"
                     value={editForm.running_balance}
                     onChange={(e) => setEditForm(p => ({ ...p, running_balance: e.target.value }))}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -3120,7 +3117,7 @@ export default function BankStatements() {
                 <button
                   type="submit"
                   disabled={savingEdit || !editForm.amount || !editForm.description}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-sm shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-sm shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   {savingEdit ? (
                     <>

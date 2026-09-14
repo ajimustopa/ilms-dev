@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   Receipt,
   Wallet,
@@ -119,20 +123,6 @@ export default function ParentBills() {
     }
   };
 
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(val || 0);
-  };
-
-  const formatDate = (val) => {
-    if (!val) return '-';
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
   const totalUnpaid = bills
     .filter(b => b.status === 'unpaid' || b.status === 'partially_paid')
     .reduce((sum, b) => sum + (parseFloat(b.remaining_amount !== undefined ? b.remaining_amount : (b.amount - (b.paid_amount || 0))) || 0), 0);
@@ -160,7 +150,7 @@ export default function ParentBills() {
           type="button"
           onClick={fetchParentData}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition disabled:opacity-60 self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition disabled:opacity-60 self-start sm:self-auto cursor-pointer"
         >
           <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
           <span>{loading ? 'Memuat...' : 'Perbarui Status'}</span>
@@ -168,71 +158,43 @@ export default function ParentBills() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-          <span>{error}</span>
-        </div>
+        <FlatAlertBanner variant="danger" title="Gagal Memuat Data">
+          {error}
+        </FlatAlertBanner>
       )}
 
       {/* Ringkasan Kartu Keuangan Santri */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Tagihan Belum Lunas */}
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total Tagihan Belum Bayar</span>
-            <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
-              <Receipt className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl font-extrabold text-slate-800">
-              {formatCurrency(totalUnpaid)}
-            </div>
-            <p className="text-[10px] text-rose-600 font-medium mt-1">
-              Harap segera diselesaikan sebelum jatuh tempo
-            </p>
-          </div>
-        </div>
+        <StatRibbonCard
+          label="Total Tagihan Belum Bayar"
+          value={formatCurrency(totalUnpaid)}
+          context="Harap segera diselesaikan sebelum jatuh tempo"
+          status="danger"
+          icon={Receipt}
+        />
 
         {/* Total Tagihan Sudah Dibayar */}
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total Pembayaran Berhasil</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-              <CheckCircle2 className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl font-extrabold text-slate-800">
-              {formatCurrency(totalPaid)}
-            </div>
-            <p className="text-[10px] text-emerald-600 font-medium mt-1">
-              Tercatat di sistem administrasi yayasan
-            </p>
-          </div>
-        </div>
+        <StatRibbonCard
+          label="Total Pembayaran Berhasil"
+          value={formatCurrency(totalPaid)}
+          context="Tercatat di sistem administrasi yayasan"
+          status="success"
+          icon={CheckCircle2}
+        />
 
         {/* Saldo Tabungan Santri */}
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Saldo Tabungan Santri</span>
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Wallet className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-xl font-extrabold text-slate-800">
-              {formatCurrency(savings?.balance || 0)}
-            </div>
-            <p className="text-[10px] text-indigo-600 font-medium mt-1">
-              Tersedia untuk cashless &amp; operasional santri
-            </p>
-          </div>
-        </div>
+        <StatRibbonCard
+          label="Saldo Tabungan Santri"
+          value={formatCurrency(savings?.balance || 0)}
+          context="Tersedia untuk cashless & operasional santri"
+          status="info"
+          icon={Wallet}
+        />
       </div>
 
       {/* Tabel Daftar Tagihan Resmi Santri */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-slate-800">Daftar Tagihan Pendidikan Santri</h2>
@@ -255,7 +217,7 @@ export default function ParentBills() {
             <p className="text-[11px] text-slate-400 mt-0.5">Seluruh kewajiban pembayaran telah diselesaikan atau belum diterbitkan oleh pihak sekolah.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold">
@@ -295,13 +257,13 @@ export default function ParentBills() {
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600">
+                      <td className="py-3.5 px-4 tnum text-slate-600">
                         {bill.period_month ? `Bulan ${bill.period_month}/${bill.period_year}` : `Tahun ${bill.period_year}`}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-medium">
+                      <td className="py-3.5 px-4 text-right font-medium tnum">
                         {formatCurrency(parseFloat(bill.amount) + parseFloat(bill.discount_amount || 0))}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-emerald-700">
+                      <td className="py-3.5 px-4 text-right tnum text-emerald-700">
                         {parseFloat(bill.discount_amount || 0) > 0 ? (
                           <div>
                             <span>-{formatCurrency(bill.discount_amount)}</span>
@@ -315,7 +277,7 @@ export default function ParentBills() {
                           <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900">
+                      <td className="py-3.5 px-4 text-right font-extrabold tnum text-slate-900">
                         {formatCurrency(remaining)}
                       </td>
                       <td className="py-3.5 px-4 text-slate-600">
@@ -323,20 +285,20 @@ export default function ParentBills() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <StatusPill variant="success">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Lunas</span>
-                          </span>
+                            Lunas
+                          </StatusPill>
                         ) : isPartiallyPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <StatusPill variant="warning">
                             <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Sebagian</span>
-                          </span>
+                            Sebagian
+                          </StatusPill>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                          <StatusPill variant="danger">
                             <AlertCircle className="w-3 h-3 text-rose-600" />
-                            <span>Belum Bayar</span>
-                          </span>
+                            Belum Bayar
+                          </StatusPill>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -344,7 +306,7 @@ export default function ParentBills() {
                           <button
                             type="button"
                             onClick={() => handleOpenDetail(bill.id)}
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
                             title="Lihat Rincian"
                           >
                             <Eye className="w-4 h-4" />
@@ -353,7 +315,7 @@ export default function ParentBills() {
                             <button
                               type="button"
                               onClick={() => handleOpenProofModal(bill)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-[11px] shadow-2xs transition"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-[11px] shadow-2xs transition cursor-pointer"
                             >
                               <Upload className="w-3 h-3" />
                               <span>Bayar</span>
@@ -373,7 +335,7 @@ export default function ParentBills() {
       {/* MODAL 1: DETAIL TAGIHAN & RIWAYAT PEMBAYARAN */}
       {detailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in duration-200">
             <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Detail Tagihan Biaya Pendidikan</h3>
@@ -382,7 +344,7 @@ export default function ParentBills() {
               <button
                 type="button"
                 onClick={() => { setDetailModalOpen(false); setSelectedBill(null); }}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -403,7 +365,7 @@ export default function ParentBills() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Tahun Ajaran</span>
-                      <span className="font-bold text-indigo-700 font-mono">
+                      <span className="font-bold text-indigo-700 tnum">
                         {selectedBill.academic_year_name ? `T.A. ${selectedBill.academic_year_name}` : '-'}
                       </span>
                     </div>
@@ -413,7 +375,7 @@ export default function ParentBills() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Periode Tagihan</span>
-                      <span className="font-mono text-slate-700">
+                      <span className="tnum text-slate-700">
                         {selectedBill.period_month ? `Bulan ${selectedBill.period_month}/${selectedBill.period_year}` : `Tahun ${selectedBill.period_year}`}
                       </span>
                     </div>
@@ -426,7 +388,7 @@ export default function ParentBills() {
                   <div className="border-t border-slate-200 pt-3 space-y-2">
                     <div className="flex justify-between text-slate-600">
                       <span>Nominal Pokok</span>
-                      <span className="font-mono">{formatCurrency(parseFloat(selectedBill.amount) + parseFloat(selectedBill.discount_amount || 0))}</span>
+                      <span className="tnum">{formatCurrency(parseFloat(selectedBill.amount) + parseFloat(selectedBill.discount_amount || 0))}</span>
                     </div>
                     {parseFloat(selectedBill.discount_amount || 0) > 0 && (
                       <div className="flex justify-between text-emerald-700">
@@ -436,16 +398,16 @@ export default function ParentBills() {
                             <div className="text-[10px] text-slate-500">No. SK: {selectedBill.discount_sk_number}</div>
                           )}
                         </div>
-                        <span className="font-mono font-bold">-{formatCurrency(selectedBill.discount_amount)}</span>
+                        <span className="font-bold tnum">-{formatCurrency(selectedBill.discount_amount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600">
                       <span>Sudah Dibayarkan</span>
-                      <span className="font-mono text-emerald-600 font-semibold">{formatCurrency(selectedBill.paid_amount || 0)}</span>
+                      <span className="tnum text-emerald-600 font-semibold">{formatCurrency(selectedBill.paid_amount || 0)}</span>
                     </div>
                     <div className="flex justify-between font-extrabold text-sm text-slate-900 pt-2 border-t border-slate-200">
                       <span>Sisa yang Harus Dibayar</span>
-                      <span className="font-mono text-emerald-700">
+                      <span className="tnum text-emerald-700">
                         {formatCurrency(Math.max(0, parseFloat(selectedBill.amount) - parseFloat(selectedBill.paid_amount || 0)))}
                       </span>
                     </div>
@@ -465,7 +427,7 @@ export default function ParentBills() {
                               <span className="font-bold text-slate-700">{p.receipt_number || `KWT #${p.id}`}</span>
                               <div className="text-slate-400">{formatDate(p.paid_at)} &bull; {p.payment_method?.toUpperCase()}</div>
                             </div>
-                            <span className="font-mono font-bold text-emerald-600">{formatCurrency(p.amount)}</span>
+                            <span className="font-bold tnum text-emerald-600">{formatCurrency(p.amount)}</span>
                           </div>
                         ))}
                       </div>
@@ -481,7 +443,7 @@ export default function ParentBills() {
               <button
                 type="button"
                 onClick={() => { setDetailModalOpen(false); setSelectedBill(null); }}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition cursor-pointer"
               >
                 Tutup
               </button>
@@ -493,7 +455,7 @@ export default function ParentBills() {
       {/* MODAL 2: KONFIRMASI PEMBAYARAN BANK & UPLOAD BUKTI */}
       {proofModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in duration-200">
             <form onSubmit={handleSubmitProof}>
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div>
@@ -503,7 +465,7 @@ export default function ParentBills() {
                 <button
                   type="button"
                   onClick={() => { setProofModalOpen(false); setProofBill(null); }}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -518,7 +480,7 @@ export default function ParentBills() {
                     min="1"
                     value={proofForm.amount}
                     onChange={(e) => setProofForm({ ...proofForm, amount: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs font-mono font-bold"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs font-bold tnum"
                   />
                 </div>
 
@@ -563,14 +525,14 @@ export default function ParentBills() {
                 <button
                   type="button"
                   onClick={() => { setProofModalOpen(false); setProofBill(null); }}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingProof}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-xs transition disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {submittingProof && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Kirim Konfirmasi</span>
