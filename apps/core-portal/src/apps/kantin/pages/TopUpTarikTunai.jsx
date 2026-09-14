@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   Wallet,
@@ -106,8 +109,8 @@ export default function TopUpTarikTunai() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Form Transaksi Dompet (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold">
             <button
               type="button"
               onClick={() => {
@@ -143,14 +146,14 @@ export default function TopUpTarikTunai() {
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
               <span>{successMsg}</span>
             </div>
@@ -174,7 +177,7 @@ export default function TopUpTarikTunai() {
             </div>
 
             {selectedStudent && (
-              <div className="p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-900 text-white flex items-center justify-between">
                 <div>
                   <p className="text-[10px] uppercase font-bold text-slate-400">Saldo Saat Ini</p>
                   <h3 className="text-xl font-extrabold text-amber-400 mt-0.5 font-mono">
@@ -234,7 +237,7 @@ export default function TopUpTarikTunai() {
               className={`w-full py-3 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2 ${
                 activeTab === 'top_up'
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-950/20'
-                  : 'bg-amber-600 hover:bg-amber-700 shadow-amber-950/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-amber-950/20'
               }`}
             >
               {submitting ? (
@@ -255,7 +258,7 @@ export default function TopUpTarikTunai() {
         </div>
 
         {/* Right: History Log (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
               <Receipt className="w-4 h-4 text-amber-600" />
@@ -270,7 +273,7 @@ export default function TopUpTarikTunai() {
               <p className="text-xs text-slate-400">Memuat riwayat transaksi...</p>
             </div>
           ) : (
-            <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-[460px] overflow-y-auto">
+            <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[460px] overflow-y-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>

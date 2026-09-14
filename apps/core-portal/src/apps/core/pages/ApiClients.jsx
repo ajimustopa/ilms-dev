@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   KeyRound,
   Plus,
@@ -241,7 +243,7 @@ export default function ApiClients() {
               <span className="text-xs">Memuat data client...</span>
             </div>
           ) : clients.length === 0 ? (
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">
+            <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-xs">
               Belum ada API client terdaftar
             </div>
           ) : (
@@ -249,7 +251,7 @@ export default function ApiClients() {
               {clients.map((c) => (
                 <div
                   key={c.id}
-                  className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between"
+                  className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -284,7 +286,7 @@ export default function ApiClients() {
 
       {/* Tab 2: Rate Limit Rules */}
       {activeTab === 'rate-limits' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase border-b border-slate-200">
               <tr>
@@ -356,7 +358,7 @@ export default function ApiClients() {
       {/* Modal Add Client */}
       {showClientModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">Daftarkan API Client Baru</h3>
               <button
@@ -414,7 +416,7 @@ export default function ApiClients() {
       {/* Modal Tampilkan API Key Baru */}
       {newKeyModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">API Key Berhasil Dibuat</h3>
               <button
@@ -461,7 +463,7 @@ export default function ApiClients() {
       {/* Modal Add/Edit Rate Limit */}
       {showRuleModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
                 {editingRule ? 'Edit Aturan Rate Limit' : 'Tambah Aturan Rate Limit'}

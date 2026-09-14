@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatDate } from '../../../shared/utils/formatters';
 import { GURU_MENU_ITEMS } from '../components/AndroidAppLauncher';
 import {
   Sparkles,
@@ -136,7 +140,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-in fade-in duration-300">
       
       {/* 1. Hero Greeting & Live Clock */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900/60 via-slate-900 to-slate-950 border border-emerald-500/30 p-5 sm:p-7 shadow-xl">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-900/60 via-slate-900 to-slate-950 border border-emerald-500/30 p-5 sm:p-7 shadow-xl">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -154,7 +158,7 @@ export default function Dashboard() {
           </div>
 
           {/* Jam & Tanggal Digital */}
-          <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-700/80 rounded-2xl p-3 sm:px-4 sm:py-3 shrink-0 backdrop-blur-md">
+          <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 sm:px-4 sm:py-3 shrink-0 backdrop-blur-md">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
               <Clock className="w-5 h-5" />
             </div>
@@ -174,10 +178,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* Presensi Diri Card */}
-        <div className="lg:col-span-2 rounded-3xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-2 rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
                 <MapPin className="w-6 h-6" />
               </div>
               <div>
@@ -195,7 +199,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             
             {/* Status Masuk */}
-            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-400 font-medium">Check-In (Masuk)</span>
                 <p className="text-sm font-bold text-white mt-0.5">
@@ -208,7 +212,7 @@ export default function Dashboard() {
             </div>
 
             {/* Status Pulang */}
-            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-400 font-medium">Check-Out (Pulang)</span>
                 <p className="text-sm font-bold text-white mt-0.5">
@@ -241,7 +245,7 @@ export default function Dashboard() {
         </div>
 
         {/* Ringkasan Beban Mengajar */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-3">
               <div className="p-2 rounded-xl bg-teal-500/20 text-teal-400">
@@ -281,7 +285,7 @@ export default function Dashboard() {
       </div>
 
       {/* 3. 📱 Android App Drawer Grid (Menu Icon-Icon Aplikasi) */}
-      <div className="rounded-3xl bg-slate-900/60 border border-slate-800/90 p-5 sm:p-6 shadow-xl">
+      <div className="rounded-xl bg-slate-900/60 border border-slate-800/90 p-5 sm:p-6 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
@@ -304,11 +308,11 @@ export default function Dashboard() {
               <button
                 key={item.id}
                 onClick={() => navigate(item.path)}
-                className="group flex flex-col items-center text-center p-3 rounded-2xl bg-slate-800/40 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 hover:scale-[1.03] active:scale-95 transition-all duration-150"
+                className="group flex flex-col items-center text-center p-3 rounded-xl bg-slate-800/40 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 hover:scale-[1.03] active:scale-95 transition-all duration-150"
               >
                 <div className="relative mb-2">
                   <div
-                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${item.bgGradient} flex items-center justify-center text-white shadow-lg ${item.shadowColor} group-hover:rotate-3 transition duration-200`}
+                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${item.bgGradient} flex items-center justify-center text-white shadow-lg ${item.shadowColor} group-hover:rotate-3 transition duration-200`}
                   >
                     <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
                   </div>
@@ -334,7 +338,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* Timeline Jadwal Hari Ini */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
@@ -359,7 +363,7 @@ export default function Dashboard() {
               {schedulesToday.map((s, idx) => (
                 <div
                   key={s.id || idx}
-                  className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/70 hover:border-blue-500/40 transition flex items-center justify-between gap-3"
+                  className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-blue-500/40 transition flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center font-mono font-bold text-xs shrink-0">
@@ -396,7 +400,7 @@ export default function Dashboard() {
         </div>
 
         {/* Papan Pengumuman Sekolah */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+        <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
@@ -422,7 +426,7 @@ export default function Dashboard() {
                 <div
                   key={a.id}
                   onClick={() => setSelectedAnnouncement(a)}
-                  className="p-3.5 rounded-2xl bg-slate-800/70 border border-slate-700/70 hover:border-fuchsia-500/40 transition cursor-pointer"
+                  className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-fuchsia-500/40 transition cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">
@@ -453,7 +457,7 @@ export default function Dashboard() {
       {/* Modal Detail Pengumuman */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between gap-3 mb-3">
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">
                 {selectedAnnouncement.category || 'Pengumuman'}

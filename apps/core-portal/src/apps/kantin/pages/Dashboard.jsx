@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
 import {
   TrendingUp,
   ShoppingBag,
@@ -80,7 +84,7 @@ export default function Dashboard() {
       {/* Main KPI Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Penjualan Bulan Ini */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Penjualan Bulan Ini</span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
@@ -96,7 +100,7 @@ export default function Dashboard() {
         </div>
 
         {/* Saldo Dompet Santri */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Saldo Dompet Santri</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
@@ -112,7 +116,7 @@ export default function Dashboard() {
         </div>
 
         {/* Piutang Hak Kantin */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Piutang Hak Kantin</span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
@@ -128,7 +132,7 @@ export default function Dashboard() {
         </div>
 
         {/* Hak Vendor Belum Dibayar */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hak Vendor Terutang</span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
@@ -147,7 +151,7 @@ export default function Dashboard() {
       {/* Grid: 7-Days Trend + Low Stock Alert */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Trend Penjualan 7 Hari Terakhir */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-slate-800">Tren Omzet Penjualan (7 Hari Terakhir)</h2>
@@ -181,7 +185,7 @@ export default function Dashboard() {
         </div>
 
         {/* Warning Stok Menipis */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
@@ -228,7 +232,7 @@ export default function Dashboard() {
       </div>
 
       {/* Tabel 5 Transaksi Terakhir */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />

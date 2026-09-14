@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber } from '../../../shared/utils/formatters';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import {
   ScanBarcode,
@@ -229,7 +232,7 @@ export default function TransaksiPenjualan() {
           </div>
           <button
             type="submit"
-            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition"
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition"
           >
             Input
           </button>
@@ -240,7 +243,7 @@ export default function TransaksiPenjualan() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Side: Product Selection (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
@@ -257,7 +260,7 @@ export default function TransaksiPenjualan() {
           </div>
 
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-2 bg-white rounded-2xl border border-slate-200">
+            <div className="py-20 flex flex-col items-center justify-center gap-2 bg-white rounded-xl border border-slate-200">
               <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
               <p className="text-xs text-slate-400">Memuat katalog produk...</p>
             </div>
@@ -269,7 +272,7 @@ export default function TransaksiPenjualan() {
                   type="button"
                   onClick={() => addToCart(p)}
                   disabled={p.current_stock <= 0}
-                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition group relative ${
+                  className={`p-3 rounded-xl border text-left flex flex-col justify-between transition group relative ${
                     p.current_stock <= 0
                       ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
                       : 'bg-white border-slate-200 hover:border-amber-500 hover:shadow-md'
@@ -306,7 +309,7 @@ export default function TransaksiPenjualan() {
         </div>
 
         {/* Right Side: Cart & Checkout Payment Panel (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200 shadow-md p-5 space-y-4">
+        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-md p-5 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-amber-600" />
@@ -522,7 +525,7 @@ export default function TransaksiPenjualan() {
             </div>
 
             {/* Total Calculation */}
-            <div className="p-3.5 bg-slate-900 text-white rounded-2xl space-y-1.5">
+            <div className="p-3.5 bg-slate-900 text-white rounded-xl space-y-1.5">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>Subtotal ({cart.reduce((a, b) => a + b.qty, 0)} item)</span>
                 <span className="font-mono">{formatRupiah(totalGross)}</span>
@@ -565,7 +568,7 @@ export default function TransaksiPenjualan() {
       {/* Modal Struk Transaksi Sukses */}
       {successReceipt && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4 text-center">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl border border-slate-100 space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
@@ -575,7 +578,7 @@ export default function TransaksiPenjualan() {
               <p className="text-xs text-slate-500">Struk #{successReceipt.sales_transaction_id}</p>
             </div>
 
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2 font-mono">
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs space-y-2 font-mono">
               <div className="flex justify-between text-slate-600">
                 <span>Pembeli:</span>
                 <span className="font-bold text-slate-800">{successReceipt.buyer_name}</span>
@@ -608,7 +611,7 @@ export default function TransaksiPenjualan() {
               <button
                 type="button"
                 onClick={() => setSuccessReceipt(null)}
-                className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition"
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition"
               >
                 Selesai / Baru
               </button>

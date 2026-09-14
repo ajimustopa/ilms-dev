@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatDate } from '../../../shared/utils/formatters';
 import {
   MapPin,
   Clock,
@@ -259,9 +263,9 @@ export default function AbsensiDiri() {
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header Presensi */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/25">
             <MapPin className="w-6 h-6" />
           </div>
           <div>
@@ -273,7 +277,7 @@ export default function AbsensiDiri() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-2xl border border-slate-700/80">
+        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/80">
           <button
             onClick={() => setActiveTab('presensi')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -303,7 +307,7 @@ export default function AbsensiDiri() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-xl border text-xs flex items-center gap-3 animate-in fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -323,7 +327,7 @@ export default function AbsensiDiri() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Visual Radar Jarak & Lokasi */}
-          <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl flex flex-col justify-between">
+          <div className="lg:col-span-2 rounded-xl bg-slate-900 border border-slate-800 p-6 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-2">
@@ -342,7 +346,7 @@ export default function AbsensiDiri() {
               </div>
 
               {/* Box Info Jarak */}
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${isWithinRadius ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500 animate-ping'}`} />
@@ -382,7 +386,7 @@ export default function AbsensiDiri() {
 
             {/* Warning jika di luar radius */}
             {!isWithinRadius && (
-              <div className="mt-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
+              <div className="mt-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
                 <p>
                   Anda berada di luar radius sekolah ({distance}m &gt; {schoolTarget.radius}m).
@@ -393,7 +397,7 @@ export default function AbsensiDiri() {
           </div>
 
           {/* Tombol Check-In / Check-Out */}
-          <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl flex flex-col justify-between space-y-6">
+          <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 shadow-xl flex flex-col justify-between space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-5 h-5 text-rose-400" />
@@ -401,7 +405,7 @@ export default function AbsensiDiri() {
               </div>
 
               {/* Status Masuk */}
-              <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 mb-4">
+              <div className="p-4 rounded-xl bg-slate-800/70 border border-slate-700/70 mb-4">
                 <span className="text-xs text-slate-400 font-medium">Jam Masuk (Check-In)</span>
                 <p className="text-lg font-black text-white mt-1">
                   {todayAttendance?.check_in_time ? `${todayAttendance.check_in_time} WIB` : 'Belum Check-In'}
@@ -414,7 +418,7 @@ export default function AbsensiDiri() {
               </div>
 
               {/* Status Pulang */}
-              <div className="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 mb-4">
+              <div className="p-4 rounded-xl bg-slate-800/70 border border-slate-700/70 mb-4">
                 <span className="text-xs text-slate-400 font-medium">Jam Pulang (Check-Out)</span>
                 <p className="text-lg font-black text-white mt-1">
                   {todayAttendance?.check_out_time ? `${todayAttendance.check_out_time} WIB` : 'Belum Check-Out'}
@@ -439,7 +443,7 @@ export default function AbsensiDiri() {
                 <button
                   onClick={handleCheckIn}
                   disabled={!isWithinRadius || isSubmitting}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-emerald-900/30 transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -452,7 +456,7 @@ export default function AbsensiDiri() {
                 <button
                   onClick={handleCheckOut}
                   disabled={todayAttendance?.check_out_time || isSubmitting}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-rose-900/30 transition active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-rose-900/30 transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -471,13 +475,13 @@ export default function AbsensiDiri() {
 
       {/* TAB 2: RIWAYAT BULANAN */}
       {activeTab === 'riwayat' && (
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white">Riwayat Kehadiran Bulan Ini</h3>
             <span className="text-xs text-emerald-400 font-semibold">Tingkat Kehadiran: 100%</span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
                 <tr>
@@ -512,9 +516,9 @@ export default function AbsensiDiri() {
 
       {/* TAB 3: PENGAJUAN IZIN / CUTI */}
       {activeTab === 'izin' && (
-        <div className="max-w-2xl mx-auto rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
+        <div className="max-w-2xl mx-auto rounded-xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
               <FileText className="w-6 h-6" />
             </div>
             <div>
@@ -576,7 +580,7 @@ export default function AbsensiDiri() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
               <span>Kirim Pengajuan Izin ke HRD</span>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   BellRing,
   Search,
@@ -108,9 +110,9 @@ Atas perhatian dan kerjasamanya kami ucapkan terima kasih.`
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-fuchsia-500 to-pink-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-fuchsia-500 to-pink-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-500/25">
             <BellRing className="w-6 h-6" />
           </div>
           <div>
@@ -158,7 +160,7 @@ Atas perhatian dan kerjasamanya kami ucapkan terima kasih.`
           <div
             key={item.id}
             onClick={() => setSelectedItem(item)}
-            className="rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-fuchsia-500/40 p-5 shadow-lg flex flex-col justify-between transition cursor-pointer group"
+            className="rounded-xl bg-slate-900/80 border border-slate-800 hover:border-fuchsia-500/40 p-5 shadow-lg flex flex-col justify-between transition cursor-pointer group"
           >
             <div>
               <div className="flex items-center justify-between gap-2 mb-3">
@@ -193,7 +195,7 @@ Atas perhatian dan kerjasamanya kami ucapkan terima kasih.`
       {/* Modal Detail Pengumuman */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 sm:p-8 max-w-xl w-full shadow-xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">

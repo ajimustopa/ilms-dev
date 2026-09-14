@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   ShieldCheck,
   Plus,
@@ -247,7 +249,7 @@ export default function RoleManagement() {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-xl border border-slate-100 shadow-xs">
         <div>
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-indigo-600" />
@@ -285,7 +287,7 @@ export default function RoleManagement() {
       )}
 
       {/* Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-3">
+      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -312,7 +314,7 @@ export default function RoleManagement() {
           {filteredRoles.map((role) => (
             <div
               key={role.id}
-              className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
+              className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col justify-between hover:border-slate-300 transition"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -368,7 +370,7 @@ export default function RoleManagement() {
       {/* Modal Add / Edit Role */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-xl border border-slate-100 my-8 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">

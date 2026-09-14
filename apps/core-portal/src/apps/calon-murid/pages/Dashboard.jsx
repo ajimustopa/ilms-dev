@@ -1,5 +1,8 @@
 import React from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   CheckCircle2,
   Clock,
@@ -106,7 +109,7 @@ export default function CalonMuridDashboard() {
     <div className="space-y-6">
       
       {/* 1. HERO GREETING & REGISTRATION BADGE */}
-      <div className="rounded-3xl bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="rounded-xl bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-md">
@@ -122,19 +125,19 @@ export default function CalonMuridDashboard() {
           </h1>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
-            <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-xs">
+            <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
               <span className="text-[10px] text-emerald-200 font-medium">Nomor Registrasi</span>
               <p className="font-mono font-extrabold text-white text-sm mt-0.5">{reg?.registration_number || '-'}</p>
             </div>
-            <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-xs">
+            <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
               <span className="text-[10px] text-emerald-200 font-medium">NISN Asal</span>
               <p className="font-mono font-extrabold text-white text-sm mt-0.5">{reg?.nisn || '-'}</p>
             </div>
-            <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-xs">
+            <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
               <span className="text-[10px] text-emerald-200 font-medium">Jenis Masuk</span>
               <p className="font-bold text-white capitalize mt-0.5">{reg?.entry_type || 'Reguler'}</p>
             </div>
-            <div className="bg-white/10 rounded-2xl p-3 backdrop-blur-xs">
+            <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
               <span className="text-[10px] text-emerald-200 font-medium">Kelompok Biaya</span>
               <p className="font-bold text-emerald-300 truncate mt-0.5">{reg?.fee_group_name_snapshot || 'Standar Unit'}</p>
             </div>
@@ -146,10 +149,10 @@ export default function CalonMuridDashboard() {
       </div>
 
       {/* 2. CURRENT STATUS CARD */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 ${statusInfo.iconColor}`}>
+            <div className={`p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 ${statusInfo.iconColor}`}>
               <StatusIcon className="w-6 h-6" />
             </div>
             <div>
@@ -175,7 +178,7 @@ export default function CalonMuridDashboard() {
             return (
               <div
                 key={s.num}
-                className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center space-y-1 transition ${
+                className={`p-3 rounded-xl border text-center flex flex-col items-center justify-center space-y-1 transition ${
                   isCurrent
                     ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-200 font-bold shadow-2xs'
                     : isDone
@@ -202,9 +205,9 @@ export default function CalonMuridDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* Card 1: Data Lengkap */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
           <div className="space-y-2">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
               <FileText className="w-5 h-5" />
             </div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Formulir Data Lengkap</h3>
@@ -222,9 +225,9 @@ export default function CalonMuridDashboard() {
         </div>
 
         {/* Card 2: Dokumen */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
           <div className="space-y-2">
-            <div className="w-10 h-10 rounded-2xl bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div className="flex items-center justify-between">
@@ -247,9 +250,9 @@ export default function CalonMuridDashboard() {
         </div>
 
         {/* Card 3: Tes Seleksi */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-400 dark:hover:border-emerald-600 transition">
           <div className="space-y-2">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
               <FileCheck2 className="w-5 h-5" />
             </div>
             <div className="flex items-center justify-between">
@@ -273,7 +276,7 @@ export default function CalonMuridDashboard() {
       </div>
 
       {/* 4. ANNOUNCEMENT & CONTACT INFO */}
-      <div className="p-6 bg-slate-900 text-white rounded-3xl space-y-3 shadow-lg">
+      <div className="p-6 bg-slate-900 text-white rounded-xl space-y-3 shadow-lg">
         <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
           <Info className="w-4 h-4" />
           <span>Pengumuman & Petunjuk Panitia PPDB</span>

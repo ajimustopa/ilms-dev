@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import { Building2, Save, CheckCircle, Phone, Mail, MapPin, User, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function ProfilYayasan() {
@@ -96,7 +98,7 @@ export default function ProfilYayasan() {
       )}
 
       {saved && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-2xl flex items-center gap-2.5 shadow-xs animate-in fade-in">
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2.5 shadow-xs animate-in fade-in">
           <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
           <span className="font-semibold">Data Profil Yayasan berhasil disimpan dan disinkronkan ke seluruh sistem!</span>
         </div>
@@ -110,7 +112,7 @@ export default function ProfilYayasan() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Form Edit */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -189,7 +191,7 @@ export default function ProfilYayasan() {
           </div>
 
           {/* Right Column: Preview Card */}
-          <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-md border border-slate-800 flex flex-col justify-between">
+          <div className="bg-slate-900 text-white p-6 rounded-xl shadow-md border border-slate-800 flex flex-col justify-between">
             <div>
               <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-lg mb-4">
                 <Building2 className="w-6 h-6" />

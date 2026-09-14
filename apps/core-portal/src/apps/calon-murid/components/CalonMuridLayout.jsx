@@ -129,7 +129,7 @@ export default function CalonMuridLayout() {
             </button>
 
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black shadow-md shadow-emerald-600/30">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black shadow-md shadow-emerald-600/30">
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function CalonMuridLayout() {
               </button>
 
               {userDropdownOpen && (
-                <div className={`absolute right-0 mt-2 w-56 rounded-2xl shadow-xl border p-2 z-50 transition-all ${
+                <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-xl border p-2 z-50 transition-all ${
                   isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-100 text-slate-800'
                 }`}>
                   <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 mb-1">

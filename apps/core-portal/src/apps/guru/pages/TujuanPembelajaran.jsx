@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   Target,
   Plus,
@@ -175,9 +177,9 @@ export default function TujuanPembelajaran() {
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header Halaman */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
             <Target className="w-6 h-6" />
           </div>
           <div>
@@ -190,7 +192,7 @@ export default function TujuanPembelajaran() {
 
         <button
           onClick={() => handleOpenModal()}
-          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-950/40 transition active:scale-95 flex items-center justify-center gap-2"
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-950/40 transition active:scale-95 flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
           <span>Tambah Tujuan Pembelajaran</span>
@@ -199,7 +201,7 @@ export default function TujuanPembelajaran() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-xl border text-xs flex items-center gap-3 animate-in fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -255,7 +257,7 @@ export default function TujuanPembelajaran() {
         {filteredTP.map((item) => (
           <div
             key={item.id}
-            className="rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-teal-500/40 p-5 shadow-lg flex flex-col justify-between transition group"
+            className="rounded-xl bg-slate-900/80 border border-slate-800 hover:border-teal-500/40 p-5 shadow-lg flex flex-col justify-between transition group"
           >
             <div>
               <div className="flex items-center justify-between gap-2 mb-3">
@@ -302,7 +304,7 @@ export default function TujuanPembelajaran() {
       {/* Modal Tambah / Edit TP */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white">
                 {editingItem ? 'Edit Tujuan Pembelajaran' : 'Tambah Tujuan Pembelajaran Baru'}

@@ -79,7 +79,7 @@ export default function KantinLayout() {
             <div>
               <h1 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
                 <span>Kantin Smart</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-amber-300 border border-emerald-500/30 font-semibold">
                   POS
                 </span>
               </h1>
@@ -105,7 +105,7 @@ export default function KantinLayout() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden py-1 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden py-1 max-h-48 overflow-y-auto">
                   {schoolUnits?.length > 0 ? (
                     schoolUnits.map((u) => (
                       <button
@@ -151,7 +151,7 @@ export default function KantinLayout() {
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                           isActive
-                            ? 'bg-amber-600 text-white shadow-sm shadow-amber-900/30'
+                            ? 'bg-emerald-600 text-white shadow-sm shadow-amber-900/30'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                         }`
                       }

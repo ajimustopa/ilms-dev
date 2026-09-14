@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   FileCheck2,
   Clock,
@@ -168,7 +170,7 @@ export default function CalonMuridTesSeleksi() {
       </div>
 
       {errorMsg && (
-        <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-xl text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{errorMsg}</p>
         </div>
@@ -178,8 +180,8 @@ export default function CalonMuridTesSeleksi() {
       {!activeSession && (
         <div className="space-y-4">
           {sessions.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 text-center border border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-10 text-center border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
                 <FileCheck2 className="w-7 h-7" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Belum Ada Jadwal Ujian Aktif</h3>
@@ -196,7 +198,7 @@ export default function CalonMuridTesSeleksi() {
                 return (
                   <div
                     key={sess.id}
-                    className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-500 transition"
+                    className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-500 transition"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -237,7 +239,7 @@ export default function CalonMuridTesSeleksi() {
 
                     <button
                       onClick={() => handleStartExam(sess)}
-                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white text-xs font-bold rounded-2xl shadow-md shadow-emerald-900/20 flex items-center justify-center gap-2 transition"
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 flex items-center justify-center gap-2 transition"
                     >
                       {isGraded ? (
                         <>
@@ -264,7 +266,7 @@ export default function CalonMuridTesSeleksi() {
         <div className="space-y-6">
           
           {/* Top Bar Exam Banner */}
-          <div className="bg-slate-900 text-white rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-slate-900 text-white rounded-xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
                 Sesi Ujian Aktif
@@ -275,7 +277,7 @@ export default function CalonMuridTesSeleksi() {
 
             {/* Timer if in progress */}
             {sessionDetail.session?.status !== 'graded' && timeLeftSeconds !== null && (
-              <div className="flex items-center gap-3 bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-700 self-start sm:self-auto">
+              <div className="flex items-center gap-3 bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-700 self-start sm:self-auto">
                 <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-400 block">Sisa Waktu</span>
@@ -288,7 +290,7 @@ export default function CalonMuridTesSeleksi() {
 
             {/* Score Result if Graded */}
             {sessionDetail.session?.status === 'graded' && (
-              <div className="flex items-center gap-3 bg-emerald-950 px-4 py-2.5 rounded-2xl border border-emerald-700 self-start sm:self-auto">
+              <div className="flex items-center gap-3 bg-emerald-950 px-4 py-2.5 rounded-xl border border-emerald-700 self-start sm:self-auto">
                 <Award className="w-6 h-6 text-emerald-400" />
                 <div>
                   <span className="text-[9px] uppercase font-bold text-emerald-300 block">Hasil Ujian</span>
@@ -304,7 +306,7 @@ export default function CalonMuridTesSeleksi() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
             {/* Left: Current Question Box */}
-            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               {sessionDetail.questions && sessionDetail.questions.length > 0 ? (
                 (() => {
                   const q = sessionDetail.questions[currentQuestionIdx];
@@ -337,7 +339,7 @@ export default function CalonMuridTesSeleksi() {
                               return (
                                 <label
                                   key={oIdx}
-                                  className={`flex items-center gap-3 p-3.5 rounded-2xl border text-xs font-medium cursor-pointer transition ${
+                                  className={`flex items-center gap-3 p-3.5 rounded-xl border text-xs font-medium cursor-pointer transition ${
                                     isChecked
                                       ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-100 font-bold shadow-2xs'
                                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
@@ -439,7 +441,7 @@ export default function CalonMuridTesSeleksi() {
             </div>
 
             {/* Right: Question Number Grid Navigator */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 self-start">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 self-start">
               <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                 Nomor Soal Ujian
               </h4>

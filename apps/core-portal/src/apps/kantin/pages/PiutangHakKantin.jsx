@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   Coins,
   Receipt,
@@ -108,7 +111,7 @@ export default function PiutangHakKantin() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Omzet Penjualan</span>
           <h3 className="text-xl font-extrabold text-slate-800 mt-1">
             {formatRupiah(summary?.total_sales)}
@@ -116,7 +119,7 @@ export default function PiutangHakKantin() {
           <p className="text-[10px] text-slate-400 mt-0.5">Bruto seluruh penjualan barang</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Sudah Dicairkan</span>
           <h3 className="text-xl font-extrabold text-slate-600 mt-1">
             {formatRupiah(summary?.canteen_paid)}
@@ -124,7 +127,7 @@ export default function PiutangHakKantin() {
           <p className="text-[10px] text-slate-400 mt-0.5">Pencairan ke kas utama kantin</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-blue-200 bg-blue-50/40 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-xs">
           <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">Sisa Piutang Hak Kantin</span>
           <h3 className="text-xl font-extrabold text-blue-700 mt-1 font-mono">
             {formatRupiah(summary?.canteen_receivable)}
@@ -134,7 +137,7 @@ export default function PiutangHakKantin() {
       </div>
 
       {/* Tabs Detail Produk vs Riwayat Pencairan */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="flex border-b border-slate-200 text-xs font-bold">
           <button
             type="button"
@@ -166,7 +169,7 @@ export default function PiutangHakKantin() {
             <p className="text-xs text-slate-400">Memuat data bagi hasil kantin...</p>
           </div>
         ) : activeTab === 'detail' ? (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -207,7 +210,7 @@ export default function PiutangHakKantin() {
             </table>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -249,7 +252,7 @@ export default function PiutangHakKantin() {
       {/* Modal Pencairan Hak Kantin */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">Form Pencairan Hak Kantin</h3>
               <button
@@ -316,7 +319,7 @@ export default function PiutangHakKantin() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
                 >
                   {submitting ? 'Memproses...' : 'Konfirmasi Pencairan'}
                 </button>

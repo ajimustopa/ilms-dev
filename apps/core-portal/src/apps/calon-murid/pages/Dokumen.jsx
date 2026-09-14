@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   UploadCloud,
   FileCheck2,
@@ -114,7 +116,7 @@ export default function CalonMuridDokumen() {
             setErrorMsg('');
             setUploadModalOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/20 transition self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Unggah Berkas Baru</span>
@@ -123,13 +125,13 @@ export default function CalonMuridDokumen() {
 
       {/* Notifications */}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{successMsg}</p>
         </div>
       )}
       {errorMsg && (
-        <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+        <div className="p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-xl text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <p className="font-semibold">{errorMsg}</p>
         </div>
@@ -142,7 +144,7 @@ export default function CalonMuridDokumen() {
           return (
             <div
               key={std.key}
-              className={`p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-3 ${
+              className={`p-5 rounded-xl border transition-all flex flex-col justify-between space-y-3 ${
                 uploaded
                   ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900/40 shadow-sm'
                   : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800'
@@ -150,7 +152,7 @@ export default function CalonMuridDokumen() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className={`p-2.5 rounded-2xl ${
+                  <div className={`p-2.5 rounded-xl ${
                     uploaded
                       ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
@@ -228,7 +230,7 @@ export default function CalonMuridDokumen() {
       {/* Modal Upload */}
       {uploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Unggah Berkas Persyaratan</h3>
               <button

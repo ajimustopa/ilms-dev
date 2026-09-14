@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   Receipt,
   Store,
@@ -110,7 +113,7 @@ export default function HakVendor() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="flex border-b border-slate-200 text-xs font-bold">
           <button
             type="button"
@@ -142,7 +145,7 @@ export default function HakVendor() {
             <p className="text-xs text-slate-400">Memuat data vendor share...</p>
           </div>
         ) : activeTab === 'summary' ? (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -176,7 +179,7 @@ export default function HakVendor() {
                         type="button"
                         onClick={() => openPaymentModal(v)}
                         disabled={v.vendor_payable <= 0}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition disabled:opacity-40 inline-flex items-center gap-1"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition disabled:opacity-40 inline-flex items-center gap-1"
                       >
                         <CreditCard className="w-3.5 h-3.5" />
                         <span>Bayar Vendor</span>
@@ -196,7 +199,7 @@ export default function HakVendor() {
             </table>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -240,7 +243,7 @@ export default function HakVendor() {
       {/* Modal Pembayaran Hak Vendor */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">Pelunasan Hak Vendor</h3>
               <button
@@ -329,7 +332,7 @@ export default function HakVendor() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
                 >
                   {submitting ? 'Memproses...' : 'Simpan Pembayaran'}
                 </button>

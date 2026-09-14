@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatDate } from '../../../shared/utils/formatters';
 import {
   Award,
   BookOpen,
@@ -220,9 +224,9 @@ export default function InputNilai() {
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header & Statistik Ringkas */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
             <Award className="w-6 h-6" />
           </div>
           <div>
@@ -234,7 +238,7 @@ export default function InputNilai() {
         </div>
 
         {/* Tab Selector Penilaian */}
-        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-2xl border border-slate-700/80">
+        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/80">
           <button
             onClick={() => setActiveTab('sesi')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -264,7 +268,7 @@ export default function InputNilai() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-xl border text-xs flex items-center gap-3 animate-in fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -280,7 +284,7 @@ export default function InputNilai() {
       )}
 
       {/* Filter & Opsi Penilaian */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-xl">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <div>
@@ -341,19 +345,19 @@ export default function InputNilai() {
         {/* Bar Statistik Ringkas Penilaian */}
         {activeTab === 'sesi' && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-800">
-            <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Rata-Rata Kelas</span>
               <p className="text-base font-extrabold text-violet-400 font-mono mt-0.5">{avgScore}</p>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Tertinggi (Max)</span>
               <p className="text-base font-extrabold text-emerald-400 font-mono mt-0.5">{maxScore}</p>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Terendah (Min)</span>
               <p className="text-base font-extrabold text-rose-400 font-mono mt-0.5">{minScore}</p>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
               <span className="text-[10px] text-slate-400 font-semibold uppercase">Kelulusan KKM</span>
               <p className="text-base font-extrabold text-blue-400 font-mono mt-0.5">{passRate}% ({passCount}/{students.length})</p>
             </div>
@@ -362,7 +366,7 @@ export default function InputNilai() {
       </div>
 
       {/* Tabel Penilaian */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -384,7 +388,7 @@ export default function InputNilai() {
 
         {/* TAB 1: Sesi Nilai Standard */}
         {activeTab === 'sesi' && (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
                 <tr>
@@ -451,7 +455,7 @@ export default function InputNilai() {
 
         {/* TAB 2: Nilai Tujuan Pembelajaran (TP) */}
         {activeTab === 'tp' && (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
                 <tr>
@@ -508,7 +512,7 @@ export default function InputNilai() {
 
         {/* TAB 3: Nilai Sikap / Karakter */}
         {activeTab === 'sikap' && (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
                 <tr>

@@ -61,11 +61,11 @@ export default function CalonMuridLogin() {
         </div>
 
         {/* Card Login Calon Murid */}
-        <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-8 space-y-6">
+        <div className="bg-slate-900 rounded-xl shadow-xl border border-slate-800 p-8 space-y-6">
           
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25">
               <GraduationCap className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-extrabold text-white">Portal Calon Santri & Murid</h2>

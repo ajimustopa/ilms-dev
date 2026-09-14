@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatDate } from '../../../shared/utils/formatters';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -272,9 +276,9 @@ export default function AbsensiKelas() {
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header Form Presensi */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
             <ClipboardCheck className="w-6 h-6" />
           </div>
           <div>
@@ -287,19 +291,19 @@ export default function AbsensiKelas() {
 
         {/* Counter Ringkasan Cepat */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="px-3 py-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
             <span className="text-[10px] text-emerald-400 font-bold block">Hadir</span>
             <span className="text-sm font-extrabold text-emerald-300">{counts.hadir}</span>
           </div>
-          <div className="px-3 py-1.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-center">
+          <div className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center">
             <span className="text-[10px] text-blue-400 font-bold block">Izin</span>
             <span className="text-sm font-extrabold text-blue-300">{counts.izin}</span>
           </div>
-          <div className="px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
             <span className="text-[10px] text-amber-400 font-bold block">Sakit</span>
             <span className="text-sm font-extrabold text-amber-300">{counts.sakit}</span>
           </div>
-          <div className="px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-center">
+          <div className="px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-center">
             <span className="text-[10px] text-rose-400 font-bold block">Alpa</span>
             <span className="text-sm font-extrabold text-rose-300">{counts.alpa}</span>
           </div>
@@ -308,7 +312,7 @@ export default function AbsensiKelas() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-xl border text-xs flex items-center gap-3 animate-in fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -324,7 +328,7 @@ export default function AbsensiKelas() {
       )}
 
       {/* Form Konfigurasi Sesi Pertemuan */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-xl space-y-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 shadow-xl space-y-4">
         
         {/* Mode Switcher */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -446,7 +450,7 @@ export default function AbsensiKelas() {
       </div>
 
       {/* Tabel Roster Siswa & Toggle Presensi */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -477,7 +481,7 @@ export default function AbsensiKelas() {
         </div>
 
         {/* Tabel Siswa */}
-        <div className="overflow-x-auto">
+        <div className="table-container">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
               <tr>

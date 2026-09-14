@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   BarChart3,
   Package,
@@ -90,7 +93,7 @@ export default function LaporanKantin() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="flex border-b border-slate-200 text-xs font-bold overflow-x-auto">
           <button
             type="button"
@@ -155,7 +158,7 @@ export default function LaporanKantin() {
             <p className="text-xs text-slate-400">Menyusun laporan...</p>
           </div>
         ) : activeTab === 'products' ? (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -192,7 +195,7 @@ export default function LaporanKantin() {
             </table>
           </div>
         ) : activeTab === 'vendors' ? (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -225,7 +228,7 @@ export default function LaporanKantin() {
         ) : activeTab === 'cash' ? (
           <div className="p-6 space-y-4 max-w-xl">
             <h3 className="text-sm font-bold text-slate-800">Ringkasan Arus Kas Masuk & Keluar</h3>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-600">(+) Total Setoran Top-Up:</span>
                 <span className="font-mono font-bold text-emerald-700">+{formatRupiah(cashReport?.total_top_up)}</span>
@@ -256,23 +259,23 @@ export default function LaporanKantin() {
           <div className="p-6 space-y-4 max-w-xl">
             <h3 className="text-sm font-bold text-slate-800">Rekapitulasi Kinerja Bulan {monthlyReport?.month}</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 <p className="text-slate-500 font-semibold">Total Omzet Penjualan</p>
                 <h4 className="text-lg font-extrabold text-slate-800 mt-1 font-mono">{formatRupiah(monthlyReport?.total_revenue)}</h4>
                 <p className="text-[10px] text-slate-400 mt-0.5">{monthlyReport?.total_transactions} transaksi</p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 <p className="text-slate-500 font-semibold">Total Biaya Operasional</p>
                 <h4 className="text-lg font-extrabold text-rose-700 mt-1 font-mono">{formatRupiah(monthlyReport?.total_expenses)}</h4>
               </div>
             </div>
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex justify-between items-center">
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex justify-between items-center">
               <span className="text-xs font-bold text-emerald-900">LABA BERSIH BULANAN:</span>
               <span className="text-base font-black text-emerald-800 font-mono">{formatRupiah(monthlyReport?.net_income)}</span>
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>

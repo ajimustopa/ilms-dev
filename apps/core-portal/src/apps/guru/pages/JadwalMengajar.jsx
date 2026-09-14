@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   CalendarDays,
   Clock,
@@ -83,9 +85,9 @@ export default function JadwalMengajar() {
     <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Header & Stats Banner */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
             <CalendarDays className="w-6 h-6" />
           </div>
           <div>
@@ -97,17 +99,17 @@ export default function JadwalMengajar() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-center">
+          <div className="px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
             <span className="text-[10px] text-slate-400 uppercase font-semibold">Total Beban Ajar</span>
             <p className="text-sm font-extrabold text-emerald-400">{totalJP} JP / Pekan</p>
           </div>
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-center">
+          <div className="px-3.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
             <span className="text-[10px] text-slate-400 uppercase font-semibold">Rombel Diampu</span>
             <p className="text-sm font-extrabold text-blue-400">{totalClasses} Kelas</p>
           </div>
           <button
             onClick={() => window.print()}
-            className="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
             title="Cetak Jadwal"
           >
             <Printer className="w-4 h-4" />
@@ -152,7 +154,7 @@ export default function JadwalMengajar() {
         {filteredSchedules.map((item) => (
           <div
             key={item.id}
-            className="rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-blue-500/40 p-5 shadow-lg flex flex-col justify-between transition group"
+            className="rounded-xl bg-slate-900/80 border border-slate-800 hover:border-blue-500/40 p-5 shadow-lg flex flex-col justify-between transition group"
           >
             <div>
               {/* Header Card: Hari & Jam */}
@@ -211,7 +213,7 @@ export default function JadwalMengajar() {
       </div>
 
       {filteredSchedules.length === 0 && (
-        <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-800 text-slate-400 text-xs">
+        <div className="p-12 text-center rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 text-xs">
           Tidak ada jadwal mengajar yang ditemukan untuk filter ini.
         </div>
       )}

@@ -56,11 +56,11 @@ export default function GuruLogin() {
         </div>
 
         {/* Card Login */}
-        <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-8">
+        <div className="bg-slate-900 rounded-xl shadow-xl border border-slate-800 p-8">
           
           {/* Logo & Header */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25 mb-3">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25 mb-3">
               <GraduationCap className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-bold text-white">Portal Guru Login</h2>

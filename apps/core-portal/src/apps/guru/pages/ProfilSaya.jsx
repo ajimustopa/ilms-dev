@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   UserCircle,
   Lock,
@@ -191,9 +193,9 @@ export default function ProfilSaya() {
     <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl mx-auto">
       
       {/* Header Halaman */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-xl bg-slate-900 border border-slate-800 p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-700 to-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-700/25 border border-slate-700">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-700/25 border border-slate-700">
             <UserCircle className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
@@ -205,7 +207,7 @@ export default function ProfilSaya() {
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-2xl border border-slate-700/80">
+        <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/80">
           <button
             onClick={() => setActiveTab('profil')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -235,7 +237,7 @@ export default function ProfilSaya() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 animate-in fade-in ${
+          className={`p-4 rounded-xl border text-xs flex items-center gap-3 animate-in fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -252,7 +254,7 @@ export default function ProfilSaya() {
 
       {/* TAB 1: IDENTITAS PRIBADI MANDIRI */}
       {activeTab === 'profil' && (
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
           <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-800">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-white">Formulir Identitas Pribadi</h2>
@@ -410,9 +412,9 @@ export default function ProfilSaya() {
 
       {/* TAB 2: GANTI PASSWORD */}
       {activeTab === 'password' && (
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl max-w-lg mx-auto">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400">
+            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
               <KeyRound className="w-6 h-6" />
             </div>
             <div>
@@ -470,7 +472,7 @@ export default function ProfilSaya() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
             >
               <Lock className="w-4 h-4" />
               <span>Perbarui Kata Sandi</span>
@@ -481,9 +483,9 @@ export default function ProfilSaya() {
 
       {/* TAB 3: DATA TERPROTEKSI YAYASAN */}
       {activeTab === 'penugasan' && (
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-xl">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-            <div className="p-2.5 rounded-2xl bg-blue-500/20 text-blue-400">
+            <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
@@ -495,7 +497,7 @@ export default function ProfilSaya() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
               <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span>Satuan Pendidikan</span>
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
@@ -503,7 +505,7 @@ export default function ProfilSaya() {
               <p className="text-sm font-bold text-white">{activeSchoolUnit?.name || 'Aldepos IBS'}</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
               <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span>Nomor Induk Pegawai (NIP)</span>
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
@@ -511,7 +513,7 @@ export default function ProfilSaya() {
               <p className="text-sm font-bold font-mono text-emerald-400">{profileData.nip || '-'}</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
               <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span>NUPTK Kemenag / Kemdikbud</span>
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
@@ -519,7 +521,7 @@ export default function ProfilSaya() {
               <p className="text-sm font-bold font-mono text-blue-400">{profileData.nuptk || '-'}</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+            <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60">
               <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span>Status Kepegawaian</span>
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
@@ -527,7 +529,7 @@ export default function ProfilSaya() {
               <p className="text-sm font-bold text-purple-400">{profileData.employment_status || 'GTY'}</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 sm:col-span-2">
+            <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 sm:col-span-2">
               <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span>Jabatan Struktural / Fungsional</span>
                 <Lock className="w-3.5 h-3.5 text-slate-500" />

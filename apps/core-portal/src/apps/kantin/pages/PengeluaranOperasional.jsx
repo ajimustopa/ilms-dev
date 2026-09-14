@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   BadgeDollarSign,
   Plus,
@@ -98,7 +101,7 @@ export default function PengeluaranOperasional() {
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
         >
           <Plus className="w-4 h-4" />
           <span>Catat Biaya Operasional</span>
@@ -106,7 +109,7 @@ export default function PengeluaranOperasional() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Biaya Operasional</span>
           <h3 className="text-xl font-extrabold text-rose-700 mt-1 font-mono">
             {formatRupiah(totalExpense)}
@@ -115,7 +118,7 @@ export default function PengeluaranOperasional() {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
@@ -128,14 +131,14 @@ export default function PengeluaranOperasional() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-6 h-6 text-amber-600 animate-spin" />
             <p className="text-xs text-slate-400">Memuat data pengeluaran...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
@@ -181,7 +184,7 @@ export default function PengeluaranOperasional() {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">Catat Pengeluaran Operasional</h3>
               <button
@@ -259,7 +262,7 @@ export default function PengeluaranOperasional() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Pengeluaran'}
                 </button>

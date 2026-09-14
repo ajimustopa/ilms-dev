@@ -103,14 +103,14 @@ export default function Login() {
         </div>
 
         {/* Card Box */}
-        <div className="relative rounded-3xl bg-slate-900/70 border border-slate-800/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_40px_rgba(99,102,241,0.12)] backdrop-blur-2xl p-6 sm:p-8">
+        <div className="relative rounded-xl bg-slate-900/70 border border-slate-800/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_40px_rgba(99,102,241,0.12)] backdrop-blur-2xl p-6 sm:p-8">
           {/* Subtle glowing border highlight at top */}
           <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
 
           {/* Logo & Header */}
           <div className="text-center mb-6">
             <div className="relative inline-block mb-3.5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-emerald-500 p-0.5 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-emerald-500 p-0.5 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
                 <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
                   <ShieldCheck className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                 </div>
@@ -133,7 +133,7 @@ export default function Login() {
 
           {/* Error Banner */}
           {errorMsg && (
-            <div className="mb-5 p-3.5 bg-rose-950/50 border border-rose-500/50 text-rose-300 text-xs rounded-2xl flex items-start gap-2.5 shadow-[0_0_15px_rgba(244,63,94,0.15)] animate-in fade-in duration-200">
+            <div className="mb-5 p-3.5 bg-rose-950/50 border border-rose-500/50 text-rose-300 text-xs rounded-xl flex items-start gap-2.5 shadow-[0_0_15px_rgba(244,63,94,0.15)] animate-in fade-in duration-200">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
               <div>
                 <div className="font-bold text-rose-200">{errorMsg}</div>

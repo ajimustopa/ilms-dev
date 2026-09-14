@@ -3,6 +3,9 @@ import { useAuth } from '../../../shared/store/AuthContext';
 import { Users, School, Webhook, CheckCircle2, ArrowUpRight, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 
 export default function Dashboard() {
   const { user, activeSchoolUnit } = useAuth();
@@ -56,7 +59,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">
             Selamat Datang, {user?.full_name || user?.username || 'Admin'}! 👋
@@ -92,7 +95,7 @@ export default function Dashboard() {
         {statCards.map((item, index) => {
           const Icon = item.icon;
           return (
-            <div key={index} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div key={index} className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className={`p-2.5 rounded-xl ${item.color}`}>
                   <Icon className="w-5 h-5" />
@@ -114,7 +117,7 @@ export default function Dashboard() {
 
       {/* Quick Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 mb-1.5">Manajemen Pengguna</h3>
           <p className="text-xs text-slate-500 mb-4">
             Kelola akun pengguna, status aktivasi, dan reset password dari modul terpusat.
@@ -128,7 +131,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 mb-1.5">Satuan Pendidikan</h3>
           <p className="text-xs text-slate-500 mb-4">
             Konfigurasi profil sekolah TK, SD, SMP, SMA, dan riwayat status operasional.
@@ -142,7 +145,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 mb-1.5">Audit Log Lintas Aplikasi</h3>
           <p className="text-xs text-slate-500 mb-4">
             Pantau seluruh aktivitas administratif dari 14 aplikasi dalam satu dashboard.
