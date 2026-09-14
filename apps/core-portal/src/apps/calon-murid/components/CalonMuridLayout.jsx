@@ -96,7 +96,7 @@ export default function CalonMuridLayout() {
       case 'placed':
         return { text: 'Diterima & Ditempatkan', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
       case 'test_passed':
-        return { text: 'Lulus Tes Seleksi', bg: 'bg-teal-500/20 text-teal-300 border-teal-500/30' };
+        return { text: 'Lulus Tes Seleksi', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
       case 'testing':
         return { text: 'Tahap Ujian Seleksi', bg: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
       case 'test_failed':
@@ -129,7 +129,7 @@ export default function CalonMuridLayout() {
             </button>
 
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black shadow-md shadow-emerald-600/30">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black shadow-md shadow-emerald-600/30">
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>

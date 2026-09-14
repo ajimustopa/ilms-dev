@@ -64,7 +64,7 @@ export default function Login() {
       {/* ======================================================== */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Cyber Neon Radial Blurs */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px]" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl" />
         
@@ -93,8 +93,8 @@ export default function Login() {
         <div className="flex items-center justify-center mb-5">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/60 shadow-lg backdrop-blur-md">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
             </span>
             <span className="text-[11px] font-mono font-bold tracking-widest text-slate-300 uppercase">
               ALDEPOS QUANTUM SSO &bull; SYSTEM ONLINE
@@ -105,14 +105,14 @@ export default function Login() {
         {/* Card Box */}
         <div className="relative rounded-xl bg-slate-900/70 border border-slate-800/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_40px_rgba(99,102,241,0.12)] backdrop-blur-2xl p-6 sm:p-8">
           {/* Subtle glowing border highlight at top */}
-          <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          <div className="absolute -top-px left-8 right-8 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
 
           {/* Logo & Header */}
           <div className="text-center mb-6">
             <div className="relative inline-block mb-3.5">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-emerald-500 p-0.5 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+              <div className="w-14 h-14 rounded-xl bg-emerald-600 p-0.5 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
                 <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  <ShieldCheck className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  <ShieldCheck className="w-7 h-7 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                 </div>
               </div>
               <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
@@ -157,7 +157,7 @@ export default function Login() {
                 <span className="text-[10px] font-mono text-slate-500">ID Terdaftar</span>
               </label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -167,7 +167,7 @@ export default function Login() {
                   placeholder="Masukkan username Anda..."
                   required
                   autoFocus
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all font-medium"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
                 />
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function Login() {
                 <span className="text-[10px] font-mono text-slate-500">Min. 6 Karakter</span>
               </label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -188,7 +188,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan kata sandi..."
                   required
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all font-medium"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
                 />
                 <button
                   type="button"
@@ -207,11 +207,11 @@ export default function Login() {
               disabled={isLoading}
               className="w-full mt-2 relative group overflow-hidden rounded-xl p-px font-bold text-xs shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-500 transition-all group-hover:scale-105 group-hover:brightness-110" />
+              <div className="absolute inset-0 bg-emerald-600 transition-all group-hover:scale-105 group-hover:brightness-110" />
               <div className="relative px-4 py-3 rounded-[11px] bg-slate-950/20 flex items-center justify-center gap-2 text-white font-extrabold tracking-wide uppercase">
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-cyan-200" />
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-200" />
                     <span>Mengotentikasi Sesi...</span>
                   </>
                 ) : (
@@ -232,11 +232,11 @@ export default function Login() {
               </span>
               <span>&bull;</span>
               <span className="inline-flex items-center gap-1">
-                <Fingerprint className="w-3 h-3 text-cyan-400" /> Token Auth
+                <Fingerprint className="w-3 h-3 text-indigo-400" /> Token Auth
               </span>
               <span>&bull;</span>
               <span className="inline-flex items-center gap-1">
-                <Layers className="w-3 h-3 text-purple-400" /> RBAC Engine
+                <Layers className="w-3 h-3 text-slate-400" /> RBAC Engine
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium">

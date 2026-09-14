@@ -38,6 +38,7 @@ Ini sudah berlaku di modul Keuangan dan HARUS jadi satu-satunya sistem warna di 
 - Dilarang memakai `teal`, `purple`, `violet`, `fuchsia`, `pink`, `orange`, `cyan`, `sky`, `blue`, `green`, `red`, `yellow` untuk elemen UI status (badge, ribbon, alert, ikon status). Warna-warna ini adalah **utang desain** dari kode lama (mis. dominasi teal di Akademik/Perpustakaan, amber berlebihan di Kantin/Dapur) dan wajib dipetakan ulang ke 5 token di atas saat halaman direstyle.
 - Setiap komponen HARUS menerima prop semantik (`status="success"`, `variant="danger"`), **tidak boleh** menerima warna mentah (`color="green"`, class Tailwind warna langsung di JSX halaman).
 - Brand color (`emerald` di `tailwind.config.js`, skala 50–950) tetap dipakai untuk elemen brand/primary action, terpisah dari makna status "sukses" — namun karena kebetulan sama-sama emerald di Aldepos, ini aman selama pemakaiannya konsisten.
+- **Dua Status Berbeda, Kategori Semantik Sama:** Untuk grup pilihan cepat (quick-select chips / toggle multi-opsi) di mana 2+ opsi berbagi mapping kategori semantik yang sama (contoh: Izin dan Sakit sama-sama kategori 'warning'), opsi primer mempertahankan warna semantik utamanya (Izin = amber), sedangkan opsi sekunder yang berkonotasi medis/khusus diperbolehkan menggunakan token info (Sakit = indigo) agar pengguna dapat membedakannya seketika tanpa kebingungan visual.
 
 ---
 

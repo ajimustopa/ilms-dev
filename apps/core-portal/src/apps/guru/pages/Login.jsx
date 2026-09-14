@@ -60,7 +60,7 @@ export default function GuruLogin() {
           
           {/* Logo & Header */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25 mb-3">
+            <div className="w-14 h-14 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25 mb-3">
               <GraduationCap className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-bold text-white">Portal Guru Login</h2>
@@ -115,7 +115,7 @@ export default function GuruLogin() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-95"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-95"
             >
               {isLoading ? (
                 <>

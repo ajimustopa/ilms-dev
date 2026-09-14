@@ -65,7 +65,7 @@ export default function CalonMuridLogin() {
           
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25">
+            <div className="w-14 h-14 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg shadow-emerald-500/25">
               <GraduationCap className="w-7 h-7" />
             </div>
             <h2 className="text-xl font-extrabold text-white">Portal Calon Santri & Murid</h2>

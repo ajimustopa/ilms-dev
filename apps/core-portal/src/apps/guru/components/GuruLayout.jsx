@@ -130,7 +130,7 @@ export default function GuruLayout() {
             <button
               onClick={() => setIsLauncherOpen(true)}
               title="Buka Menu Aplikasi (App Drawer)"
-              className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 hover:scale-105 active:scale-95 transition"
+              className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 hover:scale-105 active:scale-95 transition"
             >
               <GraduationCap className="w-5 h-5" />
             </button>
@@ -301,7 +301,7 @@ export default function GuruLayout() {
         {/* Floating Center Button: Android App Drawer */}
         <button
           onClick={() => setIsLauncherOpen(true)}
-          className="-mt-5 w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex flex-col items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-slate-900 active:scale-95 transition"
+          className="-mt-5 w-12 h-12 rounded-2xl bg-emerald-600 text-white flex flex-col items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-slate-900 active:scale-95 transition"
         >
           <Layers className="w-6 h-6" />
         </button>

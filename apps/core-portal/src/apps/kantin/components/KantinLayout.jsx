@@ -73,13 +73,13 @@ export default function KantinLayout() {
         <div className="flex flex-col h-full overflow-hidden">
           {/* Logo & Header */}
           <div className="p-4 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold shadow-md shadow-orange-950/30">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-950/30">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
                 <span>Kantin Smart</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-amber-300 border border-emerald-500/30 font-semibold">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
                   POS
                 </span>
               </h1>
@@ -96,7 +96,7 @@ export default function KantinLayout() {
                 className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:bg-slate-800 transition text-left text-xs"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <School className="w-4 h-4 text-amber-400 shrink-0" />
+                  <School className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span className="truncate font-medium text-slate-200">
                     {activeSchoolUnit?.name || 'Pilih Satuan Pendidikan'}
                   </span>
@@ -117,13 +117,13 @@ export default function KantinLayout() {
                         }}
                         className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/60 transition ${
                           activeSchoolUnit?.id === u.id
-                            ? 'text-amber-400 font-bold bg-slate-700/40'
+                            ? 'text-emerald-400 font-bold bg-slate-700/40'
                             : 'text-slate-300'
                         }`}
                       >
                         <span className="truncate">{u.name}</span>
                         {activeSchoolUnit?.id === u.id && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                         )}
                       </button>
                     ))
@@ -151,7 +151,7 @@ export default function KantinLayout() {
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                           isActive
-                            ? 'bg-emerald-600 text-white shadow-sm shadow-amber-900/30'
+                            ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-900/30'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                         }`
                       }
@@ -170,7 +170,7 @@ export default function KantinLayout() {
             <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-800/40">
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-slate-200 truncate">{user?.full_name || 'Pengguna Kantin'}</p>
-                <p className="text-[10px] text-amber-400 uppercase font-semibold tracking-wider">
+                <p className="text-[10px] text-emerald-400 uppercase font-semibold tracking-wider">
                   {currentRole}
                 </p>
               </div>
