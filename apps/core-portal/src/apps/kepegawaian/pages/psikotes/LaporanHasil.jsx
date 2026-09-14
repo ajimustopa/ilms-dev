@@ -88,7 +88,7 @@ export default function LaporanHasil() {
 
   if (!session) {
     return (
-      <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-4">
+      <div className="bg-white p-8 rounded-xl border border-slate-200 text-center space-y-4">
         <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
         <h2 className="text-lg font-bold text-slate-800">Laporan Tidak Ditemukan</h2>
         <p className="text-sm text-slate-500">Sesi psikotes ini belum selesai dikerjakan atau hasil belum tersedia.</p>
@@ -126,11 +126,11 @@ export default function LaporanHasil() {
       </div>
 
       {/* Main Report Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8 print:p-0 print:border-none print:shadow-none">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8 print:p-0 print:border-none print:shadow-none">
         {/* Header Lembaga & Identitas Sesi */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-lg shadow-indigo-600/30 shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-lg shadow-indigo-600/30 shrink-0">
               <BrainCircuit className="w-8 h-8" />
             </div>
             <div>
@@ -156,7 +156,7 @@ export default function LaporanHasil() {
                   Pelamar: {session.applied_position || 'Umum'}
                 </span>
               ) : session.employee_name ? (
-                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-semibold">
+                <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-semibold">
                   Pegawai: {session.employee_number}
                 </span>
               ) : null}
@@ -165,7 +165,7 @@ export default function LaporanHasil() {
         </div>
 
         {/* Hero Card: Dominant Personality Result */}
-        <div className="bg-linear-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+        <div className="bg-linear-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
           <div className="absolute right-0 bottom-0 opacity-10 translate-x-8 translate-y-8 pointer-events-none">
             <BrainCircuit className="w-64 h-64 text-white" />
           </div>
@@ -301,7 +301,7 @@ export default function LaporanHasil() {
         {/* SECTION 2: Analisis Kualitatif & Rekomendasi HRD */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
           {/* Strengths */}
-          <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200 space-y-2">
+          <div className="bg-emerald-50/60 p-5 rounded-xl border border-emerald-200 space-y-2">
             <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
               <CheckCircle2 className="w-4 h-4" /> Kekuatan & Potensi Utama
             </div>
@@ -311,7 +311,7 @@ export default function LaporanHasil() {
           </div>
 
           {/* Development Areas */}
-          <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200 space-y-2">
+          <div className="bg-amber-50/60 p-5 rounded-xl border border-amber-200 space-y-2">
             <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
               <AlertTriangle className="w-4 h-4" /> Area Pengembangan & Mitigasi
             </div>
@@ -322,7 +322,7 @@ export default function LaporanHasil() {
         </div>
 
         {/* HRD Recommendation Banner */}
-        <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-200 space-y-2">
+        <div className="bg-indigo-50/70 p-5 rounded-xl border border-indigo-200 space-y-2">
           <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
             <ShieldCheck className="w-5 h-5 text-indigo-600" /> Rekomendasi Penempatan Tugas & Formasi Karir HRD
           </div>
@@ -332,7 +332,7 @@ export default function LaporanHasil() {
         </div>
 
         {/* SECTION 3: Evaluasi Asesor & Catatan Tambahan (Form Editable) */}
-        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-600" /> Lembar Verifikasi & Evaluasi Asesor

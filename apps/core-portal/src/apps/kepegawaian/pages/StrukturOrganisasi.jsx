@@ -206,7 +206,7 @@ export default function StrukturOrganisasi() {
           </button>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Jabatan</span>
@@ -233,7 +233,7 @@ export default function StrukturOrganisasi() {
         <button
           onClick={() => setActiveTab('tree')}
           className={`pb-3 px-3 flex items-center gap-2 border-b-2 transition ${
-            activeTab === 'tree' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'
+            activeTab === 'tree' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'
           }`}
         >
           <Network className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function StrukturOrganisasi() {
         <button
           onClick={() => setActiveTab('duk')}
           className={`pb-3 px-3 flex items-center gap-2 border-b-2 transition ${
-            activeTab === 'duk' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'
+            activeTab === 'duk' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'
           }`}
         >
           <ListOrdered className="w-4 h-4" />
@@ -252,14 +252,14 @@ export default function StrukturOrganisasi() {
 
       {/* Tab 1: Bagan Pohon Jabatan */}
       {activeTab === 'tree' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs space-y-4">
           <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             Hierarki Atasan & Bawahan ({activeSchoolUnit?.name || 'Satuan Pendidikan'})
           </h3>
 
           {loading ? (
             <div className="py-8 text-center text-slate-400">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
               <span>Memuat struktur hierarki...</span>
             </div>
           ) : positionsTree.length === 0 ? (
@@ -276,7 +276,7 @@ export default function StrukturOrganisasi() {
 
       {/* Tab 2: DUK Pangkat */}
       {activeTab === 'duk' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
               <tr>
@@ -302,7 +302,7 @@ export default function StrukturOrganisasi() {
                       <div className="font-semibold text-slate-800">{item.full_name}{item.academic_title ? `, ${item.academic_title}` : ''}</div>
                       <div className="text-[10px] text-slate-400">NIP: {item.nip || '-'} &bull; {item.employee_number}</div>
                     </td>
-                    <td className="p-3.5 font-bold text-purple-700">{item.golongan}</td>
+                    <td className="p-3.5 font-bold text-indigo-700">{item.golongan}</td>
                     <td className="p-3.5 font-medium text-slate-700">{item.position_name}</td>
                     <td className="p-3.5 font-mono text-slate-600">
                       {typeof item.tmt === 'string' && item.tmt.includes('T') ? item.tmt.split('T')[0] : item.tmt}
@@ -318,7 +318,7 @@ export default function StrukturOrganisasi() {
       {/* Modal Tambah / Edit Jabatan */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-sm">
                 {isEdit ? 'Edit Jabatan' : 'Tambah Jabatan Baru'}

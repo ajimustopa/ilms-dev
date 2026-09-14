@@ -402,7 +402,7 @@ export default function DataPegawai() {
           </button>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Pegawai Baru</span>
@@ -412,8 +412,8 @@ export default function DataPegawai() {
 
       {/* Alert Messages */}
       {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -425,7 +425,7 @@ export default function DataPegawai() {
       )}
 
       {/* Filter Chips Status & Kategori Kepegawaian */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Tag className="w-3.5 h-3.5 text-indigo-500" />
@@ -465,8 +465,8 @@ export default function DataPegawai() {
                 onClick={() => setEmploymentStatus(employmentStatus === s.code ? '' : s.code)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 ${
                   employmentStatus === s.code
-                    ? 'bg-blue-600 text-white font-bold shadow-sm ring-2 ring-blue-600/20'
-                    : 'bg-blue-50/60 hover:bg-blue-100 text-blue-800 border border-blue-200/60'
+                    ? 'bg-indigo-600 text-white font-bold shadow-sm ring-2 ring-indigo-600/20'
+                    : 'bg-indigo-50/60 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/60'
                 }`}
               >
                 <span>{s.name}</span>
@@ -483,8 +483,8 @@ export default function DataPegawai() {
                 onClick={() => setEmploymentStatus(employmentStatus === s.code ? '' : s.code)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 ${
                   employmentStatus === s.code
-                    ? 'bg-purple-600 text-white font-bold shadow-sm ring-2 ring-purple-600/20'
-                    : 'bg-purple-50/70 hover:bg-purple-100 text-purple-800 border border-purple-200/70'
+                    ? 'bg-indigo-600 text-white font-bold shadow-sm ring-2 ring-indigo-600/20'
+                    : 'bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70'
                 }`}
               >
                 <span>{s.name}</span>
@@ -518,7 +518,7 @@ export default function DataPegawai() {
       </div>
 
       {/* Filter Bar Search & Status Akun */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
         <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -526,7 +526,7 @@ export default function DataPegawai() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama, NIP, NIK, atau NUPTK..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-indigo-500 transition"
           />
         </form>
 
@@ -559,7 +559,7 @@ export default function DataPegawai() {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -625,7 +625,7 @@ export default function DataPegawai() {
                           emp.account_status === 'active'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
                             : emp.account_status === 'retired'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 hover:border-purple-300'
+                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
                             : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:border-rose-300'
                         }`}
                         title="Klik untuk ubah status akun & lihat riwayat perubahan"
@@ -635,7 +635,7 @@ export default function DataPegawai() {
                             emp.account_status === 'active'
                               ? 'bg-emerald-500'
                               : emp.account_status === 'retired'
-                              ? 'bg-purple-500'
+                              ? 'bg-indigo-500'
                               : 'bg-rose-500'
                           }`}
                         />
@@ -711,7 +711,7 @@ export default function DataPegawai() {
       {/* Modal Tambah Pegawai */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">Tambah Pegawai Baru</h3>
               <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -961,7 +961,7 @@ export default function DataPegawai() {
       {/* Modal Edit Biodata Pegawai */}
       {isEditModalOpen && selectedEmployee && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">Edit Biodata Pegawai</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -1173,7 +1173,7 @@ export default function DataPegawai() {
       {/* --- MODAL UBAH STATUS AKUN & RIWAYAT PERUBAHAN --- */}
       {isStatusModalOpen && selectedEmployee && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-100">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] flex flex-col space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] flex flex-col space-y-4">
             {/* Header Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5 text-slate-800 font-bold text-base">
@@ -1216,7 +1216,7 @@ export default function DataPegawai() {
                       selectedEmployee.account_status === 'active'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : selectedEmployee.account_status === 'retired'
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                         : 'bg-rose-50 text-rose-700 border border-rose-200'
                     }`}
                   >
@@ -1225,7 +1225,7 @@ export default function DataPegawai() {
                         selectedEmployee.account_status === 'active'
                           ? 'bg-emerald-500'
                           : selectedEmployee.account_status === 'retired'
-                          ? 'bg-purple-500'
+                          ? 'bg-indigo-500'
                           : 'bg-rose-500'
                       }`}
                     />
@@ -1243,7 +1243,7 @@ export default function DataPegawai() {
                       { code: 'active', label: 'Active', desc: 'Aktif Bekerja & Login Aktif', activeCls: 'border-emerald-500 bg-emerald-50/70 text-emerald-800 ring-2 ring-emerald-500/20' },
                       { code: 'inactive', label: 'Inactive', desc: 'Nonaktif Sementara', activeCls: 'border-rose-500 bg-rose-50/70 text-rose-800 ring-2 ring-rose-500/20' },
                       { code: 'resigned', label: 'Resigned', desc: 'Mengundurkan Diri', activeCls: 'border-amber-500 bg-amber-50/70 text-amber-800 ring-2 ring-amber-500/20' },
-                      { code: 'retired', label: 'Retired', desc: 'Pensiun / Purna Tugas', activeCls: 'border-purple-500 bg-purple-50/70 text-purple-800 ring-2 ring-purple-500/20' }
+                      { code: 'retired', label: 'Retired', desc: 'Pensiun / Purna Tugas', activeCls: 'border-indigo-500 bg-indigo-50/70 text-indigo-800 ring-2 ring-indigo-500/20' }
                     ].map((opt) => (
                       <button
                         type="button"
@@ -1275,7 +1275,7 @@ export default function DataPegawai() {
                       required
                       value={statusFormData.effective_date}
                       onChange={(e) => setStatusFormData({ ...statusFormData, effective_date: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -1288,7 +1288,7 @@ export default function DataPegawai() {
                       value={statusFormData.reason}
                       onChange={(e) => setStatusFormData({ ...statusFormData, reason: e.target.value })}
                       placeholder="Contoh: Mengundurkan diri / Kembali aktif mengajar / Cuti..."
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -1297,7 +1297,7 @@ export default function DataPegawai() {
                   <button
                     type="submit"
                     disabled={formSubmitting}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {formSubmitting ? (
                       <>
@@ -1360,7 +1360,7 @@ export default function DataPegawai() {
                                 log.new_status === 'active'
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : log.new_status === 'retired'
-                                  ? 'bg-purple-100 text-purple-800'
+                                  ? 'bg-indigo-100 text-indigo-800'
                                   : 'bg-rose-100 text-rose-800'
                               }`}
                             >
@@ -1426,7 +1426,7 @@ export default function DataPegawai() {
       {/* --- MODAL PERINGATAN HAPUS PEGAWAI & DATA TERKAIT --- */}
       {isDeleteModalOpen && employeeToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-100">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-rose-100 max-h-[90vh] flex flex-col space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-rose-100 max-h-[90vh] flex flex-col space-y-4">
             {/* Header Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-rose-100">
               <div className="flex items-center gap-2.5 text-rose-700 font-bold text-base">

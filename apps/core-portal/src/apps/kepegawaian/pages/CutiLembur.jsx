@@ -222,7 +222,7 @@ export default function CutiLembur() {
           {activeTab === 'leaves' ? (
             <button
               onClick={() => setIsLeaveModalOpen(true)}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Ajukan Cuti / Izin</span>
@@ -230,7 +230,7 @@ export default function CutiLembur() {
           ) : (
             <button
               onClick={() => setIsOvertimeModalOpen(true)}
-              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Catat Lembur</span>
@@ -241,8 +241,8 @@ export default function CutiLembur() {
 
       {/* Alerts */}
       {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -277,7 +277,7 @@ export default function CutiLembur() {
 
       {/* Tab 1: Cuti & Izin */}
       {activeTab === 'leaves' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
               <tr>
@@ -347,7 +347,7 @@ export default function CutiLembur() {
 
       {/* Tab 2: Lembur */}
       {activeTab === 'overtimes' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
               <tr>
@@ -416,7 +416,7 @@ export default function CutiLembur() {
       {/* Modal Ajukan Cuti */}
       {isLeaveModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-sm">Formulir Pengajuan Cuti / Izin</h3>
               <button onClick={() => setIsLeaveModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
@@ -491,7 +491,7 @@ export default function CutiLembur() {
       {/* Modal Catat Lembur */}
       {isOvertimeModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-sm">Catat Pengajuan Lembur</h3>
               <button onClick={() => setIsOvertimeModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
@@ -558,7 +558,7 @@ export default function CutiLembur() {
       {/* Modal Penolakan (Reject) */}
       {isRejectModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-sm">Alasan Penolakan Permohonan</h3>
               <button onClick={() => setIsRejectModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>

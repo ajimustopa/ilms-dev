@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
-import { Lock, User, AlertCircle, Loader2, Info, ArrowLeft } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, Info, ArrowLeft, Users } from 'lucide-react';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 
 export default function KepegawaianLogin() {
   const [username, setUsername] = useState('');
@@ -44,7 +45,7 @@ export default function KepegawaianLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-10">
       <div className="max-w-md w-full">
         {/* Tombol Kembali ke Pusat Akses */}
         <div className="mb-4">
@@ -52,41 +53,41 @@ export default function KepegawaianLogin() {
             to="/"
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition group"
           >
-            <div className="p-1.5 rounded-xl bg-slate-800 border border-slate-700 group-hover:bg-slate-700 group-hover:border-slate-600 transition">
+            <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 group-hover:bg-slate-800 transition">
               <ArrowLeft className="w-4 h-4" />
             </div>
-            <span>Kembali ke Pusat Akses 14 Modul Aplikasi Sekolah</span>
+            <span>Kembali ke Pusat Akses 14 Modul</span>
           </Link>
         </div>
 
         {/* Card Login */}
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+        <div className="bg-slate-900 rounded-xl shadow-xl border border-slate-800 p-8">
           {/* Logo & Header */}
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl mx-auto shadow-md mb-3">
-              K
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-xl mx-auto shadow-md mb-3">
+              <Users className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">Modul Kepegawaian Login</h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <h2 className="text-xl font-bold text-white">Modul Kepegawaian Login</h2>
+            <p className="text-xs text-slate-400 mt-1">
               Sistem Informasi SDM & Manajemen Kepegawaian (HRIS)
             </p>
           </div>
 
           {/* Quick Demo Credentials Info */}
-          <div className="mb-5 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 mb-1.5">
-              <Info className="w-3.5 h-3.5 text-indigo-600" />
+          <div className="mb-5 p-3 bg-slate-800/60 border border-slate-700/70 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 mb-1.5">
+              <Info className="w-3.5 h-3.5 text-emerald-400" />
               <span>Akun Awal Development (Database Seed):</span>
             </div>
-            <div className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs">
+            <div className="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs">
               <div>
-                <span className="font-mono font-semibold text-slate-800">superadmin</span>
+                <span className="font-mono font-semibold text-slate-200">superadmin</span>
                 <span className="text-slate-400 text-[11px]"> / Password123!</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleFillDemo('superadmin', 'Password123!')}
-                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded"
+                className="text-[10px] font-bold text-emerald-300 hover:text-emerald-200 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30"
               >
                 Gunakan
               </button>
@@ -95,26 +96,20 @@ export default function KepegawaianLogin() {
 
           {/* Error Alert */}
           {errorMsg && (
-            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
-              <div>
-                <div className="font-semibold">{errorMsg}</div>
-                {errorList.length > 0 && (
-                  <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
-                    {errorList.map((err, i) => (
-                      <li key={i}>{typeof err === 'string' ? err : err.message || JSON.stringify(err)}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            <div className="mb-5">
+              <FlatAlertBanner
+                type="error"
+                message={errorMsg}
+                details={errorList.length > 0 ? errorList.map(err => typeof err === 'string' ? err : err.message || JSON.stringify(err)).join(', ') : undefined}
+              />
             </div>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Username
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Username / NIP
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -124,14 +119,14 @@ export default function KepegawaianLogin() {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username Anda"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Password
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Kata Sandi (Password)
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -141,7 +136,7 @@ export default function KepegawaianLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password Anda"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
                 />
               </div>
             </div>
@@ -149,7 +144,7 @@ export default function KepegawaianLogin() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-950/40 transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {isLoading ? (
                 <>
@@ -163,10 +158,10 @@ export default function KepegawaianLogin() {
           </form>
 
           {/* Link Kembali di bagian bawah card */}
-          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-emerald-400 transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Pusat Akses 14 Modul</span>
@@ -176,10 +171,9 @@ export default function KepegawaianLogin() {
 
         {/* Footer Info */}
         <p className="text-center text-xs text-slate-500 mt-6">
-          &copy; 2026 Yayasan Pendidikan Al-Depok. All rights reserved.
+          &copy; {new Date().getFullYear()} Yayasan Pendidikan Aldepos IBS. All rights reserved.
         </p>
       </div>
     </div>
   );
 }
-

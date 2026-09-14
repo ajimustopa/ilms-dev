@@ -105,7 +105,7 @@ export default function PenilaianKinerja() {
 
   const getScoreGrade = (avg) => {
     if (avg >= 90) return { label: 'Sangat Baik (A)', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
-    if (avg >= 80) return { label: 'Baik (B)', color: 'text-blue-700 bg-blue-50 border-blue-200' };
+    if (avg >= 80) return { label: 'Baik (B)', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' };
     if (avg >= 70) return { label: 'Cukup (C)', color: 'text-amber-700 bg-amber-50 border-amber-200' };
     return { label: 'Perlu Pembinaan (D)', color: 'text-rose-700 bg-rose-50 border-rose-200' };
   };
@@ -129,7 +129,7 @@ export default function PenilaianKinerja() {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Input Penilaian Baru</span>
@@ -152,7 +152,7 @@ export default function PenilaianKinerja() {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold text-slate-600">Tahun Periode Evaluasi:</span>
           <select
@@ -171,7 +171,7 @@ export default function PenilaianKinerja() {
       </div>
 
       {/* Table Evaluasi */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
             <tr>
@@ -188,7 +188,7 @@ export default function PenilaianKinerja() {
             {loading ? (
               <tr>
                 <td colSpan="7" className="p-8 text-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
                   <span>Memuat berkas penilaian kinerja...</span>
                 </td>
               </tr>
@@ -213,7 +213,7 @@ export default function PenilaianKinerja() {
                     <td className="p-3.5 text-center font-mono font-semibold text-slate-700">{item.score_sosial || '-'}</td>
                     <td className="p-3.5 text-center font-mono font-semibold text-slate-700">{item.score_profesional || '-'}</td>
                     <td className="p-3.5 text-center">
-                      <div className="font-bold text-indigo-700 text-sm">{avg}</div>
+                      <div className="font-bold text-slate-800 text-sm">{avg}</div>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${grade.color}`}>
                         {grade.label}
                       </span>
@@ -230,7 +230,7 @@ export default function PenilaianKinerja() {
       {/* Modal Input Penilaian */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-sm">Input Penilaian Kinerja Pegawai</h3>
               <button onClick={() => setIsModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>

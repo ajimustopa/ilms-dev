@@ -38,12 +38,12 @@ import {
 import api from '../../../shared/services/api';
 
 const STAGE_CONFIG = {
-  applied: { label: 'Lamaran Masuk', badge: 'bg-blue-50 text-blue-700 border-blue-200', color: 'blue' },
+  applied: { label: 'Lamaran Masuk', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200', color: 'blue' },
   screening: { label: 'Seleksi Berkas', badge: 'bg-amber-50 text-amber-700 border-amber-200', color: 'amber' },
-  interview: { label: 'Wawancara', badge: 'bg-purple-50 text-purple-700 border-purple-200', color: 'purple' },
+  interview: { label: 'Wawancara', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200', color: 'purple' },
   psychological_test: { label: 'Tes Psikotes', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200', color: 'indigo' },
-  microteaching: { label: 'Microteaching (Guru)', badge: 'bg-teal-50 text-teal-700 border-teal-200', color: 'teal' },
-  offering: { label: 'Penawaran Kerja', badge: 'bg-orange-50 text-orange-700 border-orange-200', color: 'orange' },
+  microteaching: { label: 'Microteaching (Guru)', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200', color: 'teal' },
+  offering: { label: 'Penawaran Kerja', badge: 'bg-amber-50 text-amber-700 border-amber-200', color: 'orange' },
   accepted: { label: 'Diterima (Onboarding)', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', color: 'emerald' },
   rejected: { label: 'Gugur / Ditolak', badge: 'bg-rose-50 text-rose-700 border-rose-200', color: 'rose' }
 };
@@ -609,7 +609,7 @@ export default function Rekrutmen() {
                 setCreateErrorMsg('');
                 setIsCreateOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Input Pelamar Baru</span>
@@ -617,7 +617,7 @@ export default function Rekrutmen() {
           ) : (
             <button
               onClick={() => openCreateInstrument(activeTab)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>
@@ -685,7 +685,7 @@ export default function Rekrutmen() {
       {activeTab === 'candidates' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -718,7 +718,7 @@ export default function Rekrutmen() {
           </div>
 
           {/* Table of Candidates */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {loading ? (
               <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
@@ -810,7 +810,7 @@ export default function Rekrutmen() {
       {activeTab !== 'candidates' && (
         <div className="space-y-5">
           {/* Explanation Banner */}
-          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+          <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 text-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0 mt-0.5">
                 {activeTab === 'psychological' && <Brain className="w-5 h-5" />}
@@ -833,7 +833,7 @@ export default function Rekrutmen() {
 
             <button
               onClick={() => openCreateInstrument(activeTab)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Baru</span>
@@ -847,7 +847,7 @@ export default function Rekrutmen() {
               <span className="text-xs">Memuat data instrumen...</span>
             </div>
           ) : filteredInstruments.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+            <div className="p-12 text-center bg-white rounded-xl border border-slate-200 text-slate-400">
               <Scale className="w-10 h-10 mx-auto mb-2 text-slate-300" />
               <p className="text-xs font-semibold text-slate-600">Belum ada paket/rubrik terdaftar untuk kategori ini</p>
               <p className="text-[11px] text-slate-400 mt-1">Klik tombol "Tambah Baru" untuk menyusun butir soal dan formula perhitungan skor.</p>
@@ -857,7 +857,7 @@ export default function Rekrutmen() {
               {filteredInstruments.map((inst) => {
                 const isUsed = (inst.usage_count || 0) > 0;
                 return (
-                  <div key={inst.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4">
+                  <div key={inst.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-4">
                     <div>
                       {/* Top Badges & Status Toggle */}
                       <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
@@ -1016,7 +1016,7 @@ export default function Rekrutmen() {
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-800">Daftar Butir Soal & Kunci Jawaban:</h4>
                   {(previewInstrument.questions || []).map((q, idx) => (
-                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                       <div className="flex items-start justify-between gap-2 font-bold text-slate-800">
                         <span>{idx + 1}. {q.question}</span>
                         <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] whitespace-nowrap">Bobot: {q.score_weight || 10}</span>
@@ -1045,10 +1045,10 @@ export default function Rekrutmen() {
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-800">Daftar Pertanyaan & Indikator Wawancara:</h4>
                   {(previewInstrument.questions || []).map((q, idx) => (
-                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between gap-2 font-bold text-slate-800">
-                        <span className="text-purple-700 text-[11px] uppercase tracking-wider">{q.category || `Aspek #${idx + 1}`}</span>
-                        <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[10px]">Skor Maks: {q.max_score || 100}</span>
+                        <span className="text-indigo-700 text-[11px] uppercase tracking-wider">{q.category || `Aspek #${idx + 1}`}</span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px]">Skor Maks: {q.max_score || 100}</span>
                       </div>
                       <p className="font-bold text-slate-800 text-xs">T: {q.question}</p>
                       {q.indicator && (
@@ -1066,10 +1066,10 @@ export default function Rekrutmen() {
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-800">Daftar 5 Aspek & Bobot Penilaian Microteaching:</h4>
                   {(previewInstrument.questions || []).map((q, idx) => (
-                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+                    <div key={q.id || idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
                       <div className="flex items-center justify-between gap-2 font-bold text-slate-800">
-                        <span className="text-teal-800 font-bold">{idx + 1}. {q.aspect_name}</span>
-                        <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-700 text-xs font-black">Bobot: {q.weight_percentage}%</span>
+                        <span className="text-indigo-800 font-bold">{idx + 1}. {q.aspect_name}</span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-black">Bobot: {q.weight_percentage}%</span>
                       </div>
                       <p className="text-slate-600 text-[11px]">{q.indicator}</p>
                     </div>
@@ -1210,14 +1210,14 @@ export default function Rekrutmen() {
                         };
                         setInstrumentForm({ ...instrumentForm, questions: [...instrumentForm.questions, newQ] });
                       }}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" /> Tambah Butir Soal
                     </button>
                   </div>
 
                   {instrumentForm.questions.map((q, qIdx) => (
-                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-black text-indigo-600 text-xs">SOAL #{qIdx + 1}</span>
                         <div className="flex items-center gap-3">
@@ -1328,14 +1328,14 @@ export default function Rekrutmen() {
                         };
                         setInstrumentForm({ ...instrumentForm, questions: [...instrumentForm.questions, newQ] });
                       }}
-                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" /> Tambah Pertanyaan
                     </button>
                   </div>
 
                   {instrumentForm.questions.map((q, qIdx) => (
-                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <input
                           type="text"
@@ -1346,7 +1346,7 @@ export default function Rekrutmen() {
                             setInstrumentForm({ ...instrumentForm, questions: updated });
                           }}
                           placeholder="Kategori Aspek (contoh: Visi Dakwah, Teamwork)"
-                          className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-purple-700"
+                          className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-indigo-700"
                         />
                         <button
                           type="button"
@@ -1383,7 +1383,7 @@ export default function Rekrutmen() {
                           setInstrumentForm({ ...instrumentForm, questions: updated });
                         }}
                         placeholder="Panduan bagi pewawancara / indikator respon yang diharapkan..."
-                        className="w-full px-3 py-2 bg-purple-50/50 border border-purple-200 rounded-xl text-purple-900 text-xs"
+                        className="w-full px-3 py-2 bg-indigo-50/50 border border-indigo-200 rounded-xl text-indigo-900 text-xs"
                       />
                     </div>
                   ))}
@@ -1409,7 +1409,7 @@ export default function Rekrutmen() {
                   </div>
 
                   {instrumentForm.questions.map((q, qIdx) => (
-                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+                    <div key={q.id || qIdx} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <input
                           type="text"
@@ -1420,7 +1420,7 @@ export default function Rekrutmen() {
                             setInstrumentForm({ ...instrumentForm, questions: updated });
                           }}
                           placeholder={`Nama Aspek #${qIdx + 1}`}
-                          className="flex-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-teal-800"
+                          className="flex-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-indigo-800"
                         />
                         <div className="flex items-center gap-1">
                           <span className="font-bold text-slate-500 text-xs">Bobot %:</span>
@@ -1434,7 +1434,7 @@ export default function Rekrutmen() {
                               updated[qIdx].weight_percentage = Number(e.target.value);
                               setInstrumentForm({ ...instrumentForm, questions: updated });
                             }}
-                            className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-black text-teal-600 text-xs"
+                            className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center font-black text-indigo-600 text-xs"
                           />
                         </div>
                       </div>
@@ -1466,7 +1466,7 @@ export default function Rekrutmen() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Paket Instrumen'}
                 </button>
@@ -1485,7 +1485,7 @@ export default function Rekrutmen() {
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white font-black text-base shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white font-black text-base shadow-md">
                   {detailCandidate.candidate_name.charAt(0)}
                 </div>
                 <div>
@@ -1610,7 +1610,7 @@ export default function Rekrutmen() {
                 <div className="space-y-6">
                   {/* Basic & Education */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <GraduationCap className="w-4 h-4 text-indigo-600" />
                         <span>Pendidikan & Latar Belakang</span>
@@ -1625,7 +1625,7 @@ export default function Rekrutmen() {
                       </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
                       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <Award className="w-4 h-4 text-amber-500" />
                         <span>Keahlian & Kompetensi</span>
@@ -1645,7 +1645,7 @@ export default function Rekrutmen() {
                   </div>
 
                   {/* Work Experience */}
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Briefcase className="w-4 h-4 text-slate-600" />
                       <span>Riwayat Pengalaman Kerja</span>
@@ -1662,7 +1662,7 @@ export default function Rekrutmen() {
                   </div>
 
                   {/* Documents & Files */}
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                       <span>Berkas Lamaran & Dokumen Terlampir</span>
@@ -1699,13 +1699,13 @@ export default function Rekrutmen() {
                     {(detailCandidate.stage_histories || []).map((st, idx) => (
                       <div key={idx} className="relative">
                         <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-indigo-600 border-4 border-white shadow-sm flex items-center justify-center"></div>
-                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-bold text-slate-800 text-xs uppercase tracking-wide">
                               Tahap: {STAGE_CONFIG[st.stage]?.label || st.stage}
                             </span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              st.status === 'passed' ? 'bg-emerald-50 text-emerald-700' : st.status === 'failed' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'
+                              st.status === 'passed' ? 'bg-emerald-50 text-emerald-700' : st.status === 'failed' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'
                             }`}>
                               {st.status}
                             </span>
@@ -1729,7 +1729,7 @@ export default function Rekrutmen() {
                     <h4 className="text-xs font-bold text-slate-700">Lembar Penilaian Wawancara</h4>
                     <button
                       onClick={() => setIsAddInterviewOpen(true)}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Input Hasil Wawancara</span>
@@ -1737,14 +1737,14 @@ export default function Rekrutmen() {
                   </div>
 
                   {(detailCandidate.interviews || []).length === 0 ? (
-                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                    <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400">
                       <MessageSquare className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       <p className="text-xs font-semibold text-slate-600">Belum ada sesi wawancara yang dicatat</p>
                       <p className="text-[11px] text-slate-400 mt-1">Klik tombol di atas untuk memasukkan butir tanya-jawab dan skor wawancara.</p>
                     </div>
                   ) : (
                     detailCandidate.interviews.map((intv) => (
-                      <div key={intv.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+                      <div key={intv.id} className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                           <div>
                             <span className="text-xs font-bold text-slate-800">Pewawancara: {intv.interviewer_name}</span>
@@ -1792,7 +1792,7 @@ export default function Rekrutmen() {
                     <h4 className="text-xs font-bold text-slate-700">Hasil Evaluasi Tes Psikotes & Logika</h4>
                     <button
                       onClick={() => setIsTakeTestOpen(true)}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                     >
                       <Brain className="w-3.5 h-3.5" />
                       <span>Uji / Input Jawaban Psikotes</span>
@@ -1800,14 +1800,14 @@ export default function Rekrutmen() {
                   </div>
 
                   {(detailCandidate.test_results || []).length === 0 ? (
-                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                    <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400">
                       <Brain className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       <p className="text-xs font-semibold text-slate-600">Belum ada hasil psikotes</p>
                       <p className="text-[11px] text-slate-400 mt-1">Pilih instrumen psikotes untuk menginput lembar jawaban & hitung nilai otomatis.</p>
                     </div>
                   ) : (
                     detailCandidate.test_results.map((tr) => (
-                      <div key={tr.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+                      <div key={tr.id} className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                           <div>
                             <h5 className="font-bold text-slate-800 text-sm">{tr.instrument_title || 'Tes Psikotes'}</h5>
@@ -1862,7 +1862,7 @@ export default function Rekrutmen() {
                     </div>
                     <button
                       onClick={() => setIsAddMicroteachingOpen(true)}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Input Nilai Microteaching</span>
@@ -1870,14 +1870,14 @@ export default function Rekrutmen() {
                   </div>
 
                   {(detailCandidate.microteachings || []).length === 0 ? (
-                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400">
+                    <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400">
                       <BookOpen className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       <p className="text-xs font-semibold text-slate-600">Belum ada penilaian microteaching</p>
                       <p className="text-[11px] text-slate-400 mt-1">Klik tombol di atas untuk mengisi rubrik 5 aspek microteaching.</p>
                     </div>
                   ) : (
                     detailCandidate.microteachings.map((mc) => (
-                      <div key={mc.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+                      <div key={mc.id} className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                           <div>
                             <h5 className="font-bold text-slate-800 text-sm">Materi: {mc.subject_topic}</h5>
@@ -1916,7 +1916,7 @@ export default function Rekrutmen() {
                         </div>
 
                         {mc.evaluator_notes && (
-                          <div className="p-3 bg-teal-50 rounded-xl border border-teal-200 text-xs text-teal-900 font-medium">
+                          <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 font-medium">
                             Catatan Evaluator: {mc.evaluator_notes}
                           </div>
                         )}
@@ -1952,7 +1952,7 @@ export default function Rekrutmen() {
 
             <form onSubmit={handleCreate} className="p-6 overflow-y-auto space-y-4 flex-1">
               {createErrorMsg && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs flex items-start gap-2.5">
+                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{createErrorMsg}</span>
                 </div>
@@ -2065,7 +2065,7 @@ export default function Rekrutmen() {
 
                 <label
                   htmlFor="candidate-file-upload"
-                  className="p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-2xl bg-indigo-50/40 hover:bg-indigo-50/70 text-center block cursor-pointer transition"
+                  className="p-4 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl bg-indigo-50/40 hover:bg-indigo-50/70 text-center block cursor-pointer transition"
                 >
                   <Upload className="w-6 h-6 mx-auto text-indigo-500 mb-1" />
                   <span className="text-xs text-indigo-700 font-bold block">Klik untuk Unggah CV, Ijazah, atau Sertifikat</span>
@@ -2116,7 +2116,7 @@ export default function Rekrutmen() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Daftarkan Pelamar</span>
@@ -2212,7 +2212,7 @@ export default function Rekrutmen() {
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-purple-400" />
+                <MessageSquare className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-black text-base text-white">Lembar Penilaian Wawancara</h3>
               </div>
               <button onClick={() => setIsAddInterviewOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
@@ -2261,7 +2261,7 @@ export default function Rekrutmen() {
                 </div>
 
                 {interviewForm.questions_answers.map((qa, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -2340,7 +2340,7 @@ export default function Rekrutmen() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Penilaian Wawancara'}
                 </button>
@@ -2396,7 +2396,7 @@ export default function Rekrutmen() {
                   {(() => {
                     const inst = instruments.find(i => i.id == selectedInstrumentId);
                     return (inst?.questions || []).map((q, idx) => (
-                      <div key={q.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <div key={q.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                         <div className="font-bold text-slate-800">
                           {idx + 1}. {q.question}
                         </div>
@@ -2440,7 +2440,7 @@ export default function Rekrutmen() {
                 <button
                   type="submit"
                   disabled={submitting || !selectedInstrumentId}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Mengevaluasi...' : 'Koreksi & Simpan Hasil Otomatis'}
                 </button>
@@ -2458,7 +2458,7 @@ export default function Rekrutmen() {
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-teal-400" />
+                <BookOpen className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-black text-base text-white">Evaluasi Microteaching (Calon Guru)</h3>
               </div>
               <button onClick={() => setIsAddMicroteachingOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
@@ -2593,7 +2593,7 @@ export default function Rekrutmen() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Nilai Microteaching'}
                 </button>

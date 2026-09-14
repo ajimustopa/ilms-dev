@@ -222,7 +222,7 @@ export default function DaftarSesi() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -279,9 +279,9 @@ export default function DaftarSesi() {
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-medium text-slate-500">Terjadwal (Menunggu)</span>
-            <p className="text-2xl font-bold text-blue-600 mt-1">{scheduledCount}</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{scheduledCount}</p>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
             <AlertCircle className="w-5 h-5" />
           </div>
         </div>
@@ -367,7 +367,7 @@ export default function DaftarSesi() {
                             Pelamar
                           </span>
                         ) : s.employee_id ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">
                             Pegawai
                           </span>
                         ) : (
@@ -408,7 +408,7 @@ export default function DaftarSesi() {
                           <Clock className="w-3 h-3" /> Dikerjakan
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
                           <AlertCircle className="w-3 h-3" /> Terjadwal
                         </span>
                       )}
@@ -460,7 +460,7 @@ export default function DaftarSesi() {
       {/* MODAL: Jadwalkan Sesi Baru */}
       {modalCreateOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 my-8">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Jadwalkan Sesi Asesmen Psikotes</h3>
               <button
@@ -614,7 +614,7 @@ export default function DaftarSesi() {
       {/* MODAL: Share Token & Link Siap Dikirim */}
       {createdSession && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 text-center">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
               <Check className="w-6 h-6" />
             </div>

@@ -599,7 +599,7 @@ export default function DetailPegawai() {
 
   if (!employee) {
     return (
-      <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <div className="bg-white p-8 rounded-xl border border-slate-200 text-center">
         <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
         <h3 className="text-base font-bold text-slate-800">Pegawai Tidak Ditemukan</h3>
         <p className="text-xs text-slate-500 mt-1 mb-4">Data pegawai dengan ID {id} tidak ditemukan.</p>
@@ -628,7 +628,7 @@ export default function DetailPegawai() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-100 shadow-xs">
         <div className="flex items-center gap-3.5">
           <Link
             to="/kepegawaian/employees"
@@ -695,7 +695,7 @@ export default function DetailPegawai() {
       )}
 
       {/* Tabs Navigation Bar */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-2 overflow-x-auto">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-2 overflow-x-auto">
         <div className="flex items-center gap-1.5 min-w-max">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -731,7 +731,7 @@ export default function DetailPegawai() {
 
       {/* 1. TAB: BIODATA & KONTAK */}
       {activeTab === 'biodata' && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-xs p-6 space-y-6">
           <div className="border-b border-slate-100 pb-3">
             <h3 className="text-sm font-bold text-slate-800">Biodata Pribadi & Kontak</h3>
             <p className="text-xs text-slate-400">Informasi identitas dasar pegawai standar Dapodik</p>
@@ -807,7 +807,7 @@ export default function DetailPegawai() {
       {/* 2. TAB: ALAMAT KTP & DOMISILI */}
       {activeTab === 'alamat' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Alamat Sesuai KTP & Alamat Domisili</h3>
               <p className="text-xs text-slate-400">Rincian jalan, RT, RW, dusun, kelurahan, kecamatan, kab/kota, provinsi, kode pos</p>
@@ -834,7 +834,7 @@ export default function DetailPegawai() {
             {['ktp', 'domisili'].map((type) => {
               const addr = addressList.find(a => a.address_type === type);
               return (
-                <div key={type} className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 relative">
+                <div key={type} className="bg-white rounded-xl border border-slate-100 shadow-xs p-5 relative">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-indigo-600" />
@@ -922,7 +922,7 @@ export default function DetailPegawai() {
       {/* 3. TAB: DATA REKENING BANK (1:N) */}
       {activeTab === 'rekening' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Data Rekening Bank Pegawai</h3>
               <p className="text-xs text-slate-400">Daftar nomor rekening bank tabungan / payroll pegawai (bisa lebih dari satu)</p>
@@ -938,7 +938,7 @@ export default function DetailPegawai() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bankAccountList.length === 0 ? (
-              <div className="col-span-full bg-white p-8 rounded-2xl border border-slate-100 text-center text-slate-400 text-xs">
+              <div className="col-span-full bg-white p-8 rounded-xl border border-slate-100 text-center text-slate-400 text-xs">
                 <CreditCard className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="font-semibold text-slate-600">Belum ada data rekening bank yang terdaftar</p>
                 <button onClick={openAddBankModal} className="mt-2 text-indigo-600 font-semibold hover:underline">
@@ -947,7 +947,7 @@ export default function DetailPegawai() {
               </div>
             ) : (
               bankAccountList.map((b) => (
-                <div key={b.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
+                <div key={b.id} className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col justify-between">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase">
                       {b.bank_name} {b.bank_id ? `(${b.bank_id})` : ''}
@@ -977,7 +977,7 @@ export default function DetailPegawai() {
       {/* 4. TAB: DATA KELUARGA */}
       {activeTab === 'keluarga' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Susunan Keluarga Pegawai</h3>
               <p className="text-xs text-slate-400">Daftar pasangan (suami/istri) & anak kandung/tiri/angkat</p>
@@ -991,7 +991,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1015,7 +1015,7 @@ export default function DetailPegawai() {
                     <tr key={f.id} className="hover:bg-slate-50/70">
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                          f.relation === 'spouse' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                          f.relation === 'spouse' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {f.relation === 'spouse' ? 'Pasangan' : 'Anak'}
                         </span>
@@ -1050,7 +1050,7 @@ export default function DetailPegawai() {
       {/* 5. TAB: PENDIDIKAN & KEAHLIAN */}
       {activeTab === 'pendidikan' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Pendidikan, Diklat & Sertifikasi Keahlian</h3>
               <p className="text-xs text-slate-400">Pendidikan formal, sertifikasi pendidik, dan pelatihan profesi</p>
@@ -1064,7 +1064,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1123,7 +1123,7 @@ export default function DetailPegawai() {
       {/* 6. TAB: PENGALAMAN KERJA / RIWAYAT KARIR */}
       {activeTab === 'karir' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Karir & Pengalaman Kerja Eksternal</h3>
               <p className="text-xs text-slate-400">Unit kerja / instansi sebelumnya, posisi tugas, dan periode kerja</p>
@@ -1137,7 +1137,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1186,7 +1186,7 @@ export default function DetailPegawai() {
       {/* 7. TAB: RIWAYAT PENGANGKATAN PEGAWAI */}
       {activeTab === 'pengangkatan' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Pengangkatan Pegawai</h3>
               <p className="text-xs text-slate-400">Tanggal pengangkatan, status pengangkatan, nomor SK, periode berlaku, dan lama SK</p>
@@ -1200,7 +1200,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1240,7 +1240,7 @@ export default function DetailPegawai() {
       {/* 8. TAB: RIWAYAT SPK */}
       {activeTab === 'spk' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Surat Perjanjian Kerja (SPK)</h3>
               <p className="text-xs text-slate-400">Tanggal SPK, status pengangkatan, no. SPK, periode berlaku (tahun), dan lama SPK</p>
@@ -1254,7 +1254,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1292,7 +1292,7 @@ export default function DetailPegawai() {
       {/* 9. TAB: RIWAYAT PENUGASAN */}
       {activeTab === 'penugasan' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Penugasan Tambahan & Khusus</h3>
               <p className="text-xs text-slate-400">TMT, nomor SK penugasan, rincian tugas, TST, dan catatan penilaian</p>
@@ -1306,7 +1306,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1344,7 +1344,7 @@ export default function DetailPegawai() {
       {/* 10. TAB: RIWAYAT SURAT PERINGATAN (SP) */}
       {activeTab === 'sp' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Surat Peringatan (SP)</h3>
               <p className="text-xs text-slate-400">Catatan sanksi disiplin dan surat peringatan yang pernah diterima</p>
@@ -1358,7 +1358,7 @@ export default function DetailPegawai() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1400,7 +1400,7 @@ export default function DetailPegawai() {
       {/* 11. TAB: RIWAYAT GAJI */}
       {activeTab === 'gaji' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Riwayat Penetapan & Pembayaran Gaji</h3>
               <p className="text-xs text-slate-400">Rincian gaji pokok, tunjangan jabatan, kehadiran, konsumsi, istri, anak, dan total gaji bersih</p>
@@ -1413,7 +1413,7 @@ export default function DetailPegawai() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[10px] font-semibold">
@@ -1463,7 +1463,7 @@ export default function DetailPegawai() {
       {/* 12. TAB: KELENGKAPAN BERKAS */}
       {activeTab === 'berkas' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-100 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Kelengkapan Berkas Wajib Pegawai</h3>
               <p className="text-xs text-slate-400">Monitoring status ketersediaan & upload dokumen (KTP, KK, Akta, Ijazah SD–S3)</p>
@@ -1477,7 +1477,7 @@ export default function DetailPegawai() {
             {documentChecklists.map((doc) => {
               const isAvailable = doc.status === 'available';
               return (
-                <div key={doc.id} className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex flex-col justify-between">
+                <div key={doc.id} className="bg-white rounded-xl border border-slate-100 shadow-xs p-5 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1537,7 +1537,7 @@ export default function DetailPegawai() {
       {/* Modal Alamat */}
       {isAddressModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {selectedAddress ? 'Edit Alamat Pegawai' : 'Tambah Alamat Pegawai'}
@@ -1683,7 +1683,7 @@ export default function DetailPegawai() {
       {/* Modal Rekening Bank */}
       {isBankModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {selectedBank ? 'Edit Data Rekening Bank' : 'Tambah Rekening Bank Baru'}
@@ -1764,7 +1764,7 @@ export default function DetailPegawai() {
       {/* Modal Kelola Kelengkapan Berkas */}
       {isDocModalOpen && selectedDoc && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">Kelola Berkas: {selectedDoc.document_name}</h3>
               <button onClick={() => setIsDocModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -1831,7 +1831,7 @@ export default function DetailPegawai() {
       {/* Modal Riwayat Pengangkatan / SPK / Penugasan */}
       {isHistoryModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800 capitalize">
                 Tambah Riwayat {historyForm.document_type}
@@ -1943,7 +1943,7 @@ export default function DetailPegawai() {
       {/* Modal Surat Peringatan (SP) */}
       {isWarningModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">Terbitkan Surat Peringatan (SP)</h3>
               <button onClick={() => setIsWarningModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -2012,7 +2012,7 @@ export default function DetailPegawai() {
       {/* Modal Pengalaman Kerja */}
       {isWorkExpModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {selectedWorkExp ? 'Edit Pengalaman Kerja' : 'Tambah Pengalaman Kerja'}
@@ -2092,7 +2092,7 @@ export default function DetailPegawai() {
       {/* Modal Anggota Keluarga */}
       {isFamilyModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {selectedFamily ? 'Edit Anggota Keluarga' : 'Tambah Anggota Keluarga'}
@@ -2195,7 +2195,7 @@ export default function DetailPegawai() {
       {/* Modal Pendidikan / Diklat */}
       {isEduModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
                 {selectedEdu ? 'Edit Riwayat Pendidikan / Keahlian' : 'Tambah Riwayat Pendidikan / Keahlian'}

@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 
 export default function Dashboard() {
   const { user, activeSchoolUnit } = useAuth();
@@ -62,48 +65,17 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [activeSchoolUnit]);
 
-  const statCards = [
-    {
-      title: 'Total Pegawai Aktif',
-      value: `${stats.totalEmployees} Orang`,
-      change: 'Master Data',
-      icon: Users,
-      color: 'text-indigo-600 bg-indigo-50'
-    },
-    {
-      title: 'Pengajuan Cuti Pending',
-      value: `${stats.pendingLeaves} Berkas`,
-      change: 'Perlu Approval',
-      icon: CalendarRange,
-      color: 'text-amber-600 bg-amber-50'
-    },
-    {
-      title: 'Pengajuan Lembur Pending',
-      value: `${stats.pendingOvertimes} Berkas`,
-      change: 'Perlu Approval',
-      icon: Clock,
-      color: 'text-rose-600 bg-rose-50'
-    },
-    {
-      title: 'Kandidat Rekrutmen',
-      value: `${stats.totalCandidates} Pelamar`,
-      change: 'Tahap Seleksi',
-      icon: UserPlus,
-      color: 'text-emerald-600 bg-emerald-50'
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-slate-900 rounded-xl p-5 sm:p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-slate-800">
         <div>
-          <h2 className="text-xl font-bold">
-            Dashboard Kepegawaian &bull; {user?.full_name || 'HRD Admin'} 👋
-          </h2>
-          <p className="text-xs text-slate-300 mt-1">
+          <h1 className="text-xl font-bold">
+            Dashboard Kepegawaian &bull; {user?.full_name || 'HRD Admin'}
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
             Satuan Pendidikan Aktif:{' '}
-            <span className="text-indigo-400 font-semibold">
+            <span className="text-emerald-400 font-semibold">
               {activeSchoolUnit?.name || 'Seluruh Satuan Pendidikan'}
             </span>
           </p>
@@ -111,58 +83,65 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchDashboardData}
-            className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition text-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 border border-slate-700"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>Refresh Data</span>
           </button>
         </div>
       </div>
 
       {/* Error Alert */}
       {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
+        <FlatAlertBanner
+          type="error"
+          message={errorMsg}
+        />
       )}
 
-      {/* Stats Cards */}
+      {/* Stats Cards dengan StatRibbonCard (§10) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((item, index) => {
-          const Icon = item.icon;
-          return (
-            <div key={index} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div className={`p-2.5 rounded-xl ${item.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                  {item.change}
-                </span>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold text-slate-800">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin text-slate-400" /> : item.value}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">{item.title}</div>
-              </div>
-            </div>
-          );
-        })}
+        <StatRibbonCard
+          title="Total Pegawai Aktif"
+          value={`${stats.totalEmployees} Orang`}
+          variant="info"
+          subtitle="Master Data Terdaftar"
+          icon={Users}
+        />
+        <StatRibbonCard
+          title="Pengajuan Cuti Pending"
+          value={`${stats.pendingLeaves} Berkas`}
+          variant="warning"
+          subtitle="Menunggu Approval HRD"
+          icon={CalendarRange}
+        />
+        <StatRibbonCard
+          title="Pengajuan Lembur Pending"
+          value={`${stats.pendingOvertimes} Berkas`}
+          variant="danger"
+          subtitle="Perlu Verifikasi Jam"
+          icon={Clock}
+        />
+        <StatRibbonCard
+          title="Kandidat Rekrutmen"
+          value={`${stats.totalCandidates} Pelamar`}
+          variant="success"
+          subtitle="Tahap Screening & Tes"
+          icon={UserPlus}
+        />
       </div>
 
       {/* Komposisi Status Kepegawaian */}
       {stats.breakdownStatus.length > 0 && (
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs space-y-3">
+          <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
             Komposisi Status Pegawai
-          </h3>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {stats.breakdownStatus.map((b, i) => (
               <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-600 uppercase">{b.label}</span>
-                <span className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
+                <span className="text-xs font-medium text-slate-700 uppercase">{b.label}</span>
+                <span className="text-sm font-bold text-slate-900 font-mono bg-white px-2.5 py-0.5 rounded-lg border border-slate-200">
                   {b.count} orang
                 </span>
               </div>
@@ -172,52 +151,58 @@ export default function Dashboard() {
       )}
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
-            <Users className="w-5 h-5" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
+              <Users className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Master Data Pegawai</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Kelola data induk pendidik & tenaga kependidikan, riwayat jabatan, keluarga, dan dokumen.
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-slate-800 mb-1.5">Master Data Pegawai</h3>
-          <p className="text-xs text-slate-500 mb-4">
-            Kelola data induk pendidik & tenaga kependidikan, riwayat jabatan, keluarga, dan pensiun.
-          </p>
           <Link
             to="/kepegawaian/employees"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
           >
             <span>Buka Data Pegawai</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-            <Banknote className="w-5 h-5" />
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
+              <Banknote className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Penggajian (Payroll)</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Proses perhitungan gaji bulanan, rincian komponen tunjangan/potongan, dan slip gaji.
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-slate-800 mb-1.5">Penggajian (Payroll)</h3>
-          <p className="text-xs text-slate-500 mb-4">
-            Proses perhitungan gaji bulanan, rincian komponen tunjangan/potongan, dan verifikasi berkas.
-          </p>
           <Link
             to="/kepegawaian/payroll"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
           >
             <span>Kelola Payroll</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3">
-            <Network className="w-5 h-5" />
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center mb-3">
+              <Network className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Struktur Organisasi & DUK</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Bagan pohon hierarki jabatan, atasan langsung, dan Daftar Urut Kepangkatan (DUK).
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-slate-800 mb-1.5">Struktur Organisasi & DUK</h3>
-          <p className="text-xs text-slate-500 mb-4">
-            Bagan pohon hierarki jabatan, atasan langsung, dan Daftar Urut Kepangkatan (DUK).
-          </p>
           <Link
             to="/kepegawaian/organization"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-800"
           >
             <span>Lihat Bagan & DUK</span>
             <ArrowUpRight className="w-3.5 h-3.5" />

@@ -298,7 +298,7 @@ export default function Payroll() {
             <button
               onClick={handleCalculate}
               disabled={loading}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-xs"
             >
               <Calculator className="w-3.5 h-3.5" />
               <span>Kalkulasi Ulang Batch</span>
@@ -355,8 +355,8 @@ export default function Payroll() {
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -368,7 +368,7 @@ export default function Payroll() {
       )}
 
       {/* Progress Bar Siklus Payroll */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+      <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex items-center justify-between text-xs font-bold text-slate-700">
           <span>Progres Penetapan & Serah Terima Payroll:</span>
           <span className="uppercase text-indigo-700 font-mono">Status: {activePeriod?.status || 'draft'}</span>
@@ -402,7 +402,7 @@ export default function Payroll() {
 
       {/* Period Selection & Summary Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div className="text-xs">
             <span className="text-slate-400 block mb-1">Periode Pembayaran:</span>
             <div className="flex items-center gap-2">
@@ -437,7 +437,7 @@ export default function Payroll() {
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs text-slate-400 block mb-0.5">Pegawai Terverifikasi</span>
             <span className="text-xl font-bold text-slate-800">
@@ -453,7 +453,7 @@ export default function Payroll() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs text-slate-400 block mb-0.5">Total Beban Gaji Bersih</span>
             <span className="text-lg font-bold text-emerald-600">{formatRupiah(totalPayrollCost)}</span>
@@ -465,7 +465,7 @@ export default function Payroll() {
       </div>
 
       {/* Table Payroll Items */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
             <tr>
@@ -578,7 +578,7 @@ export default function Payroll() {
       {/* Modal Edit Komponen Gaji */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-xs space-y-3">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
               <div>
                 <h3 className="font-bold text-slate-800 text-sm">Koreksi Slip Gaji Pegawai</h3>
@@ -665,7 +665,7 @@ export default function Payroll() {
       {/* Modal Riwayat Audit Trail Payroll */}
       {isAuditModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col text-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col text-xs space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -696,7 +696,7 @@ export default function Payroll() {
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         log.action === 'LOCK_PERIOD' ? 'bg-amber-100 text-amber-800' :
                         log.action === 'SEND_TO_FINANCE' ? 'bg-emerald-100 text-emerald-800' :
-                        log.action === 'EDIT_ITEM' ? 'bg-purple-100 text-purple-800' :
+                        log.action === 'EDIT_ITEM' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
                         log.action === 'RETURNED_FOR_CORRECTION' ? 'bg-rose-100 text-rose-800' :
                         'bg-slate-200 text-slate-700'
                       }`}>

@@ -106,8 +106,8 @@ export default function IsiTesKaryawan() {
   if (flowState === 'list') {
     return (
       <div className="space-y-6 max-w-4xl mx-auto pb-12">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shrink-0">
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
             <BrainCircuit className="w-8 h-8" />
           </div>
           <div>
@@ -121,7 +121,7 @@ export default function IsiTesKaryawan() {
         {loading ? (
           <div className="py-12 text-center text-slate-400 text-xs">Memuat daftar penugasan tes...</div>
         ) : sessions.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3">
+          <div className="bg-white p-8 rounded-xl border border-slate-200 text-center space-y-3">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
             <h3 className="text-base font-bold text-slate-800">Tidak Ada Tes Aktif</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
@@ -131,7 +131,7 @@ export default function IsiTesKaryawan() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {sessions.map((s) => (
-              <div key={s.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+              <div key={s.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
@@ -142,7 +142,7 @@ export default function IsiTesKaryawan() {
                         Selesai
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
                         Siap Dikerjakan
                       </span>
                     )}
@@ -195,7 +195,7 @@ export default function IsiTesKaryawan() {
             </div>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2.5">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2.5">
             <h4 className="font-bold text-slate-800 flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-indigo-600" /> Aturan & Petunjuk Pengerjaan:
             </h4>
@@ -207,7 +207,7 @@ export default function IsiTesKaryawan() {
             </ul>
           </div>
 
-          <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+          <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -262,7 +262,7 @@ export default function IsiTesKaryawan() {
     return (
       <div className="max-w-md mx-auto py-12 px-4">
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center space-y-5">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
@@ -273,7 +273,7 @@ export default function IsiTesKaryawan() {
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left text-xs space-y-1.5">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left text-xs space-y-1.5">
             <div className="flex justify-between">
               <span className="text-slate-500">Tipe Tes:</span>
               <span className="font-semibold text-slate-800">{examData.sessionInfo?.test_type_name}</span>
