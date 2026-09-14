@@ -3,6 +3,10 @@ import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import DatePickerField from '../../../shared/components/DatePickerField';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
 import {
   FolderTree,
   Wallet,
@@ -39,19 +43,24 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowLeftRight,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter
 } from 'lucide-react';
 
 const COA_GROUPS = {
-  harta: { label: 'Harta', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  harta: { label: 'Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   piutang: { label: 'Piutang', normal: 'debit', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-  inventaris: { label: 'Inventaris', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  inventaris: { label: 'Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  aset_tetap: { label: 'Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
   utang: { label: 'Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
   modal: { label: 'Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
   pendapatan: { label: 'Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
   biaya: { label: 'Biaya', normal: 'debit', bg: 'bg-pink-50 text-pink-700 border-pink-200' },
   // Backward-compat
-  asset: { label: 'Harta', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  asset: { label: 'Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   liability: { label: 'Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
   equity: { label: 'Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
   revenue: { label: 'Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
@@ -168,6 +177,31 @@ export default function MasterData() {
   const [errorMsg, setErrorMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [ruleTypeFilter, setRuleTypeFilter] = useState(''); // '' | 'penambahan_kas' | 'pengurangan_kas' | 'non_kas' | 'pemindahan_kas'
+
+  // Sort & Filter States untuk Tab COA (Bagan Akun)
+  const [coaSortField, setCoaSortField] = useState('account_code'); // 'account_code' | 'account_name' | 'account_group' | 'normal_balance' | 'is_active'
+  const [coaSortOrder, setCoaSortOrder] = useState('asc'); // 'asc' | 'desc'
+  const [coaGroupFilter, setCoaGroupFilter] = useState('all'); // 'all' | group key
+  const [coaBalanceFilter, setCoaBalanceFilter] = useState('all'); // 'all' | 'debit' | 'credit'
+  const [coaStatusFilter, setCoaStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+
+  const handleCoaSort = (field) => {
+    if (coaSortField === field) {
+      setCoaSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCoaSortField(field);
+      setCoaSortOrder('asc');
+    }
+  };
+
+  const handleResetCoaFilters = () => {
+    setSearchQuery('');
+    setCoaSortField('account_code');
+    setCoaSortOrder('asc');
+    setCoaGroupFilter('all');
+    setCoaBalanceFilter('all');
+    setCoaStatusFilter('all');
+  };
 
   // Data States
   const [cashAccounts, setCashAccounts] = useState([]);
@@ -596,16 +630,104 @@ export default function MasterData() {
     );
   };
 
-  // COA Pengelolaan Umum (tanpa akun khusus SMP / SMA)
+  // COA Pengelolaan Umum (tanpa akun khusus SMP / SMA & arsip lama)
   const cleanCoaList = useMemo(() => {
     return coaList.filter((a) => {
       const name = (a.account_name || '').toUpperCase();
-      return !name.includes('SMP') && !name.includes('SMA');
+      const code = String(a.account_code || '');
+      if (name.includes('SMP') || name.includes('SMA')) return false;
+      if (code.includes('_old') || code.includes('ARCHIVE')) return false;
+      return true;
     });
   }, [coaList]);
 
+  // Available groups for COA filter dropdown
+  const availableCoaGroups = useMemo(() => {
+    const map = {};
+    cleanCoaList.forEach((a) => {
+      if (a.account_group) {
+        const grpKey = a.account_group;
+        const meta = COA_GROUPS[grpKey] || { label: grpKey };
+        map[grpKey] = meta.label || grpKey;
+      }
+    });
+    return Object.entries(map).map(([key, label]) => ({ key, label }));
+  }, [cleanCoaList]);
+
   const filteredCashAccounts = filterList(cashAccounts, ['name', 'account_kind', 'bank_name', 'bank_account_number', 'account_code', 'account_name']);
-  const filteredCoa = filterList(cleanCoaList, ['account_code', 'account_name', 'account_group']);
+
+  // Filtered & Sorted COA List
+  const filteredCoa = useMemo(() => {
+    let list = [...cleanCoaList];
+
+    // 1. Text Search Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((item) => {
+        const code = String(item.account_code || '').toLowerCase();
+        const name = String(item.account_name || '').toLowerCase();
+        const grp = String(item.account_group || '').toLowerCase();
+        const grpLabel = String(COA_GROUPS[item.account_group]?.label || '').toLowerCase();
+        return code.includes(q) || name.includes(q) || grp.includes(q) || grpLabel.includes(q);
+      });
+    }
+
+    // 2. Filter Kelompok Akun
+    if (coaGroupFilter !== 'all') {
+      list = list.filter((item) => item.account_group === coaGroupFilter);
+    }
+
+    // 3. Filter Saldo Normal
+    if (coaBalanceFilter !== 'all') {
+      list = list.filter((item) => {
+        const norm = (item.normal_balance || COA_GROUPS[item.account_group]?.normal || 'debit').toLowerCase();
+        return norm === coaBalanceFilter.toLowerCase();
+      });
+    }
+
+    // 4. Filter Status
+    if (coaStatusFilter !== 'all') {
+      const targetActive = coaStatusFilter === 'active';
+      list = list.filter((item) => Boolean(item.is_active) === targetActive);
+    }
+
+    // 5. Sorting
+    list.sort((a, b) => {
+      let comp = 0;
+      if (coaSortField === 'account_code') {
+        const codeA = String(a.account_code || '');
+        const codeB = String(b.account_code || '');
+        comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true, sensitivity: 'base' });
+      } else if (coaSortField === 'account_name') {
+        const nameA = String(a.account_name || '');
+        const nameB = String(b.account_name || '');
+        comp = nameA.localeCompare(nameB, 'id-ID', { sensitivity: 'base' });
+      } else if (coaSortField === 'account_group') {
+        const grpA = String(COA_GROUPS[a.account_group]?.label || a.account_group || '');
+        const grpB = String(COA_GROUPS[b.account_group]?.label || b.account_group || '');
+        comp = grpA.localeCompare(grpB, 'id-ID', { sensitivity: 'base' });
+      } else if (coaSortField === 'normal_balance') {
+        const normA = (a.normal_balance || COA_GROUPS[a.account_group]?.normal || 'debit').toLowerCase();
+        const normB = (b.normal_balance || COA_GROUPS[b.account_group]?.normal || 'debit').toLowerCase();
+        comp = normA.localeCompare(normB, 'id-ID');
+      } else if (coaSortField === 'is_active') {
+        const statA = a.is_active ? 1 : 0;
+        const statB = b.is_active ? 1 : 0;
+        comp = statB - statA; // active first by default
+      }
+
+      // Tie breaker by account_code
+      if (comp === 0 && coaSortField !== 'account_code') {
+        const codeA = String(a.account_code || '');
+        const codeB = String(b.account_code || '');
+        comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true });
+      }
+
+      return coaSortOrder === 'asc' ? comp : -comp;
+    });
+
+    return list;
+  }, [cleanCoaList, searchQuery, coaGroupFilter, coaBalanceFilter, coaStatusFilter, coaSortField, coaSortOrder]);
   const filteredRules = useMemo(() => {
     let list = transactionRules;
     if (ruleTypeFilter) {
@@ -640,8 +762,8 @@ export default function MasterData() {
       case 'non_kas':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-            <RefreshCw className="w-3 h-3 text-blue-600" /> Non-Kas
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-indigo-700 border border-blue-200">
+            <RefreshCw className="w-3 h-3 text-indigo-600" /> Non-Kas
           </span>
         );
     }
@@ -730,17 +852,12 @@ export default function MasterData() {
       </div>
 
       {/* Info Notice: Integritas Keuangan & Kebijakan Non-Delete */}
-      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-2xs">
-        <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <div className="font-bold text-emerald-950 flex items-center gap-2">
-            <span>Integritas Audit &amp; Transparansi Keuangan Terlindungi</span>
-          </div>
-          <p className="text-emerald-800 leading-relaxed text-[11px]">
-            Sesuai standar pembukuan dan akuntansi, tidak ada opsi penghapusan permanen (Delete) pada data master &amp; referensi keuangan. Pengelolaan status dilakukan melalui mekanisme <strong>Pengaktifan &amp; Penonaktifan</strong>, dan setiap pengeditan data wajib mencantumkan catatan keterangan perubahan yang tercatat pada riwayat audit.
-          </p>
-        </div>
-      </div>
+      <FlatAlertBanner
+        variant="success"
+        icon={ShieldCheck}
+        title="Integritas Audit & Transparansi Keuangan Terlindungi"
+        description="Sesuai standar pembukuan dan akuntansi, tidak ada opsi penghapusan permanen (Delete) pada data master & referensi keuangan. Pengelolaan status dilakukan melalui mekanisme Pengaktifan & Penonaktifan, dan setiap pengeditan data wajib mencantumkan catatan keterangan perubahan yang tercatat pada riwayat audit."
+      />
 
       {/* Tabs Navigation */}
       <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
@@ -807,49 +924,34 @@ export default function MasterData() {
         <div className="space-y-4">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-4 rounded-2xl text-white shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-emerald-100 uppercase tracking-wider">Total Saldo Awal</p>
-                <h3 className="text-lg font-black mt-0.5 font-mono">{formatCurrency(totalOpeningBalance)}</h3>
-                <p className="text-[10px] text-emerald-200 mt-1">Akumulasi saldo awal cutover</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-xs">
-                <Wallet className="w-5 h-5 text-white" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Total Saldo Berjalan</p>
-                <h3 className="text-lg font-black text-slate-800 mt-0.5 font-mono">{formatCurrency(totalCurrentBalance)}</h3>
-                <p className="text-[10px] text-slate-400 mt-1">Kas riil saat ini (Awal + Masuk - Keluar)</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                <Coins className="w-5 h-5 text-indigo-600" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Rekening Bank</p>
-                <h3 className="text-lg font-bold text-slate-800 mt-0.5">{bankAccountsCount} <span className="text-xs font-normal text-slate-400">Rekening</span></h3>
-                <p className="text-[10px] text-slate-400 mt-1">BSI &amp; BNI terdaftar</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Kas Tunai Fisik</p>
-                <h3 className="text-lg font-bold text-slate-800 mt-0.5">{cashPhysicalCount} <span className="text-xs font-normal text-slate-400">Dompet</span></h3>
-                <p className="text-[10px] text-slate-400 mt-1">Brankas / Bendahara</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
-                <Banknote className="w-5 h-5 text-amber-600" />
-              </div>
-            </div>
+            <StatRibbonCard
+              label="Total Saldo Awal"
+              value={formatCurrency(totalOpeningBalance)}
+              subvalue="Akumulasi saldo awal cutover"
+              status="success"
+              icon={Wallet}
+            />
+            <StatRibbonCard
+              label="Total Saldo Berjalan"
+              value={formatCurrency(totalCurrentBalance)}
+              subvalue="Kas riil saat ini (Awal + Masuk - Keluar)"
+              status="info"
+              icon={Coins}
+            />
+            <StatRibbonCard
+              label="Rekening Bank"
+              value={`${bankAccountsCount} Rekening`}
+              subvalue="BSI & BNI terdaftar"
+              status="neutral"
+              icon={Building2}
+            />
+            <StatRibbonCard
+              label="Kas Tunai Fisik"
+              value={`${cashPhysicalCount} Dompet`}
+              subvalue="Brankas / Bendahara"
+              status="warning"
+              icon={Banknote}
+            />
           </div>
 
           <div className="bg-slate-100/80 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-slate-600">
@@ -881,40 +983,137 @@ export default function MasterData() {
       )}
 
       {/* Search & Actions Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari data master..."
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-          />
+      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={activeTab === 'coa' ? "Cari kode, nama akun, atau kelompok COA..." : "Cari data master..."}
+              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs text-slate-500 flex items-center justify-between sm:justify-end gap-3 flex-wrap">
+            <span>
+              Menampilkan <strong className="text-slate-800 font-bold">
+                {activeTab === 'cash_accounts' && filteredCashAccounts.length}
+                {activeTab === 'coa' && `${filteredCoa.length} dari ${cleanCoaList.length}`}
+                {activeTab === 'transaction_rules' && filteredRules.length}
+                {activeTab === 'fee_types' && filteredFeeTypes.length}
+                {activeTab === 'categories' && filteredCategories.length}
+                {activeTab === 'fee_adjustments' && filteredAdjustments.length}
+              </strong> data
+            </span>
+          </div>
         </div>
-        <div className="text-xs text-slate-500 flex items-center gap-3">
-          <span>
-            Menampilkan <strong className="text-slate-800 font-bold">
-              {activeTab === 'cash_accounts' && filteredCashAccounts.length}
-              {activeTab === 'coa' && filteredCoa.length}
-              {activeTab === 'transaction_rules' && filteredRules.length}
-              {activeTab === 'fee_types' && filteredFeeTypes.length}
-              {activeTab === 'categories' && filteredCategories.length}
-              {activeTab === 'fee_adjustments' && filteredAdjustments.length}
-            </strong> data
-          </span>
-        </div>
+
+        {/* Khusus Tab COA: Filter & Sort Controls Bar */}
+        {activeTab === 'coa' && (
+          <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 mr-1">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <span>Filter &amp; Sortir:</span>
+              </div>
+
+              {/* Filter Kelompok Akun */}
+              <select
+                value={coaGroupFilter}
+                onChange={(e) => setCoaGroupFilter(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer"
+              >
+                <option value="all">Semua Kelompok Akun</option>
+                {availableCoaGroups.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+
+              {/* Filter Saldo Normal */}
+              <select
+                value={coaBalanceFilter}
+                onChange={(e) => setCoaBalanceFilter(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer"
+              >
+                <option value="all">Semua Saldo Normal</option>
+                <option value="debit">Debit Saja</option>
+                <option value="credit">Kredit Saja</option>
+              </select>
+
+              {/* Filter Status */}
+              <select
+                value={coaStatusFilter}
+                onChange={(e) => setCoaStatusFilter(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer"
+              >
+                <option value="all">Semua Status</option>
+                <option value="active">Aktif Saja</option>
+                <option value="inactive">Non-aktif Saja</option>
+              </select>
+
+              {/* Reset Filter Button */}
+              {(coaGroupFilter !== 'all' || coaBalanceFilter !== 'all' || coaStatusFilter !== 'all' || searchQuery || coaSortField !== 'account_code' || coaSortOrder !== 'asc') && (
+                <button
+                  type="button"
+                  onClick={handleResetCoaFilters}
+                  className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer"
+                  title="Reset semua filter & sortir COA"
+                >
+                  <RotateCw className="w-3 h-3" /> Reset Filter
+                </button>
+              )}
+            </div>
+
+            {/* Quick Sort Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Urutkan:</span>
+              <select
+                value={`${coaSortField}-${coaSortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('-');
+                  setCoaSortField(field);
+                  setCoaSortOrder(order);
+                }}
+                className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer shadow-2xs"
+              >
+                <option value="account_code-asc">Kode Akun (0 - 9)</option>
+                <option value="account_code-desc">Kode Akun (9 - 0)</option>
+                <option value="account_name-asc">Nama Akun (A - Z)</option>
+                <option value="account_name-desc">Nama Akun (Z - A)</option>
+                <option value="account_group-asc">Kelompok Akun (A - Z)</option>
+                <option value="account_group-desc">Kelompok Akun (Z - A)</option>
+                <option value="normal_balance-asc">Saldo Normal (Debit - Kredit)</option>
+                <option value="normal_balance-desc">Saldo Normal (Kredit - Debit)</option>
+                <option value="is_active-asc">Status (Aktif Terlebih Dahulu)</option>
+                <option value="is_active-desc">Status (Nonaktif Terlebih Dahulu)</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
             <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
             <p className="text-xs text-slate-400">Memuat data master...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-container">
             {/* 1. TAB JENIS KAS (DOMPET KAS TUNAI & BANK) */}
             {activeTab === 'cash_accounts' && (
               <table className="w-full text-left text-xs">
@@ -927,7 +1126,7 @@ export default function MasterData() {
                     <th className="px-5 py-3 text-right">Saldo Awal Kas</th>
                     <th className="px-5 py-3 text-right">Saldo Berjalan</th>
                     <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3 text-right">Aksi &amp; Riwayat</th>
+                    <th className="px-5 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi &amp; Riwayat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -968,7 +1167,7 @@ export default function MasterData() {
                           {item.account_code ? (
                             <div className="flex flex-col">
                               <div className="flex items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-mono font-bold text-[10px]">
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono font-bold text-[10px]">
                                   {item.account_code}
                                 </span>
                                 <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[200px]" title={item.account_name}>
@@ -991,13 +1190,9 @@ export default function MasterData() {
                         </td>
                         <td className="px-5 py-3.5">
                           {item.is_active ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                              <CheckCircle2 className="w-3 h-3" /> Aktif
-                            </span>
+                            <StatusPill variant="success">Aktif</StatusPill>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                              <XCircle className="w-3 h-3" /> Non-aktif
-                            </span>
+                            <StatusPill variant="neutral">Non-aktif</StatusPill>
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right">
@@ -1073,14 +1268,79 @@ export default function MasterData() {
             {/* 2. TAB BAGAN AKUN (COA) */}
             {activeTab === 'coa' && (
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 select-none">
                   <tr>
-                    <th className="px-5 py-3">Kode Akun</th>
-                    <th className="px-5 py-3">Nama Akun (COA)</th>
-                    <th className="px-5 py-3">Kelompok Akun</th>
-                    <th className="px-5 py-3">Saldo Normal</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3 text-right">Aksi &amp; Riwayat</th>
+                    <th
+                      onClick={() => handleCoaSort('account_code')}
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100/80 transition group"
+                      title="Klik untuk mengurutkan berdasarkan Kode Akun"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={coaSortField === 'account_code' ? 'font-bold text-emerald-800' : ''}>Kode Akun</span>
+                        {coaSortField === 'account_code' ? (
+                          coaSortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 opacity-60" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleCoaSort('account_name')}
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100/80 transition group"
+                      title="Klik untuk mengurutkan berdasarkan Nama Akun"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={coaSortField === 'account_name' ? 'font-bold text-emerald-800' : ''}>Nama Akun (COA)</span>
+                        {coaSortField === 'account_name' ? (
+                          coaSortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 opacity-60" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleCoaSort('account_group')}
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100/80 transition group"
+                      title="Klik untuk mengurutkan berdasarkan Kelompok Akun"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={coaSortField === 'account_group' ? 'font-bold text-emerald-800' : ''}>Kelompok Akun</span>
+                        {coaSortField === 'account_group' ? (
+                          coaSortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 opacity-60" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleCoaSort('normal_balance')}
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100/80 transition group"
+                      title="Klik untuk mengurutkan berdasarkan Saldo Normal"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={coaSortField === 'normal_balance' ? 'font-bold text-emerald-800' : ''}>Saldo Normal</span>
+                        {coaSortField === 'normal_balance' ? (
+                          coaSortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 opacity-60" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleCoaSort('is_active')}
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100/80 transition group"
+                      title="Klik untuk mengurutkan berdasarkan Status Keaktifan"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={coaSortField === 'is_active' ? 'font-bold text-emerald-800' : ''}>Status</span>
+                        {coaSortField === 'is_active' ? (
+                          coaSortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-emerald-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 opacity-60" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-5 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi &amp; Riwayat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1094,15 +1354,17 @@ export default function MasterData() {
                     filteredCoa.map((item) => {
                       const grp = COA_GROUPS[item.account_group] || { label: item.account_group, bg: 'bg-slate-100 text-slate-700 border-slate-200' };
                       const normal = item.normal_balance || grp.normal || 'debit';
+                      const isHeader = ['101', '102', '103', '105', '200', '301', '302', '303', '304', '305', '306', '307', '308', '690', '800'].includes(String(item.account_code));
+
                       return (
-                        <tr key={item.id} className={`hover:bg-slate-50/60 transition ${item.level === 1 ? 'bg-slate-50/30' : ''}`}>
+                        <tr key={item.id} className={`transition ${isHeader ? 'bg-slate-100/70 font-semibold border-t-2 border-slate-200' : 'hover:bg-slate-50/60'}`}>
                           <td className="px-5 py-3.5 font-mono text-xs">
-                            <span className={item.level === 2 ? 'pl-3 font-mono font-medium text-emerald-600' : 'font-mono font-bold text-emerald-800'}>
+                            <span className={isHeader ? 'font-mono font-black text-slate-900' : item.level === 2 ? 'pl-3 font-mono font-medium text-emerald-600' : 'font-mono font-bold text-emerald-800'}>
                               {item.account_code}
                             </span>
                           </td>
                           <td className="px-5 py-3.5 text-xs text-slate-800">
-                            <div className={`flex items-center gap-1.5 ${item.level === 2 ? 'pl-4 font-normal text-slate-700' : 'font-bold text-slate-900'}`}>
+                            <div className={`flex items-center gap-1.5 ${isHeader ? 'font-bold text-slate-900 text-[12.5px]' : item.level === 2 ? 'pl-4 font-normal text-slate-700' : 'font-semibold text-slate-900'}`}>
                               {item.level === 2 && <span className="text-slate-300 font-mono text-xs">&bull;</span>}
                               <span>{item.account_name}</span>
                             </div>
@@ -1118,20 +1380,20 @@ export default function MasterData() {
                                 KREDIT
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200 font-mono">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 text-indigo-700 border border-blue-200 font-mono">
                                 DEBIT
                               </span>
                             )}
                           </td>
                           <td className="px-5 py-3.5">
-                            {item.is_active ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                <CheckCircle2 className="w-3 h-3" /> Aktif
+                            {isHeader ? (
+                              <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-200/80 border border-slate-300 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                (Header - Nonaktif)
                               </span>
+                            ) : item.is_active ? (
+                              <StatusPill variant="success">Aktif</StatusPill>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                <XCircle className="w-3 h-3" /> Non-aktif
-                              </span>
+                              <StatusPill variant="neutral">Non-aktif</StatusPill>
                             )}
                           </td>
                           <td className="px-5 py-3.5 text-right">
@@ -1213,7 +1475,7 @@ export default function MasterData() {
                     type="button"
                     onClick={() => setRuleTypeFilter('non_kas')}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
-                      ruleTypeFilter === 'non_kas' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white text-blue-700 hover:bg-blue-50 border border-blue-200'
+                      ruleTypeFilter === 'non_kas' ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white text-indigo-700 hover:bg-indigo-50 border border-blue-200'
                     }`}
                   >
                     <RefreshCw className="w-3 h-3" /> Non-Kas ({transactionRules.filter(r => r.transaction_type === 'non_kas').length})
@@ -1264,7 +1526,6 @@ export default function MasterData() {
                                   <th className="px-4 py-2.5">Jenis Transaksi</th>
                                   <th className="px-4 py-2.5">Akun Debit</th>
                                   <th className="px-4 py-2.5">Akun Kredit</th>
-                                  <th className="px-4 py-2.5">Kas Terkait</th>
                                   <th className="px-4 py-2.5">Pos / Kategori</th>
                                   <th className="px-4 py-2.5">Tipe Aturan</th>
                                   <th className="px-4 py-2.5">Status</th>
@@ -1321,22 +1582,8 @@ export default function MasterData() {
                                       )}
                                     </td>
                                     <td className="px-4 py-3 text-slate-600">
-                                      {item.transaction_type !== 'non_kas' ? (
-                                        item.default_cash_account_name ? (
-                                          <div className="font-medium text-slate-700 flex items-center gap-1">
-                                            <Wallet className="w-3 h-3 text-emerald-600 shrink-0" />
-                                            <span>{item.default_cash_account_name}</span>
-                                          </div>
-                                        ) : (
-                                          <span className="text-slate-400 italic text-[11px]">Sesuai Kas Transaksi</span>
-                                        )
-                                      ) : (
-                                        <span className="text-slate-300 italic text-[11px]">- Non-Kas -</span>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-3 text-slate-600">
                                       {item.related_fee_type_name ? (
-                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-indigo-700 border border-blue-200">
                                           Pos: {item.related_fee_type_name}
                                         </span>
                                       ) : item.related_category_name ? (
@@ -1363,13 +1610,9 @@ export default function MasterData() {
                                     </td>
                                     <td className="px-4 py-3">
                                       {item.is_active ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                          <CheckCircle2 className="w-3 h-3" /> Aktif
-                                        </span>
+                                        <StatusPill variant="success">Aktif</StatusPill>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                          <XCircle className="w-3 h-3" /> Non-aktif
-                                        </span>
+                                        <StatusPill variant="neutral">Non-aktif</StatusPill>
                                       )}
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -1459,7 +1702,6 @@ export default function MasterData() {
                                   <th className="px-4 py-2.5">Jenis Transaksi</th>
                                   <th className="px-4 py-2.5">Akun Debit</th>
                                   <th className="px-4 py-2.5">Akun Kredit</th>
-                                  <th className="px-4 py-2.5">Kas Terkait</th>
                                   <th className="px-4 py-2.5">Pos / Kategori</th>
                                   <th className="px-4 py-2.5">Tipe Aturan</th>
                                   <th className="px-4 py-2.5">Status</th>
@@ -1485,15 +1727,8 @@ export default function MasterData() {
                                       <div className="font-mono text-[10px] text-slate-400">{item.credit_account_code}</div>
                                     </td>
                                     <td className="px-4 py-3 text-slate-600">
-                                      {item.transaction_type !== 'non_kas' ? (
-                                        item.default_cash_account_name || <span className="text-slate-400 italic text-[11px]">Sesuai Kas Transaksi</span>
-                                      ) : (
-                                        <span className="text-slate-300 italic text-[11px]">- Non-Kas -</span>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-3 text-slate-600">
                                       {item.related_fee_type_name ? (
-                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-indigo-700 border border-blue-200">
                                           Pos: {item.related_fee_type_name}
                                         </span>
                                       ) : item.related_category_name ? (
@@ -1511,13 +1746,9 @@ export default function MasterData() {
                                     </td>
                                     <td className="px-4 py-3">
                                       {item.is_active ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                          <CheckCircle2 className="w-3 h-3" /> Aktif
-                                        </span>
+                                        <StatusPill variant="success">Aktif</StatusPill>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                          <XCircle className="w-3 h-3" /> Non-aktif
-                                        </span>
+                                        <StatusPill variant="neutral">Non-aktif</StatusPill>
                                       )}
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -1567,7 +1798,7 @@ export default function MasterData() {
 
             {/* 4. TAB JENIS BIAYA TAGIHAN */}
             {activeTab === 'fee_types' && (
-              <div className="overflow-x-auto">
+              <div className="table-container">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                     <tr>
@@ -1626,7 +1857,7 @@ export default function MasterData() {
                             {item.billing_mapping_label ? (
                               <div>
                                 <div className="font-semibold text-blue-900 flex items-center gap-1">
-                                  <RefreshCw className="w-3 h-3 text-blue-600 shrink-0" />
+                                  <RefreshCw className="w-3 h-3 text-indigo-600 shrink-0" />
                                   <span>{item.billing_mapping_label}</span>
                                 </div>
                                 <div className="font-mono text-[10px] text-slate-400">Kode: {item.billing_mapping_code}</div>
@@ -1684,13 +1915,9 @@ export default function MasterData() {
                           </td>
                           <td className="px-4 py-3.5 whitespace-nowrap">
                             {item.is_active ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                <CheckCircle2 className="w-3 h-3" /> Aktif
-                              </span>
+                              <StatusPill variant="success">Aktif</StatusPill>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                <XCircle className="w-3 h-3" /> Non-aktif
-                              </span>
+                              <StatusPill variant="neutral">Non-aktif</StatusPill>
                             )}
                           </td>
                           <td className="px-4 py-3.5 text-right whitespace-nowrap">
@@ -1741,7 +1968,7 @@ export default function MasterData() {
                     <th className="px-5 py-3">Nama Kategori</th>
                     <th className="px-5 py-3">Jenis Mutasi</th>
                     <th className="px-5 py-3">Akun Terkait (COA)</th>
-                    <th className="px-5 py-3 text-right">Aksi &amp; Riwayat</th>
+                    <th className="px-5 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi &amp; Riwayat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1806,7 +2033,7 @@ export default function MasterData() {
                     <th className="px-5 py-3">Bentuk Keringanan</th>
                     <th className="px-5 py-3">Potongan / Nominal</th>
                     <th className="px-5 py-3">Status Pengajuan</th>
-                    <th className="px-5 py-3 text-right">Aksi &amp; Riwayat</th>
+                    <th className="px-5 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi &amp; Riwayat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1882,7 +2109,7 @@ export default function MasterData() {
       {/* Modal Form Tambah / Edit (Wajib Catatan Perubahan saat Edit) */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className={`bg-white rounded-2xl shadow-2xl ${activeTab === 'transaction_rules' || activeTab === 'fee_types' ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[90vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150 overflow-hidden`}>
+          <div className={`bg-white rounded-xl shadow-xl ${activeTab === 'transaction_rules' || activeTab === 'fee_types' ? 'max-w-4xl' : 'max-w-xl'} w-full max-h-[90vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150 overflow-hidden`}>
             <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0 bg-slate-50/50">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">
@@ -2052,7 +2279,7 @@ export default function MasterData() {
                       <span className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono uppercase border ${
                         (formData.normal_balance || COA_GROUPS[formData.account_group]?.normal) === 'credit'
                           ? 'bg-purple-50 text-purple-700 border-purple-200'
-                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-blue-50 text-indigo-700 border-blue-200'
                       }`}>
                         {(formData.normal_balance || COA_GROUPS[formData.account_group]?.normal || 'debit').toUpperCase()}
                       </span>
@@ -2151,11 +2378,11 @@ export default function MasterData() {
                           disabled={formData.is_system}
                           checked={(formData.transaction_type || 'non_kas') === 'non_kas'}
                           onChange={() => setFormData({ ...formData, transaction_type: 'non_kas', default_cash_account_id: '', related_fee_type_id: '', related_transaction_category_id: '' })}
-                          className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                          className="mt-0.5 text-indigo-600 focus:ring-blue-500"
                         />
                         <div>
                           <div className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                            <RefreshCw className="w-3.5 h-3.5 text-blue-600" /> Non-Kas (Accrual / Adjustment)
+                            <RefreshCw className="w-3.5 h-3.5 text-indigo-600" /> Non-Kas (Accrual / Adjustment)
                           </div>
                           <div className="text-[10px] text-slate-500 mt-0.5">Tidak mempengaruhi saldo kas (penerbitan tagihan/piutang, diskon, tutup buku)</div>
                         </div>
@@ -2218,38 +2445,8 @@ export default function MasterData() {
                     </div>
                   </div>
 
-                  {/* Conditional Relations: Kas, Pos Biaya, Kategori Belanja */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Jenis Kas Terkait: hanya jika transaksi melibatkan kas */}
-                    {formData.transaction_type !== 'non_kas' ? (
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
-                          Kas Terkait {formData.transaction_type === 'pemindahan_kas' ? '(Default Asal)' : '(Default)'}
-                        </label>
-                        <SearchableSelect
-                          options={[
-                            { value: '', label: '-- Fleksibel (Sesuai Transaksi) --', sublabel: 'Mengikuti dompet/rekening yang dipilih saat transaksi' },
-                            ...cashAccounts.map((c) => ({
-                              value: c.id,
-                              label: c.name,
-                              sublabel: c.account_kind === 'bank' ? `${c.bank_name} (${c.bank_account_number})` : 'Kas Tunai / Fisik'
-                            }))
-                          ]}
-                          value={formData.default_cash_account_id || ''}
-                          onChange={(val) => setFormData({ ...formData, default_cash_account_id: val ? Number(val) : '' })}
-                          placeholder="-- Fleksibel --"
-                          searchPlaceholder="Cari nama kas atau bank..."
-                          menuMinWidth="max(100%, 320px)"
-                        />
-                      </div>
-                    ) : (
-                      <div className="opacity-50 pointer-events-none">
-                        <label className="block text-xs font-semibold text-slate-400 mb-1">Kas Terkait</label>
-                        <div className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-400 italic">
-                          Tidak berlaku untuk Non-Kas
-                        </div>
-                      </div>
-                    )}
+                  {/* Conditional Relations: Pos Biaya & Kategori Belanja */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                     {/* Pos Alokasi Dana Terkait: hanya jika penambahan_kas atau pengurangan_kas */}
                     {(formData.transaction_type === 'penambahan_kas' || formData.transaction_type === 'pengurangan_kas') ? (
@@ -2639,7 +2836,7 @@ export default function MasterData() {
       {/* Modal Riwayat Audit Trail / Perubahan Data */}
       {historyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150 flex flex-col max-h-[85vh]">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150 flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
@@ -2670,7 +2867,7 @@ export default function MasterData() {
                   <p className="text-xs text-slate-400">Memuat log audit riwayat perubahan...</p>
                 </div>
               ) : historyLogs.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                   <History className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                   <p className="text-xs font-semibold text-slate-600">Belum ada riwayat perubahan tercatat</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -2755,7 +2952,7 @@ export default function MasterData() {
       {/* Modal Override Struktural Aturan Sistem (Khusus Super Admin) */}
       {overrideModalOpen && selectedRuleForOverride && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
@@ -2820,24 +3017,6 @@ export default function MasterData() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kas Default (Opsional)</label>
-                <SearchableSelect
-                  options={[
-                    { value: '', label: '-- Fleksibel / Mengikuti Transaksi --', sublabel: 'Tanpa penguncian dompet kas' },
-                    ...cashAccounts.map((c) => ({
-                      value: c.id,
-                      label: c.name,
-                      sublabel: c.account_kind === 'bank' ? `${c.bank_name} (${c.bank_account_number})` : 'Kas Tunai / Fisik'
-                    }))
-                  ]}
-                  value={overrideFormData.default_cash_account_id || ''}
-                  onChange={(val) => setOverrideFormData({ ...overrideFormData, default_cash_account_id: val ? Number(val) : '' })}
-                  placeholder="-- Fleksibel / Mengikuti Transaksi --"
-                  searchPlaceholder="Cari dompet kas..."
-                />
-              </div>
-
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
                 <label className="block text-xs font-bold text-amber-900 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
@@ -2880,7 +3059,7 @@ export default function MasterData() {
       {/* Modal Form Pemindahan Kas (Mutasi Internal Antar Dompet/Rekening) */}
       {transferModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -3031,7 +3210,7 @@ export default function MasterData() {
       {/* Modal Riwayat Pemindahan Kas (Mutasi Internal) */}
       {transferHistoryOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[85vh] flex flex-col border border-slate-100 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">

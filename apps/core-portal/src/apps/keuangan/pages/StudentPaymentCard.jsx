@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import SearchableSelect from '../../../shared/components/SearchableSelect';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
 import {
   FileText,
   Printer,
@@ -39,190 +44,17 @@ import {
   Building2,
   Check,
   Tag,
-  BookOpen
+  BookOpen,
+  BarChart3,
+  PieChart,
+  Percent,
+  Activity,
+  Wallet,
+  Landmark,
+  TrendingDown,
+  Target,
+  Zap
 } from 'lucide-react';
-
-/**
- * Custom Searchable Dropdown / Combobox Component
- */
-function SearchableSelect({
-  label,
-  icon: Icon,
-  options = [],
-  value,
-  onChange,
-  placeholder = 'Pilih...',
-  searchPlaceholder = 'Cari opsi...',
-  disabled = false,
-  badgeText = null,
-  getOptionLabel = (opt) => opt?.name || opt?.label || '',
-  getOptionValue = (opt) => opt?.id ?? opt?.value ?? '',
-  getOptionSubtext = (opt) => null,
-  getOptionBadge = (opt) => null,
-  className = ''
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const containerRef = useRef(null);
-  const searchInputRef = useRef(null);
-
-  // Close on outside click
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Focus search input on open
-  useEffect(() => {
-    if (isOpen) {
-      setSearchTerm('');
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-    }
-  }, [isOpen]);
-
-  const selectedOption = options.find((opt) => String(getOptionValue(opt)) === String(value));
-
-  const filteredOptions = options.filter((opt) => {
-    if (!searchTerm.trim()) return true;
-    const labelStr = String(getOptionLabel(opt) || '').toLowerCase();
-    const subStr = String(getOptionSubtext(opt) || '').toLowerCase();
-    const q = searchTerm.toLowerCase();
-    return labelStr.includes(q) || subStr.includes(q);
-  });
-
-  return (
-    <div ref={containerRef} className={`relative space-y-1.5 ${className}`}>
-      {label && (
-        <div className="flex items-center justify-between">
-          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-            {Icon && <Icon className="w-3.5 h-3.5 text-emerald-600" />}
-            <span>{label}</span>
-          </label>
-          {badgeText && (
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.2 rounded-full">
-              {badgeText}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Trigger Button */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl border text-xs font-semibold transition-all duration-150 text-left ${
-          isOpen
-            ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
-            : 'bg-slate-50/80 hover:bg-white border-slate-200/90 shadow-2xs'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-      >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {Icon && <Icon className="w-4 h-4 text-slate-400 shrink-0" />}
-          <div className="truncate flex items-center gap-1.5 flex-1">
-            {selectedOption ? (
-              <>
-                <span className="font-bold text-slate-800 truncate">{getOptionLabel(selectedOption)}</span>
-                {getOptionBadge && getOptionBadge(selectedOption)}
-              </>
-            ) : (
-              <span className="text-slate-400 font-normal">{placeholder}</span>
-            )}
-          </div>
-        </div>
-        <ChevronDown
-          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-emerald-600' : ''
-          }`}
-        />
-      </button>
-
-      {/* Popover Dropdown Panel */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200/90 z-50 overflow-hidden flex flex-col max-h-72 animate-in fade-in zoom-in-95 duration-100">
-          {/* Live Search Input inside Dropdown */}
-          <div className="p-2.5 border-b border-slate-100 bg-slate-50/70">
-            <div className="relative">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full text-xs font-semibold py-2 pl-8 pr-7 bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition placeholder:text-slate-400"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2 top-2 p-0.5 text-slate-400 hover:text-slate-700"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Options List */}
-          <div className="overflow-y-auto divide-y divide-slate-50 p-1">
-            {filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-slate-400 text-xs font-medium">
-                Tidak ada opsi yang cocok dengan "{searchTerm}"
-              </div>
-            ) : (
-              filteredOptions.map((opt) => {
-                const optVal = getOptionValue(opt);
-                const isSelected = String(optVal) === String(value);
-                const optLabel = getOptionLabel(opt);
-                const optSub = getOptionSubtext ? getOptionSubtext(opt) : null;
-                const optBadge = getOptionBadge ? getOptionBadge(opt) : null;
-
-                return (
-                  <button
-                    key={String(optVal)}
-                    type="button"
-                    onClick={() => {
-                      onChange(optVal, opt);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full p-2.5 rounded-xl text-left text-xs font-medium transition flex items-center justify-between gap-2 group ${
-                      isSelected
-                        ? 'bg-emerald-50/90 text-emerald-900 font-bold'
-                        : 'hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`truncate ${isSelected ? 'text-emerald-950 font-black' : ''}`}>
-                          {optLabel}
-                        </span>
-                        {optBadge}
-                      </div>
-                      {optSub && (
-                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">{optSub}</div>
-                      )}
-                    </div>
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0 stroke-[2.5]" />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function StudentPaymentCard() {
   const { activeSchoolUnit } = useAuth();
@@ -238,6 +70,8 @@ export default function StudentPaymentCard() {
 
   // Master Data states
   const [academicYears, setAcademicYears] = useState([]);
+  const [cohorts, setCohorts] = useState([]);
+  const [gradeLevels, setGradeLevels] = useState([]);
   const [allClassGroups, setAllClassGroups] = useState([]);
   const [filteredClassGroups, setFilteredClassGroups] = useState([]);
   const [feeTypes, setFeeTypes] = useState([]);
@@ -251,20 +85,31 @@ export default function StudentPaymentCard() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [ledgerData, setLedgerData] = useState(null);
   const [loadingLedger, setLoadingLedger] = useState(false);
-  const [individualAllYears, setIndividualAllYears] = useState(false);
+  const [individualAllYears, setIndividualAllYears] = useState(true);
   const [individualAcademicYear, setIndividualAcademicYear] = useState('');
+  const [expandedMonthlyRows, setExpandedMonthlyRows] = useState({});
+  const [detailSearchTerm, setDetailSearchTerm] = useState('');
+  const [detailFeeTypeId, setDetailFeeTypeId] = useState('');
+  const [detailStatusFilter, setDetailStatusFilter] = useState('all');
 
   // Class Recap State
   const [classRecap, setClassRecap] = useState(null);
   const [loadingRecap, setLoadingRecap] = useState(false);
   const [recapAllYears, setRecapAllYears] = useState(false);
   const [recapAcademicYear, setRecapAcademicYear] = useState('');
+  const [selectedCohortId, setSelectedCohortId] = useState('');
+  const [selectedGradeLevelId, setSelectedGradeLevelId] = useState('');
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all');
   const [selectedFeeTypeId, setSelectedFeeTypeId] = useState('');
   const [recapSearchTerm, setRecapSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+
+  // Collection Performance Analytics State
+  const [performanceData, setPerformanceData] = useState(null);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
+  const [activeBreakdownGroup, setActiveBreakdownGroup] = useState('class'); // 'class' | 'cohort' | 'grade_level'
 
   // Export states
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -314,11 +159,12 @@ export default function StudentPaymentCard() {
     try {
       const ayParams = activeSchoolUnit?.id ? { satuan_pendidikan_id: activeSchoolUnit.id } : {};
 
-      const [ayRes, repAyRes, clsRes, ftRes] = await Promise.allSettled([
+      const [ayRes, repAyRes, clsRes, ftRes, filterOptRes] = await Promise.allSettled([
         api.get('/akademik/academic-years', { params: ayParams }),
         api.get('/keuangan/reports/academic-years', { params: ayParams }),
         api.get('/keuangan/reports/classes', { params: ayParams }),
-        api.get('/keuangan/fee-types', { params: ayParams })
+        api.get('/keuangan/fee-types', { params: ayParams }),
+        api.get('/keuangan/reports/student-ledger/filter-options', { params: ayParams })
       ]);
 
       let rawYears = [];
@@ -375,6 +221,21 @@ export default function StudentPaymentCard() {
       }
       setFeeTypes(fees);
 
+      // Filter Options: Cohorts (Angkatan) & Grade Levels (Tingkat)
+      if (filterOptRes.status === 'fulfilled' && filterOptRes.value?.data?.data) {
+        const fData = filterOptRes.value.data.data;
+        setCohorts(fData.cohorts || []);
+        setGradeLevels(fData.grade_levels || []);
+      } else {
+        // Fallbacks
+        const [cRes, gRes] = await Promise.allSettled([
+          api.get('/keuangan/reports/student-ledger/filters/cohorts', { params: ayParams }),
+          api.get('/keuangan/reports/student-ledger/filters/grade-levels', { params: ayParams })
+        ]);
+        if (cRes.status === 'fulfilled') setCohorts(cRes.value.data?.data || []);
+        if (gRes.status === 'fulfilled') setGradeLevels(gRes.value.data?.data || []);
+      }
+
       // Set default selected academic year
       if (uniqueAys.length > 0) {
         const activeAy = uniqueAys.find((y) => y.is_active) || uniqueAys[0];
@@ -398,24 +259,26 @@ export default function StudentPaymentCard() {
     fetchMasterData();
   }, [activeSchoolUnit]);
 
-  // Filter Classes strictly according to Selected Academic Year & Unit
+  // Filter Classes strictly according to Selected Academic Year, Grade Level & Unit
   useEffect(() => {
-    if (recapAllYears) {
-      setFilteredClassGroups(allClassGroups);
-    } else if (recapAcademicYear) {
-      const filtered = allClassGroups.filter(
+    let list = allClassGroups;
+    if (!recapAllYears && recapAcademicYear) {
+      list = list.filter(
         (c) => String(c.academic_year_id) === String(recapAcademicYear)
       );
-      setFilteredClassGroups(filtered);
-
-      // Reset selected class if it's no longer in the filtered list
-      if (selectedClassId && !filtered.some((c) => String(c.id) === String(selectedClassId))) {
-        setSelectedClassId('');
-      }
-    } else {
-      setFilteredClassGroups(allClassGroups);
     }
-  }, [recapAcademicYear, recapAllYears, allClassGroups]);
+    if (selectedGradeLevelId) {
+      list = list.filter(
+        (c) => String(c.grade_level_id) === String(selectedGradeLevelId)
+      );
+    }
+    setFilteredClassGroups(list);
+
+    // Reset selected class if it's no longer in the filtered list
+    if (selectedClassId && !list.some((c) => String(c.id) === String(selectedClassId))) {
+      setSelectedClassId('');
+    }
+  }, [recapAcademicYear, recapAllYears, selectedGradeLevelId, allClassGroups]);
 
   // 2. Fetch Individual Student Ledger
   const fetchStudentLedger = async (studentId) => {
@@ -486,6 +349,8 @@ export default function StudentPaymentCard() {
         params.academic_year_id = recapAcademicYear;
       }
 
+      if (selectedCohortId) params.cohort_id = selectedCohortId;
+      if (selectedGradeLevelId) params.grade_level_id = selectedGradeLevelId;
       if (selectedClassId) params.class_id = selectedClassId;
       if (selectedPaymentStatus !== 'all') params.payment_status = selectedPaymentStatus;
       if (selectedFeeTypeId) params.fee_type_id = selectedFeeTypeId;
@@ -509,8 +374,49 @@ export default function StudentPaymentCard() {
     activeTab,
     recapAllYears,
     recapAcademicYear,
+    selectedCohortId,
+    selectedGradeLevelId,
     selectedClassId,
     selectedPaymentStatus,
+    selectedFeeTypeId,
+    activeSchoolUnit
+  ]);
+
+  // 3b. Fetch Collection Performance Analytics
+  const fetchCollectionPerformance = async () => {
+    setLoadingPerformance(true);
+    try {
+      const params = {};
+      if (recapAllYears) {
+        params.all_years = true;
+      } else if (recapAcademicYear) {
+        params.academic_year_id = recapAcademicYear;
+      }
+      if (selectedCohortId) params.cohort_id = selectedCohortId;
+      if (selectedGradeLevelId) params.grade_level_id = selectedGradeLevelId;
+      if (selectedClassId) params.class_id = selectedClassId;
+      if (selectedFeeTypeId) params.fee_type_id = selectedFeeTypeId;
+
+      const res = await api.get('/keuangan/reports/student-ledger/collection-performance', { params });
+      setPerformanceData(res.data?.data || null);
+    } catch (err) {
+      console.error('Error fetching collection performance:', err);
+    } finally {
+      setLoadingPerformance(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'performance') {
+      fetchCollectionPerformance();
+    }
+  }, [
+    activeTab,
+    recapAllYears,
+    recapAcademicYear,
+    selectedCohortId,
+    selectedGradeLevelId,
+    selectedClassId,
     selectedFeeTypeId,
     activeSchoolUnit
   ]);
@@ -532,6 +438,8 @@ export default function StudentPaymentCard() {
       const params = new URLSearchParams();
       if (recapAllYears) params.append('all_years', 'true');
       else if (recapAcademicYear) params.append('academic_year_id', recapAcademicYear);
+      if (selectedCohortId) params.append('cohort_id', selectedCohortId);
+      if (selectedGradeLevelId) params.append('grade_level_id', selectedGradeLevelId);
       if (selectedClassId) params.append('class_id', selectedClassId);
       if (selectedPaymentStatus !== 'all') params.append('payment_status', selectedPaymentStatus);
       if (selectedFeeTypeId) params.append('fee_type_id', selectedFeeTypeId);
@@ -565,6 +473,8 @@ export default function StudentPaymentCard() {
       const params = new URLSearchParams();
       if (recapAllYears) params.append('all_years', 'true');
       else if (recapAcademicYear) params.append('academic_year_id', recapAcademicYear);
+      if (selectedCohortId) params.append('cohort_id', selectedCohortId);
+      if (selectedGradeLevelId) params.append('grade_level_id', selectedGradeLevelId);
       if (selectedClassId) params.append('class_id', selectedClassId);
       if (selectedPaymentStatus !== 'all') params.append('payment_status', selectedPaymentStatus);
       if (selectedFeeTypeId) params.append('fee_type_id', selectedFeeTypeId);
@@ -700,13 +610,32 @@ export default function StudentPaymentCard() {
     end_date: ay.end_date
   }));
 
+  const cohortOptions = [
+    { id: '', name: 'Semua Angkatan' },
+    ...cohorts.map((ch) => ({
+      id: ch.id,
+      name: ch.name ? `${ch.name} (${ch.year})` : `Angkatan ${ch.year}`,
+      year: ch.year
+    }))
+  ];
+
+  const gradeLevelOptions = [
+    { id: '', name: 'Semua Tingkat' },
+    ...gradeLevels.map((gl) => ({
+      id: gl.id,
+      name: gl.name || `Tingkat ${gl.level_order || gl.id}`,
+      level_order: gl.level_order
+    }))
+  ];
+
   const classOptions = [
     { id: '', name: 'Semua Kelas (Reguler)' },
     ...filteredClassGroups.map((c) => ({
       id: c.id,
       name: `Kelas ${c.name}`,
       student_count: c.student_count,
-      academic_year_id: c.academic_year_id
+      academic_year_id: c.academic_year_id,
+      grade_level_id: c.grade_level_id
     }))
   ];
 
@@ -728,7 +657,7 @@ export default function StudentPaymentCard() {
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
       {/* Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-800/40">
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/20 border border-emerald-800/40">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 -mb-16 w-60 h-60 rounded-full bg-teal-400/10 blur-2xl pointer-events-none" />
 
@@ -762,7 +691,7 @@ export default function StudentPaymentCard() {
                   type="button"
                   onClick={handleExportExcel}
                   disabled={downloadingExcel || loadingRecap}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-950/30 transition duration-200 disabled:opacity-60"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-950/30 transition duration-200 disabled:opacity-60"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
                   <span>{downloadingExcel ? 'Mengunduh...' : 'Ekspor Excel'}</span>
@@ -771,7 +700,7 @@ export default function StudentPaymentCard() {
                   type="button"
                   onClick={handleExportPdf}
                   disabled={downloadingPdf || loadingRecap}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-lg shadow-rose-950/30 transition duration-200 disabled:opacity-60"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-950/30 transition duration-200 disabled:opacity-60"
                 >
                   <Printer className="w-4 h-4" />
                   <span>{downloadingPdf ? 'Mengunduh...' : 'Ekspor PDF'}</span>
@@ -784,7 +713,7 @@ export default function StudentPaymentCard() {
                 type="button"
                 onClick={handleDownloadIndividualPdf}
                 disabled={downloadingPdf || loadingLedger}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-lg shadow-indigo-950/30 transition duration-200 disabled:opacity-60"
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-950/30 transition duration-200 disabled:opacity-60"
               >
                 <Printer className="w-4 h-4" />
                 <span>{downloadingPdf ? 'Mencetak...' : 'Cetak Kartu PDF'}</span>
@@ -796,14 +725,15 @@ export default function StudentPaymentCard() {
               onClick={() => {
                 fetchMasterData();
                 if (activeTab === 'class_recap') fetchClassRecap(currentPage);
+                else if (activeTab === 'performance') fetchCollectionPerformance();
                 else if (selectedStudentId) fetchStudentLedger(selectedStudentId);
               }}
-              disabled={loadingRecap || loadingLedger || loadingMaster}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/20 text-xs font-semibold rounded-2xl backdrop-blur-md transition duration-200 disabled:opacity-60"
+              disabled={loadingRecap || loadingLedger || loadingPerformance || loadingMaster}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white border border-white/20 text-xs font-semibold rounded-xl backdrop-blur-md transition duration-200 disabled:opacity-60"
             >
               <RotateCw
                 className={`w-4 h-4 ${
-                  loadingRecap || loadingLedger || loadingMaster
+                  loadingRecap || loadingLedger || loadingPerformance || loadingMaster
                     ? 'animate-spin text-emerald-300'
                     : 'text-slate-300'
                 }`}
@@ -818,7 +748,7 @@ export default function StudentPaymentCard() {
           <button
             type="button"
             onClick={() => setActiveTab('class_recap')}
-            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 ${
+            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
               activeTab === 'class_recap'
                 ? 'bg-white text-emerald-950 shadow-lg shadow-black/20 scale-102'
                 : 'bg-white/10 text-emerald-100 hover:bg-white/15'
@@ -831,7 +761,7 @@ export default function StudentPaymentCard() {
           <button
             type="button"
             onClick={() => setActiveTab('individual')}
-            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 ${
+            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
               activeTab === 'individual'
                 ? 'bg-white text-emerald-950 shadow-lg shadow-black/20 scale-102'
                 : 'bg-white/10 text-emerald-100 hover:bg-white/15'
@@ -840,6 +770,22 @@ export default function StudentPaymentCard() {
             <User className="w-4 h-4" />
             <span>Kartu Bayar Individual Santri</span>
             {selectedStudentId && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('performance')}
+            className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+              activeTab === 'performance'
+                ? 'bg-white text-emerald-950 shadow-lg shadow-black/20 scale-102'
+                : 'bg-white/10 text-emerald-100 hover:bg-white/15'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Kinerja Penerimaan & Analytics</span>
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+              Live
+            </span>
           </button>
         </div>
       </div>
@@ -850,7 +796,7 @@ export default function StudentPaymentCard() {
       {activeTab === 'class_recap' && (
         <div className="space-y-6">
           {/* Live Search & Filter Control Bar with Custom Redesigned Comboboxes */}
-          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-5">
+          <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-5">
             {/* Top Filter Row: Cycle Switcher & Status Chips */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               {/* Cycle Toggle */}
@@ -859,7 +805,7 @@ export default function StudentPaymentCard() {
                   <Calendar className="w-4 h-4 text-emerald-600" />
                   <span>Siklus Periode:</span>
                 </span>
-                <div className="inline-flex p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60">
+                <div className="inline-flex p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
                   <button
                     type="button"
                     onClick={() => setRecapAllYears(false)}
@@ -874,7 +820,7 @@ export default function StudentPaymentCard() {
                     onClick={() => setRecapAllYears(true)}
                     className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       recapAllYears
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
+                        ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -907,8 +853,8 @@ export default function StudentPaymentCard() {
               </div>
             </div>
 
-            {/* Bottom Filter Row: Custom Searchable Comboboxes Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Bottom Filter Row: Custom Searchable Comboboxes Grid (6 Kolom Filter Responsif) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
               {/* 1. Custom Dropdown Tahun Ajaran with Live Search */}
               {!recapAllYears ? (
                 <SearchableSelect
@@ -923,9 +869,7 @@ export default function StudentPaymentCard() {
                   getOptionValue={(opt) => opt.id}
                   getOptionBadge={(opt) =>
                     opt.is_active ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        ★ Aktif / Berjalan
-                      </span>
+                      <StatusPill variant="success">Aktif</StatusPill>
                     ) : null
                   }
                   getOptionSubtext={(opt) =>
@@ -940,15 +884,57 @@ export default function StudentPaymentCard() {
                     <Calendar className="w-3.5 h-3.5 text-purple-600" />
                     <span>Tahun Ajaran</span>
                   </label>
-                  <div className="w-full px-3.5 py-2.5 rounded-2xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-800">
-                    Riwayat Penuh (Semua Tahun)
+                  <div className="w-full px-3.5 py-2.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-800 truncate">
+                    Semua Tahun
                   </div>
                 </div>
               )}
 
-              {/* 2. Custom Dropdown Rombel / Kelas (Filtered strictly to Reguler & Selected Year) */}
+              {/* 2. Custom Dropdown Angkatan / Cohort */}
               <SearchableSelect
-                label="Rombel / Kelas (Reguler)"
+                label="Angkatan (Cohort)"
+                icon={BookOpen}
+                options={cohortOptions}
+                value={selectedCohortId}
+                onChange={(val) => setSelectedCohortId(val)}
+                placeholder="Semua Angkatan..."
+                searchPlaceholder="Cari angkatan (cth: 2024)..."
+                badgeText={cohorts.length > 0 ? `${cohorts.length} Angkatan` : null}
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+                getOptionBadge={(opt) =>
+                  opt.year && opt.id !== '' ? (
+                    <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                      Thn {opt.year}
+                    </span>
+                  ) : null
+                }
+              />
+
+              {/* 3. Custom Dropdown Tingkat / Jenjang Kelas */}
+              <SearchableSelect
+                label="Tingkat Kelas"
+                icon={Layers}
+                options={gradeLevelOptions}
+                value={selectedGradeLevelId}
+                onChange={(val) => setSelectedGradeLevelId(val)}
+                placeholder="Semua Tingkat..."
+                searchPlaceholder="Cari tingkat (cth: 7, 8, 9)..."
+                badgeText={gradeLevels.length > 0 ? `${gradeLevels.length} Tingkat` : null}
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+                getOptionBadge={(opt) =>
+                  opt.level_order && opt.id !== '' ? (
+                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                      Tk. {opt.level_order}
+                    </span>
+                  ) : null
+                }
+              />
+
+              {/* 4. Custom Dropdown Rombel / Kelas (Filtered strictly to Reguler & Selected Year / Grade) */}
+              <SearchableSelect
+                label="Rombel / Kelas"
                 icon={GraduationCap}
                 options={classOptions}
                 value={selectedClassId}
@@ -969,15 +955,15 @@ export default function StudentPaymentCard() {
                 }
               />
 
-              {/* 3. Custom Dropdown Pos Biaya with Live Search */}
+              {/* 5. Custom Dropdown Pos Biaya with Live Search */}
               <SearchableSelect
-                label="Pos Biaya Spesifik"
+                label="Pos Biaya"
                 icon={Receipt}
                 options={feeTypeOptions}
                 value={selectedFeeTypeId}
                 onChange={(val) => setSelectedFeeTypeId(val)}
                 placeholder="Semua Pos Biaya..."
-                searchPlaceholder="Cari pos biaya (cth: SPP, Gedung)..."
+                searchPlaceholder="Cari pos biaya (cth: SPP)..."
                 getOptionLabel={(opt) => opt.name}
                 getOptionValue={(opt) => opt.id}
                 getOptionBadge={(opt) =>
@@ -989,12 +975,12 @@ export default function StudentPaymentCard() {
                 }
               />
 
-              {/* 4. Live Search Santri / NIS Input */}
+              {/* 6. Live Search Santri / NIS Input */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Search className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Live Search Santri / NIS</span>
+                    <span>Cari Santri / NIS</span>
                   </label>
                   {recapSearchTerm && (
                     <span className="text-[10px] text-emerald-600 font-bold lowercase">aktif</span>
@@ -1003,10 +989,10 @@ export default function StudentPaymentCard() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Ketik nama santri atau NIS..."
+                    placeholder="Nama / NIS..."
                     value={recapSearchTerm}
                     onChange={(e) => setRecapSearchTerm(e.target.value)}
-                    className="w-full text-xs font-semibold py-2.5 pl-9 pr-8 rounded-2xl border border-slate-200/90 bg-slate-50/80 hover:bg-white focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition placeholder:text-slate-400 shadow-2xs"
+                    className="w-full text-xs font-semibold py-2.5 pl-9 pr-8 rounded-xl border border-slate-200/90 bg-slate-50/80 hover:bg-white focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition placeholder:text-slate-400 shadow-2xs"
                   />
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   {recapSearchTerm && (
@@ -1025,77 +1011,55 @@ export default function StudentPaymentCard() {
 
           {/* Macro KPI Cards */}
           {classRecap && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-              <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition">
-                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Santri</div>
-                <div className="text-xl sm:text-2xl font-black text-slate-800 mt-1">
-                  {classRecap.performance_summary?.total_students || 0}{' '}
-                  <span className="text-xs font-semibold text-slate-500">Siswa</span>
-                </div>
-                <div className="text-[10px] text-slate-400 mt-1 font-medium truncate">
-                  {classRecap.academic_year?.name}
-                </div>
-              </div>
-
-              <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-2xs hover:shadow-md transition">
-                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Total Kewajiban</div>
-                <div className="text-lg sm:text-xl font-black text-slate-800 mt-1 truncate">
-                  {formatCurrency(classRecap.performance_summary?.total_billed)}
-                </div>
-                <div className="text-[10px] text-blue-600 mt-1 font-semibold">
-                  Diskon: {formatCurrency(classRecap.performance_summary?.total_discount)}
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/40 p-4 sm:p-5 rounded-3xl border border-emerald-100 shadow-2xs hover:shadow-md transition">
-                <div className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">
-                  Kas Masuk (Terbayar)
-                </div>
-                <div className="text-lg sm:text-xl font-black text-emerald-700 mt-1 truncate">
-                  {formatCurrency(classRecap.performance_summary?.total_paid)}
-                </div>
-                <div className="text-[10px] text-emerald-600 mt-1 font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Diterima di kas/bank</span>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-rose-50 to-amber-50/30 p-4 sm:p-5 rounded-3xl border border-rose-100 shadow-2xs hover:shadow-md transition">
-                <div className="text-[11px] text-rose-700 font-bold uppercase tracking-wider">Sisa Tunggakan</div>
-                <div className="text-lg sm:text-xl font-black text-rose-700 mt-1 truncate">
-                  {formatCurrency(classRecap.performance_summary?.total_remaining)}
-                </div>
-                <div className="text-[10px] text-rose-600 mt-1 font-medium flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>Piutang tertagih</span>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50/40 p-4 sm:p-5 rounded-3xl border border-indigo-100 shadow-2xs hover:shadow-md transition col-span-2 sm:col-span-1">
-                <div className="text-[11px] text-indigo-700 font-bold uppercase tracking-wider">
-                  Collection Rate
-                </div>
-                <div className="text-2xl font-black text-indigo-800 mt-1 flex items-baseline gap-1">
-                  <span>{classRecap.performance_summary?.overall_collection_rate || 0}%</span>
-                </div>
-                <div className="w-full bg-indigo-200/60 rounded-full h-1.5 mt-2 overflow-hidden">
-                  <div
-                    className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        classRecap.performance_summary?.overall_collection_rate || 0
-                      )}%`
-                    }}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
+              <StatRibbonCard
+                label="Total Santri"
+                value={`${classRecap.performance_summary?.total_students || 0} Siswa`}
+                subvalue={classRecap.academic_year?.name}
+                status="neutral"
+                icon={Users}
+              />
+              <StatRibbonCard
+                label="Kewajiban TP Ini"
+                value={formatCurrency(classRecap.performance_summary?.total_billed)}
+                subvalue={`Diskon: ${formatCurrency(classRecap.performance_summary?.total_discount || 0)}`}
+                status="neutral"
+                icon={Receipt}
+              />
+              <StatRibbonCard
+                label="Kas Masuk (Terbayar)"
+                value={formatCurrency(classRecap.performance_summary?.total_paid)}
+                subvalue="Diterima di kas/bank"
+                status="success"
+                icon={CheckCircle2}
+              />
+              <StatRibbonCard
+                label="Sisa TP Berjalan"
+                value={formatCurrency(classRecap.performance_summary?.total_remaining)}
+                subvalue="Tahun berjalan"
+                status="danger"
+                icon={AlertCircle}
+              />
+              <StatRibbonCard
+                label="Sisa TP Lalu"
+                value={formatCurrency(classRecap.performance_summary?.total_arrears_previous_year || 0)}
+                subvalue="Carry-over piutang"
+                status="warning"
+                icon={History}
+              />
+              <StatRibbonCard
+                label="Collection Rate"
+                value={`${classRecap.performance_summary?.overall_collection_rate || 0}%`}
+                subvalue="Efektivitas penagihan"
+                status="info"
+                icon={TrendingUp}
+              />
             </div>
           )}
 
           {/* Visual Strip: Kinerja Penagihan Bulanan (Juli - Juni) */}
           {classRecap?.performance_summary?.monthly_performance && (
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs p-5 space-y-3.5">
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs p-5 space-y-3.5">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -1115,7 +1079,7 @@ export default function StudentPaymentCard() {
                   return (
                     <div
                       key={m.month_index}
-                      className="p-2.5 bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-emerald-200 rounded-2xl space-y-1 text-center transition group shadow-2xs hover:shadow-xs"
+                      className="p-2.5 bg-slate-50/80 hover:bg-white border border-slate-100 hover:border-emerald-200 rounded-xl space-y-1 text-center transition group shadow-2xs hover:shadow-xs"
                     >
                       <div className="text-[11px] font-extrabold text-slate-700">{m.month_name}</div>
                       <div
@@ -1151,7 +1115,7 @@ export default function StudentPaymentCard() {
           )}
 
           {/* Matrix Table (12 Bulan Juli–Juni) */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between flex-wrap gap-2">
               <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
                 <Users className="w-4 h-4 text-emerald-600" />
@@ -1168,7 +1132,7 @@ export default function StudentPaymentCard() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="table-container">
               <table className="w-full text-left text-xs whitespace-nowrap">
                 <thead className="bg-slate-50/60 text-slate-600 font-bold border-b border-slate-200/80 text-[11px] uppercase tracking-wider">
                   <tr>
@@ -1181,12 +1145,14 @@ export default function StudentPaymentCard() {
                         {m.label}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-right">Kewajiban</th>
+                    <th className="px-4 py-3 text-right">Kewajiban TP</th>
                     <th className="px-4 py-3 text-right">Terbayar</th>
-                    <th className="px-4 py-3 text-right">Sisa</th>
+                    <th className="px-4 py-3 text-right">Sisa TP Ini</th>
+                    <th className="px-4 py-3 text-right text-amber-700 bg-amber-50/50">Sisa TP Lalu</th>
+                    <th className="px-4 py-3 text-right font-black">Total Piutang</th>
                     <th className="px-3 py-3 text-center">Status</th>
                     <th className="px-3 py-3 text-center">Aging</th>
-                    <th className="px-4 py-3 text-center">Aksi</th>
+                    <th className="px-4 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1200,7 +1166,7 @@ export default function StudentPaymentCard() {
                   ) : !classRecap || classRecap.students.length === 0 ? (
                     <tr>
                       <td colSpan="20" className="text-center py-16 text-slate-400">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
                           <Search className="w-6 h-6" />
                         </div>
                         <p className="text-xs font-semibold text-slate-600">Tidak ada data santri ditemukan</p>
@@ -1272,9 +1238,23 @@ export default function StudentPaymentCard() {
                           <td className="px-4 py-3 text-right font-bold text-emerald-600 font-mono">
                             {formatRawNumber(s.total_paid)}
                           </td>
-                          <td className="px-4 py-3 text-right font-bold font-mono">
+                          <td className="px-4 py-3 text-right font-semibold font-mono">
                             <span className={s.total_remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}>
                               {formatRawNumber(s.total_remaining)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono bg-amber-50/30">
+                            {s.arrears_previous_year > 0 ? (
+                              <span className="font-bold text-amber-700" title={`${s.arrears_previous_year_count} pos tunggakan TP lampau`}>
+                                {formatRawNumber(s.arrears_previous_year)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-black font-mono">
+                            <span className={s.grand_total_remaining > 0 ? 'text-rose-700 font-extrabold' : 'text-emerald-600'}>
+                              {formatRawNumber(s.grand_total_remaining)}
                             </span>
                           </td>
                           <td className="px-3 py-3 text-center">
@@ -1293,7 +1273,7 @@ export default function StudentPaymentCard() {
 
                           {/* Aging Badge */}
                           <td className="px-3 py-3 text-center">
-                            {s.total_remaining > 0 ? (
+                            {s.grand_total_remaining > 0 ? (
                               getAgingBadge(s.aging_days, s.aging_status)
                             ) : (
                               <span className="text-[10px] text-emerald-600 font-semibold">Lunas</span>
@@ -1394,7 +1374,7 @@ export default function StudentPaymentCard() {
       {activeTab === 'individual' && (
         <div className="space-y-6">
           {/* Live Search and Year Select Bar */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               {/* Autocomplete Live Search Input */}
               <div className="relative flex-1 max-w-xl">
@@ -1419,7 +1399,7 @@ export default function StudentPaymentCard() {
                     }}
                     onChange={(e) => setSearchStudentTerm(e.target.value)}
                     placeholder="Ketik minimal 2 karakter nama santri..."
-                    className="w-full px-4 py-3 pl-10 pr-10 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition placeholder:text-slate-400"
+                    className="w-full px-4 py-3 pl-10 pr-10 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 shadow-2xs transition placeholder:text-slate-400"
                   />
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   {searchingStudents ? (
@@ -1443,7 +1423,7 @@ export default function StudentPaymentCard() {
                 {showSearchDropdown && studentSearchResults.length > 0 && (
                   <div
                     ref={searchDropdownRef}
-                    className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-50 divide-y divide-slate-100 max-h-72 overflow-y-auto overflow-x-hidden"
+                    className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200/90 z-50 divide-y divide-slate-100 max-h-72 overflow-y-auto overflow-x-hidden"
                   >
                     <div className="p-2.5 bg-slate-50/80 text-[11px] font-bold text-slate-500 flex items-center justify-between">
                       <span>Ditemukan {studentSearchResults.length} Santri Cocok</span>
@@ -1493,45 +1473,68 @@ export default function StudentPaymentCard() {
                 )}
               </div>
 
-              {/* Toggle Tahun Ajaran Individual */}
-              <div className="space-y-1.5">
-                <span className="block text-xs font-bold text-slate-700">Rentang Siklus Kartu:</span>
-                <div className="inline-flex p-1 bg-slate-100/80 rounded-2xl border border-slate-200/60">
-                  <button
-                    type="button"
-                    onClick={() => setIndividualAllYears(false)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      !individualAllYears
-                        ? 'bg-white text-indigo-700 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Tahun Ajaran Aktif
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIndividualAllYears(true)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      individualAllYears
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Semua Tahun Ajaran (Riwayat Penuh)
-                  </button>
+              {/* Toggle & Filter Tahun Ajaran Individual */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="space-y-1.5">
+                  <span className="block text-xs font-bold text-slate-700">Rentang Siklus Transaksi:</span>
+                  <div className="inline-flex p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setIndividualAllYears(true)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        individualAllYears
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Semua Tahun Ajaran (Riwayat Penuh)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIndividualAllYears(false)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        !individualAllYears
+                          ? 'bg-white text-indigo-700 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Tahun Ajaran Tertentu
+                    </button>
+                  </div>
                 </div>
+
+                {!individualAllYears && (
+                  <div className="w-52">
+                    <SearchableSelect
+                      label="Pilih Tahun Ajaran"
+                      icon={Calendar}
+                      options={academicYears}
+                      value={individualAcademicYear}
+                      onChange={(val) => setIndividualAcademicYear(val)}
+                      placeholder="Pilih Tahun Ajaran..."
+                      searchPlaceholder="Cari tahun ajaran..."
+                      getOptionLabel={(opt) => opt.name}
+                      getOptionValue={(opt) => opt.id}
+                      getOptionBadge={(opt) =>
+                        opt.is_active ? (
+                          <StatusPill variant="success">Aktif</StatusPill>
+                        ) : null
+                      }
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {loadingLedger ? (
-            <div className="py-24 bg-white rounded-3xl border border-slate-200/80 flex flex-col items-center justify-center gap-3 shadow-xs">
+            <div className="py-24 bg-white rounded-xl border border-slate-200/80 flex flex-col items-center justify-center gap-3 shadow-xs">
               <Loader2 className="w-9 h-9 text-emerald-600 animate-spin" />
               <p className="text-xs font-bold text-slate-600">Memuat rincian kartu bayar santri...</p>
             </div>
           ) : !selectedStudentId ? (
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center space-y-4 shadow-xs">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
+            <div className="bg-white rounded-xl border border-slate-200/80 p-12 text-center space-y-4 shadow-xs">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
                 <User className="w-8 h-8" />
               </div>
               <div className="space-y-1">
@@ -1546,9 +1549,9 @@ export default function StudentPaymentCard() {
             ledgerData && (
               <div className="space-y-6">
                 {/* Profile Card & KPI */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="bg-white rounded-xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="flex items-center gap-4 sm:gap-5">
-                    <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-slate-800 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-emerald-950/20">
+                    <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-slate-800 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-emerald-950/20">
                       {ledgerData.student?.name ? ledgerData.student.name.charAt(0) : 'S'}
                     </div>
                     <div>
@@ -1597,178 +1600,1316 @@ export default function StudentPaymentCard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 w-full lg:w-auto">
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 w-full lg:w-auto">
+                    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 text-center">
                       <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                        Total Tagihan
+                        Tagihan TP Ini
                       </div>
-                      <div className="text-base sm:text-lg font-black text-slate-800 mt-0.5">
+                      <div className="text-sm sm:text-base font-black text-slate-800 mt-0.5">
                         {formatCurrency(ledgerData.summary?.total_billed)}
                       </div>
                     </div>
-                    <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-100 text-center">
+                    <div className="bg-emerald-50/70 rounded-xl p-3.5 border border-emerald-100 text-center">
                       <div className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">
                         Sudah Dibayar
                       </div>
-                      <div className="text-base sm:text-lg font-black text-emerald-700 mt-0.5">
+                      <div className="text-sm sm:text-base font-black text-emerald-700 mt-0.5">
                         {formatCurrency(ledgerData.summary?.total_paid)}
                       </div>
                     </div>
                     <div
-                      className={`rounded-2xl p-4 border text-center ${
+                      className={`rounded-xl p-3.5 border text-center ${
                         ledgerData.summary?.total_remaining > 0
                           ? 'bg-rose-50/80 border-rose-100 text-rose-700'
                           : 'bg-slate-50 border-slate-100 text-slate-700'
                       }`}
                     >
                       <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">
-                        Sisa Tunggakan
+                        Sisa TP Ini
                       </div>
-                      <div className="text-base sm:text-lg font-black mt-0.5">
+                      <div className="text-sm sm:text-base font-black mt-0.5">
                         {formatCurrency(ledgerData.summary?.total_remaining)}
                       </div>
                     </div>
+                    <div className="bg-amber-50/70 rounded-xl p-3.5 border border-amber-200 text-center">
+                      <div className="text-[10px] text-amber-800 font-bold uppercase tracking-wider">
+                        Sisa TP Lalu
+                      </div>
+                      <div className="text-sm sm:text-base font-black text-amber-800 mt-0.5">
+                        {formatCurrency(ledgerData.previous_year_arrears?.total_remaining || 0)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800 text-center text-white col-span-2 sm:col-span-1">
+                      <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">
+                        Total Piutang
+                      </div>
+                      <div className="text-sm sm:text-base font-black text-rose-300 mt-0.5">
+                        {formatCurrency(ledgerData.summary?.grand_total_remaining || ledgerData.summary?.total_remaining)}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Table Bills Detail */}
-                <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-                  <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
-                    <div className="font-bold text-slate-800 text-xs flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-emerald-600" />
-                      <span>
-                        Rincian Pos Tagihan & Histori Kwitansi ({ledgerData.items?.length || 0} Pos Biaya)
-                      </span>
+                {/* ========================================================= */}
+                {/* Banner Ringkas: Tunggakan Tahun Ajaran Sebelumnya (Carry-Over) */}
+                {/* ========================================================= */}
+                {!individualAllYears &&
+                  ledgerData.previous_year_arrears &&
+                  ledgerData.previous_year_arrears.total_remaining > 0 && (
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-xl border border-amber-200/90 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                          <History className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-extrabold text-slate-800 text-xs sm:text-sm">
+                              Tunggakan Tahun Ajaran Sebelumnya (Carry-Over)
+                            </h4>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-200/80 text-amber-900 border border-amber-300">
+                              {ledgerData.previous_year_arrears.count} Pos Tertunggak
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-amber-900/80 mt-0.5">
+                            Santri memiliki sisa piutang dari tahun ajaran lampau. <strong>Lihat rincian lengkap di tabel Matriks Tagihan & Piutang Santri di bawah.</strong>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase font-extrabold text-amber-800 tracking-wider">
+                            Sisa TP Lalu
+                          </div>
+                          <div className="text-base sm:text-lg font-black text-rose-700 font-mono">
+                            {formatCurrency(ledgerData.previous_year_arrears.total_remaining)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      {individualAllYears
-                        ? 'Riwayat Sepanjang Masa (Termasuk PPDB)'
-                        : 'Tahun Ajaran Aktif'}
+                  )}
+
+                {/* ========================================================= */}
+                {/* PIVOT TABLE: Multi-Year Matrix by Fee Component */}
+                {/* ========================================================= */}
+                <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-white text-xs sm:text-sm tracking-tight">
+                          Matriks Tagihan & Piutang Santri (Pivot Multi-Tahun)
+                        </h3>
+                        <p className="text-[11px] text-emerald-200/70">
+                          Rekapitulasi beban kewajiban, realisasi pembayaran, dan sisa piutang per pos biaya di seluruh tahun ajaran.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Expand / Collapse All Monthly Breakdown Button */}
+                      {ledgerData.pivot_table?.rows?.some(
+                        (r) => r.billing_pattern === 'monthly' && r.monthly_breakdown?.length > 0
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const monthlyRows = (ledgerData.pivot_table?.rows || []).filter(
+                              (r) => r.billing_pattern === 'monthly' && r.monthly_breakdown?.length > 0
+                            );
+                            const isAnyExpanded = monthlyRows.some((r) => expandedMonthlyRows[r.fee_type_id]);
+                            const newState = {};
+                            monthlyRows.forEach((r) => {
+                              newState[r.fee_type_id] = !isAnyExpanded;
+                            });
+                            setExpandedMonthlyRows(newState);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-white/10 hover:bg-white/20 text-emerald-200 border border-white/10 transition shadow-2xs cursor-pointer"
+                        >
+                          <Sliders className="w-3 h-3" />
+                          <span>
+                            {(ledgerData.pivot_table?.rows || [])
+                              .filter((r) => r.billing_pattern === 'monthly')
+                              .some((r) => expandedMonthlyRows[r.fee_type_id])
+                              ? 'Lipat Semua Bulan'
+                              : 'Buka Rincian Bulanan (12 Bln)'}
+                          </span>
+                        </button>
+                      )}
+
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-white/10 text-emerald-200 border border-white/10 backdrop-blur-md">
+                        <span>{ledgerData.pivot_table?.academic_years?.length || 1} Tahun Ajaran Terdata</span>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs whitespace-nowrap">
-                      <thead className="bg-slate-50/60 text-slate-600 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
-                        <tr>
-                          <th className="px-5 py-3.5">Pos Biaya & Periode</th>
-                          <th className="px-5 py-3.5">Jatuh Tempo</th>
-                          <th className="px-5 py-3.5 text-right">Nominal Tagihan</th>
-                          <th className="px-5 py-3.5 text-right">Diskon</th>
-                          <th className="px-5 py-3.5 text-right">Sudah Dibayar</th>
-                          <th className="px-5 py-3.5 text-right">Sisa Piutang</th>
-                          <th className="px-5 py-3.5 text-center">Status</th>
-                          <th className="px-5 py-3.5">Histori Kwitansi</th>
+                  <div className="overflow-x-auto relative">
+                    <table className="w-full text-left text-xs whitespace-nowrap border-collapse">
+                      <thead>
+                        {/* Header Row 1: Academic Year Groupings (colspan=3) */}
+                        <tr className="bg-slate-900 text-white font-bold border-b border-slate-700 text-[11px] uppercase tracking-wider">
+                          <th
+                            rowSpan={2}
+                            className="sticky left-0 z-30 bg-slate-900 px-3 py-3 text-center w-12 min-w-[48px] max-w-[48px] border-r border-slate-800 shadow-[1px_0_0_0_#334155]"
+                          >
+                            No
+                          </th>
+                          <th
+                            rowSpan={2}
+                            className="sticky left-12 z-30 bg-slate-900 px-4 py-3 min-w-[220px] max-w-[300px] border-r border-slate-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.4)]"
+                          >
+                            Komponen Biaya
+                          </th>
+                          {ledgerData.pivot_table?.academic_years?.map((ay) => (
+                            <th
+                              key={ay.id}
+                              colSpan={3}
+                              className="px-3 py-2.5 text-center font-black bg-slate-800 text-emerald-300 border-r border-slate-700 text-xs tracking-normal"
+                            >
+                              T.A. {ay.name}
+                            </th>
+                          ))}
+                          <th
+                            colSpan={3}
+                            className="px-4 py-2.5 text-center font-black bg-emerald-950 text-emerald-300 text-xs tracking-normal border-l border-emerald-800"
+                          >
+                            Total Akumulasi
+                          </th>
+                        </tr>
+
+                        {/* Header Row 2: Sub-columns (Tagihan, Dibayar, Sisa) */}
+                        <tr className="bg-slate-800 text-slate-300 font-bold border-b border-slate-300 text-[10px] uppercase">
+                          {ledgerData.pivot_table?.academic_years?.map((ay) => (
+                            <React.Fragment key={ay.id}>
+                              <th className="px-3 py-2 text-right bg-slate-800/90 text-slate-200 border-l border-slate-700/60">
+                                Tagihan
+                              </th>
+                              <th className="px-3 py-2 text-right bg-slate-800/90 text-emerald-300">
+                                Dibayar
+                              </th>
+                              <th className="px-3 py-2 text-right bg-slate-800/90 text-rose-300 border-r border-slate-700/60">
+                                Sisa
+                              </th>
+                            </React.Fragment>
+                          ))}
+                          <th className="px-3 py-2 text-right bg-emerald-900 text-slate-100 border-l border-emerald-800">
+                            Tagihan
+                          </th>
+                          <th className="px-3 py-2 text-right bg-emerald-900 text-emerald-300">
+                            Dibayar
+                          </th>
+                          <th className="px-3 py-2 text-right bg-emerald-900 text-rose-300">
+                            Sisa
+                          </th>
                         </tr>
                       </thead>
+
                       <tbody className="divide-y divide-slate-100">
-                        {ledgerData.items.map((it) => (
-                          <tr key={it.bill_id} className="hover:bg-slate-50/70 transition">
-                            <td className="px-5 py-4">
-                              <div className="font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
-                                <span>{it.fee_type_name}</span>
-                                {it.academic_year_name && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                    T.A. {it.academic_year_name}
-                                  </span>
-                                )}
-                                {it.is_ppdb && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                                    <UserCheck className="w-2.5 h-2.5 text-purple-600" />
-                                    PPDB
-                                  </span>
-                                )}
-                                {it.version > 1 && (
-                                  <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-indigo-100 text-indigo-700">
-                                    v{it.version}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[11px] text-slate-400 mt-0.5">
-                                Periode: {it.period_label}
-                              </div>
-                            </td>
-                            <td className="px-5 py-4 text-slate-500 font-medium">{it.due_date || '-'}</td>
-                            <td className="px-5 py-4 text-right font-bold text-slate-800 font-mono">
-                              {formatCurrency(it.amount)}
-                            </td>
-                            <td className="px-5 py-4 text-right text-slate-400 font-mono">
-                              {it.discount_amount > 0 ? formatCurrency(it.discount_amount) : '-'}
-                            </td>
-                            <td className="px-5 py-4 text-right font-black text-emerald-600 font-mono">
-                              {formatCurrency(it.paid_amount)}
-                            </td>
-                            <td className="px-5 py-4 text-right font-black font-mono">
-                              <span className={it.remaining_amount > 0 ? 'text-rose-600' : 'text-emerald-600'}>
-                                {formatCurrency(it.remaining_amount)}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4 text-center">
-                              <span
-                                className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                  it.status === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                    : it.status === 'partially_paid'
-                                    ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                    : 'bg-rose-100 text-rose-700 border border-rose-200'
-                                }`}
-                              >
-                                {it.status === 'paid'
-                                  ? 'Lunas'
-                                  : it.status === 'partially_paid'
-                                  ? 'Sebagian'
-                                  : 'Belum Lunas'}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4">
-                              {it.payments && it.payments.length > 0 ? (
-                                <div className="space-y-1">
-                                  {it.payments.map((p) => (
-                                    <div
-                                      key={p.payment_id}
-                                      className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg flex items-center justify-between gap-3 font-mono transition"
-                                    >
-                                      <span className="font-semibold">{p.receipt_number || 'KWT-LOKAL'}</span>
-                                      <span className="font-bold text-emerald-700">
-                                        {formatCurrency(p.amount)}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-[11px] text-slate-400 italic">
-                                  Belum ada pembayaran
-                                </span>
-                              )}
+                        {!ledgerData.pivot_table?.rows || ledgerData.pivot_table.rows.length === 0 ? (
+                          <tr>
+                            <td colSpan={20} className="text-center py-12 text-slate-400">
+                              Tidak ada data tagihan pivot untuk santri ini.
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          ledgerData.pivot_table.rows.map((row, idx) => {
+                            const isMonthly = row.billing_pattern === 'monthly' && row.monthly_breakdown?.length > 0;
+                            const isExpanded = isMonthly && Boolean(expandedMonthlyRows[row.fee_type_id]);
+
+                            return (
+                              <React.Fragment key={row.fee_type_id}>
+                                <tr className={`hover:bg-slate-50/80 transition group ${isExpanded ? 'bg-emerald-50/20' : ''}`}>
+                                  <td className="sticky left-0 z-20 bg-white group-hover:bg-slate-50 px-3 py-3 text-center text-slate-400 font-mono text-xs w-12 min-w-[48px] max-w-[48px] border-r border-slate-100 shadow-[1px_0_0_0_#f1f5f9]">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="sticky left-12 z-20 bg-white group-hover:bg-slate-50 px-4 py-3 min-w-[220px] max-w-[300px] border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                                    <div className="font-bold text-slate-800 flex items-center justify-between gap-1.5 flex-wrap">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span>{row.component_name}</span>
+                                        {row.is_ppdb && (
+                                          <span className="inline-flex items-center px-2 py-0.2 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                            PPDB
+                                          </span>
+                                        )}
+                                        {row.billing_pattern === 'monthly' && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setExpandedMonthlyRows((prev) => ({
+                                                ...prev,
+                                                [row.fee_type_id]: !prev[row.fee_type_id]
+                                              }))
+                                            }
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold transition shadow-2xs cursor-pointer ${
+                                              isExpanded
+                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                                : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200'
+                                            }`}
+                                            title="Klik untuk membuka / melipat rincian 12 bulan"
+                                          >
+                                            <span>Bulanan</span>
+                                            <span className="text-[8px] opacity-80 font-black">
+                                              {isExpanded ? '▲ Tutup' : '▼ Rinci'}
+                                            </span>
+                                          </button>
+                                        )}
+                                        {row.billing_pattern === 'yearly' && (
+                                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                            Tahunan
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Per Academic Year Cells */}
+                                  {ledgerData.pivot_table.academic_years.map((ay) => {
+                                    const cell = row.by_year?.[ay.id] || { billed: 0, paid: 0, remaining: 0 };
+                                    return (
+                                      <React.Fragment key={ay.id}>
+                                        <td className="px-3 py-3 text-right font-mono text-slate-700 border-l border-slate-100">
+                                          {cell.billed > 0 ? formatRawNumber(cell.billed) : <span className="text-slate-300">-</span>}
+                                        </td>
+                                        <td className="px-3 py-3 text-right font-mono font-semibold text-emerald-600">
+                                          {cell.paid > 0 ? formatRawNumber(cell.paid) : <span className="text-slate-300">-</span>}
+                                        </td>
+                                        <td className="px-3 py-3 text-right font-mono font-bold border-r border-slate-100">
+                                          {cell.remaining > 0 ? (
+                                            <span className="text-rose-600">{formatRawNumber(cell.remaining)}</span>
+                                          ) : cell.billed > 0 ? (
+                                            <span className="text-emerald-600 text-[10px] font-bold">✓ Lunas</span>
+                                          ) : (
+                                            <span className="text-slate-300">-</span>
+                                          )}
+                                        </td>
+                                      </React.Fragment>
+                                    );
+                                  })}
+
+                                  {/* Total Column Group (Rightmost) */}
+                                  <td className="px-3 py-3 text-right font-mono font-bold text-slate-800 bg-slate-50/80 border-l border-slate-200">
+                                    {row.total.billed > 0 ? formatRawNumber(row.total.billed) : <span className="text-slate-300">-</span>}
+                                  </td>
+                                  <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700 bg-emerald-50/40">
+                                    {row.total.paid > 0 ? formatRawNumber(row.total.paid) : <span className="text-slate-300">-</span>}
+                                  </td>
+                                  <td className="px-3 py-3 text-right font-mono font-black bg-rose-50/30">
+                                    {row.total.remaining > 0 ? (
+                                      <span className="text-rose-700 font-extrabold">{formatRawNumber(row.total.remaining)}</span>
+                                    ) : row.total.billed > 0 ? (
+                                      <span className="text-emerald-700 text-[10px] font-bold">✓ Lunas</span>
+                                    ) : (
+                                      <span className="text-slate-300">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+
+                                {/* Monthly Sub-Rows (12 Months Breakdown) */}
+                                {isExpanded &&
+                                  row.monthly_breakdown.map((m) => (
+                                    <tr
+                                      key={`${row.fee_type_id}-m-${m.month}`}
+                                      className="bg-slate-50/60 hover:bg-slate-100/80 transition group text-[11px]"
+                                    >
+                                      <td className="sticky left-0 z-20 bg-slate-50/95 group-hover:bg-slate-100/95 px-3 py-2 text-center text-slate-400 font-mono text-[10px] w-12 min-w-[48px] max-w-[48px] border-r border-slate-200/80 shadow-[1px_0_0_0_#f1f5f9]">
+                                        ↳
+                                      </td>
+                                      <td className="sticky left-12 z-20 bg-slate-50/95 group-hover:bg-slate-100/95 px-4 py-2 min-w-[220px] max-w-[300px] border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                                        <div className="flex items-center gap-2 pl-3">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0"></span>
+                                          <span className="font-semibold text-slate-700">Bulan {m.month_name}</span>
+                                        </div>
+                                      </td>
+
+                                      {/* Monthly per Academic Year */}
+                                      {ledgerData.pivot_table.academic_years.map((ay) => {
+                                        const cell = m.by_year?.[ay.id] || { billed: 0, paid: 0, remaining: 0 };
+                                        return (
+                                          <React.Fragment key={ay.id}>
+                                            <td className="px-3 py-2 text-right font-mono text-slate-600 border-l border-slate-100">
+                                              {cell.billed > 0 ? formatRawNumber(cell.billed) : <span className="text-slate-300">-</span>}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono font-semibold text-emerald-600">
+                                              {cell.paid > 0 ? formatRawNumber(cell.paid) : <span className="text-slate-300">-</span>}
+                                            </td>
+                                            <td className="px-3 py-2 text-right font-mono font-bold border-r border-slate-100">
+                                              {cell.remaining > 0 ? (
+                                                <span className="text-rose-600">{formatRawNumber(cell.remaining)}</span>
+                                              ) : cell.billed > 0 ? (
+                                                <span className="text-emerald-600 text-[9px] font-bold">✓ Lunas</span>
+                                              ) : (
+                                                <span className="text-slate-300">-</span>
+                                              )}
+                                            </td>
+                                          </React.Fragment>
+                                        );
+                                      })}
+
+                                      {/* Monthly Total Akumulasi */}
+                                      <td className="px-3 py-2 text-right font-mono font-bold text-slate-700 bg-slate-100/70 border-l border-slate-200">
+                                        {m.total.billed > 0 ? formatRawNumber(m.total.billed) : <span className="text-slate-300">-</span>}
+                                      </td>
+                                      <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700 bg-emerald-50/50">
+                                        {m.total.paid > 0 ? formatRawNumber(m.total.paid) : <span className="text-slate-300">-</span>}
+                                      </td>
+                                      <td className="px-3 py-2 text-right font-mono font-black bg-rose-50/40">
+                                        {m.total.remaining > 0 ? (
+                                          <span className="text-rose-700 font-extrabold">{formatRawNumber(m.total.remaining)}</span>
+                                        ) : m.total.billed > 0 ? (
+                                          <span className="text-emerald-700 text-[9px] font-bold">✓ Lunas</span>
+                                        ) : (
+                                          <span className="text-slate-300">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </React.Fragment>
+                            );
+                          })
+                        )}
                       </tbody>
-                      <tfoot className="bg-slate-50 font-extrabold text-slate-800 border-t border-slate-200">
-                        <tr>
-                          <td colSpan="2" className="px-5 py-4 text-right uppercase tracking-wider text-xs">
-                            TOTAL KESELURUHAN:
-                          </td>
-                          <td className="px-5 py-4 text-right font-black font-mono text-sm">
-                            {formatCurrency(ledgerData.summary?.total_billed)}
-                          </td>
-                          <td className="px-5 py-4 text-right text-blue-600 font-bold font-mono">
-                            {formatCurrency(ledgerData.summary?.total_discount)}
-                          </td>
-                          <td className="px-5 py-4 text-right text-emerald-600 font-black font-mono text-sm">
-                            {formatCurrency(ledgerData.summary?.total_paid)}
-                          </td>
-                          <td className="px-5 py-4 text-right text-rose-600 font-black font-mono text-sm">
-                            {formatCurrency(ledgerData.summary?.total_remaining)}
-                          </td>
-                          <td colSpan="2"></td>
-                        </tr>
-                      </tfoot>
+
+                      {/* TOTAL Footer Row */}
+                      {ledgerData.pivot_table?.grand_total && (
+                        <tfoot className="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-300 text-xs">
+                          <tr>
+                            <td
+                              colSpan={2}
+                              className="sticky left-0 z-20 bg-slate-100 px-4 py-4 text-right uppercase tracking-wider text-slate-900 border-r border-slate-300 font-extrabold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
+                            >
+                              TOTAL KESELURUHAN:
+                            </td>
+                            {ledgerData.pivot_table.academic_years.map((ay) => {
+                              const gCell = ledgerData.pivot_table.grand_total.by_year?.[ay.id] || { billed: 0, paid: 0, remaining: 0 };
+                              return (
+                                <React.Fragment key={ay.id}>
+                                  <td className="px-3 py-4 text-right font-mono font-black text-slate-900 border-l border-slate-200">
+                                    {gCell.billed > 0 ? formatRawNumber(gCell.billed) : <span className="text-slate-400 font-normal">-</span>}
+                                  </td>
+                                  <td className="px-3 py-4 text-right font-mono font-black text-emerald-700">
+                                    {gCell.paid > 0 ? formatRawNumber(gCell.paid) : <span className="text-slate-400 font-normal">-</span>}
+                                  </td>
+                                  <td className="px-3 py-4 text-right font-mono font-black border-r border-slate-200">
+                                    {gCell.remaining > 0 ? (
+                                      <span className="text-rose-700">{formatRawNumber(gCell.remaining)}</span>
+                                    ) : (
+                                      <span className="text-emerald-700 font-bold">0</span>
+                                    )}
+                                  </td>
+                                </React.Fragment>
+                              );
+                            })}
+                            <td className="px-3 py-4 text-right font-mono font-black text-slate-950 bg-slate-200/90 border-l border-slate-300 text-sm">
+                              {formatRawNumber(ledgerData.pivot_table.grand_total.total.billed)}
+                            </td>
+                            <td className="px-3 py-4 text-right font-mono font-black text-emerald-800 bg-emerald-100/90 text-sm">
+                              {formatRawNumber(ledgerData.pivot_table.grand_total.total.paid)}
+                            </td>
+                            <td className="px-3 py-4 text-right font-mono font-black text-rose-800 bg-rose-100/90 text-sm">
+                              {formatRawNumber(ledgerData.pivot_table.grand_total.total.remaining)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
                     </table>
                   </div>
                 </div>
+
+                {/* ========================================================= */}
+                {/* Table Bills Detail & Receipts Breakdown (Collapsible) */}
+                {/* ========================================================= */}
+                {(() => {
+                  const rawItems = ledgerData.items || [];
+                  const filteredItems = rawItems.filter((it) => {
+                    if (detailFeeTypeId && String(it.fee_type_id) !== String(detailFeeTypeId)) return false;
+                    if (detailStatusFilter !== 'all' && it.status !== detailStatusFilter) return false;
+                    if (detailSearchTerm.trim()) {
+                      const q = detailSearchTerm.toLowerCase();
+                      const matchName = String(it.fee_type_name || '').toLowerCase().includes(q);
+                      const matchPeriod = String(it.period_label || '').toLowerCase().includes(q);
+                      const matchAy = String(it.academic_year_name || '').toLowerCase().includes(q);
+                      const matchReceipt = (it.payments || []).some((p) =>
+                        String(p.receipt_number || '').toLowerCase().includes(q)
+                      );
+                      if (!matchName && !matchPeriod && !matchAy && !matchReceipt) return false;
+                    }
+                    return true;
+                  });
+
+                  const filteredTotalBilled = filteredItems.reduce(
+                    (acc, it) => acc + (parseFloat(it.amount || 0) - parseFloat(it.discount_amount || 0)),
+                    0
+                  );
+                  const filteredTotalDiscount = filteredItems.reduce(
+                    (acc, it) => acc + parseFloat(it.discount_amount || 0),
+                    0
+                  );
+                  const filteredTotalPaid = filteredItems.reduce(
+                    (acc, it) => acc + parseFloat(it.paid_amount || 0),
+                    0
+                  );
+                  const filteredTotalRemaining = filteredItems.reduce(
+                    (acc, it) => acc + parseFloat(it.remaining_amount || 0),
+                    0
+                  );
+
+                  return (
+                    <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden space-y-0">
+                      <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
+                        <div className="font-bold text-slate-800 text-xs flex items-center gap-2">
+                          <Receipt className="w-4 h-4 text-emerald-600" />
+                          <span>
+                            Daftar Detail Transaksi & Kwitansi Pembayaran ({filteredItems.length} Baris Tagihan)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            {individualAllYears
+                              ? 'Riwayat Sepanjang Masa (Termasuk PPDB)'
+                              : `Tahun Ajaran: ${academicYears.find((y) => String(y.id) === String(individualAcademicYear))?.name || 'Aktif'}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Filter Bar for Detail Transactions */}
+                      <div className="p-4 bg-slate-50/40 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 flex-1 flex-wrap">
+                          {/* Search Term Input */}
+                          <div className="relative min-w-[200px] flex-1 max-w-xs">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                            <input
+                              type="text"
+                              value={detailSearchTerm}
+                              onChange={(e) => setDetailSearchTerm(e.target.value)}
+                              placeholder="Cari pos biaya / no kwitansi..."
+                              className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+                            />
+                            {detailSearchTerm && (
+                              <button
+                                type="button"
+                                onClick={() => setDetailSearchTerm('')}
+                                className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Fee Type Filter */}
+                          <select
+                            value={detailFeeTypeId}
+                            onChange={(e) => setDetailFeeTypeId(e.target.value)}
+                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+                          >
+                            <option value="">Semua Pos Biaya</option>
+                            {feeTypes.map((ft) => (
+                              <option key={ft.id} value={ft.id}>
+                                {ft.name}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Status Filter */}
+                          <select
+                            value={detailStatusFilter}
+                            onChange={(e) => setDetailStatusFilter(e.target.value)}
+                            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
+                          >
+                            <option value="all">Semua Status</option>
+                            <option value="paid">Lunas</option>
+                            <option value="partially_paid">Sebagian</option>
+                            <option value="unpaid">Belum Lunas</option>
+                          </select>
+                        </div>
+
+                        {/* Reset Filter Button */}
+                        {(detailSearchTerm || detailFeeTypeId || detailStatusFilter !== 'all') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDetailSearchTerm('');
+                              setDetailFeeTypeId('');
+                              setDetailStatusFilter('all');
+                            }}
+                            className="text-[11px] font-bold text-rose-600 hover:text-rose-800 self-end sm:self-center"
+                          >
+                            Reset Filter Detail
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="table-container">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className="bg-slate-50/60 text-slate-600 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                            <tr>
+                              <th className="px-5 py-3.5">Pos Biaya & Periode</th>
+                              <th className="px-5 py-3.5">Jatuh Tempo</th>
+                              <th className="px-5 py-3.5 text-right">Nominal Tagihan</th>
+                              <th className="px-5 py-3.5 text-right">Diskon</th>
+                              <th className="px-5 py-3.5 text-right">Sudah Dibayar</th>
+                              <th className="px-5 py-3.5 text-right">Sisa Piutang</th>
+                              <th className="px-5 py-3.5 text-center">Status</th>
+                              <th className="px-5 py-3.5">Histori Kwitansi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredItems.length === 0 ? (
+                              <tr>
+                                <td colSpan="8" className="text-center py-12 text-slate-400">
+                                  <Receipt className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-60" />
+                                  <p className="text-xs font-semibold text-slate-600">
+                                    Tidak ada data transaksi yang sesuai filter
+                                  </p>
+                                  <p className="text-[11px] text-slate-400 mt-0.5">
+                                    {!individualAllYears
+                                      ? 'Siswa ini mungkin memiliki transaksi di tahun ajaran lain.'
+                                      : 'Coba sesuaikan kata kunci pencarian atau filter di atas.'}
+                                  </p>
+                                  {!individualAllYears && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setIndividualAllYears(true)}
+                                      className="mt-3 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer"
+                                    >
+                                      Tampilkan Semua Tahun Ajaran (Riwayat Penuh)
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredItems.map((it) => (
+                                <tr key={it.bill_id} className="hover:bg-slate-50/70 transition">
+                                  <td className="px-5 py-4">
+                                    <div className="font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                                      <span>{it.fee_type_name}</span>
+                                      {it.academic_year_name && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                          T.A. {it.academic_year_name}
+                                        </span>
+                                      )}
+                                      {it.is_ppdb && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                          <UserCheck className="w-2.5 h-2.5 text-purple-600" />
+                                          PPDB
+                                        </span>
+                                      )}
+                                      {it.version > 1 && (
+                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-indigo-100 text-indigo-700">
+                                          v{it.version}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 mt-0.5">
+                                      Periode: {it.period_label}
+                                    </div>
+                                  </td>
+                                  <td className="px-5 py-4 text-slate-500 font-medium">{it.due_date || '-'}</td>
+                                  <td className="px-5 py-4 text-right font-bold text-slate-800 font-mono">
+                                    {formatCurrency(it.amount)}
+                                  </td>
+                                  <td className="px-5 py-4 text-right text-slate-400 font-mono">
+                                    {it.discount_amount > 0 ? formatCurrency(it.discount_amount) : '-'}
+                                  </td>
+                                  <td className="px-5 py-4 text-right font-black text-emerald-600 font-mono">
+                                    {formatCurrency(it.paid_amount)}
+                                  </td>
+                                  <td className="px-5 py-4 text-right font-black font-mono">
+                                    <span className={it.remaining_amount > 0 ? 'text-rose-600' : 'text-emerald-600'}>
+                                      {formatCurrency(it.remaining_amount)}
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-4 text-center">
+                                    <span
+                                      className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                        it.status === 'paid'
+                                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                          : it.status === 'partially_paid'
+                                          ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                                          : 'bg-rose-100 text-rose-700 border border-rose-200'
+                                      }`}
+                                    >
+                                      {it.status === 'paid'
+                                        ? 'Lunas'
+                                        : it.status === 'partially_paid'
+                                        ? 'Sebagian'
+                                        : 'Belum Lunas'}
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    {it.payments && it.payments.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {it.payments.map((p) => (
+                                          <div
+                                            key={p.payment_id}
+                                            className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg flex items-center justify-between gap-3 font-mono transition"
+                                          >
+                                            <span className="font-semibold">{p.receipt_number || 'KWT-LOKAL'}</span>
+                                            <span className="font-bold text-emerald-700">
+                                              {formatCurrency(p.amount)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-[11px] text-slate-400 italic">
+                                        Belum ada pembayaran
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                          {filteredItems.length > 0 && (
+                            <tfoot className="bg-slate-50 font-extrabold text-slate-800 border-t border-slate-200">
+                              <tr>
+                                <td colSpan="2" className="px-5 py-4 text-right uppercase tracking-wider text-xs">
+                                  TOTAL RINGKASAN:
+                                </td>
+                                <td className="px-5 py-4 text-right font-black font-mono text-sm">
+                                  {formatCurrency(filteredTotalBilled)}
+                                </td>
+                                <td className="px-5 py-4 text-right text-blue-600 font-bold font-mono">
+                                  {formatCurrency(filteredTotalDiscount)}
+                                </td>
+                                <td className="px-5 py-4 text-right text-emerald-600 font-black font-mono text-sm">
+                                  {formatCurrency(filteredTotalPaid)}
+                                </td>
+                                <td className="px-5 py-4 text-right text-rose-600 font-black font-mono text-sm">
+                                  {formatCurrency(filteredTotalRemaining)}
+                                </td>
+                                <td colSpan="2"></td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: KINERJA PENERIMAAN & ANALYTICS (COLLECTION PERFORMANCE) */}
+      {/* ========================================================================= */}
+      {activeTab === 'performance' && (
+        <div className="space-y-6">
+          {/* Live Search & Filter Control Bar */}
+          <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200/80 shadow-xs space-y-5">
+            {/* Top Filter Row: Cycle Switcher */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span>Siklus Periode Analytics:</span>
+                </span>
+                <div className="inline-flex p-1 bg-slate-100/90 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setRecapAllYears(false)}
+                    className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      !recapAllYears ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tahun Ajaran Tertentu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecapAllYears(true)}
+                    className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      recapAllYears
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Semua Tahun Ajaran (Riwayat Penuh)
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-400 font-medium flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
+                <span>Metrik dihitung otomatis dari data transaksi riil</span>
+              </div>
+            </div>
+
+            {/* Bottom Filter Row: 5 Filter Comboboxes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
+              {/* 1. Tahun Ajaran */}
+              {!recapAllYears ? (
+                <SearchableSelect
+                  label="Tahun Ajaran"
+                  icon={Calendar}
+                  options={academicYearOptions}
+                  value={recapAcademicYear}
+                  onChange={(val) => setRecapAcademicYear(val)}
+                  placeholder="Pilih Tahun Ajaran..."
+                  searchPlaceholder="Cari tahun ajaran..."
+                  getOptionLabel={(opt) => opt.name}
+                  getOptionValue={(opt) => opt.id}
+                  getOptionBadge={(opt) =>
+                    opt.is_active ? (
+                      <StatusPill variant="success">Aktif</StatusPill>
+                    ) : null
+                  }
+                />
+              ) : (
+                <div className="space-y-1.5 opacity-60">
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Tahun Ajaran</span>
+                  </label>
+                  <div className="w-full px-3.5 py-2.5 rounded-xl border border-purple-200 bg-purple-50/50 text-xs font-bold text-purple-800 truncate">
+                    Semua Tahun (Riwayat Penuh)
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Angkatan */}
+              <SearchableSelect
+                label="Angkatan (Cohort)"
+                icon={GraduationCap}
+                options={cohortOptions}
+                value={selectedCohortId}
+                onChange={(val) => setSelectedCohortId(val)}
+                placeholder="Semua Angkatan"
+                searchPlaceholder="Cari angkatan..."
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+              />
+
+              {/* 3. Tingkat */}
+              <SearchableSelect
+                label="Tingkat (Grade Level)"
+                icon={Layers}
+                options={gradeLevelOptions}
+                value={selectedGradeLevelId}
+                onChange={(val) => setSelectedGradeLevelId(val)}
+                placeholder="Semua Tingkat"
+                searchPlaceholder="Cari tingkat..."
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+              />
+
+              {/* 4. Rombel */}
+              <SearchableSelect
+                label="Rombel (Kelas)"
+                icon={Users}
+                options={classOptions}
+                value={selectedClassId}
+                onChange={(val) => setSelectedClassId(val)}
+                placeholder="Semua Rombel"
+                searchPlaceholder="Cari rombel..."
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+              />
+
+              {/* 5. Jenis Biaya */}
+              <SearchableSelect
+                label="Jenis Pos Tagihan"
+                icon={Tag}
+                options={feeTypeOptions}
+                value={selectedFeeTypeId}
+                onChange={(val) => setSelectedFeeTypeId(val)}
+                placeholder="Semua Jenis Pos"
+                searchPlaceholder="Cari pos tagihan..."
+                getOptionLabel={(opt) => opt.name}
+                getOptionValue={(opt) => opt.id}
+              />
+            </div>
+          </div>
+
+          {loadingPerformance ? (
+            <div className="py-24 bg-white rounded-xl border border-slate-200/80 flex flex-col items-center justify-center gap-3 shadow-xs">
+              <Loader2 className="w-9 h-9 text-emerald-600 animate-spin" />
+              <p className="text-xs font-bold text-slate-600">Menghitung analitik kinerja penerimaan...</p>
+            </div>
+          ) : !performanceData ? (
+            <div className="py-16 bg-white rounded-xl border border-slate-200/80 text-center space-y-3">
+              <AlertCircle className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-xs font-bold text-slate-500">Tidak ada data transaksi untuk filter yang dipilih</p>
+            </div>
+          ) : (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* ========================================================================= */}
+              {/* 1. EXECUTIVE KPI SUMMARY ROW (5 CARDS) */}
+              {/* ========================================================================= */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* KPI 1: Overall Collection Rate */}
+                <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 text-white rounded-xl p-5 border border-emerald-800/40 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300">
+                        Collection Rate
+                      </span>
+                      <Percent className="w-4 h-4 text-emerald-400 opacity-80" />
+                    </div>
+                    <div className="text-3xl font-black tracking-tight text-white mt-1">
+                      {performanceData.summary?.overall_collection_rate || 0}%
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-white/10 space-y-1.5">
+                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-emerald-400 to-teal-300 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, performanceData.summary?.overall_collection_rate || 0)}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-emerald-200/80 flex items-center justify-between">
+                      <span>Realisasi: {formatCurrency(performanceData.summary?.total_paid)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI 2: Days to Settle / Average DSO */}
+                <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Rata-Rata Pelunasan (DSO)
+                      </span>
+                      <Clock className="w-4 h-4 text-indigo-500" />
+                    </div>
+                    <div className="text-3xl font-black tracking-tight text-slate-800 mt-1">
+                      {performanceData.summary?.avg_dso_days || 0}{' '}
+                      <span className="text-sm font-semibold text-slate-400">Hari</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        (performanceData.summary?.avg_dso_days || 0) <= 30
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : (performanceData.summary?.avg_dso_days || 0) <= 60
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {(performanceData.summary?.avg_dso_days || 0) <= 30
+                        ? 'Sangat Cepat (≤30 hr)'
+                        : (performanceData.summary?.avg_dso_days || 0) <= 60
+                        ? 'Moderat (31-60 hr)'
+                        : 'Lambat (>60 hr)'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {performanceData.settlement_speed?.total_settled_transactions || 0} Trx
+                    </span>
+                  </div>
+                </div>
+
+                {/* KPI 3: On-Time Payment Rate */}
+                <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Ketepatan Waktu Bayar
+                      </span>
+                      <CheckCircle2 className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <div className="text-3xl font-black tracking-tight text-slate-800 mt-1">
+                      {performanceData.summary?.on_time_payment_rate || 0}%
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <span className="text-teal-700 font-bold">
+                      {performanceData.punctuality?.on_time_transactions_count || 0} Tepat
+                    </span>
+                    <span className="text-slate-300">/</span>
+                    <span className="text-rose-600 font-bold">
+                      {performanceData.punctuality?.late_transactions_count || 0} Terlambat
+                    </span>
+                  </div>
+                </div>
+
+                {/* KPI 4: Total Tagihan Bersih (Target Billed) */}
+                <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Total Tagihan Bersih
+                      </span>
+                      <Target className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 mt-1 font-mono">
+                      {formatCurrency(performanceData.summary?.total_billed)}
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-500 flex items-center justify-between">
+                    <span>Diskon: {formatCurrency(performanceData.summary?.total_discount)}</span>
+                    <span className="font-semibold text-slate-700">{performanceData.summary?.total_students} Siswa</span>
+                  </div>
+                </div>
+
+                {/* KPI 5: Total Sisa Piutang */}
+                <div className="bg-white rounded-xl p-5 border border-rose-200/80 shadow-2xs flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600">
+                        Total Sisa Piutang
+                      </span>
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black tracking-tight text-rose-700 mt-1 font-mono">
+                      {formatCurrency(performanceData.summary?.total_remaining)}
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-rose-100 text-[10px] text-rose-600/80 flex items-center justify-between font-semibold">
+                    <span>
+                      {performanceData.summary?.total_remaining === 0
+                        ? '✓ Piutang Bersih'
+                        : `${Math.round(
+                            (100 - (performanceData.summary?.overall_collection_rate || 0)) * 10
+                          ) / 10}% Belum Tertagih`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 2. BREAKDOWN GROUP PERFORMANCE (ROMBEL / ANGKATAN / TINGKAT) */}
+              {/* ========================================================================= */}
+              <div className="bg-white rounded-xl p-6 border border-slate-200/80 shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center font-black">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-sm">
+                        Kinerja Kolektibilitas per Kelompok Santri
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Peringkat efektivitas penagihan berdasarkan Rombel, Angkatan, atau Tingkat.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Segmented Selector */}
+                  <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60">
+                    {[
+                      { key: 'class', label: 'Per Rombel (Kelas)', icon: Users },
+                      { key: 'cohort', label: 'Per Angkatan (Cohort)', icon: GraduationCap },
+                      { key: 'grade_level', label: 'Per Tingkat', icon: Layers }
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeBreakdownGroup === tab.key;
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setActiveBreakdownGroup(tab.key)}
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            isActive
+                              ? 'bg-white text-emerald-900 shadow-xs scale-102'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Breakdown List Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(
+                    (activeBreakdownGroup === 'class'
+                      ? performanceData.breakdown_by_group?.by_class
+                      : activeBreakdownGroup === 'cohort'
+                      ? performanceData.breakdown_by_group?.by_cohort
+                      : performanceData.breakdown_by_group?.by_grade_level) || []
+                  ).map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-slate-50 transition space-y-3 shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-extrabold text-slate-800 text-xs truncate">{item.name}</div>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                            item.collection_rate >= 80
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : item.collection_rate >= 50
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}
+                        >
+                          {item.collection_rate}%
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            item.collection_rate >= 80
+                              ? 'bg-emerald-500'
+                              : item.collection_rate >= 50
+                              ? 'bg-amber-500'
+                              : 'bg-rose-500'
+                          }`}
+                          style={{ width: `${Math.min(100, item.collection_rate)}%` }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1 pt-1 text-[10px] border-t border-slate-200/60 font-mono">
+                        <div>
+                          <span className="block text-slate-400 text-[9px] font-sans">Target</span>
+                          <span className="font-bold text-slate-700">{formatRawNumber(item.target_billed)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-emerald-600 text-[9px] font-sans">Terbayar</span>
+                          <span className="font-bold text-emerald-700">{formatRawNumber(item.actual_collected)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-rose-600 text-[9px] font-sans">Sisa</span>
+                          <span className="font-bold text-rose-700">{formatRawNumber(item.total_remaining)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 3. CHANNELS, CASH ACCOUNTS & DSO SPEED DISTRIBUTION */}
+              {/* ========================================================================= */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* 3a. Distribusi Metode Pembayaran */}
+                <div className="bg-white rounded-xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">
+                      Metode Pembayaran
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {(performanceData.channels_and_accounts?.payment_methods || []).map((m) => (
+                      <div key={m.method} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700">{m.label}</span>
+                          <span className="font-mono font-extrabold text-slate-900">{m.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full"
+                            style={{ width: `${m.percentage}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                          <span>{m.count} transaksi</span>
+                          <span>{formatCurrency(m.total_amount)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3b. Distribusi Akun Kas / Rekening Tujuan */}
+                <div className="bg-white rounded-xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <Landmark className="w-4 h-4 text-indigo-600" />
+                    <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">
+                      Rekening Kas Penerimaan
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {(performanceData.channels_and_accounts?.cash_accounts || []).map((a) => (
+                      <div key={a.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700 truncate max-w-[180px]">{a.name}</span>
+                          <span className="font-mono font-extrabold text-indigo-700">{a.percentage}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-indigo-500 h-full rounded-full"
+                            style={{ width: `${a.percentage}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                          <span>{a.count} transaksi</span>
+                          <span>{formatCurrency(a.total_amount)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3c. Kecepatan Pelunasan (DSO Distribution) */}
+                <div className="bg-white rounded-xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <Zap className="w-4 h-4 text-amber-600" />
+                    <h3 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">
+                      Distribusi Kecepatan Bayar
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {[
+                      {
+                        label: 'Hari yang Sama (0 hari)',
+                        count: performanceData.settlement_speed?.dso_buckets?.same_day || 0,
+                        color: 'bg-emerald-500'
+                      },
+                      {
+                        label: '1 s.d. 7 Hari',
+                        count: performanceData.settlement_speed?.dso_buckets?.within_7_days || 0,
+                        color: 'bg-teal-500'
+                      },
+                      {
+                        label: '8 s.d. 30 Hari',
+                        count: performanceData.settlement_speed?.dso_buckets?.within_30_days || 0,
+                        color: 'bg-blue-500'
+                      },
+                      {
+                        label: '31 s.d. 60 Hari',
+                        count: performanceData.settlement_speed?.dso_buckets?.within_60_days || 0,
+                        color: 'bg-amber-500'
+                      },
+                      {
+                        label: '> 60 Hari',
+                        count: performanceData.settlement_speed?.dso_buckets?.over_60_days || 0,
+                        color: 'bg-rose-500'
+                      }
+                    ].map((b) => {
+                      const totalTrx = performanceData.settlement_speed?.total_settled_transactions || 1;
+                      const pct = Math.round((b.count / totalTrx) * 1000) / 10;
+                      return (
+                        <div key={b.label} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-600 font-semibold">{b.label}</span>
+                            <span className="font-mono font-bold text-slate-800">
+                              {b.count} trx <span className="text-slate-400 font-normal">({pct}%)</span>
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className={`${b.color} h-full rounded-full`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 4. TABEL TREN BULANAN & YEAR-OVER-YEAR (YOY) */}
+              {/* ========================================================================= */}
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center justify-center font-black">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-sm">
+                        Tren Penagihan 12 Bulan & Perbandingan Year-Over-Year (YoY)
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Rincian target penerimaan vs realisasi kas masuk per bulan dan komparasi periode lampau.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="table-container">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                        <th className="px-5 py-3.5">Bulan</th>
+                        <th className="px-5 py-3.5 text-right">Target Tagihan</th>
+                        <th className="px-5 py-3.5 text-right">Realisasi Terbayar</th>
+                        <th className="px-5 py-3.5 text-center min-w-[160px]">Collection Rate</th>
+                        <th className="px-5 py-3.5 text-right">Realisasi TP Lalu</th>
+                        <th className="px-5 py-3.5 text-center">Pertumbuhan (YoY)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(performanceData.monthly_trend_yoy || []).map((m) => (
+                        <tr key={m.month_index} className="hover:bg-slate-50/60 transition">
+                          <td className="px-5 py-3.5 font-bold text-slate-800">
+                            {m.month_name}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-semibold text-slate-700">
+                            {formatRawNumber(m.target_billed)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-700">
+                            {formatRawNumber(m.actual_collected)}
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    m.collection_rate >= 80
+                                      ? 'bg-emerald-500'
+                                      : m.collection_rate >= 50
+                                      ? 'bg-amber-500'
+                                      : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${Math.min(100, m.collection_rate)}%` }}
+                                />
+                              </div>
+                              <span
+                                className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-md ${
+                                  m.collection_rate >= 80
+                                    ? 'bg-emerald-50 text-emerald-800'
+                                    : m.collection_rate >= 50
+                                    ? 'bg-amber-50 text-amber-800'
+                                    : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {m.collection_rate}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono text-slate-500">
+                            {m.actual_collected_previous > 0 ? (
+                              <span className="font-semibold text-slate-700">
+                                {formatRawNumber(m.actual_collected_previous)}
+                              </span>
+                            ) : m.target_billed_previous > 0 ? (
+                              <span className="text-slate-400">0</span>
+                            ) : (
+                              <span className="text-slate-300 text-[10px] italic" title="Data tahun lalu belum tersedia">
+                                Belum tersedia
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 text-center">
+                            {m.yoy_growth_rate !== null ? (
+                              <span
+                                className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                  m.yoy_growth_rate >= 0
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                }`}
+                              >
+                                {m.yoy_growth_rate >= 0 ? '+' : ''}
+                                {m.yoy_growth_rate}%
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 text-[10px] italic" title="Data pembanding belum tersedia">
+                                -
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
