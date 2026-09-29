@@ -1,5 +1,5 @@
-Status: final
-Diperbarui: 2026-09-05
+Status: perlu-revisi
+Diperbarui: 2026-09-29
 
 # AI-CONTEXT: Sistem Manajemen Terintegrasi Yayasan & Sekolah Aldepos
 
@@ -21,7 +21,7 @@ Diperbarui: 2026-09-05
 | 02 | Website Utama & PPDB | `website-utama/` | `website-utama/` *(+ `apps/website-utama`)* | `website-utama/` | `jalan-produksi` | `ai-ref-website-utama.md` |
 | 03 | Akademik | `akademik/` | `akademik/` *(+ `guru/`)* | `akademik/` | `jalan-produksi` *(Dapodik master, TP Kurikulum Merdeka, 2-phase CSP + Simulated Annealing Timetable engine, PSB / Penerimaan Murid Baru, e-Rapor, Portal Guru)* | `ai-ref-akademik.md` |
 | 04 | Kepegawaian | `kepegawaian/` | `kepegawaian/` | `kepegawaian/` | `jalan-produksi` | `ai-ref-kepegawaian.md` |
-| 05 | Keuangan | `keuangan/` | `keuangan/` | `keuangan/` | `jalan-produksi` *(Konteks Yayasan vs Satuan, Master Jenis Kas Tunai & Bank BNI, Kebijakan Non-Delete/Status Toggle, Wajib Catatan Perubahan & Audit Trail, Tombol Reload Database di seluruh halaman, RAPBS & Revisi Versi, Penetapan Tagihan Siswa Massal & Manual Ad-hoc, Approval Berjenjang Diskon Kasuistik 3 Tingkat dgn SK, Revisi Pasca-Terbit Safeguard Nominal Terbayar & Jurnal Penyesuaian, Scheduler Generator Bulanan Pola Hibrida, Kasir POS & Bukti Transfer Manual, Filter Otomatis Kas Tunai pada Pembayaran, Pengeluaran & Penerimaan Non-SPP, Pencairan Payroll, Jurnal Double-Entry, Tabungan, Tutup Buku, Laporan Standar Akuntansi & Manajerial Eksekutif, PPDB Aligned Lifecycle: Draf-Approval-Terbit-Revisi-Cicilan-Refund & Kontinuitas Kartu Bayar, Rekening Koran & Rekonsiliasi Bank Shadow Statement dgn Pecahan Desimal & Ekspor Waktu, Student Ledger & Matriks Kelas dgn Logika Unbilled Santri Keluar & Tunggakan TP Lalu, 84 Migrasi Knex)* | `ai-ref-keuangan.md` |
+| 05 | Keuangan | `keuangan/` | `keuangan/` | `keuangan/` | `jalan-produksi` *(Konteks Yayasan vs Satuan, Master Jenis Kas Tunai & Bank BNI, Kebijakan Non-Delete/Status Toggle, Wajib Catatan Perubahan & Audit Trail, Tombol Reload Database di seluruh halaman, RAPBS & Revisi Versi, Penetapan Tagihan Siswa Massal & Manual Ad-hoc, Approval Berjenjang Diskon Kasuistik 3 Tingkat dgn SK, Revisi Pasca-Terbit Safeguard Nominal Terbayar & Jurnal Penyesuaian, Scheduler Generator Bulanan Pola Hibrida, Kasir POS & Bukti Transfer Manual, Filter Otomatis Kas Tunai pada Pembayaran, Pengeluaran & Penerimaan Non-SPP, Pencairan Payroll, Jurnal Double-Entry, Tabungan, Tutup Buku, Laporan Standar Akuntansi & Manajerial Eksekutif, PPDB Aligned Lifecycle: Draf-Approval-Terbit-Revisi-Cicilan-Refund & Kontinuitas Kartu Bayar, Rekening Koran & Rekonsiliasi Bank Shadow Statement dgn Pecahan Desimal & Ekspor Waktu, Student Ledger & Matriks Kelas dgn Logika Unbilled Santri Keluar & Tunggakan TP Lalu, 88 Migrasi Knex)* | `ai-ref-keuangan.md` |
 | 06 | Portal Orangtua | `-` *(endpoint tersebar di keuangan/perpus/akademik)* | `ParentBills.jsx` *(rute `/portal-orangtua/tagihan`, `/keuangan/portal-wali`)* | `-` | `jalan-sebagian` *(Parent-facing self-service tagihan & konfirmasi transfer aktif)* | `ai-ref-portal-orangtua.md` |
 | 07 | Sarpras | `sarpras/` | `sarpras/` | `sarpras/` | `jalan-produksi` | `ai-ref-sarpras.md` |
 | 08 | Kantin | `kantin/` | `kantin/` | `kantin/` | `jalan-produksi` | `ai-ref-kantin.md` |
@@ -40,7 +40,7 @@ Diperbarui: 2026-09-05
 |---|---|---|---|---|
 | `aldeposibs.com` | `apps/website-utama/` | Next.js (App Router, Tailwind CSS) | Publik (Tanpa Login) | Profil yayasan/sekolah, berita, galeri, formulir pendaftaran PPDB online, status tracking PPDB |
 | `core.aldeposibs.com` | `apps/core-portal/` | React 18 + Vite SPA, Tailwind CSS | Publik (Landing Launcher), Terautentikasi (Modul) | Single Page Application internal. Route `/` adalah launcher modul (publik); route `/<modul>/login` dan `/<modul>/*` (lazy loaded per modul) |
-| `api.aldeposibs.com` | `apps/api-backend/` | Node.js + Express.js (Modular Monolith) | REST API (JWT & X-API-Key) | Backend tunggal 1 proses untuk seluruh domain: prefix `/api/v1/<modul>`, isolasi multi-database MariaDB (14 connection pool Knex terpisah) |
+| `api.aldeposibs.com` | `apps/api-backend/` | Node.js + Express.js (Modular Monolith) | REST API (JWT & X-API-Key) | Backend tunggal 1 proses untuk seluruh domain: prefix `/api/v1/<modul>`, isolasi multi-database MariaDB (11 connection pool Knex terpisah: `core`, `kepegawaian`, `akademik`, `keuangan`, `alquran`, `kantin`, `sarpras`, `dapur`, `perpustakaan`, `manajemen`, `website-utama`) |
 
 ---
 
@@ -75,11 +75,11 @@ Diperbarui: 2026-09-05
 
 ### 5.2 Autentikasi & Otorisasi
 - **Token Format:** Bearer JWT di header `Authorization: Bearer <token>`.
-- **JWT Payload:** `{ id, username, full_name, account_type, ref_type, ref_id, school_units: [...] }`.
+- **JWT Payload:** `{ id, username, full_name, account_type, ref_type, ref_id, school_units: [...] }` *(STATUS: DRIFT - apps/api-backend/src/modules/core/auth/service.js:115-122 payload aktual tidak memuat ref_type dan ref_id)*.
 - **Verifikasi Lintas Modul:** In-process via middleware lokal `verifyJwt` dengan `CORE_JWT_SECRET` (tanpa query DB per request).
-- **Service Internal Access:** Header `X-API-Key` via middleware `requireApiKey`.
+- **Service Internal Access:** Header `X-API-Key` via middleware `requireApiKey` *(STATUS: DRIFT - apps/api-backend/src/middlewares/auth.js:16-19 bypass next() tanpa validasi hash tabel api_clients)*.
 - **Multi-Tenant Unit Selection:** Header `X-Satuan-Pendidikan-Id` / payload token `school_units`.
-- **STATUS:** `Sesuai dokumen`.
+- **STATUS:** `DRIFT` (lihat rujukan file:baris pada poin JWT payload dan requireApiKey di atas).
 
 ### 5.3 Database & Query Engine
 - **Engine:** MariaDB 10.5 InnoDB, Charset `utf8mb4_unicode_ci`.

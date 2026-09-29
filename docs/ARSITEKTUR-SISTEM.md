@@ -1,5 +1,5 @@
-Status: final
-Diperbarui: 2026-08-24
+Status: perlu-revisi
+Diperbarui: 2026-09-29
 
 # Arsitektur Sistem Manajemen Sekolah Terintegrasi
 
@@ -127,7 +127,7 @@ yang harus diperbarui, bukan Core Service diam-diam menyimpang).
 | Backend framework | Express.js — **satu proses** (modular monolith) di `api.aldeposibs.com` | Bukan lagi 14 proses terpisah (lihat Bagian 1.1). Tiap modul jadi folder route/service sendiri (`src/modules/<nama-modul>/`) di dalam `apps/api-backend/` yang sama di monorepo, bukan folder/proses berbeda |
 | Query builder / migration | Knex.js | Satu instance Knex (connection pool) per database modul, semua dikonfigurasi dalam satu proses `api-backend` |
 | Database engine | **MariaDB 10.5**, storage engine InnoDB, charset `utf8mb4` | Wajib sama persis di semua database modul supaya perilaku (JSON column, window function, dsb) konsisten dan mudah di-*restore* antar server |
-| Auth library | `jsonwebtoken` (JWT) + `bcrypt` (hash password, `saltRounds` minimal 10) | Password mentah tidak pernah disimpan/di-log. Karena Core Service kini modul dalam proses yang sama, verifikasi JWT antar modul bisa langsung import fungsi/secret Core, tidak perlu request jaringan |
+| Auth library | `jsonwebtoken` (JWT) + `bcryptjs` (hash password, `saltRounds` minimal 10) | Password mentah tidak pernah disimpan/di-log. Karena Core Service kini modul dalam proses yang sama, verifikasi JWT antar modul bisa langsung import fungsi/secret Core, tidak perlu request jaringan |
 | Validasi request | Disarankan `zod` atau `joi` di tiap modul | *(asumsi awal — belum ada keputusan final, boleh beda antar modul selama konsisten di dalam satu modul)* |
 | Satu database per aplikasi/modul | Wajib (lihat Bagian 3 poin 1) — **tapi satu backend proses** yang connect ke semuanya | Nama database ikut konvensi hosting (lihat 4.4), mis. `u622997391_dbcore` untuk modul Core Service |
 
@@ -213,10 +213,10 @@ sedikit, umumnya cuma `VITE_API_BASE_URL`/`NEXT_PUBLIC_API_BASE_URL` yang mengar
 | Komponen | Pilihan | Catatan |
 |---|---|---|
 | Hosting | Hostinger — **3 Node.js App**: `website-utama`, `core-portal`, `api-backend` | Tiap deployment punya slot Node.js App sendiri di hPanel dan environment variable sendiri. `core-portal` di-*build* sebagai static SPA (hasil `vite build`) dan bisa disajikan lewat Node.js App atau static hosting, tergantung dukungan Hostinger |
-| Database | MariaDB 10.5 terkelola Hostinger — **tetap satu database per modul** (14 database), semuanya diakses dari satu Node.js App `api-backend` | Penamaan database mengikuti pola Hostinger: `<kode_hosting>_db<nama_modul_singkat>`, mis. `u622997391_dbcore` untuk modul Core Service; user database: `<kode_hosting>_<nama_modul_singkat>` |
+| Database | MariaDB 10.5 terkelola Hostinger — **tetap satu database per modul** (11 database: `core`, `kepegawaian`, `akademik`, `keuangan`, `alquran`, `kantin`, `sarpras`, `dapur`, `perpustakaan`, `manajemen`, `website-utama`), semuanya diakses dari satu Node.js App `api-backend` | Penamaan database mengikuti pola Hostinger: `<kode_hosting>_db<nama_modul_singkat>`, mis. `u622997391_dbcore` untuk modul Core Service; user database: `<kode_hosting>_<nama_modul_singkat>` |
 | Domain | **3 domain/subdomain**, bukan 1 per aplikasi lagi | `aldeposibs.com` → Website Utama, `core.aldeposibs.com` → Portal Aplikasi Internal, `api.aldeposibs.com` → backend tunggal. Modul internal (Akademik, Keuangan, dst) **tidak lagi punya subdomain sendiri** — mereka jadi route di dalam `core.aldeposibs.com` (frontend) dan prefix path di dalam `api.aldeposibs.com` (backend) |
 | Process manager | PM2 | Satu proses PM2 per deployment (3 proses total): `website-utama`, `core-portal` *(kalau disajikan via Node.js, bukan static hosting murni)*, `api-backend` |
-| Remote DB access | Aktifkan **Remote MySQL** di hPanel per database kalau perlu koneksi dari luar server (mis. testing lokal ke database production) | Batasi ke IP tertentu, jangan buka ke semua IP. Karena `api-backend` satu proses yang connect ke 14 database, pastikan kredensial tiap database tetap terpisah (jangan pakai satu user MariaDB untuk semua database) supaya isolasi akses tetap terjaga |
+| Remote DB access | Aktifkan **Remote MySQL** di hPanel per database kalau perlu koneksi dari luar server (mis. testing lokal ke database production) | Batasi ke IP tertentu, jangan buka ke semua IP. Karena `api-backend` satu proses yang connect ke 11 database, pastikan kredensial tiap database tetap terpisah (jangan pakai satu user MariaDB untuk semua database) supaya isolasi akses tetap terjaga |
 
 ### 4.7 Version Control & CI/CD — GitHub (Revisi 2026-08-16, diperbarui)
 
