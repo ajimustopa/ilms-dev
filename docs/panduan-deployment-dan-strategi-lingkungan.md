@@ -1,5 +1,5 @@
 Status: perlu-revisi
-Diperbarui: 2026-09-07
+Diperbarui: 2026-09-29
 
 # Panduan Strategi Deployment Hostinger, Local Staging, & Sinkronisasi Database
 
@@ -85,14 +85,17 @@ Sistem membagi lingkungan kerja menjadi 3 lapisan untuk menjamin lingkungan prod
 
 ## 3. Konfigurasi Lingkungan Pengujian Lokal (Local Staging)
 
-Agar pengujian di lokal benar-benar mencerminkan kondisi riil di Hostinger, kita membuat satu database lokal bernama `aldepos_staging`.
+Agar pengujian di lokal benar-benar mencerminkan kondisi riil di Hostinger, kita membuat 11 database lokal terpisah (`core`, `kepegawaian`, `akademik`, `keuangan`, `alquran`, `kantin`, `sarpras`, `dapur`, `perpustakaan`, `manajemen`, `website-utama`).
 
 ### A. Profil Environment di `apps/api-backend`
+
+> **TIDAK VALID:** server.js hanya memuat apps/api-backend/.env (satu file); variabel DB memakai prefix per modul (CORE_DB_*, KEUANGAN_DB_*, dst), bukan satu DB_NAME. Rewrite ditunda sampai .env.example dilengkapi.
+
 Sediakan konfigurasi environment terpisah:
 - `.env.development`:
   ```env
   NODE_ENV=development
-  PORT=5000
+  PORT=3000
   DB_HOST=127.0.0.1
   DB_USER=root
   DB_PASSWORD=root
@@ -101,7 +104,7 @@ Sediakan konfigurasi environment terpisah:
 - `.env.staging`:
   ```env
   NODE_ENV=staging
-  PORT=5000
+  PORT=3000
   DB_HOST=127.0.0.1
   DB_USER=root
   DB_PASSWORD=root
@@ -109,6 +112,9 @@ Sediakan konfigurasi environment terpisah:
   ```
 
 ### B. Script Sinkronisasi Data Hostinger ke Local Staging
+
+> **TIDAK VALID:** sistem memakai 11 database terpisah (core, kepegawaian, akademik, keuangan, alquran, kantin, sarpras, dapur, perpustakaan, manajemen, website-utama), perintah ini hanya membackup satu. Prosedur multi-database belum ditulis.
+
 Buat script utilitas lokal (misal: `scripts/sync-staging-db.ps1` untuk Windows PowerShell):
 
 ```powershell
