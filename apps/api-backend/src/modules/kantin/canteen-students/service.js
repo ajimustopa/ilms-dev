@@ -391,8 +391,21 @@ class CanteenStudentsService {
   }
 
   async bulkResetChildPin(schoolUnitId, payload = {}) {
-    const { student_ids = [] } = payload;
+    const {
+      student_ids = [],
+      target_type = 'child', // 'child' | 'parent' | 'both'
+      pin_mode = 'random', // 'random' | 'fixed'
+      custom_pin = '123456'
+    } = payload;
     const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+
+    // Jika student_ids disediakan, pastikan semua record santri tersebut telah diinisialisasi
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      for (const sId of student_ids) {
+        await this.ensureCanteenStudentRecord(schoolUnitId, sId);
+      }
+    }
+
     let q = db('canteen_students');
     if (!isAll) {
       q = q.where('school_unit_id', schoolUnitId);
@@ -405,21 +418,38 @@ class CanteenStudentsService {
     let resetCount = 0;
 
     for (const s of students) {
-      const newPin = Math.floor(100000 + Math.random() * 900000).toString();
-      const pinHash = await bcrypt.hash(newPin, 10);
+      const pinValue = pin_mode === 'fixed' && custom_pin
+        ? String(custom_pin).trim()
+        : Math.floor(100000 + Math.random() * 900000).toString();
+      const pinHash = await bcrypt.hash(pinValue, 10);
+
+      const updateData = { updated_at: db.fn.now() };
+      if (target_type === 'child' || target_type === 'both') {
+        updateData.child_pin_hash = pinHash;
+        updateData.child_pin_plain = pinValue;
+      }
+      if (target_type === 'parent' || target_type === 'both') {
+        updateData.parent_pin_hash = pinHash;
+      }
+
       await db('canteen_students')
         .where({ id: s.id })
-        .update({
-          child_pin_hash: pinHash,
-          child_pin_plain: newPin,
-          updated_at: db.fn.now()
-        });
+        .update(updateData);
       resetCount++;
     }
 
+    const typeLabel = target_type === 'both'
+      ? 'PIN Santri & PIN Orangtua'
+      : (target_type === 'parent' ? 'PIN Orangtua' : 'PIN Santri');
+    const modeLabel = pin_mode === 'fixed'
+      ? `PIN seragam (${custom_pin})`
+      : '6-digit PIN acak baru';
+
     return {
       total_reset: resetCount,
-      message: `Berhasil mereset PIN untuk ${resetCount} santri dengan 6-digit PIN acak baru.`
+      target_type,
+      pin_mode,
+      message: `Berhasil men-generate ulang ${typeLabel} untuk ${resetCount} santri dengan ${modeLabel}.`
     };
   }
 

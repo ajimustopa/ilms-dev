@@ -274,6 +274,17 @@ export default function DataSiswaKantin() {
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [printSearch, setPrintSearch] = useState('');
 
+  // State Generate Masal PIN Santri
+  const [bulkPinModalOpen, setBulkPinModalOpen] = useState(false);
+  const [generatingBulkPin, setGeneratingBulkPin] = useState(false);
+  const [bulkPinConfig, setBulkPinConfig] = useState({
+    scope: 'selected', // 'selected' | 'filtered' | 'all'
+    target_type: 'child', // 'child' | 'parent' | 'both'
+    pin_mode: 'random', // 'random' | 'fixed'
+    custom_pin: '123456',
+    auto_open_print: true
+  });
+
   const fetchCashAccounts = async () => {
     try {
       const res = await api.get('/kantin/wallet-transactions/cash-accounts');
@@ -627,6 +638,91 @@ export default function DataSiswaKantin() {
     }
   };
 
+  // Handler Buka & Eksekusi Generate Masal PIN
+  const handleOpenBulkPinModal = (scope = 'auto') => {
+    let initialScope = 'selected';
+    if (scope === 'all') {
+      initialScope = 'all';
+    } else if (scope === 'filtered' || selectedStudentIds.size === 0) {
+      initialScope = 'filtered';
+    }
+    setBulkPinConfig(prev => ({
+      ...prev,
+      scope: initialScope
+    }));
+    setBulkPinModalOpen(true);
+  };
+
+  const handleExecuteBulkPin = async () => {
+    let targetIds = [];
+    if (bulkPinConfig.scope === 'selected') {
+      targetIds = Array.from(selectedStudentIds);
+      if (targetIds.length === 0) {
+        targetIds = filteredStudents.map(s => s.student_id);
+      }
+    } else if (bulkPinConfig.scope === 'filtered') {
+      targetIds = filteredStudents.map(s => s.student_id);
+    } else if (bulkPinConfig.scope === 'all') {
+      targetIds = students.map(s => s.student_id);
+    }
+
+    if (targetIds.length === 0) {
+      alert('Tidak ada data santri yang dapat diproses untuk generate PIN.');
+      return;
+    }
+
+    const typeText = bulkPinConfig.target_type === 'both'
+      ? 'PIN Santri (Kasir) & PIN Orangtua'
+      : (bulkPinConfig.target_type === 'parent' ? 'PIN Orangtua' : 'PIN Santri (Kasir)');
+    const modeText = bulkPinConfig.pin_mode === 'fixed'
+      ? `PIN seragam "${bulkPinConfig.custom_pin || '123456'}"`
+      : '6-digit PIN acak baru';
+
+    const confirmMsg = `Konfirmasi Generate Masal PIN:\n\n` +
+      `• Target: ${targetIds.length} Santri (${bulkPinConfig.scope === 'all' ? 'Seluruh Santri Unit' : (bulkPinConfig.scope === 'filtered' ? 'Hasil Filter Tabel' : 'Santri yang Dicentang')})\n` +
+      `• Jenis PIN: ${typeText}\n` +
+      `• Pola PIN: ${modeText}\n\n` +
+      `Lanjutkan proses generate PIN masal ini?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setGeneratingBulkPin(true);
+    try {
+      const payload = {
+        student_ids: targetIds,
+        target_type: bulkPinConfig.target_type,
+        pin_mode: bulkPinConfig.pin_mode,
+        custom_pin: bulkPinConfig.custom_pin
+      };
+
+      const res = await api.post('/kantin/canteen-students/bulk-reset-pin', payload);
+      setSyncAlert({
+        type: 'success',
+        message: res.data?.message || `Berhasil men-generate PIN untuk ${targetIds.length} santri!`
+      });
+
+      // Sinkronkan pilihan santri agar jika cetak label langsung dipilih
+      setSelectedStudentIds(new Set(targetIds));
+
+      await fetchStudents();
+      setBulkPinModalOpen(false);
+
+      if (bulkPinConfig.auto_open_print) {
+        setPrintConfig(prev => ({
+          ...prev,
+          show_pin: true,
+          regenerate_pins: false
+        }));
+        setPrintModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Error bulk resetting PIN:', err);
+      alert(err.response?.data?.message || err.message || 'Gagal generate PIN masal');
+    } finally {
+      setGeneratingBulkPin(false);
+    }
+  };
+
   const handleResetChildPin = async (studentId) => {
     if (!window.confirm('Reset PIN anak untuk santri ini?')) return;
     try {
@@ -785,6 +881,22 @@ export default function DataSiswaKantin() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Tombol Generate Masal PIN */}
+          <button
+            type="button"
+            onClick={() => handleOpenBulkPinModal('auto')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+            title="Generate PIN santri atau PIN orangtua secara masal (acak 6-digit atau PIN default)"
+          >
+            <KeyRound className="w-4 h-4 text-amber-200" />
+            <span>Generate Masal PIN</span>
+            {selectedStudentIds.size > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-white text-amber-950 font-extrabold text-[10px]">
+                {selectedStudentIds.size}
+              </span>
+            )}
+          </button>
+
           {/* Tombol Cetak Label PIN & Kartu Santri (PDF) */}
           <button
             type="button"
@@ -1286,6 +1398,45 @@ export default function DataSiswaKantin() {
           </div>
         )}
       </div>
+
+      {/* Floating Bottom Multi-Select Action Bar */}
+      {selectedStudentIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white border border-slate-700/80 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-3.5 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+            <span className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs">
+              {selectedStudentIds.size}
+            </span>
+            <span className="text-xs font-bold text-slate-200">Santri Dipilih</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleOpenBulkPinModal('selected')}
+            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-amber-200" />
+            <span>Generate PIN Masal ({selectedStudentIds.size})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenPrintModal()}
+            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
+          >
+            <Scissors className="w-3.5 h-3.5 text-emerald-200" />
+            <span>Cetak Slip Label PIN ({selectedStudentIds.size})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearAllSelected}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+            title="Batal pilih semua"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Modal Popup Gambar QR Code Santri */}
       {selectedStudentQr && (
@@ -2154,6 +2305,315 @@ export default function DataSiswaKantin() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* MODAL GENERATE MASAL PIN SANTRI & ORANGTUA */}
+      {/* =================================================================== */}
+      {bulkPinModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-white to-amber-500/5 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 tracking-tight">
+                    Generate Masal PIN Santri &amp; Orangtua
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Otomatisasi pembuatan PIN kasir jajan santri &amp; PIN portal orangtua
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBulkPinModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: Options & Scope Selection */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs">
+              {/* 1. Target Cakupan Santri (Scope) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  1. Pilih Sasaran Santri (Target Scope)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Scope: Santri Terpilih */}
+                  <button
+                    type="button"
+                    onClick={() => setBulkPinConfig(prev => ({ ...prev, scope: 'selected' }))}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      bulkPinConfig.scope === 'selected'
+                        ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/15'
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-slate-800">Santri Dicentang</span>
+                        {bulkPinConfig.scope === 'selected' && (
+                          <Check className="w-3.5 h-3.5 text-amber-600 font-bold" />
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Hanya santri yang dipilih di tabel
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-medium">Jumlah:</span>
+                      <span className="font-mono font-bold text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">
+                        {selectedStudentIds.size > 0 ? selectedStudentIds.size : filteredStudents.length} santri
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Scope: Hasil Filter Aktif */}
+                  <button
+                    type="button"
+                    onClick={() => setBulkPinConfig(prev => ({ ...prev, scope: 'filtered' }))}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      bulkPinConfig.scope === 'filtered'
+                        ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/15'
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-slate-800">Sesuai Filter Tabel</span>
+                        {bulkPinConfig.scope === 'filtered' && (
+                          <Check className="w-3.5 h-3.5 text-amber-600 font-bold" />
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Rombel / kelas / status yang sedang difilter
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-medium">Jumlah:</span>
+                      <span className="font-mono font-bold text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">
+                        {filteredStudents.length} santri
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Scope: Seluruh Santri Unit */}
+                  <button
+                    type="button"
+                    onClick={() => setBulkPinConfig(prev => ({ ...prev, scope: 'all' }))}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      bulkPinConfig.scope === 'all'
+                        ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/15'
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-slate-800">Seluruh Santri</span>
+                        {bulkPinConfig.scope === 'all' && (
+                          <Check className="w-3.5 h-3.5 text-amber-600 font-bold" />
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Semua data santri di unit aktif ini
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-medium">Jumlah:</span>
+                      <span className="font-mono font-bold text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">
+                        {students.length} santri
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Jenis PIN yang Ingin Di-generate */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  2. Jenis PIN yang Ingin Direset / Dibuat
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                    bulkPinConfig.target_type === 'child'
+                      ? 'border-amber-500 bg-amber-50/50 font-bold text-amber-950'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="bulk_pin_target"
+                      checked={bulkPinConfig.target_type === 'child'}
+                      onChange={() => setBulkPinConfig(prev => ({ ...prev, target_type: 'child' }))}
+                      className="accent-amber-600"
+                    />
+                    <div>
+                      <p className="font-bold">PIN Santri (Kasir)</p>
+                      <p className="text-[10px] text-slate-500 font-normal">Digunakan jajan &amp; kasir POS</p>
+                    </div>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                    bulkPinConfig.target_type === 'parent'
+                      ? 'border-amber-500 bg-amber-50/50 font-bold text-amber-950'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="bulk_pin_target"
+                      checked={bulkPinConfig.target_type === 'parent'}
+                      onChange={() => setBulkPinConfig(prev => ({ ...prev, target_type: 'parent' }))}
+                      className="accent-amber-600"
+                    />
+                    <div>
+                      <p className="font-bold">PIN Orangtua</p>
+                      <p className="text-[10px] text-slate-500 font-normal">Akses Portal Orangtua</p>
+                    </div>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+                    bulkPinConfig.target_type === 'both'
+                      ? 'border-amber-500 bg-amber-50/50 font-bold text-amber-950'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="bulk_pin_target"
+                      checked={bulkPinConfig.target_type === 'both'}
+                      onChange={() => setBulkPinConfig(prev => ({ ...prev, target_type: 'both' }))}
+                      className="accent-amber-600"
+                    />
+                    <div>
+                      <p className="font-bold">Keduanya Sekaligus</p>
+                      <p className="text-[10px] text-slate-500 font-normal">Reset PIN santri &amp; ortu</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 3. Mode Pembuatan PIN */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  3. Pola / Format PIN Baru
+                </label>
+                <div className="space-y-2">
+                  <label className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition ${
+                    bulkPinConfig.pin_mode === 'random'
+                      ? 'border-amber-500 bg-amber-50/40 ring-1 ring-amber-500/20'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="bulk_pin_mode"
+                      checked={bulkPinConfig.pin_mode === 'random'}
+                      onChange={() => setBulkPinConfig(prev => ({ ...prev, pin_mode: 'random' }))}
+                      className="mt-0.5 accent-amber-600"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">PIN Acak 6-Digit Baru (Sangat Direkomendasikan)</span>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">
+                          Paling Aman
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Setiap santri akan mendapatkan 6 digit angka acak unik (contoh: 482915, 739104). PIN tersimpan dan dapat langsung dicetak pada lembar label untuk digunting dan dibagikan.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition ${
+                    bulkPinConfig.pin_mode === 'fixed'
+                      ? 'border-amber-500 bg-amber-50/40 ring-1 ring-amber-500/20'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="bulk_pin_mode"
+                      checked={bulkPinConfig.pin_mode === 'fixed'}
+                      onChange={() => setBulkPinConfig(prev => ({ ...prev, pin_mode: 'fixed' }))}
+                      className="mt-0.5 accent-amber-600"
+                    />
+                    <div className="flex-1">
+                      <span className="font-bold text-slate-800">PIN Seragam / Default Standar</span>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Mengatur semua santri memiliki nomor PIN yang sama secara serentak (misal PIN awal 123456).
+                      </p>
+                      {bulkPinConfig.pin_mode === 'fixed' && (
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-600">Nomor PIN:</span>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={bulkPinConfig.custom_pin}
+                            onChange={(e) => setBulkPinConfig(prev => ({ ...prev, custom_pin: e.target.value.replace(/\D/g, '') }))}
+                            placeholder="123456"
+                            className="w-28 px-3 py-1 bg-white border border-amber-300 rounded-lg text-xs font-mono font-bold text-amber-900 tracking-wider text-center focus:outline-hidden focus:ring-2 focus:ring-amber-500/20"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 4. Opsi Lanjutan: Langsung Buka Modal Cetak */}
+              <div className="pt-1">
+                <label className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={bulkPinConfig.auto_open_print}
+                    onChange={(e) => setBulkPinConfig(prev => ({ ...prev, auto_open_print: e.target.checked }))}
+                    className="w-4 h-4 text-emerald-600 rounded-sm accent-emerald-600"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-800 text-xs">
+                      Langsung buka dialog Cetak Label Slip PIN setelah selesai generate
+                    </span>
+                    <p className="text-[10.5px] text-slate-500">
+                      Memudahkan Anda langsung mencetak slip gunting santri tanpa harus menekan tombol cetak lagi
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setBulkPinModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                disabled={generatingBulkPin}
+                onClick={handleExecuteBulkPin}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-amber-600/25 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-[0.98]"
+              >
+                {generatingBulkPin ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Memproses Generate PIN...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4 text-amber-200" />
+                    <span>Eksekusi Generate PIN Masal</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
