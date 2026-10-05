@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const app = require('./app');
 const dbCore = require('./config/db/core');
 
-const PORT = Number(process.env.CORE_PORT || process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.CORE_PORT || 3000);
 
 // Tes koneksi database saat startup
 async function startServer() {
