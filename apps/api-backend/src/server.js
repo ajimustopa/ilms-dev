@@ -30,6 +30,22 @@ try {
 const app = require('./app');
 const dbCore = require('./config/db/core');
 
+// Tangani unhandled rejection & exception (seperti ECONNRESET socket pool MariaDB remote) agar server tetap running
+process.on('unhandledRejection', (reason) => {
+  if (reason && reason.code === 'ECONNRESET') {
+    // Abaikan ECONNRESET idle connection pool
+    return;
+  }
+  console.warn('[SERVER UNHANDLED REJECTION]', reason?.message || reason);
+});
+
+process.on('uncaughtException', (err) => {
+  if (err && err.code === 'ECONNRESET') {
+    return;
+  }
+  console.error('[SERVER UNCAUGHT EXCEPTION]', err);
+});
+
 const PORT = process.env.PORT || process.env.CORE_PORT || 3000;
 
 // Tes koneksi database saat startup

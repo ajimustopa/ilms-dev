@@ -499,6 +499,11 @@ class CanteenStudentsService {
         .where({ student_id: studentId })
         .first();
 
+      const isInactiveStatus = displayInfo.academic_status === 'lulus' ||
+        displayInfo.academic_status === 'pindah' ||
+        displayInfo.academic_status === 'keluar' ||
+        displayInfo.academic_status === 'drop_out';
+
       if (existing) {
         const updateData = {
           school_unit_id: targetUnitId,
@@ -508,6 +513,11 @@ class CanteenStudentsService {
         };
         if (!existing.qr_code || existing.qr_code.startsWith('QR-CANTIN-')) {
           updateData.qr_code = universalQr;
+        }
+        if (isInactiveStatus && existing.status === 'active') {
+          updateData.status = 'inactive';
+          updateData.status_note = `Otomatis dinonaktifkan (${displayInfo.academic_status_label || 'Alumni / Keluar'})`;
+          updateData.status_changed_at = db.fn.now();
         }
         await db('canteen_students')
           .where({ id: existing.id })
@@ -524,7 +534,9 @@ class CanteenStudentsService {
           child_pin_hash: defaultPinHash,
           child_pin_plain: '123456',
           parent_pin_hash: defaultPinHash,
-          status: 'active'
+          status: isInactiveStatus ? 'inactive' : 'active',
+          status_note: isInactiveStatus ? `Otomatis dinonaktifkan (${displayInfo.academic_status_label || 'Alumni / Keluar'})` : null,
+          status_changed_at: isInactiveStatus ? db.fn.now() : null
         });
         inserted++;
       }
@@ -540,6 +552,72 @@ class CanteenStudentsService {
       inserted,
       updated,
       message: `Berhasil menyinkronkan ${activeStudents.length} santri dari Akademik (${inserted} baru, ${updated} diperbarui)`
+    };
+  }
+
+  async deactivateInactiveStudents(schoolUnitId, options = {}) {
+    const {
+      include_alumni = true,
+      include_mutasi = true,
+      include_non_active_ta = false
+    } = options;
+
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('canteen_students');
+    if (!isAll) {
+      q = q.where('school_unit_id', schoolUnitId);
+    }
+
+    const canteenStudents = await q;
+    let deactivatedCount = 0;
+    const deactivatedList = [];
+
+    for (const s of canteenStudents) {
+      const displayInfo = await getStudentDisplayInfo(s.student_id);
+      const isAlumni = displayInfo.academic_status === 'lulus';
+      const isMutasi = displayInfo.academic_status === 'pindah' || displayInfo.academic_status === 'keluar' || displayInfo.academic_status === 'drop_out';
+      const isNonActiveTa = !displayInfo.is_active_ta && !isAlumni && !isMutasi;
+
+      let shouldDeactivate = false;
+      let reason = '';
+
+      if (include_alumni && isAlumni) {
+        shouldDeactivate = true;
+        reason = 'Alumni / Lulus';
+      } else if (include_mutasi && isMutasi) {
+        shouldDeactivate = true;
+        reason = displayInfo.academic_status_label || 'Mutasi / Keluar';
+      } else if (include_non_active_ta && isNonActiveTa) {
+        shouldDeactivate = true;
+        reason = 'Non-Aktif Tahun Ajaran Berjalan';
+      }
+
+      if (shouldDeactivate && s.status === 'active') {
+        await db('canteen_students')
+          .where({ id: s.id })
+          .update({
+            status: 'inactive',
+            status_note: `Otomatis dinonaktifkan (${reason})`,
+            status_changed_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+
+        deactivatedCount++;
+        deactivatedList.push({
+          id: s.id,
+          student_id: s.student_id,
+          student_name: displayInfo.student_name,
+          class_group_name: displayInfo.class_group_name,
+          academic_status: displayInfo.academic_status,
+          reason
+        });
+      }
+    }
+
+    return {
+      total_deactivated: deactivatedCount,
+      message: `Berhasil menonaktifkan ${deactivatedCount} santri dengan status alumni/keluar dari kasir kantin.`,
+      deactivated_students: deactivatedList
     };
   }
 

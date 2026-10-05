@@ -14,6 +14,8 @@ router.post('/canteen-students/:student_id/generate-qr', verifyJwt, requireRole(
 router.put('/canteen-students/:student_id/qr', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.updateQr);
 router.post('/canteen-students/:student_id/reset-child-pin', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.resetChildPin);
 router.post('/canteen-students/bulk-reset-pin', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.bulkResetChildPin);
+router.post('/canteen-students/deactivate-inactive', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.deactivateInactive);
 router.post('/canteen-students/:student_id/reset-parent-pin', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.resetParentPin);
 
 module.exports = router;
+

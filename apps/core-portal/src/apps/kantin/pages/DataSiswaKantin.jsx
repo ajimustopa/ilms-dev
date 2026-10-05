@@ -284,6 +284,7 @@ export default function DataSiswaKantin() {
     custom_pin: '123456',
     auto_open_print: true
   });
+  const [deactivatingInactive, setDeactivatingInactive] = useState(false);
 
   const fetchCashAccounts = async () => {
     try {
@@ -737,6 +738,70 @@ export default function DataSiswaKantin() {
     }
   };
 
+  // Handler Nonaktifkan Siswa Alumni & Keluar Secara Masal
+  const handleDeactivateAlumniAndKeluar = async () => {
+    const activeAlumniOrKeluar = students.filter(
+      s => (s.academic_status === 'lulus' || s.academic_status === 'pindah' || s.academic_status === 'keluar' || s.academic_status === 'drop_out') && s.status === 'active'
+    );
+
+    const countText = activeAlumniOrKeluar.length > 0
+      ? `Ditemukan ${activeAlumniOrKeluar.length} santri berstatus Alumni/Keluar yang saat ini MASIH AKTIF di kasir.`
+      : 'Saat ini seluruh santri alumni dan keluar sudah berstatus Non-Aktif.';
+
+    const confirmMsg = `Konfirmasi Nonaktifkan Santri Alumni & Keluar:\n\n` +
+      `Sistem akan menonaktifkan status akun kasir untuk seluruh santri yang berstatus Alumni / Lulus dan Mutasi / Pindah / Keluar agar tidak dapat melakukan transaksi jajan di kasir kantin.\n\n` +
+      `${countText}\n\n` +
+      `Lanjutkan proses penonaktifan santri alumni & keluar?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeactivatingInactive(true);
+    setSyncAlert(null);
+    try {
+      const res = await api.post('/kantin/canteen-students/deactivate-inactive', {
+        include_alumni: true,
+        include_mutasi: true
+      });
+      setSyncAlert({
+        type: 'success',
+        message: res.data?.message || 'Santri alumni dan keluar berhasil dinonaktifkan!'
+      });
+      fetchStudents();
+    } catch (err) {
+      console.error('Error deactivating alumni & keluar:', err);
+      setSyncAlert({
+        type: 'error',
+        message: err.response?.data?.message || err.message || 'Gagal menonaktifkan santri alumni/keluar'
+      });
+    } finally {
+      setDeactivatingInactive(false);
+    }
+  };
+
+  // Handler Bulk Toggle Status Kasir untuk Santri yang Dicentang
+  const handleBulkSetStatus = async (targetStatus) => {
+    const targetIds = Array.from(selectedStudentIds);
+    if (targetIds.length === 0) return;
+
+    const actionText = targetStatus === 'active' ? 'Mengaktifkan' : 'Menonaktifkan';
+    if (!window.confirm(`${actionText} status akun kasir untuk ${targetIds.length} santri yang dipilih?`)) return;
+
+    try {
+      await Promise.all(
+        targetIds.map(sId =>
+          api.patch(`/kantin/canteen-students/${sId}/status`, { status: targetStatus }).catch(() => null)
+        )
+      );
+      setSyncAlert({
+        type: 'success',
+        message: `Status kasir untuk ${targetIds.length} santri berhasil diubah menjadi ${targetStatus === 'active' ? 'Aktif' : 'Non-Aktif'}.`
+      });
+      fetchStudents();
+    } catch (err) {
+      alert('Gagal mengubah status santri: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   const handleResetParentPin = async (studentId) => {
     if (!window.confirm('Reset PIN orangtua untuk santri ini?')) return;
     try {
@@ -881,6 +946,22 @@ export default function DataSiswaKantin() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Tombol Nonaktifkan Siswa Alumni & Keluar */}
+          <button
+            type="button"
+            onClick={handleDeactivateAlumniAndKeluar}
+            disabled={deactivatingInactive}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer hover:shadow-md disabled:opacity-50"
+            title="Nonaktifkan akun kasir santri alumni (lulus) dan yang sudah pindah/keluar"
+          >
+            {deactivatingInactive ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <UserX className="w-4 h-4 text-rose-200" />
+            )}
+            <span>{deactivatingInactive ? 'Menonaktifkan...' : 'Nonaktifkan Alumni & Keluar'}</span>
+          </button>
+
           {/* Tombol Generate Masal PIN */}
           <button
             type="button"
@@ -1401,7 +1482,7 @@ export default function DataSiswaKantin() {
 
       {/* Floating Bottom Multi-Select Action Bar */}
       {selectedStudentIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white border border-slate-700/80 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-3.5 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 text-white border border-slate-700/80 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-3.5 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-200 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
             <span className="w-6 h-6 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs">
               {selectedStudentIds.size}
@@ -1415,7 +1496,7 @@ export default function DataSiswaKantin() {
             className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-200" />
-            <span>Generate PIN Masal ({selectedStudentIds.size})</span>
+            <span>Generate PIN ({selectedStudentIds.size})</span>
           </button>
 
           <button
@@ -1424,13 +1505,33 @@ export default function DataSiswaKantin() {
             className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-[0.98]"
           >
             <Scissors className="w-3.5 h-3.5 text-emerald-200" />
-            <span>Cetak Slip Label PIN ({selectedStudentIds.size})</span>
+            <span>Cetak Slip Label ({selectedStudentIds.size})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleBulkSetStatus('inactive')}
+            className="px-3 py-1.5 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1 cursor-pointer shadow-xs"
+            title="Nonaktifkan akun santri terpilih di kasir"
+          >
+            <UserX className="w-3.5 h-3.5" />
+            <span>Nonaktifkan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleBulkSetStatus('active')}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+            title="Aktifkan kembali akun santri terpilih di kasir"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Aktifkan</span>
           </button>
 
           <button
             type="button"
             onClick={handleClearAllSelected}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition cursor-pointer ml-1"
             title="Batal pilih semua"
           >
             <X className="w-4 h-4" />

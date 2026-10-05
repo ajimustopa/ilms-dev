@@ -113,6 +113,16 @@ class CanteenStudentsController {
     }
   }
 
+  async deactivateInactive(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenStudentsService.deactivateInactiveStudents(schoolUnitId, req.body);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async printCardsPdf(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
