@@ -188,106 +188,6 @@ export default function KantinLayout() {
           </div>
         )}
 
-        {/* Unit Switcher Sidebar (jika tidak collapsed) */}
-        {!isCollapsed && (
-          <div className="px-3 py-3 border-b border-slate-800/60 bg-slate-900/50 shrink-0" ref={dropdownRef}>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition text-left text-xs ${
-                  isYayasanActive
-                    ? 'bg-emerald-950/40 border-emerald-600/50 hover:bg-emerald-950/60'
-                    : 'bg-slate-800/90 border-slate-700 hover:bg-slate-800'
-                }`}
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  {isYayasanActive ? (
-                    <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  ) : (
-                    <School className="w-4 h-4 text-emerald-400 shrink-0" />
-                  )}
-                  <div className="truncate">
-                    <span className="block truncate font-bold text-slate-200">
-                      {isYayasanActive ? 'Pusat Yayasan' : activeSchoolUnit?.name || 'Pilih Satuan'}
-                    </span>
-                    <span className="block text-[10px] text-emerald-400 font-medium">
-                      {isYayasanActive ? 'Gabungan Seluruh Satuan' : 'Satuan Pendidikan'}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
-                  <div className="px-3 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
-                    Konteks Data Kantin
-                  </div>
-
-                  {/* Opsi 1: Pusat Yayasan (Gabungan) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      changeActiveSchoolUnit(YAYASAN_CONTEXT);
-                      setDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/60 transition ${
-                      isYayasanActive
-                        ? 'text-emerald-400 font-bold bg-emerald-950/40'
-                        : 'text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span className="truncate">Pusat Yayasan (Gabungan)</span>
-                    </div>
-                    {isYayasanActive && (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Aktif
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="my-1 border-t border-slate-700/60" />
-
-                  {/* Opsi Satuan Pendidikan Individual */}
-                  {schoolUnits?.length > 0 ? (
-                    schoolUnits.map((u) => {
-                      const isSelected = !isYayasanActive && String(activeSchoolUnit?.id) === String(u.id);
-                      return (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => {
-                            changeActiveSchoolUnit(u);
-                            setDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/60 transition ${
-                            isSelected
-                              ? 'text-emerald-400 font-bold bg-slate-700/40'
-                              : 'text-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 overflow-hidden">
-                            <School className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate">{u.name}</span>
-                          </div>
-                          {isSelected && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          )}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="px-3 py-2 text-xs text-slate-400">Tidak ada unit</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Navigation Links */}
         <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto custom-scrollbar">
           {navGroups.map((group, gIdx) => (
@@ -439,7 +339,7 @@ export default function KantinLayout() {
             </button>
 
             {/* Dropdown Konteks Data Kantin (Yayasan Gabungan vs Satuan Pendidikan) */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
