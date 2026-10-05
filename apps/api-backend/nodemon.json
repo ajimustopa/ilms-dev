@@ -1,0 +1,13 @@
+{
+  "watch": ["src"],
+  "ext": "js,json",
+  "ignore": [
+    "public/*",
+    "public/uploads/*",
+    "node_modules/*",
+    ".git/*",
+    "*.test.js",
+    "../../.gemini/*"
+  ],
+  "delay": 1500
+}

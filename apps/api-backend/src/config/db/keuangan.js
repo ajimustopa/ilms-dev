@@ -31,9 +31,11 @@ try {
         database: dbName,
         charset: 'utf8mb4',
         dateStrings: true,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
         ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
-      pool: { min: 2, max: 10 },
+      pool: { min: 0, max: 10, idleTimeoutMillis: 30000, acquireTimeoutMillis: 30000 },
     },
     development: {
       client: 'mysql2',
@@ -45,9 +47,11 @@ try {
         database: dbName,
         charset: 'utf8mb4',
         dateStrings: true,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
         ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
-      pool: { min: 2, max: 10 },
+      pool: { min: 0, max: 10, idleTimeoutMillis: 30000, acquireTimeoutMillis: 30000 },
     }
   };
 }

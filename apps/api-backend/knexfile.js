@@ -184,6 +184,8 @@ module.exports = {
       password: dbConfig.password,
       database: dbConfig.database,
       charset: 'utf8mb4',
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       ssl: (Number(dbConfig.port) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {
@@ -195,8 +197,10 @@ module.exports = {
       directory: dbConfig.seedsDir,
     },
     pool: {
-      min: 2,
+      min: 0,
       max: 10,
+      idleTimeoutMillis: 30000,
+      acquireTimeoutMillis: 30000,
     },
   },
 
@@ -209,6 +213,8 @@ module.exports = {
       password: dbConfig.password,
       database: dbConfig.database,
       charset: 'utf8mb4',
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
       ssl: (Number(dbConfig.port) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {
@@ -220,8 +226,10 @@ module.exports = {
       directory: dbConfig.seedsDir,
     },
     pool: {
-      min: 2,
+      min: 0,
       max: 10,
+      idleTimeoutMillis: 30000,
+      acquireTimeoutMillis: 30000,
     },
   },
 };
