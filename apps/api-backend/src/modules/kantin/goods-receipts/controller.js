@@ -2,6 +2,36 @@ const goodsReceiptsService = require('./service');
 const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class GoodsReceiptsController {
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await goodsReceiptsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await goodsReceiptsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Konfigurasi akuntansi penerimaan barang berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listBankStatements(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await goodsReceiptsService.listBankStatements(schoolUnitId, req.query);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listReceipts(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
@@ -29,7 +59,7 @@ class GoodsReceiptsController {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
       const { receipt_type } = req.body;
-      if (!receipt_type || !['titipan', 'belanja_sendiri'].includes(receipt_type)) {
+      if (!receipt_type || !['titipan', 'belanja_sendiri', 'belanja'].includes(receipt_type)) {
         return res.status(422).json({
           success: false,
           data: null,

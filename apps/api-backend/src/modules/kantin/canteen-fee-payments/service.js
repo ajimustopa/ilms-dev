@@ -6,8 +6,128 @@ const db = require('../../../config/db/kantin');
 const otherIncomesService = require('../../keuangan/other-incomes/service');
 const masterDataService = require('../../keuangan/master-data/service');
 const keuanganInternalService = require('../../keuangan/internal/service');
+const canteenAccountingService = require('../accounting/service');
 
 class CanteenFeePaymentsService {
+  /**
+   * Mengambil konfigurasi default akuntansi setor hak kantin dan opsi dropdown
+   */
+  async getAccountingConfig(schoolUnitId) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+
+    let settings = await db('canteen_fee_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+
+    let cashAccounts = [];
+    let allCoas = [];
+    try {
+      cashAccounts = await masterDataService.listCashAccounts(effectiveUnitId, { is_active: true });
+    } catch (_) {}
+    try {
+      allCoas = await masterDataService.listChartOfAccounts(effectiveUnitId, false);
+    } catch (_) {}
+
+    const formattedCashAccounts = cashAccounts.map(a => ({
+      id: a.id,
+      name: a.name,
+      account_kind: a.account_kind,
+      bank_name: a.bank_name,
+      bank_account_number: a.bank_account_number,
+      is_canteen: (a.name || '').toLowerCase().includes('kantin') || (a.name || '').toLowerCase().includes('operasional'),
+      display_label: a.bank_account_number
+        ? `${a.name} (${a.bank_name || 'Bank'} - ${a.bank_account_number})`
+        : `${a.name} (Kas Tunai)`
+    }));
+
+    const formattedCoas = allCoas.map(c => ({
+      id: c.id,
+      account_code: c.account_code,
+      account_name: c.account_name,
+      account_group: c.account_group,
+      display_label: `[${c.account_code}] ${c.account_name} (${(c.account_group || '').toUpperCase()})`
+    }));
+
+    // Klasifikasi Akun
+    const cashCoas = formattedCoas.filter(c =>
+      c.account_code === '10101' || c.account_code === '101' || (c.account_name || '').toLowerCase().includes('kas')
+    );
+    const bankCoas = formattedCoas.filter(c =>
+      c.account_code === '10102' || c.account_code === '102' || (c.account_name || '').toLowerCase().includes('bank')
+    );
+    const receivableCoas = formattedCoas.filter(c =>
+      c.account_code === '10200' || c.account_code === '10201' || c.account_code === '102' ||
+      (c.account_name || '').toLowerCase().includes('piutang') || (c.account_name || '').toLowerCase().includes('dompet')
+    );
+    const incomeCoas = formattedCoas.filter(c =>
+      c.account_code === '40400' || c.account_code === '40500' || c.account_code === '40100' ||
+      (c.account_name || '').toLowerCase().includes('bagi hasil') || (c.account_name || '').toLowerCase().includes('kantin') || (c.account_name || '').toLowerCase().includes('pendapatan')
+    );
+
+    const defaultTunaiAcc = formattedCashAccounts.find(a => a.is_canteen && !a.bank_account_number) || formattedCashAccounts.find(a => !a.bank_account_number) || formattedCashAccounts[0] || null;
+    const defaultBankAcc = formattedCashAccounts.find(a => a.is_canteen && a.bank_account_number) || formattedCashAccounts.find(a => a.bank_account_number) || formattedCashAccounts[0] || null;
+
+    const defaultDebitCoa = formattedCoas.find(c => c.account_code === '10101') || cashCoas[0] || formattedCoas[0] || null;
+    const defaultCreditCoa = formattedCoas.find(c => c.account_code === '10200') || receivableCoas[0] || formattedCoas.find(c => c.account_code === '10301') || formattedCoas[0] || null;
+
+    const resolvedConfig = {
+      school_unit_id: effectiveUnitId,
+      auto_journal_enabled: settings?.auto_journal_enabled !== undefined ? !!settings.auto_journal_enabled : true,
+      default_fund_source_name: settings?.default_fund_source_name || 'Kantin Sekolah',
+      default_cash_account_id: settings?.default_cash_account_id || defaultTunaiAcc?.id || null,
+      default_bank_account_id: settings?.default_bank_account_id || defaultBankAcc?.id || null,
+      debit_coa_id: settings?.debit_coa_id || defaultDebitCoa?.id || null,
+      debit_coa_code: defaultDebitCoa?.account_code || '10101',
+      debit_coa_name: defaultDebitCoa?.account_name || 'Kas Operasional / Kas Tunai',
+      credit_coa_id: settings?.credit_coa_id || defaultCreditCoa?.id || null,
+      credit_coa_code: defaultCreditCoa?.account_code || '10200',
+      credit_coa_name: defaultCreditCoa?.account_name || 'Piutang Penjualan Dompet Siswa',
+      default_bank_statement_id: settings?.default_bank_statement_id || null
+    };
+
+    return {
+      settings: resolvedConfig,
+      coa_accounts: formattedCoas,
+      cash_accounts: formattedCashAccounts.filter(a => !a.bank_account_number),
+      bank_accounts: formattedCashAccounts.filter(a => !!a.bank_account_number),
+      fund_sources: [
+        { id: 'kantin_sekolah', name: 'Kantin Sekolah' },
+        { id: 'operasional_sekolah', name: 'Operasional Sekolah' },
+        { id: 'dana_yayasan', name: 'Dana Usaha & Kemitraan Yayasan' },
+        { id: 'kas_induk', name: 'Kas Induk Keuangan' }
+      ]
+    };
+  }
+
+  /**
+   * Menyimpan / memperbarui konfigurasi default akuntansi setor hak kantin
+   */
+  async saveAccountingConfig(schoolUnitId, payload) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+
+    const record = {
+      school_unit_id: effectiveUnitId,
+      auto_journal_enabled: payload.auto_journal_enabled !== undefined ? !!payload.auto_journal_enabled : true,
+      default_fund_source_name: payload.default_fund_source_name?.trim() || 'Kantin Sekolah',
+      default_cash_account_id: payload.default_cash_account_id ? Number(payload.default_cash_account_id) : null,
+      default_bank_account_id: payload.default_bank_account_id ? Number(payload.default_bank_account_id) : null,
+      debit_coa_id: payload.debit_coa_id ? Number(payload.debit_coa_id) : null,
+      credit_coa_id: payload.credit_coa_id ? Number(payload.credit_coa_id) : null,
+      default_bank_statement_id: payload.default_bank_statement_id ? Number(payload.default_bank_statement_id) : null,
+      updated_at: db.fn.now()
+    };
+
+    const existing = await db('canteen_fee_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+    if (existing) {
+      await db('canteen_fee_accounting_settings').where({ school_unit_id: effectiveUnitId }).update(record);
+    } else {
+      await db('canteen_fee_accounting_settings').insert({
+        ...record,
+        created_at: db.fn.now()
+      });
+    }
+
+    return this.getAccountingConfig(effectiveUnitId);
+  }
+
   async listPayments(schoolUnitId, query = {}) {
     let q = db('canteen_fee_payments');
     if (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation') {
@@ -152,6 +272,8 @@ class CanteenFeePaymentsService {
   }
 
   async createPayment(schoolUnitId, payload, userId) {
+    const effectiveUnitId = (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation') ? Number(schoolUnitId) : 1;
+
     const {
       amount,
       paid_at,
@@ -159,6 +281,7 @@ class CanteenFeePaymentsService {
       coa_account_id,
       bank_statement_id,
       sales_transaction_ids,
+      fund_source_name,
       notes
     } = payload;
 
@@ -171,27 +294,48 @@ class CanteenFeePaymentsService {
 
     const transferDate = paid_at || new Date().toISOString().slice(0, 10);
 
-    // 1. Tentukan rekening kas/bank penerima di modul Keuangan secara in-process
-    let targetCashAccountId = cash_account_id ? Number(cash_account_id) : null;
-    if (!targetCashAccountId) {
-      try {
-        const cashAccounts = await masterDataService.listCashAccounts(schoolUnitId, { is_active: true });
-        const kantinAcc = cashAccounts.find(a => (a.name || '').toLowerCase().includes('kantin'))
-          || cashAccounts.find(a => a.account_kind === 'cash')
-          || cashAccounts[0];
-        if (kantinAcc) {
-          targetCashAccountId = kantinAcc.id;
-        }
-      } catch (accErr) {
-        console.warn('[Canteen Fee] Tidak dapat memuat cash_accounts dari Keuangan:', accErr.message);
+    // Ambil setting akuntansi
+    const configRes = await this.getAccountingConfig(effectiveUnitId);
+    const conf = configRes?.settings || {};
+
+    // 1. Tentukan rekening kas/bank penerima
+    let targetCashAccountId = cash_account_id ? Number(cash_account_id) : conf.default_cash_account_id;
+    let targetCashAccountName = null;
+
+    try {
+      const cashAccounts = await masterDataService.listCashAccounts(effectiveUnitId, { is_active: true });
+      const foundAcc = cashAccounts.find(a => String(a.id) === String(targetCashAccountId));
+      if (foundAcc) {
+        targetCashAccountName = foundAcc.bank_account_number
+          ? `${foundAcc.name} (${foundAcc.bank_name || 'Bank'} - ${foundAcc.bank_account_number})`
+          : `${foundAcc.name} (Kas Tunai)`;
       }
-    }
+    } catch (_) {}
+
+    // 2. Tentukan Akun Debet & Kredit Akuntansi
+    let allCoas = [];
+    try {
+      allCoas = await masterDataService.listChartOfAccounts(effectiveUnitId, false);
+    } catch (_) {}
+
+    const debitCoaId = coa_account_id ? Number(coa_account_id) : (conf.debit_coa_id || 1);
+    const creditCoaId = conf.credit_coa_id || 2;
+
+    const debitCoa = allCoas.find(c => String(c.id) === String(debitCoaId));
+    const creditCoa = allCoas.find(c => String(c.id) === String(creditCoaId));
+
+    const debitCoaCode = debitCoa?.account_code || conf.debit_coa_code || '10101';
+    const debitCoaName = debitCoa?.account_name || conf.debit_coa_name || 'Kas Operasional / Kas Tunai';
+    const creditCoaCode = creditCoa?.account_code || conf.credit_coa_code || '10200';
+    const creditCoaName = creditCoa?.account_name || conf.credit_coa_name || 'Piutang Penjualan Dompet Siswa';
+
+    const finalFundSourceName = fund_source_name?.trim() || conf.default_fund_source_name || 'Kantin Sekolah';
+    const finalBankStatementId = bank_statement_id ? Number(bank_statement_id) : (conf.default_bank_statement_id ? Number(conf.default_bank_statement_id) : null);
 
     // Tentukan periode dari data transaksi atau tanggal penyerahan
     let periodStart = payload.period_start || transferDate;
     let periodEnd = payload.period_end || transferDate;
 
-    // Jika sales_transaction_ids dikirim, cari min dan max transaction_at
     if (Array.isArray(sales_transaction_ids) && sales_transaction_ids.length > 0) {
       const txBounds = await db('sales_transactions')
         .whereIn('id', sales_transaction_ids)
@@ -206,17 +350,67 @@ class CanteenFeePaymentsService {
       }
     }
 
-    // 2. Insert record penyetoran hak kantin di database kantin
+    // 3. Catat Jurnal Akuntansi SBU Kantin (Double-Entry)
+    let sbuJournal = null;
+    if (conf.auto_journal_enabled !== false) {
+      try {
+        const descText = notes || `Penyetoran Bagi Hasil Hak Kantin Dompet Santri Periode ${periodStart} s.d ${periodEnd}`;
+        sbuJournal = await canteenAccountingService.createJournalEntry(effectiveUnitId, {
+          entry_type: 'general',
+          entry_date: transferDate,
+          reference_number: finalBankStatementId ? `RK#${finalBankStatementId}` : null,
+          description: descText,
+          lines: [
+            {
+              coa_account_id: debitCoaId,
+              coa_account_code: debitCoaCode,
+              coa_account_name: debitCoaName,
+              debit: paymentAmount,
+              credit: 0,
+              memo: `Penerimaan Kas Penyetoran Hak Kantin (${finalFundSourceName})`
+            },
+            {
+              coa_account_id: creditCoaId,
+              coa_account_code: creditCoaCode,
+              coa_account_name: creditCoaName,
+              debit: 0,
+              credit: paymentAmount,
+              memo: `Pelunasan / Penyerahan Piutang Penjualan Dompet Santri`
+            }
+          ]
+        }, userId);
+      } catch (jrnErr) {
+        console.warn(`[Canteen Fee] Gagal mencatat jurnal SBU Kantin: ${jrnErr.message}`);
+      }
+    }
+
+    const journalNumber = sbuJournal?.entry_number || null;
+    const journalEntryId = sbuJournal?.id || null;
+
+    // 4. Insert record penyetoran hak kantin di database kantin
     const [id] = await db('canteen_fee_payments').insert({
-      school_unit_id: (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation') ? Number(schoolUnitId) : 1,
+      school_unit_id: effectiveUnitId,
       period_start: periodStart,
       period_end: periodEnd,
       amount: paymentAmount,
-      paid_by: userId,
-      paid_at: transferDate
+      paid_by: userId || 1,
+      paid_at: transferDate,
+      cash_account_id: targetCashAccountId || null,
+      cash_account_name: targetCashAccountName || null,
+      debit_coa_id: debitCoaId,
+      debit_coa_code: debitCoaCode,
+      debit_coa_name: debitCoaName,
+      credit_coa_id: creditCoaId,
+      credit_coa_code: creditCoaCode,
+      credit_coa_name: creditCoaName,
+      fund_source_name: finalFundSourceName,
+      bank_statement_id: finalBankStatementId,
+      journal_entry_id: journalEntryId,
+      journal_number: journalNumber,
+      notes: notes || null
     });
 
-    // 3. Tautkan transaksi penjualan dompet ke canteen_fee_payment_id
+    // 5. Tautkan transaksi penjualan dompet ke canteen_fee_payment_id
     try {
       if (Array.isArray(sales_transaction_ids) && sales_transaction_ids.length > 0) {
         await db('sales_transactions')
@@ -227,7 +421,6 @@ class CanteenFeePaymentsService {
             updated_at: db.fn.now()
           });
       } else {
-        // Tautkan transaksi penjualan dompet sampai tanggal penyerahan
         const pEnd = transferDate.length === 10 ? `${transferDate} 23:59:59` : transferDate;
         let txUpdateQ = db('sales_transactions')
           .where('payment_method', 'wallet')
@@ -250,21 +443,21 @@ class CanteenFeePaymentsService {
     let financeOtherIncomeId = null;
     let financeReceiptNumber = null;
 
-    // 4. Catat transaksi in-process ke Modul Keuangan (Penerimaan Kas Lainnya / Pos Unit Usaha Kantin)
+    // 6. Catat transaksi in-process ke Modul Keuangan (Penerimaan Kas Lainnya / Pos Unit Usaha Kantin)
     try {
       if (targetCashAccountId) {
         const financePayload = {
           amount: paymentAmount,
           received_at: transferDate,
           cash_account_id: targetCashAccountId,
-          bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
-          override_credit_account_id: coa_account_id ? Number(coa_account_id) : null,
+          bank_statement_id: finalBankStatementId,
+          override_credit_account_id: debitCoaId,
           source_category: 'business_unit',
           payer_name: 'Pengelola Kantin Sekolah',
           notes: notes || `Penyetoran Bagi Hasil Hak Kantin Dompet Santri (Ref #CFP-${id})`
         };
 
-        const financeRes = await otherIncomesService.createOtherIncome(schoolUnitId, financePayload, userId);
+        const financeRes = await otherIncomesService.createOtherIncome(effectiveUnitId, financePayload, userId);
         if (financeRes && financeRes.id) {
           financeOtherIncomeId = financeRes.id;
           financeReceiptNumber = financeRes.receipt_number || null;
@@ -277,18 +470,16 @@ class CanteenFeePaymentsService {
               updated_at: db.fn.now()
             });
         }
-      } else {
-        console.warn(`[Canteen Fee] Tidak ditemukan rekening kas/bank penerima di unit ${schoolUnitId}. Pencatatan kas keuangan dilewati.`);
       }
     } catch (finErr) {
       console.error('[Canteen Fee] Gagal mencatat in-process ke Modul Keuangan:', finErr.message);
     }
 
-    // 5. Publish webhook event
+    // 7. Publish webhook event
     try {
       await db('canteen_webhook_events').insert({
         event_type: 'kantin.fee.recorded',
-        school_unit_id: schoolUnitId,
+        school_unit_id: effectiveUnitId,
         payload: JSON.stringify({
           event: 'canteen_fee_payment',
           payment_id: id,
@@ -296,6 +487,7 @@ class CanteenFeePaymentsService {
           period_start: periodStart,
           period_end: periodEnd,
           paid_at: transferDate,
+          journal_number: journalNumber,
           finance_other_income_id: financeOtherIncomeId,
           finance_receipt_number: financeReceiptNumber
         })
@@ -307,3 +499,4 @@ class CanteenFeePaymentsService {
 }
 
 module.exports = new CanteenFeePaymentsService();
+

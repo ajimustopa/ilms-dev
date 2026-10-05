@@ -2,6 +2,26 @@ const canteenFeePaymentsService = require('./service');
 const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class CanteenFeePaymentsController {
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Setelan akuntansi penyetoran hak kantin berhasil disimpan', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listPayments(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
@@ -73,3 +93,4 @@ class CanteenFeePaymentsController {
 }
 
 module.exports = new CanteenFeePaymentsController();
+

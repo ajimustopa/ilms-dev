@@ -6,6 +6,9 @@ const bcrypt = require('bcryptjs');
 const db = require('../../../config/db/kantin');
 const canteenStudentsService = require('../canteen-students/service');
 const dailySpendingLimitsService = require('../daily-spending-limits/service');
+const masterDataService = require('../../keuangan/master-data/service');
+const bankStatementsService = require('../../keuangan/bank-statements/service');
+const accountingService = require('../accounting/service');
 
 class SalesTransactionsService {
   async listTransactions(schoolUnitId, query = {}) {
@@ -78,6 +81,155 @@ class SalesTransactionsService {
       ...t,
       items: items.filter(it => it.sales_transaction_id === t.id)
     }));
+  }
+
+  /**
+   * Mengambil konfigurasi default akuntansi POS dan opsi dropdown COA/Kas
+   */
+  async getAccountingConfig(schoolUnitId) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+
+    let settings = await db('canteen_pos_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+
+    let cashAccounts = [];
+    let allCoas = [];
+    try {
+      cashAccounts = await masterDataService.listCashAccounts(effectiveUnitId, { is_active: true });
+    } catch (_) {}
+    try {
+      allCoas = await masterDataService.listChartOfAccounts(effectiveUnitId, false);
+    } catch (_) {}
+
+    const formattedCashAccounts = cashAccounts.map(a => ({
+      id: a.id,
+      name: a.name,
+      account_kind: a.account_kind,
+      bank_name: a.bank_name,
+      bank_account_number: a.bank_account_number,
+      is_canteen: (a.name || '').toLowerCase().includes('kantin'),
+      display_label: a.bank_account_number
+        ? `${a.name} (${a.bank_name || 'Bank'} - ${a.bank_account_number})`
+        : `${a.name} (Kas Tunai)`
+    }));
+
+    const formattedCoas = allCoas.map(c => ({
+      id: c.id,
+      account_code: c.account_code,
+      account_name: c.account_name,
+      account_group: c.account_group,
+      display_label: `[${c.account_code}] ${c.account_name} (${(c.account_group || '').toUpperCase()})`
+    }));
+
+    const walletDebitCoas = formattedCoas.filter(c =>
+      c.account_code === '20101' || c.account_code === '10201' || c.account_code === '10101' ||
+      (c.account_name || '').toLowerCase().includes('dompet') || (c.account_name || '').toLowerCase().includes('piutang') || (c.account_name || '').toLowerCase().includes('kas')
+    );
+    const vendorCreditCoas = formattedCoas.filter(c =>
+      c.account_code === '40501' || c.account_code === '20100' || (c.account_name || '').toLowerCase().includes('vendor') || (c.account_name || '').toLowerCase().includes('utang')
+    );
+    const incomeCreditCoas = formattedCoas.filter(c =>
+      c.account_code === '61800' || c.account_code === '617' || (c.account_name || '').toLowerCase().includes('kantin') || (c.account_group || '').toLowerCase().includes('pendapatan')
+    );
+
+    const defaultTunaiAcc = formattedCashAccounts.find(a => a.is_canteen && !a.bank_account_number) || formattedCashAccounts.find(a => !a.bank_account_number) || formattedCashAccounts[0] || null;
+    const defaultBankAcc = formattedCashAccounts.find(a => a.is_canteen && a.bank_account_number) || formattedCashAccounts.find(a => a.bank_account_number) || formattedCashAccounts[0] || null;
+    const defaultWalletCoa = formattedCoas.find(c => c.account_code === '20101') || formattedCoas.find(c => c.account_code === '10201') || walletDebitCoas[0] || formattedCoas[0] || null;
+    const defaultVendorCoa = formattedCoas.find(c => c.account_code === '40501') || formattedCoas.find(c => c.account_code === '20100') || vendorCreditCoas[0] || formattedCoas[0] || null;
+    const defaultIncomeCoa = formattedCoas.find(c => c.account_code === '61800') || formattedCoas.find(c => c.account_code === '617') || incomeCreditCoas[0] || formattedCoas[0] || null;
+
+    const resolvedConfig = {
+      school_unit_id: effectiveUnitId,
+      cash_account_id_tunai: settings?.cash_account_id_tunai || defaultTunaiAcc?.id || null,
+      cash_account_name_tunai: settings?.cash_account_name_tunai || defaultTunaiAcc?.display_label || null,
+      cash_account_id_bank: settings?.cash_account_id_bank || defaultBankAcc?.id || null,
+      cash_account_name_bank: settings?.cash_account_name_bank || defaultBankAcc?.display_label || null,
+      debit_wallet_coa_id: settings?.debit_wallet_coa_id || defaultWalletCoa?.id || null,
+      debit_wallet_coa_code: settings?.debit_wallet_coa_code || defaultWalletCoa?.account_code || null,
+      debit_wallet_coa_name: settings?.debit_wallet_coa_name || defaultWalletCoa?.account_name || null,
+      credit_vendor_coa_id: settings?.credit_vendor_coa_id || defaultVendorCoa?.id || null,
+      credit_vendor_coa_code: settings?.credit_vendor_coa_code || defaultVendorCoa?.account_code || null,
+      credit_vendor_coa_name: settings?.credit_vendor_coa_name || defaultVendorCoa?.account_name || null,
+      credit_income_coa_id: settings?.credit_income_coa_id || defaultIncomeCoa?.id || null,
+      credit_income_coa_code: settings?.credit_income_coa_code || defaultIncomeCoa?.account_code || null,
+      credit_income_coa_name: settings?.credit_income_coa_name || defaultIncomeCoa?.account_name || null,
+      fund_source_name: settings?.fund_source_name || 'Pos Pendapatan & Kas Operasional SBU Kantin',
+      auto_journal: settings ? !!settings.auto_journal : true
+    };
+
+    return {
+      settings: resolvedConfig,
+      cash_accounts: formattedCashAccounts,
+      coas: {
+        all: formattedCoas,
+        wallet_debit: walletDebitCoas.length > 0 ? walletDebitCoas : formattedCoas,
+        vendor_credit: vendorCreditCoas.length > 0 ? vendorCreditCoas : formattedCoas,
+        income_credit: incomeCreditCoas.length > 0 ? incomeCreditCoas : formattedCoas
+      }
+    };
+  }
+
+  async saveAccountingConfig(schoolUnitId, payload) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+    const {
+      cash_account_id_tunai,
+      cash_account_name_tunai,
+      cash_account_id_bank,
+      cash_account_name_bank,
+      debit_wallet_coa_id,
+      debit_wallet_coa_code,
+      debit_wallet_coa_name,
+      credit_vendor_coa_id,
+      credit_vendor_coa_code,
+      credit_vendor_coa_name,
+      credit_income_coa_id,
+      credit_income_coa_code,
+      credit_income_coa_name,
+      fund_source_name,
+      auto_journal
+    } = payload;
+
+    const dataToSave = {
+      school_unit_id: effectiveUnitId,
+      cash_account_id_tunai: cash_account_id_tunai ? Number(cash_account_id_tunai) : null,
+      cash_account_name_tunai: cash_account_name_tunai || null,
+      cash_account_id_bank: cash_account_id_bank ? Number(cash_account_id_bank) : null,
+      cash_account_name_bank: cash_account_name_bank || null,
+      debit_wallet_coa_id: debit_wallet_coa_id ? Number(debit_wallet_coa_id) : null,
+      debit_wallet_coa_code: debit_wallet_coa_code || null,
+      debit_wallet_coa_name: debit_wallet_coa_name || null,
+      credit_vendor_coa_id: credit_vendor_coa_id ? Number(credit_vendor_coa_id) : null,
+      credit_vendor_coa_code: credit_vendor_coa_code || null,
+      credit_vendor_coa_name: credit_vendor_coa_name || null,
+      credit_income_coa_id: credit_income_coa_id ? Number(credit_income_coa_id) : null,
+      credit_income_coa_code: credit_income_coa_code || null,
+      credit_income_coa_name: credit_income_coa_name || null,
+      fund_source_name: fund_source_name || 'Pos Pendapatan & Kas Operasional SBU Kantin',
+      auto_journal: auto_journal !== undefined ? !!auto_journal : true,
+      updated_at: db.fn.now()
+    };
+
+    const existing = await db('canteen_pos_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+    if (existing) {
+      await db('canteen_pos_accounting_settings').where({ school_unit_id: effectiveUnitId }).update(dataToSave);
+    } else {
+      await db('canteen_pos_accounting_settings').insert(dataToSave);
+    }
+
+    return await this.getAccountingConfig(effectiveUnitId);
+  }
+
+  async getBankStatements(schoolUnitId, query = {}) {
+    try {
+      const st = await bankStatementsService.listStatements(schoolUnitId, {
+        cash_account_id: query.cash_account_id,
+        direction: 'credit',
+        is_reconciled: false
+      });
+      return st || [];
+    } catch (err) {
+      console.warn('[Sales POS] Gagal mengambil bank statements:', err.message);
+      return [];
+    }
   }
 
   async getTransactionById(schoolUnitId, id) {
@@ -328,11 +480,15 @@ class SalesTransactionsService {
       }
     }
 
+    // Ambil konfigurasi akuntansi POS
+    const posConfig = await this.getAccountingConfig(effectiveSchoolUnitId);
+
     // =========================================================================
     // 5. Eksekusi Database Transaction Atomik
     // =========================================================================
     let salesTxId = null;
     let walletBalanceAfter = null;
+    let journalEntryId = null;
     const nowIso = new Date().toISOString();
 
     await db.transaction(async (trx) => {
@@ -416,6 +572,121 @@ class SalesTransactionsService {
           })
         });
       }
+
+      // 5.5 Catat Jurnal Akuntansi POS Otomatis ke canteen_journal_entries & canteen_journal_lines
+      if (finalTotal > 0 && posConfig?.settings?.auto_journal !== false) {
+        try {
+          const totalCost = resolvedItems.reduce((acc, it) => acc + (parseFloat(it.subtotal_cost) || 0), 0);
+          const canteenShare = Math.max(0, finalTotal - totalCost);
+
+          const dateStr = nowIso.slice(0, 10);
+          const journalNumber = await accountingService.generateJournalNumber('general', dateStr);
+
+          // Tentukan Akun Debet
+          let debitCoaId = null;
+          let debitCoaCode = '10101';
+          let debitCoaName = 'Kas Tunai Kasir Kantin';
+          let usedCashAccountId = null;
+          let usedCashAccountName = null;
+
+          if (payment_method === 'wallet') {
+            debitCoaId = posConfig?.settings?.debit_wallet_coa_id || null;
+            debitCoaCode = posConfig?.settings?.debit_wallet_coa_code || '20101';
+            debitCoaName = posConfig?.settings?.debit_wallet_coa_name || 'Simpanan Dompet Santri';
+          } else if (payment_method === 'qris' || payment_method === 'transfer' || payment_method === 'bank') {
+            usedCashAccountId = payload.cash_account_id ? Number(payload.cash_account_id) : (posConfig?.settings?.cash_account_id_bank || null);
+            usedCashAccountName = posConfig?.settings?.cash_account_name_bank || 'Rekening Bank / QRIS Kantin';
+            debitCoaCode = '10102';
+            debitCoaName = usedCashAccountName;
+          } else {
+            usedCashAccountId = payload.cash_account_id ? Number(payload.cash_account_id) : (posConfig?.settings?.cash_account_id_tunai || null);
+            usedCashAccountName = posConfig?.settings?.cash_account_name_tunai || 'Kas Tunai Kasir Kantin';
+            debitCoaCode = '10101';
+            debitCoaName = usedCashAccountName;
+          }
+
+          const creditVendorCoaCode = posConfig?.settings?.credit_vendor_coa_code || '40501';
+          const creditVendorCoaName = posConfig?.settings?.credit_vendor_coa_name || 'Utang Usaha Vendor Kantin';
+          const creditIncomeCoaCode = posConfig?.settings?.credit_income_coa_code || '61800';
+          const creditIncomeCoaName = posConfig?.settings?.credit_income_coa_name || 'Pendapatan Bagi Hasil POS Kantin';
+
+          const [newJournalId] = await trx('canteen_journal_entries').insert({
+            school_unit_id: effectiveSchoolUnitId,
+            entry_number: journalNumber,
+            entry_date: dateStr,
+            entry_type: 'general',
+            reference_number: `POS#${salesTxId}`,
+            description: `[POS] Penjualan Kasir #${salesTxId} - ${buyer_type === 'student' ? (canteenStudent?.cached_student_name || 'Santri') : (buyer_name || 'Pembeli Umum')} (${payment_method.toUpperCase()})`,
+            total_debit: finalTotal,
+            total_credit: finalTotal,
+            is_balanced: true,
+            status: 'posted',
+            recorded_by: cashierId
+          });
+          journalEntryId = newJournalId;
+
+          const journalLines = [
+            // Baris 1: Debet Kas / Bank / Dompet
+            {
+              canteen_journal_entry_id: journalEntryId,
+              coa_account_id: debitCoaId,
+              coa_account_code: debitCoaCode,
+              coa_account_name: debitCoaName,
+              debit: finalTotal,
+              credit: 0,
+              memo: `Penerimaan Penjualan POS #${salesTxId}`
+            }
+          ];
+
+          // Baris 2: Kredit Utang Vendor Titipan
+          if (totalCost > 0) {
+            journalLines.push({
+              canteen_journal_entry_id: journalEntryId,
+              coa_account_id: posConfig?.settings?.credit_vendor_coa_id || null,
+              coa_account_code: creditVendorCoaCode,
+              coa_account_name: creditVendorCoaName,
+              debit: 0,
+              credit: totalCost,
+              memo: `Hak Mitra Titipan Penjualan POS #${salesTxId}`
+            });
+          }
+
+          // Baris 3: Kredit Bagi Hasil Milik Kantin
+          if (canteenShare > 0) {
+            journalLines.push({
+              canteen_journal_entry_id: journalEntryId,
+              coa_account_id: posConfig?.settings?.credit_income_coa_id || null,
+              coa_account_code: creditIncomeCoaCode,
+              coa_account_name: creditIncomeCoaName,
+              debit: 0,
+              credit: canteenShare,
+              memo: `Bagi Hasil Bersih SBU Kantin POS #${salesTxId}`
+            });
+          }
+
+          await trx('canteen_journal_lines').insert(journalLines);
+
+          // Update header sales_transactions
+          await trx('sales_transactions').where({ id: salesTxId }).update({
+            journal_entry_id: journalEntryId,
+            cash_account_id: usedCashAccountId,
+            cash_account_name: usedCashAccountName,
+            debit_coa_account_id: debitCoaId,
+            debit_coa_code: debitCoaCode,
+            debit_coa_name: debitCoaName,
+            credit_vendor_coa_id: posConfig?.settings?.credit_vendor_coa_id || null,
+            credit_vendor_coa_code: creditVendorCoaCode,
+            credit_vendor_coa_name: creditVendorCoaName,
+            credit_income_coa_id: posConfig?.settings?.credit_income_coa_id || null,
+            credit_income_coa_code: creditIncomeCoaCode,
+            credit_income_coa_name: creditIncomeCoaName,
+            bank_statement_id: payload.bank_statement_id ? Number(payload.bank_statement_id) : null,
+            fund_source_name: payload.fund_source_name || posConfig?.settings?.fund_source_name || 'Pos Pendapatan & Kas Operasional SBU Kantin'
+          });
+        } catch (jErr) {
+          console.warn('[SalesTransactions] Gagal membuat jurnal akuntansi otomatis POS:', jErr.message);
+        }
+      }
     });
 
     return {
@@ -424,7 +695,8 @@ class SalesTransactionsService {
       payment_method,
       cashier_id: cashierId,
       cashier_name: cashierName,
-      wallet_balance_after: walletBalanceAfter
+      wallet_balance_after: walletBalanceAfter,
+      journal_entry_id: journalEntryId
     };
   }
 

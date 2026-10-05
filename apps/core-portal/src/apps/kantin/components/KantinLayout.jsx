@@ -29,7 +29,8 @@ import {
   ChevronRight,
   Menu,
   UserCog,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 
 const YAYASAN_CONTEXT = {
@@ -133,6 +134,7 @@ export default function KantinLayout() {
           { label: 'Piutang Hak Kantin', path: '/kantin/receivables-canteen', icon: Coins },
           { label: 'Hak Vendor & Pembayaran', path: '/kantin/receivables-vendor', icon: Receipt },
           { label: 'Kas & Operasional Kantin', path: '/kantin/expenses', icon: BadgeDollarSign },
+          { label: 'Siklus & Laporan Akuntansi', path: '/kantin/akuntansi', icon: BookOpen },
           { label: 'Laporan Komprehensif', path: '/kantin/reports', icon: BarChart3 },
         ]
       }

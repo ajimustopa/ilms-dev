@@ -171,6 +171,20 @@ export default function TransaksiPenjualan() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
+  // ==========================================
+  // STATE KONFIGURASI AKUNTANSI POS
+  // ==========================================
+  const [accountingConfig, setAccountingConfig] = useState(null);
+  const [accountingConfigModalOpen, setAccountingConfigModalOpen] = useState(false);
+  const [accountingConfigLoading, setAccountingConfigLoading] = useState(false);
+  const [accountingConfigSaving, setAccountingConfigSaving] = useState(false);
+  const [editConfigForm, setEditConfigForm] = useState({});
+  const [posBankStatements, setPosBankStatements] = useState([]);
+  const [selectedCashAccountOverride, setSelectedCashAccountOverride] = useState('');
+  const [selectedBankStatementId, setSelectedBankStatementId] = useState('');
+  const [selectedFundSourceOverride, setSelectedFundSourceOverride] = useState('');
+  const [showAccountingAccordion, setShowAccountingAccordion] = useState(false);
+
   // Live Clock Updater
   useEffect(() => {
     const updateTime = () => {
@@ -210,6 +224,54 @@ export default function TransaksiPenjualan() {
   // ==========================================
   // FETCH DATA
   // ==========================================
+  const fetchAccountingConfig = async () => {
+    setAccountingConfigLoading(true);
+    try {
+      const res = await api.get('/kantin/pos/accounting-config');
+      setAccountingConfig(res.data?.data || null);
+      if (res.data?.data?.settings) {
+        setEditConfigForm(res.data.data.settings);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat konfigurasi akuntansi POS:', err);
+    } finally {
+      setAccountingConfigLoading(false);
+    }
+  };
+
+  const saveAccountingConfig = async (e) => {
+    if (e) e.preventDefault();
+    setAccountingConfigSaving(true);
+    try {
+      const res = await api.put('/kantin/pos/accounting-config', editConfigForm);
+      setAccountingConfig(res.data?.data || null);
+      setAccountingConfigModalOpen(false);
+      setScanAlert({
+        type: 'product',
+        message: '✅ Konfigurasi akun akuntansi POS berhasil disimpan!'
+      });
+      setTimeout(() => setScanAlert(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Gagal menyimpan konfigurasi akuntansi POS');
+    } finally {
+      setAccountingConfigSaving(false);
+    }
+  };
+
+  const fetchPosBankStatements = async (cashAccId) => {
+    const accId = cashAccId || accountingConfig?.settings?.cash_account_id_bank;
+    if (!accId) {
+      setPosBankStatements([]);
+      return;
+    }
+    try {
+      const res = await api.get(`/kantin/pos/bank-statements?cash_account_id=${accId}`);
+      setPosBankStatements(res.data?.data || []);
+    } catch (err) {
+      console.warn('Gagal mengambil mutasi bank POS:', err);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -272,6 +334,7 @@ export default function TransaksiPenjualan() {
   useEffect(() => {
     fetchData();
     fetchHistory();
+    fetchAccountingConfig();
   }, []);
 
   useEffect(() => {
@@ -981,6 +1044,9 @@ export default function TransaksiPenjualan() {
         buyer_name: buyerType === 'non_student' ? buyerName : null,
         payment_method: paymentMethod,
         discount_amount: parseFloat(discountAmount) || 0,
+        cash_account_id: selectedCashAccountOverride || (paymentMethod === 'cash' ? accountingConfig?.settings?.cash_account_id_tunai : accountingConfig?.settings?.cash_account_id_bank) || null,
+        bank_statement_id: selectedBankStatementId || null,
+        fund_source_name: selectedFundSourceOverride || accountingConfig?.settings?.fund_source_name || null,
         cashier_name: user?.full_name || user?.username || 'Kasir',
         items: cart.map(item => ({
           vendor_product_id: item.id,
@@ -1347,6 +1413,20 @@ export default function TransaksiPenjualan() {
             <span className="font-bold truncate max-w-[100px] sm:max-w-[130px]">{user?.full_name || user?.username || 'Kasir 01'}</span>
             <ChevronDown className="w-3.5 h-3.5 opacity-70" />
           </div>
+
+          {/* POS Accounting Configuration Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setEditConfigForm(accountingConfig?.settings || {});
+              setAccountingConfigModalOpen(true);
+            }}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer border border-white/15 flex items-center gap-1.5"
+            title="Konfigurasi Akun Akuntansi POS, Rekening Kas & Pos Dana"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-amber-300" />
+            <span className="hidden lg:inline text-xs font-bold">Akuntansi POS</span>
+          </button>
 
           {/* Reload / Sync Products & Stock Button */}
           <button
@@ -1964,7 +2044,10 @@ export default function TransaksiPenjualan() {
 
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('qris')}
+                  onClick={() => {
+                    setPaymentMethod('qris');
+                    fetchPosBankStatements(selectedCashAccountOverride || accountingConfig?.settings?.cash_account_id_bank);
+                  }}
                   className={`py-1.5 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 border cursor-pointer ${
                     paymentMethod === 'qris'
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
@@ -1974,6 +2057,110 @@ export default function TransaksiPenjualan() {
                   <QrCode className="w-3 h-3" />
                   <span>QRIS</span>
                 </button>
+              </div>
+
+              {/* QRIS / Transfer: Pilihan Rekening Bank & Referensi Rekening Koran */}
+              {paymentMethod === 'qris' && (
+                <div className="p-2.5 bg-blue-50/60 rounded-xl border border-blue-100 space-y-2 text-xs">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-blue-900 font-bold uppercase">Rekening Bank / QRIS Penampung</label>
+                      <span className="text-[9px] text-blue-700 bg-blue-100 px-1 py-0.5 rounded font-semibold">Kas Bank</span>
+                    </div>
+                    <select
+                      value={selectedCashAccountOverride || accountingConfig?.settings?.cash_account_id_bank || ''}
+                      onChange={(e) => {
+                        const newAcc = e.target.value;
+                        setSelectedCashAccountOverride(newAcc);
+                        if (newAcc) fetchPosBankStatements(newAcc);
+                      }}
+                      className="w-full px-2.5 py-1.5 bg-white border border-blue-200 rounded-lg text-xs font-medium text-slate-800"
+                    >
+                      <option value="">-- Pilih Rekening Bank --</option>
+                      {accountingConfig?.cash_accounts?.filter(a => a.bank_account_number)?.map(a => (
+                        <option key={a.id} value={a.id}>{a.display_label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-slate-600 font-bold uppercase">Referensi Rekening Koran (Mutasi Bank)</label>
+                      <span className="text-[9px] text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">Rekonsiliasi</span>
+                    </div>
+                    <select
+                      value={selectedBankStatementId}
+                      onChange={(e) => setSelectedBankStatementId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 font-medium"
+                    >
+                      <option value="">-- Tanpa Tautan / Input Mandiri --</option>
+                      {posBankStatements.map(stmt => (
+                        <option key={stmt.id} value={stmt.id}>
+                          {formatDate(stmt.transaction_date)} | {formatRupiah(stmt.amount)} - {stmt.description?.slice(0, 32)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[9px] text-slate-400 mt-0.5">
+                      {posBankStatements.length > 0 ? `${posBankStatements.length} mutasi bank pending ditemukan` : 'Belum ada mutasi bank yang cocok'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Accordion Pratinjau Jurnal Akuntansi POS */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAccountingAccordion(!showAccountingAccordion)}
+                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition border border-slate-200/80 cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Catatan Akuntansi &amp; Pos Dana</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600">
+                    <span className="px-1.5 py-0.5 bg-indigo-100/60 rounded">Auto-Journal</span>
+                    {showAccountingAccordion ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </div>
+                </button>
+
+                {showAccountingAccordion && (
+                  <div className="mt-1.5 p-2.5 bg-slate-900 text-slate-200 rounded-xl space-y-1.5 text-[11px] font-mono shadow-inner animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-1">
+                      <span>Jurnal Double-Entry POS</span>
+                      <span className="truncate max-w-[120px]">{accountingConfig?.settings?.fund_source_name || 'Pos SBU Kantin'}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-emerald-400">
+                      <span className="truncate pr-2">
+                        [DEBET] {paymentMethod === 'wallet'
+                          ? `[${accountingConfig?.settings?.debit_wallet_coa_code || '20101'}] ${accountingConfig?.settings?.debit_wallet_coa_name || 'Dompet Santri'}`
+                          : paymentMethod === 'cash'
+                          ? `[10101] ${accountingConfig?.settings?.cash_account_name_tunai || 'Kas Tunai Kasir'}`
+                          : `[10102] ${accountingConfig?.settings?.cash_account_name_bank || 'Kas Bank / QRIS'}`}
+                      </span>
+                      <span className="font-bold shrink-0">{formatRupiah(finalTotal)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-amber-300 pl-2">
+                      <span className="truncate pr-2">
+                        [KREDIT] [{accountingConfig?.settings?.credit_vendor_coa_code || '40501'}] {accountingConfig?.settings?.credit_vendor_coa_name || 'Utang Vendor'}
+                      </span>
+                      <span className="font-bold shrink-0">
+                        {formatRupiah(cart.reduce((s, it) => s + (it.qty * (Number(it.cost_price) || 0)), 0))}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sky-300 pl-2">
+                      <span className="truncate pr-2">
+                        [KREDIT] [{accountingConfig?.settings?.credit_income_coa_code || '61800'}] {accountingConfig?.settings?.credit_income_coa_name || 'Bagi Hasil POS'}
+                      </span>
+                      <span className="font-bold shrink-0">
+                        {formatRupiah(Math.max(0, finalTotal - cart.reduce((s, it) => s + (it.qty * (Number(it.cost_price) || 0)), 0)))}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tunai: Cash Input & Kembalian */}
@@ -3665,6 +3852,239 @@ export default function TransaksiPenjualan() {
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL KONFIGURASI AKUNTANSI POS KANTIN                  */}
+      {/* ======================================================== */}
+      {accountingConfigModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-indigo-100 text-indigo-700">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Pengaturan Akun Akuntansi POS</h3>
+                  <p className="text-xs text-slate-500">
+                    Konfigurasi default jenis kas, pos dana, dan akun debet/kredit otomatis
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAccountingConfigModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={saveAccountingConfig} className="space-y-4">
+              {/* Akun Kas Tunai POS */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Akun Kas Tunai POS (Kasir / Brankas) <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editConfigForm.cash_account_id_tunai || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const found = accountingConfig?.cash_accounts?.find(a => String(a.id) === String(id));
+                    setEditConfigForm({
+                      ...editConfigForm,
+                      cash_account_id_tunai: id,
+                      cash_account_name_tunai: found ? found.display_label : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                >
+                  <option value="">-- Pilih Akun Kas Tunai --</option>
+                  {accountingConfig?.cash_accounts?.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.is_canteen ? '⭐ ' : ''}{a.display_label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Menampung penerimaan uang fisik dari transaksi kasir berbayar tunai
+                </p>
+              </div>
+
+              {/* Akun Kas Bank / QRIS POS */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Akun Kas Bank / QRIS POS (Nontunai) <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editConfigForm.cash_account_id_bank || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const found = accountingConfig?.cash_accounts?.find(a => String(a.id) === String(id));
+                    setEditConfigForm({
+                      ...editConfigForm,
+                      cash_account_id_bank: id,
+                      cash_account_name_bank: found ? found.display_label : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                >
+                  <option value="">-- Pilih Rekening Bank / QRIS --</option>
+                  {accountingConfig?.cash_accounts?.filter(a => a.bank_account_number)?.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.is_canteen ? '⭐ ' : ''}{a.display_label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Menampung penerimaan transaksi transfer bank atau QRIS
+                </p>
+              </div>
+
+              {/* Akun Debet Dompet Santri */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Akun Debet Dompet / Saldo Santri <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editConfigForm.debit_wallet_coa_id || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const found = accountingConfig?.coas?.all?.find(c => String(c.id) === String(id));
+                    setEditConfigForm({
+                      ...editConfigForm,
+                      debit_wallet_coa_id: id,
+                      debit_wallet_coa_code: found ? found.account_code : '',
+                      debit_wallet_coa_name: found ? found.account_name : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                >
+                  <option value="">-- Pilih Akun COA Dompet Santri --</option>
+                  {accountingConfig?.coas?.wallet_debit?.map(c => (
+                    <option key={c.id} value={c.id}>{c.display_label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Akun pengurang simpanan dompet santri atau piutang klaim kantin ke keuangan pusat
+                </p>
+              </div>
+
+              {/* Akun Kredit Utang Vendor Titipan */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Akun Kredit Utang Usaha Vendor Titipan <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editConfigForm.credit_vendor_coa_id || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const found = accountingConfig?.coas?.all?.find(c => String(c.id) === String(id));
+                    setEditConfigForm({
+                      ...editConfigForm,
+                      credit_vendor_coa_id: id,
+                      credit_vendor_coa_code: found ? found.account_code : '',
+                      credit_vendor_coa_name: found ? found.account_name : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                >
+                  <option value="">-- Pilih Akun COA Utang Vendor --</option>
+                  {accountingConfig?.coas?.vendor_credit?.map(c => (
+                    <option key={c.id} value={c.id}>{c.display_label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Mencatat kewajiban/utang titipan bagi hasil pemilik makanan yang wajib diserahkan
+                </p>
+              </div>
+
+              {/* Akun Kredit Pendapatan Bagi Hasil POS */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Akun Kredit Pendapatan Bagi Hasil POS Kantin <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editConfigForm.credit_income_coa_id || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const found = accountingConfig?.coas?.all?.find(c => String(c.id) === String(id));
+                    setEditConfigForm({
+                      ...editConfigForm,
+                      credit_income_coa_id: id,
+                      credit_income_coa_code: found ? found.account_code : '',
+                      credit_income_coa_name: found ? found.account_name : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                >
+                  <option value="">-- Pilih Akun Pendapatan POS --</option>
+                  {accountingConfig?.coas?.income_credit?.map(c => (
+                    <option key={c.id} value={c.id}>{c.display_label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Mencatat pendapatan margin/bagi hasil bersih yang menjadi hak unit kantin
+                </p>
+              </div>
+
+              {/* Pos Dana Terkait */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Pos Dana Terkait
+                </label>
+                <input
+                  type="text"
+                  value={editConfigForm.fund_source_name || ''}
+                  onChange={(e) => setEditConfigForm({ ...editConfigForm, fund_source_name: e.target.value })}
+                  placeholder="Contoh: Pos Pendapatan & Kas Operasional SBU Kantin"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium"
+                />
+              </div>
+
+              {/* Toggle Auto Journal */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Pencatatan Jurnal Otomatis (Auto-Journal)</span>
+                  <span className="text-[11px] text-slate-500">
+                    Otomatis buat jurnal umum akuntansi ganda setiap transaksi POS checkout
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={editConfigForm.auto_journal !== false}
+                  onChange={(e) => setEditConfigForm({ ...editConfigForm, auto_journal: e.target.checked })}
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountingConfigModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={accountingConfigSaving}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {accountingConfigSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  <span>Simpan Konfigurasi</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

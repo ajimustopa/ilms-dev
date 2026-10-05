@@ -2,6 +2,36 @@ const productReturnsService = require('./service');
 const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class ProductReturnsController {
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await productReturnsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await productReturnsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Konfigurasi akuntansi retur barang berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listBankStatements(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await productReturnsService.listBankStatements(schoolUnitId, req.query);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listReturns(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);

@@ -40,7 +40,9 @@ import {
   BadgeCheck,
   Tag,
   Landmark,
-  BookOpen
+  BookOpen,
+  Settings,
+  Check
 } from 'lucide-react';
 
 // Helper fungsi terbilang rupiah untuk kwitansi
@@ -87,6 +89,24 @@ export default function HakVendor() {
   // Pilihan item transaksi dari tabel detail
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
+  // Accounting Settings State
+  const [accountingConfig, setAccountingConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configSuccess, setConfigSuccess] = useState(null);
+  const [configError, setConfigError] = useState(null);
+
+  const [configForm, setConfigForm] = useState({
+    auto_journal_enabled: true,
+    default_fund_source_name: 'Kantin Sekolah',
+    default_cash_account_id: '',
+    default_bank_account_id: '',
+    debit_coa_id: '',
+    credit_coa_id: '',
+    default_bank_statement_id: ''
+  });
+
   // Modal Pembayaran Hak Vendor
   const [showModal, setShowModal] = useState(false);
   const [loadingModalData, setLoadingModalData] = useState(false);
@@ -103,7 +123,9 @@ export default function HakVendor() {
     amount: '',
     cash_account_id: '',
     coa_account_id: '',
+    credit_coa_id: '',
     bank_statement_id: '',
+    fund_source_name: 'Kantin Sekolah',
     notes: ''
   });
 
@@ -122,17 +144,33 @@ export default function HakVendor() {
       if (paymentMethodFilter !== 'all') params.payment_method = paymentMethodFilter;
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
-      const [resSummary, resDetails, resPayments, resAccounts] = await Promise.all([
+      const [resSummary, resDetails, resPayments, resAccounts, resConfig] = await Promise.all([
         api.get('/kantin/receivables/vendor-share', { params: { period_start: dateFrom || undefined, period_end: dateTo || undefined, vendor_id: vendorFilter !== 'all' ? vendorFilter : undefined } }),
         api.get('/kantin/receivables/vendor-share/detail', { params }),
         api.get('/kantin/vendor-fee-payments', { params: { vendor_id: vendorFilter !== 'all' ? vendorFilter : undefined } }),
-        api.get('/kantin/vendor-fee-payments/cash-accounts').catch(() => ({ data: { data: [] } }))
+        api.get('/kantin/vendor-fee-payments/cash-accounts').catch(() => ({ data: { data: [] } })),
+        api.get('/kantin/vendor-fee-payments/accounting-config').catch(() => ({ data: null }))
       ]);
 
       setSummary(resSummary.data?.data || null);
       setDetails(resDetails.data?.data || []);
       setPayments(resPayments.data?.data || []);
       setCashAccounts(resAccounts.data?.data || []);
+
+      if (resConfig?.data?.data) {
+        const cfg = resConfig.data.data;
+        setAccountingConfig(cfg);
+        const s = cfg.settings || {};
+        setConfigForm({
+          auto_journal_enabled: s.auto_journal_enabled ?? true,
+          default_fund_source_name: s.default_fund_source_name || 'Kantin Sekolah',
+          default_cash_account_id: s.default_cash_account_id || '',
+          default_bank_account_id: s.default_bank_account_id || '',
+          debit_coa_id: s.debit_coa_id || '',
+          credit_coa_id: s.credit_coa_id || '',
+          default_bank_statement_id: s.default_bank_statement_id || ''
+        });
+      }
     } catch (err) {
       console.error('Error fetching vendor shares data:', err);
     } finally {
@@ -157,6 +195,30 @@ export default function HakVendor() {
     setPaymentMethodFilter('all');
     setSearchQuery('');
     setSelectedItemIds([]);
+  };
+
+  const handleSaveAccountingConfig = async (e) => {
+    e.preventDefault();
+    setSavingConfig(true);
+    setConfigError(null);
+    setConfigSuccess(null);
+
+    try {
+      const res = await api.post('/kantin/vendor-fee-payments/accounting-config', configForm);
+      setConfigSuccess('Konfigurasi akuntansi penyerahan hak vendor berhasil diperbarui!');
+      if (res.data?.data) {
+        setAccountingConfig(res.data.data);
+      }
+      setTimeout(() => {
+        setShowConfigModal(false);
+        setConfigSuccess(null);
+      }, 1200);
+      fetchData();
+    } catch (err) {
+      setConfigError(err.response?.data?.message || err.message || 'Gagal menyimpan konfigurasi akuntansi');
+    } finally {
+      setSavingConfig(false);
+    }
   };
 
   const formatRupiah = (val) => {
@@ -245,11 +307,12 @@ export default function HakVendor() {
         ? String(initialVendor.vendor_id || initialVendor.id)
         : (activeSelectedVendorId ? String(activeSelectedVendorId) : (vendorFilter !== 'all' ? vendorFilter : ''));
 
-      const [resCoa, resBank, resItems, resAcc] = await Promise.all([
+      const [resCoa, resBank, resItems, resAcc, resCfg] = await Promise.all([
         api.get('/kantin/vendor-fee-payments/coa-accounts').catch(() => ({ data: { data: { accounts: [], default_coa_id: null } } })),
         api.get('/kantin/vendor-fee-payments/bank-statements').catch(() => ({ data: { data: [] } })),
         api.get('/kantin/vendor-fee-payments/undisbursed-items', { params: { vendor_id: chosenVendorId || undefined } }).catch(() => ({ data: { data: { items: [], total_amount: 0, total_count: 0 } } })),
-        api.get('/kantin/vendor-fee-payments/cash-accounts').catch(() => ({ data: { data: [] } }))
+        api.get('/kantin/vendor-fee-payments/cash-accounts').catch(() => ({ data: { data: [] } })),
+        api.get('/kantin/vendor-fee-payments/accounting-config').catch(() => ({ data: null }))
       ]);
 
       const coaData = resCoa.data?.data || {};
@@ -267,8 +330,10 @@ export default function HakVendor() {
       const accounts = resAcc.data?.data || [];
       setCashAccounts(accounts);
 
-      const defaultAcc = accounts.find(a => (a.name || '').toLowerCase().includes('kantin')) || accounts[0];
-      const defaultAccId = defaultAcc ? String(defaultAcc.id) : '';
+      const cfg = resCfg?.data?.data?.settings || accountingConfig?.settings || {};
+      const defaultAccId = cfg.default_cash_account_id ? String(cfg.default_cash_account_id) : (accounts[0] ? String(accounts[0].id) : '');
+      const defaultDebitCoaId = cfg.debit_coa_id ? String(cfg.debit_coa_id) : defaultCoa;
+      const defaultCreditCoaId = cfg.credit_coa_id ? String(cfg.credit_coa_id) : '';
 
       // Tentukan item mana yang dipilih:
       let chosenIds = [];
@@ -294,8 +359,10 @@ export default function HakVendor() {
         paid_at: new Date().toISOString().slice(0, 10),
         amount: calcAmount > 0 ? String(calcAmount) : '',
         cash_account_id: defaultAccId,
-        coa_account_id: defaultCoa,
-        bank_statement_id: '',
+        coa_account_id: defaultDebitCoaId,
+        credit_coa_id: defaultCreditCoaId,
+        bank_statement_id: cfg.default_bank_statement_id ? String(cfg.default_bank_statement_id) : '',
+        fund_source_name: cfg.default_fund_source_name || 'Kantin Sekolah',
         notes: selectedVendorObj
           ? `Penyerahan Hak Bagi Hasil Vendor ${selectedVendorObj.vendor_name || ''} (${chosenIds.length} Item)`
           : `Penyerahan Hak Bagi Hasil Vendor (${chosenIds.length} Item)`
@@ -387,7 +454,9 @@ export default function HakVendor() {
         amount: parseFloat(formData.amount),
         cash_account_id: formData.cash_account_id ? Number(formData.cash_account_id) : undefined,
         coa_account_id: formData.coa_account_id ? Number(formData.coa_account_id) : undefined,
+        credit_coa_id: formData.credit_coa_id ? Number(formData.credit_coa_id) : undefined,
         bank_statement_id: formData.bank_statement_id ? Number(formData.bank_statement_id) : undefined,
+        fund_source_name: formData.fund_source_name || 'Kantin Sekolah',
         sales_transaction_item_ids: modalSelectedItemIds,
         notes: formData.notes
       });
@@ -426,6 +495,10 @@ export default function HakVendor() {
     }), { qty: 0, sales: 0, vendor_cost: 0, canteen_margin: 0, vendor_pending: 0, vendor_disbursed: 0, non_vendor_sales: 0 });
   }, [details]);
 
+  const allCoas = accountingConfig?.coa_accounts || coaAccounts || [];
+  const cfgCashAccounts = accountingConfig?.cash_accounts || cashAccounts.filter(a => !a.bank_account_number) || [];
+  const cfgBankAccounts = accountingConfig?.bank_accounts || cashAccounts.filter(a => !!a.bank_account_number) || [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -436,10 +509,19 @@ export default function HakVendor() {
             <span>Hak Vendor Titipan &amp; Penyerahan Hasil Penjualan</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Perhitungan porsi bagi hasil barang konsinyasi mitra vendor, seleksi transaksi pembayaran, dan penerbitan kwitansi BKK Keuangan
+            Perhitungan porsi bagi hasil barang konsinyasi mitra vendor, seleksi transaksi pembayaran, otomatisasi jurnal SBU &amp; penerbitan kwitansi BKK Keuangan
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowConfigModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition"
+            title="Setelan Default Akuntansi &amp; COA"
+          >
+            <Settings className="w-3.5 h-3.5 text-slate-500" />
+            <span>Setelan Akuntansi</span>
+          </button>
           <button
             type="button"
             onClick={fetchData}
@@ -485,7 +567,7 @@ export default function HakVendor() {
               <div className="flex items-start gap-1.5 bg-white/70 border border-amber-100 rounded-xl p-2.5">
                 <span className="text-amber-600 font-bold">•</span>
                 <span>
-                  <strong>Barang Non-Titipan (Kantin Mandiri):</strong> 100% hasil penjualan menjadi penerimaan operasional kantin sekolah dan tidak memiliki kewajiban bagi hasil ke vendor luar.
+                  <strong>Pencatatan Akuntansi Terintegrasi:</strong> Setiap penyerahan hak vendor otomatis mencatat Jurnal Pengeluaran Kas (Debet Hutang/Beban Konsinyasi &bull; Kredit Kas/Bank) dan menerbitkan BKK di Modul Keuangan.
                 </span>
               </div>
             </div>
@@ -651,335 +733,267 @@ export default function HakVendor() {
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition font-medium"
             >
               <option value="all">Semua Status</option>
-              <option value="pending">⏳ Belum Diserahkan (Hutang)</option>
-              <option value="disbursed">✅ Sudah Diserahkan (Lunas)</option>
-              <option value="non_vendor">🏢 Bukan Titipan (Kantin Mandiri)</option>
+              <option value="pending">⏳ Belum Diserahkan (Pending)</option>
+              <option value="disbursed">✅ Sudah Lunas Diserahkan</option>
+              <option value="non_vendor">🏢 Kantin Mandiri</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">Cari Transaksi / Produk</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ID Trx, produk, kwitansi..."
-                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-            </div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">Metode Bayar</label>
+            <select
+              value={paymentMethodFilter}
+              onChange={(e) => setPaymentMethodFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition font-medium"
+            >
+              <option value="all">Semua Metode</option>
+              <option value="wallet">💳 Dompet Santri</option>
+              <option value="cash">💵 Tunai Kasir</option>
+              <option value="qris">📱 QRIS</option>
+            </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+              className="flex-1 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-xs"
             >
-              Terapkan
+              <Search className="w-3.5 h-3.5" />
+              <span>Cari</span>
             </button>
-            {(dateFrom || dateTo || vendorFilter !== 'all' || disbursementStatusFilter !== 'all' || paymentMethodFilter !== 'all' || searchQuery) && (
-              <button
-                type="button"
-                onClick={handleResetFilter}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition"
-                title="Reset Filter"
-              >
-                Reset
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleResetFilter}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition"
+              title="Reset Filter"
+            >
+              Reset
+            </button>
           </div>
         </form>
+
+        {/* Input Pencarian Cepat Text */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchData()}
+            placeholder="Cari nama produk, nama vendor, nama pembeli/santri, atau kasir..."
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+          />
+        </div>
       </div>
 
-      {/* Main Content Tabs */}
+      {/* TABS KONTEN */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between px-5 pt-3.5 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 pt-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setActiveTab('detail')}
-              className={`pb-3 text-xs font-bold transition border-b-2 inline-flex items-center gap-1.5 ${
+              className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
                 activeTab === 'detail'
                   ? 'border-amber-600 text-amber-700'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Rincian Transaksi Penjualan &amp; Hak Vendor ({details.length})</span>
+              <Receipt className="w-4 h-4" />
+              <span>Rincian Item Penjualan ({details.length})</span>
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('vendors')}
-              className={`pb-3 text-xs font-bold transition border-b-2 inline-flex items-center gap-1.5 ${
+              className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
                 activeTab === 'vendors'
                   ? 'border-amber-600 text-amber-700'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Store className="w-3.5 h-3.5" />
-              <span>Rekapitulasi per Vendor Mitra ({(summary?.vendors || []).length})</span>
+              <Store className="w-4 h-4" />
+              <span>Rekapitulasi per Vendor ({(summary?.vendors || []).length})</span>
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`pb-3 text-xs font-bold transition border-b-2 inline-flex items-center gap-1.5 ${
+              className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
                 activeTab === 'history'
                   ? 'border-amber-600 text-amber-700'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
-              <FileCheck2 className="w-3.5 h-3.5" />
-              <span>Riwayat Penyerahan &amp; Kwitansi Vendor ({payments.length})</span>
+              <Clock className="w-4 h-4" />
+              <span>Riwayat Penyerahan &amp; Kwitansi ({payments.length})</span>
             </button>
           </div>
 
-          <div className="text-[11px] text-slate-400 pb-2">
-            {details.length} item transaksi dimuat
-          </div>
+          {/* Action Header Saat Tab Detail Aktif */}
+          {activeTab === 'detail' && selectablePendingVendorItems.length > 0 && (
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-[11px] text-slate-500">
+                Terpilih: <strong className="text-amber-800">{selectedItemIds.length}</strong> item
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleSelectAllMain}
+                className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition inline-flex items-center gap-1"
+              >
+                {selectedItemIds.length > 0 ? (
+                  <>
+                    <Square className="w-3 h-3 text-slate-500" />
+                    <span>Batal Pilih</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-3 h-3 text-amber-600" />
+                    <span>Pilih Semua Vendor Aktif</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* TAB 1: Rincian Transaksi Penjualan & Hak Vendor */}
+        {/* TAB 1: Rincian Item Transaksi */}
         {activeTab === 'detail' && (
-          <div className="p-5 space-y-4">
-            {/* Floating Selection Banner jika ada transaksi dicentang */}
+          <div>
+            {/* Action Bar Floating saat ada item terpilih */}
             {selectedItemIds.length > 0 && (
-              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs animate-in fade-in duration-150">
+              <div className="bg-amber-50 border-b border-amber-200 px-5 py-3 flex items-center justify-between animate-in fade-in duration-150">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-600 text-white rounded-xl font-bold text-xs">
-                    {selectedItemIds.length} Item
+                  <div className="p-2 bg-amber-600 text-white rounded-xl shadow-2xs">
+                    <CheckSquare className="w-4 h-4" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                      <Store className="w-3.5 h-3.5 text-amber-700" />
-                      <span>{selectedItemIds.length} Transaksi Penjualan Vendor {activeSelectedVendorName ? `"${activeSelectedVendorName}"` : ''} Dipilih</span>
+                    <h5 className="text-xs font-bold text-amber-950">
+                      {selectedItemIds.length} Item Terpilih &bull; Vendor: {activeSelectedVendorName || '-'}
                     </h5>
                     <p className="text-[11px] text-amber-800">
-                      Total Hak Vendor yang Akan Diserahkan: <strong className="font-mono text-xs font-black">{formatRupiah(selectedMainTotalAmount)}</strong>
-                      <span className="ml-2 text-slate-500 font-medium">(1 Transaksi Khusus 1 Vendor)</span>
+                      Total Hak Vendor: <strong className="font-mono">{formatRupiah(selectedMainTotalAmount)}</strong>
                     </p>
                   </div>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedItemIds([])}
-                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-amber-100/60 rounded-xl transition cursor-pointer"
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-amber-100 rounded-xl transition"
                   >
-                    Batal Pilih
+                    Batal Pilihan
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleOpenPaymentModal({ vendor_id: activeSelectedVendorId, vendor_name: activeSelectedVendorName }, selectedItemIds)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    onClick={() => handleOpenPaymentModal(null, selectedItemIds)}
+                    className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center gap-1.5"
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span>Bayar ke Vendor {activeSelectedVendorName || ''}</span>
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Proses Penyerahan Dana</span>
                   </button>
                 </div>
               </div>
             )}
 
-            <div className="table-container overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3 py-3 text-center w-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedItemIds.length === selectablePendingVendorItems.length && selectablePendingVendorItems.length > 0}
-                        onChange={handleToggleSelectAllMain}
-                        disabled={selectablePendingVendorItems.length === 0}
-                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer disabled:opacity-30"
-                        title="Pilih / Batal Pilih Semua Item Vendor Terkait"
-                      />
+                    <th className="p-3.5 text-center w-10">
+                      <span className="sr-only">Check</span>
                     </th>
-                    <th className="px-3.5 py-3">ID Trx</th>
-                    <th className="px-3.5 py-3">Waktu &amp; Pembeli</th>
-                    <th className="px-3.5 py-3">Metode Bayar</th>
-                    <th className="px-3.5 py-3">Produk &amp; Vendor Mitra</th>
+                    <th className="px-3.5 py-3">Waktu &amp; Trx</th>
+                    <th className="px-3.5 py-3">Produk &amp; Vendor</th>
+                    <th className="px-3.5 py-3">Pembeli</th>
+                    <th className="px-3.5 py-3">Metode</th>
                     <th className="px-3.5 py-3 text-right">Qty</th>
-                    <th className="px-3.5 py-3 text-right">Harga Jual</th>
+                    <th className="px-3.5 py-3 text-right">Total Jual</th>
                     <th className="px-3.5 py-3 text-right font-bold text-amber-900">Hak Vendor (HPP)</th>
-                    <th className="px-3.5 py-3 text-right text-emerald-700">Margin Kantin</th>
-                    <th className="px-3.5 py-3">Status Penyerahan Hak Vendor</th>
+                    <th className="px-3.5 py-3 text-right text-emerald-700">Bagi Hasil Kantin</th>
+                    <th className="px-3.5 py-3 text-right">Status Penyerahan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {details.map((d) => {
-                    const isChecked = selectedItemIds.includes(d.id);
-                    const isPendingVendor = d.is_vendor_item && !d.is_disbursed;
-                    const isLockedDifferentVendor = activeSelectedVendorId && isPendingVendor && String(d.vendor_id) !== String(activeSelectedVendorId);
+                    const isSelected = selectedItemIds.includes(d.id);
+                    const canSelect = d.is_vendor_item && !d.is_disbursed;
+                    const isMismatchVendor = activeSelectedVendorId && String(d.vendor_id) !== String(activeSelectedVendorId);
+
                     return (
                       <tr
                         key={d.id}
                         className={`hover:bg-slate-50/70 transition ${
-                          isChecked ? 'bg-amber-50/50' : (isPendingVendor ? 'bg-amber-50/20' : '')
+                          isSelected ? 'bg-amber-50/60' : ''
                         }`}
                       >
-                        {/* Checkbox Kolom */}
-                        <td className="px-3 py-3 text-center">
-                          {isLockedDifferentVendor ? (
+                        <td className="p-3.5 text-center">
+                          {canSelect ? (
                             <input
                               type="checkbox"
-                              checked={false}
-                              disabled={true}
-                              className="w-4 h-4 rounded text-slate-300 opacity-40 cursor-not-allowed"
-                              title={`Terkunci untuk vendor "${activeSelectedVendorName}". 1 transaksi pembayaran hanya untuk 1 vendor saja.`}
-                            />
-                          ) : isPendingVendor ? (
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
+                              checked={isSelected}
+                              disabled={!isSelected && isMismatchVendor}
                               onChange={() => handleToggleMainItem(d)}
-                              className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
-                              title="Pilih item ini untuk dibayarkan hak vendornya"
+                              className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                             />
-                          ) : d.is_vendor_item && d.is_disbursed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" title="Sudah Diserahkan" />
                           ) : (
-                            <span className="text-slate-300 text-xs font-mono">-</span>
+                            <span className="text-slate-300">&bull;</span>
                           )}
                         </td>
-
-                        {/* ID Trx */}
-                        <td className="px-3.5 py-3 font-mono font-bold text-slate-700 whitespace-nowrap">
-                          #{d.sales_transaction_id}
+                        <td className="px-3.5 py-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                          <div className="font-bold text-slate-700">#{d.sales_transaction_id}</div>
+                          <div>{formatDate(d.transaction_at)}</div>
                         </td>
-
-                        {/* Waktu & Pembeli */}
-                        <td className="px-3.5 py-3">
-                          <div className="font-semibold text-slate-800">{d.buyer_name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {d.transaction_at ? new Date(d.transaction_at).toLocaleString('id-ID', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : '-'}
-                          </div>
-                        </td>
-
-                        {/* Metode Bayar */}
-                        <td className="px-3.5 py-3 whitespace-nowrap">
-                          {d.payment_method === 'wallet' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-700">
-                              <Wallet className="w-3 h-3 text-indigo-600" />
-                              <span>Dompet Siswa</span>
-                            </span>
-                          ) : d.payment_method === 'cash' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
-                              <Banknote className="w-3 h-3 text-emerald-600" />
-                              <span>Tunai Kasir</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-sky-50 border border-sky-200 text-sky-700">
-                              <span>{d.payment_method?.toUpperCase()}</span>
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Produk & Vendor Mitra */}
                         <td className="px-3.5 py-3">
                           <div className="font-bold text-slate-800">{d.product_name}</div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            {d.is_vendor_item ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
-                                <Store className="w-3 h-3 text-amber-600" />
-                                <span>{d.vendor_name}</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-slate-500">
-                                <Building2 className="w-3 h-3 text-slate-400" />
-                                <span>Kantin Mandiri (Non-Titipan)</span>
-                              </span>
-                            )}
-                          </div>
+                          {d.is_vendor_item ? (
+                            <div className="text-[11px] text-amber-700 font-semibold flex items-center gap-1 mt-0.5">
+                              <Store className="w-3 h-3" />
+                              <span>{d.vendor_name}</span>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                              <Building2 className="w-3 h-3" />
+                              <span>Kantin Mandiri</span>
+                            </div>
+                          )}
                         </td>
-
-                        {/* Qty */}
+                        <td className="px-3.5 py-3 text-slate-700">
+                          {d.buyer_name || 'Umum'}
+                        </td>
+                        <td className="px-3.5 py-3 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                            {d.payment_method}
+                          </span>
+                        </td>
                         <td className="px-3.5 py-3 text-right font-mono font-bold text-slate-700">
                           {d.qty}
                         </td>
-
-                        {/* Harga Jual */}
-                        <td className="px-3.5 py-3 text-right font-mono">
-                          <div className="font-bold text-slate-800">{formatRupiah(d.subtotal_price)}</div>
-                          <div className="text-[10px] text-slate-400">@{formatRupiah(d.sale_price)}</div>
+                        <td className="px-3.5 py-3 text-right font-mono font-bold text-slate-800">
+                          {formatRupiah(d.subtotal_price)}
                         </td>
-
-                        {/* Hak Vendor (HPP) */}
-                        <td className="px-3.5 py-3 text-right font-mono">
-                          {d.is_vendor_item ? (
-                            <>
-                              <div className="font-bold text-amber-900">{formatRupiah(d.subtotal_cost)}</div>
-                              <div className="text-[10px] text-amber-600">@{formatRupiah(d.cost_price)}</div>
-                            </>
-                          ) : (
-                            <span className="text-slate-400 text-[11px] italic">Non-Vendor</span>
-                          )}
+                        <td className="px-3.5 py-3 text-right font-mono font-black text-amber-900">
+                          {d.is_vendor_item ? formatRupiah(d.subtotal_cost) : '-'}
                         </td>
-
-                        {/* Margin Kantin */}
                         <td className="px-3.5 py-3 text-right font-mono font-bold text-emerald-700">
                           {formatRupiah(d.canteen_margin)}
                         </td>
-
-                        {/* Status Penyerahan Hak Vendor */}
-                        <td className="px-3.5 py-3 whitespace-nowrap">
-                          {d.is_vendor_item ? (
-                            d.is_disbursed ? (
-                              <div className="flex flex-col gap-0.5">
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Sudah Diserahkan</span>
-                                </span>
-                                <div className="flex items-center gap-1.5 text-[9.5px] text-slate-500 font-mono pl-1">
-                                  <span>{d.receipt_number || d.finance_receipt_number || 'Lunas Terbayar'}</span>
-                                  {d.receipt_number && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handlePrintReceipt(d)}
-                                      className="text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5 font-sans font-bold"
-                                      title="Cetak Kwitansi"
-                                    >
-                                      <Printer className="w-2.5 h-2.5" />
-                                      <span>Kwitansi</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-1">
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg">
-                                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Belum Diserahkan</span>
-                                </span>
-                                <div className="flex items-center gap-1.5 pl-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenPaymentModal(null, [d.id])}
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-2 py-0.5 rounded-md transition shadow-2xs"
-                                    title="Bayar hanya item transaksi ini"
-                                  >
-                                    <CreditCard className="w-3 h-3 text-amber-700" />
-                                    <span>Bayar Item Ini</span>
-                                  </button>
-                                </div>
-                              </div>
-                            )
+                        <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                          {!d.is_vendor_item ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              Kantin Mandiri
+                            </span>
+                          ) : d.is_disbursed ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Lunas ({d.fee_receipt_number || 'Diserahkan'})</span>
+                            </span>
                           ) : (
-                            <div className="flex flex-col gap-0.5">
-                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
-                                <BadgeCheck className="w-3.5 h-3.5 text-slate-400" />
-                                <span>Bukan Titipan Vendor</span>
-                              </span>
-                              <span className="text-[9.5px] text-slate-400 pl-1">
-                                100% Hak Kas Kantin Mandiri
-                              </span>
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Belum Diserahkan</span>
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -989,14 +1003,7 @@ export default function HakVendor() {
                   {details.length === 0 && (
                     <tr>
                       <td colSpan="10" className="py-12 text-center text-slate-400 italic">
-                        {loading ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                            <span>Memuat data transaksi hak vendor...</span>
-                          </div>
-                        ) : (
-                          'Belum ada transaksi penjualan yang sesuai filter'
-                        )}
+                        Tidak ada rincian item penjualan yang sesuai filter.
                       </td>
                     </tr>
                   )}
@@ -1129,7 +1136,8 @@ export default function HakVendor() {
                   <th className="px-4 py-3">Vendor Mitra</th>
                   <th className="px-4 py-3">Tanggal Penyerahan</th>
                   <th className="px-4 py-3 font-bold text-emerald-700">Nominal Diserahkan</th>
-                  <th className="px-4 py-3">No. BKK (Modul Keuangan)</th>
+                  <th className="px-4 py-3">Akun Kas / Pos Dana</th>
+                  <th className="px-4 py-3">Jurnal SBU / BKK</th>
                   <th className="px-4 py-3">Keterangan</th>
                   <th className="px-4 py-3 text-right">Aksi</th>
                 </tr>
@@ -1149,15 +1157,28 @@ export default function HakVendor() {
                     <td className="px-4 py-3 font-mono font-black text-emerald-700">
                       {formatRupiah(p.amount)}
                     </td>
+                    <td className="px-4 py-3 text-slate-700 text-[11px]">
+                      <div className="font-semibold text-slate-800">{p.cash_account_name || 'Kas Operasional'}</div>
+                      <div className="text-[10px] text-amber-800 font-medium">Pos: {p.fund_source_name || 'Kantin Sekolah'}</div>
+                    </td>
                     <td className="px-4 py-3">
-                      {p.finance_receipt_number ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold text-[11px]">
-                          <FileCheck2 className="w-3 h-3 text-emerald-600" />
-                          <span>{p.finance_receipt_number}</span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 italic">Tercatat Kas Internal</span>
-                      )}
+                      <div className="space-y-1">
+                        {p.journal_number && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-mono font-bold text-[10px]">
+                            <BookOpen className="w-3 h-3 text-slate-500" />
+                            <span>{p.journal_number}</span>
+                          </span>
+                        )}
+                        {p.finance_receipt_number && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold text-[10px]">
+                            <FileCheck2 className="w-3 h-3 text-emerald-600" />
+                            <span>{p.finance_receipt_number}</span>
+                          </span>
+                        )}
+                        {!p.journal_number && !p.finance_receipt_number && (
+                          <span className="text-slate-400 italic text-[11px]">Tercatat Internal</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600 text-[11px]">
                       {p.notes || '-'}
@@ -1177,7 +1198,7 @@ export default function HakVendor() {
 
                 {payments.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-slate-400 italic">
+                    <td colSpan="8" className="py-12 text-center text-slate-400 italic">
                       Belum ada riwayat pembayaran hak vendor
                     </td>
                   </tr>
@@ -1187,6 +1208,200 @@ export default function HakVendor() {
           </div>
         )}
       </div>
+
+      {/* MODAL SETELAN AKUNTANSI (CONFIGURATION MODAL) */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-5 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-100 text-amber-800 rounded-2xl shadow-xs">
+                  <Settings className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">
+                    Konfigurasi Akuntansi Penyerahan Hak Vendor
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Atur akun debet-kredit default, rekening kas/bank, dan pos dana untuk otomatisasi pencatatan bagi hasil vendor
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {configError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{configError}</span>
+              </div>
+            )}
+
+            {configSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{configSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveAccountingConfig} className="space-y-4 text-xs">
+              {/* Toggle Auto Journal */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <label className="font-bold text-slate-800 block">
+                    Otomatisasi Jurnal SBU Kantin
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Secara otomatis buat entri double-entry (Debet Hutang/HPP &bull; Kredit Kas) saat penyerahan hak vendor dicatat
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={configForm.auto_journal_enabled}
+                  onChange={(e) => setConfigForm({ ...configForm, auto_journal_enabled: e.target.checked })}
+                  className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Pos Dana Default */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Pos Dana Default Terkait
+                </label>
+                <input
+                  type="text"
+                  value={configForm.default_fund_source_name}
+                  onChange={(e) => setConfigForm({ ...configForm, default_fund_source_name: e.target.value })}
+                  placeholder="Contoh: Kantin Sekolah / Operasional Sekolah"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Kas Tunai Default */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Rekening Kas Tunai Default
+                  </label>
+                  <SearchableSelect
+                    options={cfgCashAccounts.map(a => ({
+                      value: String(a.id),
+                      label: a.display_label || a.name,
+                      sublabel: 'Penyimpanan Kas Tunai Fisik'
+                    }))}
+                    value={configForm.default_cash_account_id}
+                    onChange={(val) => setConfigForm({ ...configForm, default_cash_account_id: val })}
+                    placeholder="Pilih Kas Tunai Default"
+                  />
+                </div>
+
+                {/* Bank Default */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Rekening Bank Default
+                  </label>
+                  <SearchableSelect
+                    options={cfgBankAccounts.map(a => ({
+                      value: String(a.id),
+                      label: a.display_label || a.name,
+                      sublabel: `${a.bank_name || 'Bank'} - ${a.bank_account_number || '-'}`
+                    }))}
+                    value={configForm.default_bank_account_id}
+                    onChange={(val) => setConfigForm({ ...configForm, default_bank_account_id: val })}
+                    placeholder="Pilih Rekening Bank Default"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Akun Debet Default */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Akun Debet Default (Hutang / Beban)</span>
+                    <span className="text-[10px] text-amber-800 font-mono font-bold bg-amber-50 px-1.5 py-0.5 rounded">Posisi: DEBET</span>
+                  </label>
+                  <SearchableSelect
+                    options={allCoas.map(c => ({
+                      value: String(c.id),
+                      label: c.display_label || `[${c.account_code}] ${c.account_name}`,
+                      sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`
+                    }))}
+                    value={configForm.debit_coa_id}
+                    onChange={(val) => setConfigForm({ ...configForm, debit_coa_id: val })}
+                    placeholder="Pilih Akun Debet Default"
+                  />
+                </div>
+
+                {/* Akun Kredit Default */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Akun Kredit Default (Kas / Bank)</span>
+                    <span className="text-[10px] text-emerald-800 font-mono font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Posisi: KREDIT</span>
+                  </label>
+                  <SearchableSelect
+                    options={allCoas.map(c => ({
+                      value: String(c.id),
+                      label: c.display_label || `[${c.account_code}] ${c.account_name}`,
+                      sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`
+                    }))}
+                    value={configForm.credit_coa_id}
+                    onChange={(val) => setConfigForm({ ...configForm, credit_coa_id: val })}
+                    placeholder="Pilih Akun Kredit Default"
+                  />
+                </div>
+              </div>
+
+              {/* Pratinjau Double-Entry Default */}
+              <div className="p-3.5 bg-slate-900 text-slate-100 rounded-xl space-y-1.5 font-mono text-[11px] border border-slate-800">
+                <div className="text-[10px] text-slate-400 font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-800">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Struktur Jurnal Standar Penyerahan Hak Vendor:</span>
+                </div>
+                {(() => {
+                  const dCoa = allCoas.find(c => String(c.id) === String(configForm.debit_coa_id));
+                  const cCoa = allCoas.find(c => String(c.id) === String(configForm.credit_coa_id));
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-amber-300">
+                        <span>[DEBET] {dCoa?.display_label || '[20102] Hutang Konsinyasi Mitra Vendor'}</span>
+                        <span className="font-bold">Rp Nominal (Pelunasan Kewajiban)</span>
+                      </div>
+                      <div className="flex items-center justify-between text-emerald-400 pl-4">
+                        <span>[KREDIT] {cCoa?.display_label || '[10101] Kas Operasional / Kas Tunai'}</span>
+                        <span className="font-bold">Rp Nominal (Pengeluaran Kas/Bank)</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingConfig}
+                  className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {savingConfig && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Simpan Konfigurasi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL PEMBAYARAN HAK VENDOR */}
       {showModal && (
@@ -1203,7 +1418,7 @@ export default function HakVendor() {
                     Penyerahan &amp; Pembayaran Hak Vendor
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Mencatat pembayaran bagi hasil konsinyasi vendor &amp; sinkronisasi otomatis BKK ke Modul Keuangan
+                    Mencatat pembayaran bagi hasil konsinyasi vendor, jurnal akuntansi SBU &amp; sinkronisasi BKK Modul Keuangan
                   </p>
                 </div>
               </div>
@@ -1276,16 +1491,31 @@ export default function HakVendor() {
                       </select>
                     </div>
 
-                    {/* 2. Tanggal Pembayaran */}
-                    <div>
-                      <DatePickerField
-                        label="Tanggal Pembayaran *"
-                        value={formData.paid_at}
-                        onChange={(isoStr) => setFormData({ ...formData, paid_at: isoStr })}
-                        placeholder="DD/MM/YYYY"
-                        helperText="Format tanggal dd/mm/yyyy. Otomatis tercatat pada Bukti Kas Keluar (BKK)."
-                        required
-                      />
+                    {/* 2. Tanggal Pembayaran & Pos Dana */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <DatePickerField
+                          label="Tanggal Pembayaran *"
+                          value={formData.paid_at}
+                          onChange={(isoStr) => setFormData({ ...formData, paid_at: isoStr })}
+                          placeholder="DD/MM/YYYY"
+                          helperText="Format dd/mm/yyyy."
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Pos Dana Terkait *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.fund_source_name}
+                          onChange={(e) => setFormData({ ...formData, fund_source_name: e.target.value })}
+                          placeholder="Contoh: Kantin Sekolah"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                        />
+                      </div>
                     </div>
 
                     {/* 3. Referensi Rekening Koran (Mutasi Bank Keluar) */}
@@ -1360,7 +1590,7 @@ export default function HakVendor() {
                           <BookOpen className="w-3.5 h-3.5 text-slate-500" />
                           <span>Akun Akuntansi Terkait (Akun Debet) *</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">Posisi: Debet / Beban HPP</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Posisi: Debet / Hutang Konsinyasi</span>
                       </label>
                       <SearchableSelect
                         options={coaAccounts.map(c => ({
@@ -1386,15 +1616,23 @@ export default function HakVendor() {
                         <div className="p-3 bg-slate-900 text-slate-100 rounded-xl space-y-1.5 font-mono text-[11px] border border-slate-800">
                           <div className="text-[10px] text-slate-400 font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-800">
                             <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Pratinjau Jurnal Kas Keluar (BKK):</span>
+                            <span>Pratinjau Jurnal SBU Kantin (Double-Entry):</span>
                           </div>
                           <div className="flex items-center justify-between text-amber-300">
-                            <span>[Debet] {selectedCoa?.display_label || selectedCoa?.account_name || 'Beban HPP / Bagi Hasil Vendor'}</span>
+                            <span>[DEBET] {selectedCoa?.display_label || selectedCoa?.account_name || '[20102] Hutang Konsinyasi Mitra Vendor'}</span>
                             <span className="font-bold">{formatRupiah(nominal)}</span>
                           </div>
                           <div className="flex items-center justify-between text-emerald-400 pl-4">
-                            <span>[Kredit] {selectedCash?.name || selectedCash?.display_label || 'Kas/Bank Pembayar'}</span>
+                            <span>[KREDIT] {selectedCash?.name || selectedCash?.display_label || '[10101] Kas Operasional Kantin'}</span>
                             <span className="font-bold">{formatRupiah(nominal)}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-sans pt-1 border-t border-slate-800/80 flex items-center justify-between">
+                            <span>Pos Dana: <strong className="text-slate-300">{formData.fund_source_name || 'Kantin Sekolah'}</strong></span>
+                            {formData.bank_statement_id ? (
+                              <span className="text-emerald-400 font-bold">Terhubung Rekening Koran (DB)</span>
+                            ) : (
+                              <span className="text-slate-400">Kas Tunai Fisik</span>
+                            )}
                           </div>
                         </div>
                       );
@@ -1533,7 +1771,7 @@ export default function HakVendor() {
                 {/* Modal Footer Actions */}
                 <div className="pt-3 flex items-center justify-between border-t border-slate-100">
                   <div className="text-[11px] text-slate-400">
-                    * Menerbitkan Bukti Kas Keluar (BKK) Keuangan in-process dan kwitansi penyerahan hak vendor.
+                    * Menerbitkan Jurnal SBU Kantin &amp; Bukti Kas Keluar (BKK) Keuangan in-process.
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -1599,6 +1837,11 @@ export default function HakVendor() {
                 {receiptData.finance_receipt_number && (
                   <span className="text-[10px] text-slate-400 mt-1 block">
                     No. BKK: {receiptData.finance_receipt_number}
+                  </span>
+                )}
+                {receiptData.journal_number && (
+                  <span className="text-[10px] text-slate-400 block">
+                    Jurnal: {receiptData.journal_number}
                   </span>
                 )}
               </div>

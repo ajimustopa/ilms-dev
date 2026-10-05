@@ -91,7 +91,7 @@ class OperationalExpensesController {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
       const { id } = req.params;
-      const data = await operationalExpensesService.deleteExpense(id, schoolUnitId);
+      const data = await operationalExpensesService.deleteExpense(id, schoolUnitId, req.user?.id || null);
       res.json({ success: true, data, message: 'Transaksi operasional berhasil dihapus', errors: null });
     } catch (err) {
       next(err);

@@ -4,6 +4,10 @@ const controller = require('./controller');
 const verifyJwt = require('../../../middlewares/verifyJwt');
 const requireRole = require('../middlewares/requireRole');
 
+router.get('/wallet-transactions/accounting-config', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara', 'kasir', 'internal_service'), controller.getAccountingConfig);
+router.post('/wallet-transactions/accounting-config', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.saveAccountingConfig);
+router.put('/wallet-transactions/accounting-config', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.saveAccountingConfig);
+
 router.get('/wallet-transactions', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara', 'orangtua', 'internal_service'), controller.listTransactions);
 router.get('/wallet-transactions/cash-accounts', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara', 'kasir', 'internal_service'), controller.listCashAccounts);
 router.get('/wallet-transactions/bank-statements', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara', 'kasir', 'internal_service'), controller.listBankStatements);

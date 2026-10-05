@@ -4,6 +4,7 @@ import StatusPill from '../../../shared/components/StatusPill';
 import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import DatePickerField from '../../../shared/components/DatePickerField';
+import StatementMatchIndicator from '../../../shared/components/StatementMatchIndicator';
 import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
 import {
   PackagePlus,
@@ -29,6 +30,11 @@ import {
   CalendarDays,
   ShieldCheck,
   ShieldAlert,
+  Settings,
+  BookOpen,
+  Building2,
+  CreditCard,
+  BadgeCheck,
   Info
 } from 'lucide-react';
 
@@ -97,6 +103,9 @@ export default function PenerimaanBarang() {
   const [receipts, setReceipts] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
+  const [cashAccounts, setCashAccounts] = useState([]);
+  const [bankStatements, setBankStatements] = useState([]);
+  const [loadingBankStatements, setLoadingBankStatements] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all' | 'titipan' | 'belanja_sendiri'
@@ -106,7 +115,41 @@ export default function PenerimaanBarang() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Helper generate No. Batch / Lot otomatis berbasis tanggal dan urutan item (misal: LOT-20261004-01)
+  // Accounting Config State
+  const [accountingConfig, setAccountingConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    cash_account_id_tunai: '',
+    cash_account_name_tunai: '',
+    cash_account_id_bank: '',
+    cash_account_name_bank: '',
+    inventory_coa_id: '',
+    inventory_coa_code: '',
+    inventory_coa_name: '',
+    consignment_inventory_coa_id: '',
+    consignment_inventory_coa_code: '',
+    consignment_inventory_coa_name: '',
+    consignment_payable_coa_id: '',
+    consignment_payable_coa_code: '',
+    consignment_payable_coa_name: '',
+    trade_payable_coa_id: '',
+    trade_payable_coa_code: '',
+    trade_payable_coa_name: '',
+    cash_coa_id: '',
+    cash_coa_code: '',
+    cash_coa_name: '',
+    bank_coa_id: '',
+    bank_coa_code: '',
+    bank_coa_name: '',
+    fund_source_name: 'Pos Pengadaan Stok & Pembelian SBU Kantin',
+    auto_journal: true
+  });
+  const [configSuccessMsg, setConfigSuccessMsg] = useState(null);
+  const [configErrorMsg, setConfigErrorMsg] = useState(null);
+
+  // Helper generate No. Batch / Lot otomatis
   const generateBatchNumber = (dateStr, seq = 1) => {
     const d = dateStr ? new Date(dateStr) : new Date();
     const year = isNaN(d.getTime()) ? new Date().getFullYear() : d.getFullYear();
@@ -117,7 +160,7 @@ export default function PenerimaanBarang() {
     return `LOT-${dateFormatted}-${seqFormatted}`;
   };
 
-  // Helper generate No. Surat Jalan / Faktur otomatis (misal: SJ-20261004-001)
+  // Helper generate No. Surat Jalan / Faktur otomatis
   const generateInvoiceNumber = (dateStr, receiptsList = receipts) => {
     const d = dateStr ? new Date(dateStr) : new Date();
     const year = isNaN(d.getTime()) ? new Date().getFullYear() : d.getFullYear();
@@ -136,6 +179,10 @@ export default function PenerimaanBarang() {
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [receiptDate, setReceiptDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'transfer' | 'credit'
+  const [selectedCashAccountId, setSelectedCashAccountId] = useState('');
+  const [selectedBankStatementId, setSelectedBankStatementId] = useState('');
+  const [fundSourceName, setFundSourceName] = useState('Pos Pengadaan Stok & Pembelian SBU Kantin');
   const [note, setNote] = useState('');
   const [items, setItems] = useState([
     {
@@ -147,6 +194,95 @@ export default function PenerimaanBarang() {
       expired_at: ''
     }
   ]);
+
+  const fetchAccountingConfig = async () => {
+    setLoadingConfig(true);
+    try {
+      const res = await api.get('/kantin/goods-receipts/accounting-config');
+      const data = res.data?.data;
+      if (data) {
+        setAccountingConfig(data);
+        if (data.cash_accounts) {
+          setCashAccounts(data.cash_accounts);
+        }
+        if (data.settings) {
+          setConfigForm({
+            cash_account_id_tunai: data.settings.cash_account_id_tunai ? String(data.settings.cash_account_id_tunai) : '',
+            cash_account_name_tunai: data.settings.cash_account_name_tunai || '',
+            cash_account_id_bank: data.settings.cash_account_id_bank ? String(data.settings.cash_account_id_bank) : '',
+            cash_account_name_bank: data.settings.cash_account_name_bank || '',
+            inventory_coa_id: data.settings.inventory_coa_id ? String(data.settings.inventory_coa_id) : '',
+            inventory_coa_code: data.settings.inventory_coa_code || '',
+            inventory_coa_name: data.settings.inventory_coa_name || '',
+            consignment_inventory_coa_id: data.settings.consignment_inventory_coa_id ? String(data.settings.consignment_inventory_coa_id) : '',
+            consignment_inventory_coa_code: data.settings.consignment_inventory_coa_code || '',
+            consignment_inventory_coa_name: data.settings.consignment_inventory_coa_name || '',
+            consignment_payable_coa_id: data.settings.consignment_payable_coa_id ? String(data.settings.consignment_payable_coa_id) : '',
+            consignment_payable_coa_code: data.settings.consignment_payable_coa_code || '',
+            consignment_payable_coa_name: data.settings.consignment_payable_coa_name || '',
+            trade_payable_coa_id: data.settings.trade_payable_coa_id ? String(data.settings.trade_payable_coa_id) : '',
+            trade_payable_coa_code: data.settings.trade_payable_coa_code || '',
+            trade_payable_coa_name: data.settings.trade_payable_coa_name || '',
+            cash_coa_id: data.settings.cash_coa_id ? String(data.settings.cash_coa_id) : '',
+            cash_coa_code: data.settings.cash_coa_code || '',
+            cash_coa_name: data.settings.cash_coa_name || '',
+            bank_coa_id: data.settings.bank_coa_id ? String(data.settings.bank_coa_id) : '',
+            bank_coa_code: data.settings.bank_coa_code || '',
+            bank_coa_name: data.settings.bank_coa_name || '',
+            fund_source_name: data.settings.fund_source_name || 'Pos Pengadaan Stok & Pembelian SBU Kantin',
+            auto_journal: data.settings.auto_journal !== undefined ? data.settings.auto_journal : true
+          });
+          if (data.settings.fund_source_name) {
+            setFundSourceName(data.settings.fund_source_name);
+          }
+          if (data.settings.cash_account_id_tunai && !selectedCashAccountId) {
+            setSelectedCashAccountId(String(data.settings.cash_account_id_tunai));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat konfigurasi akuntansi penerimaan barang:', err.message);
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  const handleSaveAccountingConfig = async (e) => {
+    if (e) e.preventDefault();
+    setSavingConfig(true);
+    setConfigErrorMsg(null);
+    setConfigSuccessMsg(null);
+    try {
+      const res = await api.put('/kantin/goods-receipts/accounting-config', configForm);
+      const data = res.data?.data;
+      if (data) {
+        setAccountingConfig(data);
+      }
+      setConfigSuccessMsg('✅ Konfigurasi default akuntansi penerimaan barang berhasil disimpan!');
+      setTimeout(() => {
+        setShowConfigModal(false);
+        setConfigSuccessMsg(null);
+      }, 1500);
+    } catch (err) {
+      setConfigErrorMsg(err.response?.data?.message || err.message || 'Gagal menyimpan konfigurasi akuntansi');
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  const fetchBankStatements = async (cashAccId = null) => {
+    setLoadingBankStatements(true);
+    try {
+      const params = {};
+      if (cashAccId) params.cash_account_id = cashAccId;
+      const res = await api.get('/kantin/goods-receipts/bank-statements', { params });
+      setBankStatements(res.data?.data || []);
+    } catch (err) {
+      console.warn('Gagal memuat rekening koran:', err);
+    } finally {
+      setLoadingBankStatements(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -172,6 +308,7 @@ export default function PenerimaanBarang() {
 
   useEffect(() => {
     fetchData();
+    fetchAccountingConfig();
   }, []);
 
   // Dropdown options yang diformat untuk SearchableSelect
@@ -210,6 +347,10 @@ export default function PenerimaanBarang() {
     const today = new Date().toISOString().slice(0, 10);
     setReceiptDate(today);
     setInvoiceNumber(generateInvoiceNumber(today, receipts));
+    setPaymentMethod('cash');
+    setSelectedCashAccountId(accountingConfig?.settings?.cash_account_id_tunai ? String(accountingConfig.settings.cash_account_id_tunai) : '');
+    setSelectedBankStatementId('');
+    setFundSourceName(accountingConfig?.settings?.fund_source_name || 'Pos Pengadaan Stok & Pembelian SBU Kantin');
     setNote('');
 
     const vendorProds = firstVendorId
@@ -233,13 +374,11 @@ export default function PenerimaanBarang() {
   const handleReceiptDateChange = (newDate) => {
     setReceiptDate(newDate);
     if (newDate) {
-      // Jika invoiceNumber kosong atau masih memakai format otomatis default SJ-YYYYMMDD-XXX, update tanggalnya
       if (!invoiceNumber || /^SJ-\d{8}-\d+/.test(invoiceNumber)) {
         setInvoiceNumber(generateInvoiceNumber(newDate, receipts));
       }
 
       setItems(prev => prev.map((item, idx) => {
-        // Jika batch kosong atau masih memakai format otomatis default LOT-YYYYMMDD-XX, update tanggalnya
         if (!item.batch_number || /^LOT-\d{8}-\d+/.test(item.batch_number)) {
           const suffix = item.batch_number?.match(/-B\d+$/)?.[0] || '';
           return {
@@ -294,7 +433,6 @@ export default function PenerimaanBarang() {
     ]);
   };
 
-  // Duplikasi baris untuk produk yang sama dengan tanggal kadaluarsa / batch berbeda
   const handleDuplicateBatchRow = (idx) => {
     const source = items[idx];
     const nextSeq = items.length + 1;
@@ -338,45 +476,6 @@ export default function PenerimaanBarang() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
-    try {
-      const validItems = items.filter(it => it.vendor_product_id && Number(it.qty) > 0);
-      if (validItems.length === 0) {
-        throw new Error('Pilih minimal 1 produk dengan jumlah lebih dari 0.');
-      }
-
-      const payload = {
-        receipt_type: receiptType,
-        vendor_id: selectedVendorId ? Number(selectedVendorId) : null,
-        invoice_number: invoiceNumber || undefined,
-        receipt_date: receiptDate,
-        note,
-        items: validItems.map(item => ({
-          vendor_product_id: Number(item.vendor_product_id),
-          qty: Number(item.qty),
-          cost_price: parseFloat(item.cost_price) || 0,
-          sale_price: parseFloat(item.sale_price) || 0,
-          batch_number: item.batch_number ? String(item.batch_number).trim() : null,
-          expired_at: item.expired_at || null
-        }))
-      };
-
-      await api.post('/kantin/goods-receipts', payload);
-      setSuccessMessage(`Penerimaan barang berhasil dicatat (${validItems.length} baris produk & batch masuk).`);
-      setShowModal(false);
-      fetchData();
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Gagal menyimpan penerimaan barang');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // Ringkasan kalkulasi modal
   const summary = useMemo(() => {
     let totalQty = 0;
@@ -401,13 +500,101 @@ export default function PenerimaanBarang() {
     };
   }, [items]);
 
+  // Resolved Live Dynamic Debit & Credit COAs
+  const selectedCashAccount = cashAccounts.find(c => String(c.id) === String(selectedCashAccountId));
+
+  const activeDebitCoa = useMemo(() => {
+    if (receiptType === 'titipan') {
+      return {
+        code: accountingConfig?.settings?.consignment_inventory_coa_code || '10302',
+        name: accountingConfig?.settings?.consignment_inventory_coa_name || 'Persediaan Konsinyasi Titipan'
+      };
+    }
+    return {
+      code: accountingConfig?.settings?.inventory_coa_code || '10301',
+      name: accountingConfig?.settings?.inventory_coa_name || 'Persediaan Barang Dagangan Kantin'
+    };
+  }, [receiptType, accountingConfig]);
+
+  const activeCreditCoa = useMemo(() => {
+    if (receiptType === 'titipan') {
+      return {
+        code: accountingConfig?.settings?.consignment_payable_coa_code || '20102',
+        name: accountingConfig?.settings?.consignment_payable_coa_name || 'Hutang Konsinyasi Titipan Vendor'
+      };
+    }
+    if (paymentMethod === 'credit') {
+      return {
+        code: accountingConfig?.settings?.trade_payable_coa_code || '20100',
+        name: accountingConfig?.settings?.trade_payable_coa_name || 'Hutang Usaha Dagang Kantin'
+      };
+    }
+    if (paymentMethod === 'transfer' || selectedCashAccount?.account_kind === 'bank') {
+      return {
+        code: accountingConfig?.settings?.bank_coa_code || '10102',
+        name: accountingConfig?.settings?.bank_coa_name || 'Kas Bank BNI Kantin'
+      };
+    }
+    return {
+      code: accountingConfig?.settings?.cash_coa_code || '10101',
+      name: accountingConfig?.settings?.cash_coa_name || 'Kas Tunai Kasir'
+    };
+  }, [receiptType, paymentMethod, selectedCashAccount, accountingConfig]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const validItems = items.filter(it => it.vendor_product_id && Number(it.qty) > 0);
+      if (validItems.length === 0) {
+        throw new Error('Pilih minimal 1 produk dengan jumlah lebih dari 0.');
+      }
+
+      const payload = {
+        receipt_type: receiptType,
+        vendor_id: selectedVendorId ? Number(selectedVendorId) : null,
+        invoice_number: invoiceNumber || undefined,
+        receipt_date: receiptDate,
+        payment_method: receiptType === 'titipan' ? 'consignment' : paymentMethod,
+        cash_account_id: (receiptType === 'belanja_sendiri' && paymentMethod !== 'credit' && selectedCashAccountId) ? Number(selectedCashAccountId) : null,
+        bank_statement_id: (receiptType === 'belanja_sendiri' && paymentMethod === 'transfer' && selectedBankStatementId) ? Number(selectedBankStatementId) : null,
+        notes: note.trim() || null,
+        items: validItems.map(item => ({
+          vendor_product_id: Number(item.vendor_product_id),
+          qty: Number(item.qty),
+          cost_price: parseFloat(item.cost_price) || 0,
+          sale_price: parseFloat(item.sale_price) || 0,
+          batch_number: item.batch_number ? String(item.batch_number).trim() : null,
+          expired_at: item.expired_at || null
+        }))
+      };
+
+      const res = await api.post('/kantin/goods-receipts', payload);
+      const resData = res.data?.data;
+      const jrnInfo = resData?.journal_number ? ` [Jurnal: ${resData.journal_number}]` : '';
+
+      setSuccessMessage(`Penerimaan barang berhasil dicatat (${validItems.length} baris produk & batch masuk)${jrnInfo}.`);
+      setShowModal(false);
+      fetchData();
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Gagal menyimpan penerimaan barang');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const filtered = receipts.filter(r => {
     const q = search.toLowerCase().trim();
     const matchSearch = !q ||
       r.vendor?.toLowerCase().includes(q) ||
       r.invoice_number?.toLowerCase().includes(q) ||
       r.receipt_number?.toLowerCase().includes(q) ||
-      r.note?.toLowerCase().includes(q) ||
+      r.notes?.toLowerCase().includes(q) ||
+      r.journal_number?.toLowerCase().includes(q) ||
+      r.cash_account_name?.toLowerCase().includes(q) ||
       r.items?.some(it => 
         it.product_name?.toLowerCase().includes(q) ||
         it.batch_number?.toLowerCase().includes(q)
@@ -438,20 +625,36 @@ export default function PenerimaanBarang() {
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
             <PackagePlus className="w-5 h-5 text-emerald-600" />
-            <span>Penerimaan Barang Masuk &amp; Kontrol Kadaluarsa</span>
+            <span>Penerimaan Barang Masuk &amp; Kontrol Akuntansi</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pencatatan pasokan barang konsinyasi &amp; belanja mandiri dengan pelacakan nomor batch, tanggal kadaluarsa (FEFO), dan status kelayakan produk.
+            Pencatatan pasokan barang konsinyasi &amp; belanja mandiri lengkap dengan pencatatan akuntansi otomatis (double-entry) dan pelacakan batch expired (FEFO).
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Catat Penerimaan Barang</span>
-        </button>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {/* Tombol Setelan Akuntansi Penerimaan */}
+          <button
+            type="button"
+            onClick={() => setShowConfigModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+          >
+            <Settings className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Setelan Akuntansi Penerimaan</span>
+            {accountingConfig?.settings?.auto_journal && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100" title="Auto-Journal Aktif" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Catat Penerimaan Barang</span>
+          </button>
+        </div>
       </div>
 
       {successMessage && (
@@ -471,7 +674,7 @@ export default function PenerimaanBarang() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari faktur, produk, vendor, batch..."
+              placeholder="Cari faktur, jurnal, produk, vendor, batch..."
               className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-emerald-500 focus:bg-white transition"
             />
             {search && (
@@ -495,7 +698,6 @@ export default function PenerimaanBarang() {
             <option value="belanja_sendiri">Belanja Mandiri</option>
           </select>
 
-          {/* Filter Status Kadaluarsa */}
           <select
             value={expiryFilter}
             onChange={(e) => setExpiryFilter(e.target.value)}
@@ -524,12 +726,12 @@ export default function PenerimaanBarang() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">No. Dokumen</th>
+                  <th className="px-4 py-3">No. Dokumen &amp; Jurnal</th>
                   <th className="px-4 py-3">Jenis Pasokan</th>
                   <th className="px-4 py-3">Vendor / Suplier</th>
-                  <th className="px-4 py-3">Tgl. Terima</th>
-                  <th className="px-4 py-3 min-w-[320px]">Rincian Item, Batch &amp; Tanggal Kadaluarsa</th>
-                  <th className="px-4 py-3">Catatan</th>
+                  <th className="px-4 py-3">Akuntansi &amp; Kas</th>
+                  <th className="px-4 py-3 min-w-[280px]">Rincian Item &amp; Batch</th>
+                  <th className="px-4 py-3 text-right">Total Nilai HPP</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -540,9 +742,21 @@ export default function PenerimaanBarang() {
                       <td className="px-4 py-3 font-mono font-bold text-slate-800 align-top">
                         <div className="flex flex-col items-start gap-1">
                           <span className="text-[12px]">{r.invoice_number || r.receipt_number || `#RCV-${r.id}`}</span>
-                          {isInitialStock && (
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            {r.receipt_date ? String(r.receipt_date).slice(0, 10) : '-'}
+                          </span>
+                          {r.journal_number ? (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              {r.journal_number}
+                            </span>
+                          ) : isInitialStock ? (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                               Stok Awal
+                            </span>
+                          ) : null}
+                          {r.bank_statement_id && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                              RK #{r.bank_statement_id}
                             </span>
                           )}
                         </div>
@@ -577,8 +791,33 @@ export default function PenerimaanBarang() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-slate-600 font-mono align-top text-[11px]">
-                        {r.receipt_date ? String(r.receipt_date).slice(0, 10) : '-'}
+                      {/* Kolom Akuntansi & Kas */}
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-col gap-1">
+                          {(r.debit_coa_code || r.credit_coa_code) ? (
+                            <div className="flex items-center gap-1 text-[9px] font-mono">
+                              <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-1 py-0.2 rounded font-bold">
+                                Dr: {r.debit_coa_code || '10301'}
+                              </span>
+                              <span>→</span>
+                              <span className="bg-rose-50 text-rose-800 border border-rose-200 px-1 py-0.2 rounded font-bold">
+                                Cr: {r.credit_coa_code || (r.receipt_type === 'titipan' ? '20102' : '10101')}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">COA Terstandar</span>
+                          )}
+                          {r.cash_account_name && (
+                            <span className="text-[10px] text-slate-600 font-medium truncate max-w-[140px]">
+                              {r.cash_account_name}
+                            </span>
+                          )}
+                          {r.fund_source_name && (
+                            <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded w-fit truncate max-w-[140px]">
+                              {r.fund_source_name}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Rincian Produk & Batch Expiry */}
@@ -628,8 +867,9 @@ export default function PenerimaanBarang() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-slate-500 align-top max-w-xs">
-                        <p className="truncate">{r.note || '-'}</p>
+                      {/* Total Nilai HPP */}
+                      <td className="px-4 py-3 text-right font-mono font-bold text-slate-800 align-top text-[12px]">
+                        Rp {formatNumber(r.total_cost_amount || (r.items?.reduce((acc, it) => acc + (Number(it.qty || 0) * Number(it.cost_price || 0)), 0)) || 0)}
                       </td>
                     </tr>
                   );
@@ -648,7 +888,256 @@ export default function PenerimaanBarang() {
         )}
       </div>
 
-      {/* Modal Input Penerimaan Barang */}
+      {/* ========================================================= */}
+      {/* MODAL SETELAN AKUNTANSI PENERIMAAN BARANG */}
+      {/* ========================================================= */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800">Setelan Akuntansi Penerimaan Barang</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Konfigurasi akun persediaan, hutang konsinyasi/dagang, kas/bank default, dan pos dana
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {configErrorMsg && <FlatAlertBanner type="danger" message={configErrorMsg} />}
+            {configSuccessMsg && <FlatAlertBanner type="success" message={configSuccessMsg} />}
+
+            <form onSubmit={handleSaveAccountingConfig} className="space-y-4 text-xs">
+              {/* Seksi 1: Kas & Bank Default */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Rekening Kas &amp; Bank Pembayaran Default</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Kas Tunai Default</label>
+                    <SearchableSelect
+                      options={accountingConfig?.cash_accounts?.map(c => ({
+                        value: String(c.id),
+                        label: c.display_label || c.name,
+                        sublabel: c.account_kind === 'bank' ? 'Rekening Bank' : 'Kas Tunai'
+                      })) || []}
+                      value={String(configForm.cash_account_id_tunai)}
+                      onChange={(val) => {
+                        const acc = accountingConfig?.cash_accounts?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          cash_account_id_tunai: val,
+                          cash_account_name_tunai: acc?.display_label || acc?.name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih Kas Tunai --"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Rekening Bank Default</label>
+                    <SearchableSelect
+                      options={accountingConfig?.cash_accounts?.map(c => ({
+                        value: String(c.id),
+                        label: c.display_label || c.name,
+                        sublabel: c.bank_account_number ? `No: ${c.bank_account_number}` : 'Kas'
+                      })) || []}
+                      value={String(configForm.cash_account_id_bank)}
+                      onChange={(val) => {
+                        const acc = accountingConfig?.cash_accounts?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          cash_account_id_bank: val,
+                          cash_account_name_bank: acc?.display_label || acc?.name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih Rekening Bank --"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seksi 2: Bagan Akun (COA) */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Akun Akuntansi Terkait (Persediaan &amp; Hutang)</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Akun Persediaan Beli Putus (10301)
+                    </label>
+                    <SearchableSelect
+                      options={accountingConfig?.coas?.inventory?.map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Grup: ${c.account_group || 'Aset'}`
+                      })) || []}
+                      value={String(configForm.inventory_coa_id)}
+                      onChange={(val) => {
+                        const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          inventory_coa_id: val,
+                          inventory_coa_code: coa?.account_code || '',
+                          inventory_coa_name: coa?.account_name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih COA Persediaan Beli Putus --"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Akun Persediaan Konsinyasi Titipan (10302)
+                    </label>
+                    <SearchableSelect
+                      options={accountingConfig?.coas?.consignment_inventory?.map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Grup: ${c.account_group || 'Aset'}`
+                      })) || []}
+                      value={String(configForm.consignment_inventory_coa_id)}
+                      onChange={(val) => {
+                        const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          consignment_inventory_coa_id: val,
+                          consignment_inventory_coa_code: coa?.account_code || '',
+                          consignment_inventory_coa_name: coa?.account_name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih COA Persediaan Titipan --"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Akun Hutang Konsinyasi Vendor (20102 / 40501)
+                    </label>
+                    <SearchableSelect
+                      options={accountingConfig?.coas?.consignment_payable?.map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Grup: ${c.account_group || 'Liabilitas'}`
+                      })) || []}
+                      value={String(configForm.consignment_payable_coa_id)}
+                      onChange={(val) => {
+                        const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          consignment_payable_coa_id: val,
+                          consignment_payable_coa_code: coa?.account_code || '',
+                          consignment_payable_coa_name: coa?.account_name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih COA Hutang Konsinyasi --"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Akun Hutang Dagang Tempo (20100)
+                    </label>
+                    <SearchableSelect
+                      options={accountingConfig?.coas?.trade_payable?.map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Grup: ${c.account_group || 'Liabilitas'}`
+                      })) || []}
+                      value={String(configForm.trade_payable_coa_id)}
+                      onChange={(val) => {
+                        const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          trade_payable_coa_id: val,
+                          trade_payable_coa_code: coa?.account_code || '',
+                          trade_payable_coa_name: coa?.account_name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih COA Hutang Usaha --"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seksi 3: Pos Dana & Auto-Journal */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Pos Dana &amp; Otomatisasi Jurnal</span>
+                </h4>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Nama Pos Dana Terkait</label>
+                  <input
+                    type="text"
+                    required
+                    value={configForm.fund_source_name}
+                    onChange={(e) => setConfigForm(prev => ({ ...prev, fund_source_name: e.target.value }))}
+                    placeholder="Contoh: Pos Pengadaan Stok & Pembelian SBU Kantin"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:border-emerald-500 transition"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 block text-xs">Posting Otomatis Jurnal (Auto-Journal)</span>
+                    <span className="text-[11px] text-slate-500">
+                      Otomatis catat jurnal umum ganda ke pembukuan SBU Kantin saat penerimaan barang dicatat
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={configForm.auto_journal}
+                    onChange={(e) => setConfigForm(prev => ({ ...prev, auto_journal: e.target.checked }))}
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  disabled={savingConfig}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingConfig}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>Simpan Konfigurasi Akuntansi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL INPUT PENERIMAAN BARANG */}
+      {/* ========================================================= */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[94vh] shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden my-auto transition-all">
@@ -659,9 +1148,9 @@ export default function PenerimaanBarang() {
                   <PackagePlus className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold tracking-tight">Catat Penerimaan Barang &amp; Kontrol Kadaluarsa</h3>
+                  <h3 className="text-sm font-bold tracking-tight">Catat Penerimaan Barang &amp; Kontrol Akuntansi</h3>
                   <p className="text-[11px] text-emerald-100/90 font-normal">
-                    Dukung multi-batch produk sama dengan tanggal kadaluarsa berbeda untuk kontrol kelayakan (FEFO)
+                    Penerimaan pasokan barang titipan &amp; beli putus dengan pencatatan akuntansi ganda otomatis
                   </p>
                 </div>
               </div>
@@ -689,9 +1178,9 @@ export default function PenerimaanBarang() {
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                     <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Informasi Dokumen Penerimaan</span>
+                      <span>Informasi Dokumen &amp; Jenis Pasokan</span>
                     </span>
-                    <span className="text-[10px] text-slate-400">Tentukan jenis dan asal pasokan</span>
+                    <span className="text-[10px] text-slate-400">Tentukan jenis dan metode pembayaran pasokan</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -729,11 +1218,121 @@ export default function PenerimaanBarang() {
                           <ShoppingBag className={`w-4 h-4 ${receiptType === 'belanja_sendiri' ? 'text-blue-600' : 'text-slate-400'}`} />
                           <div className="text-left">
                             <p className="leading-tight">Belanja Mandiri / Beli Putus</p>
-                            <span className="text-[10px] font-normal text-slate-500">Kantin belanja grosir lepas</span>
+                            <span className="text-[10px] font-normal text-slate-500">Kantin belanja kulakan stok</span>
                           </div>
                         </button>
                       </div>
                     </div>
+
+                    {/* Metode Pembayaran (khusus Beli Putus) */}
+                    {receiptType === 'belanja_sendiri' && (
+                      <div className="sm:col-span-2 p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2.5">
+                        <label className="block text-xs font-bold text-blue-900">
+                          Metode Pembayaran Pembelian Stok
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentMethod('cash');
+                              setSelectedCashAccountId(accountingConfig?.settings?.cash_account_id_tunai ? String(accountingConfig.settings.cash_account_id_tunai) : '');
+                            }}
+                            className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                              paymentMethod === 'cash'
+                                ? 'bg-white text-emerald-800 border-emerald-500 shadow-xs'
+                                : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Kas Tunai</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentMethod('transfer');
+                              const bankAccId = accountingConfig?.settings?.cash_account_id_bank ? String(accountingConfig.settings.cash_account_id_bank) : '';
+                              setSelectedCashAccountId(bankAccId);
+                              fetchBankStatements(bankAccId);
+                            }}
+                            className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                              paymentMethod === 'transfer'
+                                ? 'bg-white text-blue-800 border-blue-500 shadow-xs'
+                                : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Transfer Bank</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentMethod('credit');
+                              setSelectedCashAccountId('');
+                              setSelectedBankStatementId('');
+                            }}
+                            className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                              paymentMethod === 'credit'
+                                ? 'bg-white text-purple-800 border-purple-500 shadow-xs'
+                                : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-purple-600" />
+                            <span>Tempo / Hutang</span>
+                          </button>
+                        </div>
+
+                        {/* Rekening Kas / Bank Pembayar */}
+                        {paymentMethod !== 'credit' && (
+                          <div className="pt-2">
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              {paymentMethod === 'transfer' ? 'Rekening Bank Pembayar' : 'Rekening Kas Tunai Pembayar'}
+                            </label>
+                            <SearchableSelect
+                              options={cashAccounts.map(c => ({
+                                value: String(c.id),
+                                label: c.display_label || c.name,
+                                sublabel: c.account_kind === 'bank' ? 'Rekening Bank' : 'Kas Tunai'
+                              }))}
+                              value={String(selectedCashAccountId)}
+                              onChange={(val) => {
+                                setSelectedCashAccountId(val);
+                                if (paymentMethod === 'transfer') fetchBankStatements(val);
+                              }}
+                              placeholder="-- Pilih Rekening Kas / Bank --"
+                            />
+                          </div>
+                        )}
+
+                        {/* Referensi Rekening Koran (Mutasi Debet Pengeluaran) */}
+                        {paymentMethod === 'transfer' && (
+                          <div className="pt-1 space-y-1.5">
+                            <label className="block text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                              <span className="flex items-center gap-1">
+                                <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Referensi Mutasi Rekening Koran (Pengeluaran Bank)</span>
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-normal">Opsional</span>
+                            </label>
+
+                            <SearchableSelect
+                              options={bankStatements.map(b => ({
+                                value: String(b.id),
+                                label: `${b.bank_name || 'Bank'} • Rp ${formatNumber(b.amount)} (${b.transaction_date ? String(b.transaction_date).slice(0, 10) : '-'})`,
+                                sublabel: `${b.reference_number ? `[Ref: ${b.reference_number}] ` : ''}${b.description || 'Mutasi Debet Pengeluaran'}`
+                              }))}
+                              value={String(selectedBankStatementId)}
+                              onChange={(val) => setSelectedBankStatementId(val)}
+                              placeholder="-- Cari & Pilih Mutasi Rekening Koran --"
+                              allowClear={true}
+                              isLoading={loadingBankStatements}
+                              emptyText={loadingBankStatements ? 'Memuat mutasi...' : 'Tidak ada mutasi pengeluaran bank yang tersedia'}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Vendor Dropdown */}
                     <div className="sm:col-span-2">
@@ -818,7 +1417,6 @@ export default function PenerimaanBarang() {
                     </button>
                   </div>
 
-                  {/* Warning jika Vendor Belum Punya Produk Terdaftar */}
                   {selectedVendorId && productOptions.length === 0 && (
                     <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
                       <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -830,17 +1428,6 @@ export default function PenerimaanBarang() {
                       </div>
                     </div>
                   )}
-
-                  {/* Info Banner Multi-Batch */}
-                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="font-semibold">Mengakomodir Produk Sama dengan Tanggal Kadaluarsa Berbeda:</strong>
-                      <p className="text-[10px] text-blue-700 mt-0.5">
-                        Jika Anda menerima produk yang sama tetapi memiliki tanggal expired berbeda (misal 50 pcs exp Okt dan 30 pcs exp Nov), gunakan tombol <strong className="text-blue-900">+ Batch Baru</strong> di baris produk terkait untuk mencatat batch masing-masing.
-                      </p>
-                    </div>
-                  </div>
 
                   <div className="space-y-3.5">
                     {items.map((row, idx) => {
@@ -865,7 +1452,6 @@ export default function PenerimaanBarang() {
                                 Subtotal HPP: Rp {formatNumber(rowTotalCost)}
                               </span>
 
-                              {/* Tombol Duplikasi Batch untuk Produk yang Sama */}
                               <button
                                 type="button"
                                 onClick={() => handleDuplicateBatchRow(idx)}
@@ -890,7 +1476,6 @@ export default function PenerimaanBarang() {
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                            {/* Dropdown Produk */}
                             <div className="sm:col-span-12">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1">
                                 Pilih Produk <span className="text-rose-500">*</span>
@@ -906,7 +1491,6 @@ export default function PenerimaanBarang() {
                               />
                             </div>
 
-                            {/* Qty Masuk */}
                             <div className="sm:col-span-2">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1">
                                 Jumlah (Qty) <span className="text-rose-500">*</span>
@@ -921,7 +1505,6 @@ export default function PenerimaanBarang() {
                               />
                             </div>
 
-                            {/* Harga Beli (HPP) */}
                             <div className="sm:col-span-2">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1">
                                 Harga Beli (HPP)
@@ -940,7 +1523,6 @@ export default function PenerimaanBarang() {
                               </div>
                             </div>
 
-                            {/* Harga Jual POS */}
                             <div className="sm:col-span-2">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1">
                                 Harga Jual Kasir
@@ -959,7 +1541,6 @@ export default function PenerimaanBarang() {
                               </div>
                             </div>
 
-                            {/* Nomor Batch / Lot */}
                             <div className="sm:col-span-3">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1 flex items-center justify-between">
                                 <span className="flex items-center gap-1">
@@ -984,7 +1565,6 @@ export default function PenerimaanBarang() {
                               />
                             </div>
 
-                            {/* Tanggal Kadaluarsa */}
                             <div className="sm:col-span-3">
                               <label className="text-[11px] text-slate-700 font-semibold block mb-1 flex items-center justify-between">
                                 <span className="flex items-center gap-1">
@@ -1003,7 +1583,6 @@ export default function PenerimaanBarang() {
                             </div>
                           </div>
 
-                          {/* Live Expiry Status Indicator Feedback */}
                           {expInfo && (
                             <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-[11px]">
                               <span className="text-slate-500 font-medium">Status Kelayakan Produk:</span>
@@ -1023,7 +1602,65 @@ export default function PenerimaanBarang() {
                   </div>
                 </div>
 
-                {/* Seksi 3: Ringkasan Nilai Penerimaan */}
+                {/* Seksi 3: Dynamic Double-Entry Accounting Preview */}
+                <div className="p-3.5 bg-gradient-to-br from-emerald-50/70 via-slate-50 to-emerald-50/40 border border-emerald-200/80 rounded-xl space-y-2 text-[11px] shadow-xs">
+                  <div className="flex items-center justify-between font-bold text-emerald-900 border-b border-emerald-200/60 pb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <BadgeCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Catatan Akuntansi Otomatis (Double-Entry Bookkeeping)</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-mono font-bold">
+                      {accountingConfig?.settings?.auto_journal ? 'Auto-Journal Aktif' : 'Pencatatan Manual'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
+                    {/* Kolom Debet */}
+                    <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-200/70 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-emerald-700 font-bold uppercase text-[9px] tracking-wider">
+                          [Dr] Akun Debet:
+                        </span>
+                        <span className="font-mono text-[9px] bg-emerald-100/70 text-emerald-800 px-1 py-0.2 rounded font-bold">
+                          COA {activeDebitCoa.code}
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                        {activeDebitCoa.name}
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-800 font-bold block">
+                        Rp {formatNumber(summary.totalCost)}
+                      </span>
+                    </div>
+
+                    {/* Kolom Kredit */}
+                    <div className="p-2.5 rounded-lg bg-white/90 border border-rose-200/70 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-rose-700 font-bold uppercase text-[9px] tracking-wider">
+                          [Cr] Akun Kredit:
+                        </span>
+                        <span className="font-mono text-[9px] bg-rose-100/70 text-rose-800 px-1 py-0.2 rounded font-bold">
+                          COA {activeCreditCoa.code}
+                        </span>
+                      </div>
+                      <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                        {activeCreditCoa.name}
+                      </span>
+                      <span className="text-[10px] font-mono text-rose-800 font-bold block">
+                        Rp {formatNumber(summary.totalCost)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] text-emerald-900 font-medium pt-1 flex items-center justify-between border-t border-emerald-200/60">
+                    <span>Pos Sumber Dana:</span>
+                    <span className="font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded truncate max-w-[240px]">
+                      {fundSourceName || 'Pos Pengadaan Stok & Pembelian SBU Kantin'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Seksi 4: Ringkasan Nilai Penerimaan */}
                 <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-xl border border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-4">
                     <div>
@@ -1047,7 +1684,7 @@ export default function PenerimaanBarang() {
                   </div>
                 </div>
 
-                {/* Seksi 4: Catatan Dokumen */}
+                {/* Seksi 5: Catatan Dokumen */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Catatan Penerimaan / Keterangan Pasokan
@@ -1062,7 +1699,7 @@ export default function PenerimaanBarang() {
                 </div>
               </div>
 
-              {/* Action Buttons (Sticky / Fixed Bottom) */}
+              {/* Action Buttons */}
               <div className="p-4 border-t border-slate-200/80 bg-slate-50/95 backdrop-blur-xs flex items-center justify-between gap-3 shrink-0">
                 <div className="text-xs text-slate-500 font-medium">
                   {summary.itemCount} Baris Item/Batch • Total <strong className="text-emerald-700 font-mono">Rp {formatNumber(summary.totalCost)}</strong>
@@ -1102,4 +1739,3 @@ export default function PenerimaanBarang() {
     </div>
   );
 }
-

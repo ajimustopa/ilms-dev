@@ -70,6 +70,36 @@ class SalesTransactionsController {
       next(err);
     }
   }
+
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await salesTransactionsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await salesTransactionsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Konfigurasi akuntansi POS berhasil disimpan', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBankStatements(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await salesTransactionsService.getBankStatements(schoolUnitId, req.query);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new SalesTransactionsController();

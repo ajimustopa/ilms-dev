@@ -68,6 +68,7 @@ function terbilangRupiah(angka) {
 
 // Opsi Kategori Pemasukan
 const INCOME_CATEGORIES = [
+  { value: 'modal_kantin', label: 'Setoran Modal / Tambahan Modal Kerja SBU' },
   { value: 'sewa_stand', label: 'Sewa Stand / Lapak Kantin' },
   { value: 'insentif_mitra', label: 'Insentif & Sponsor Mitra/Vendor' },
   { value: 'penjualan_limbah', label: 'Penjualan Barang Bekas / Limbah (Kardus, Jelantah)' },
@@ -77,12 +78,14 @@ const INCOME_CATEGORIES = [
 
 // Opsi Kategori Pengeluaran
 const EXPENSE_CATEGORIES = [
-  { value: 'kemasan_plastik', label: 'Kemasan, Plastik, Cup & Sedotan' },
-  { value: 'bahan_pelengkap', label: 'Bahan Pelengkap (Es Batu, Gas LPG, Air)' },
+  { value: 'gaji_upah', label: 'Gaji, Honor & Upah Pramusaji / Kasir Kantin' },
+  { value: 'kemasan_plastik', label: 'Kemasan, Plastik, Mika, Cup & Sedotan' },
+  { value: 'bahan_pelengkap', label: 'Bahan Pelengkap (Es Batu, Gas LPG, Air Galon)' },
   { value: 'listrik_air', label: 'Listrik & PDAM Kantin' },
-  { value: 'kebersihan', label: 'Kebersihan, Sabun & Sanitasi' },
-  { value: 'perawatan_alat', label: 'Perawatan & Perbaikan Peralatan' },
-  { value: 'transport_belanja', label: 'Transportasi & Logistik Belanja' },
+  { value: 'kebersihan', label: 'Kebersihan, Sabun Cuci & Sanitasi' },
+  { value: 'perawatan_alat', label: 'Perawatan & Servis Peralatan (Freezer, Showcase, Kompor)' },
+  { value: 'sewa_tempat', label: 'Sewa Tempat / Beban Lokasi Kantin' },
+  { value: 'transport_belanja', label: 'Transportasi & Logistik Belanja Pasar' },
   { value: 'operasional', label: 'Biaya Operasional Umum Lainnya' }
 ];
 
@@ -190,6 +193,22 @@ export default function PengeluaranOperasional() {
     }
   };
 
+  // Load Bank Statements untuk Rekonsiliasi Bank
+  const fetchBankStatements = async (cashAccountId, type = 'income') => {
+    if (!cashAccountId) {
+      setBankStatements([]);
+      return;
+    }
+    try {
+      const res = await api.get('/kantin/operational-expenses/bank-statements', {
+        params: { cash_account_id: cashAccountId, type }
+      });
+      setBankStatements(res.data?.data || []);
+    } catch (err) {
+      setBankStatements([]);
+    }
+  };
+
   // Load Accounting Ledger (Tab 4)
   const fetchAccountingLedger = async () => {
     setLedgerLoading(true);
@@ -226,6 +245,10 @@ export default function PengeluaranOperasional() {
     const defaultCoa = type === 'income' ? defaultIncomeCoa : defaultExpenseCoa;
     const defaultCat = type === 'income' ? 'sewa_stand' : 'kemasan_plastik';
 
+    if (defaultCa) {
+      fetchBankStatements(defaultCa.id, type);
+    }
+
     setFormData({
       type,
       expense_name: '',
@@ -247,10 +270,14 @@ export default function PengeluaranOperasional() {
     setModalType(newType);
     const defaultCoa = newType === 'income' ? defaultIncomeCoa : defaultExpenseCoa;
     const defaultCat = newType === 'income' ? 'sewa_stand' : 'kemasan_plastik';
+    if (formData.cash_account_id) {
+      fetchBankStatements(formData.cash_account_id, newType);
+    }
     setFormData(prev => ({
       ...prev,
       type: newType,
       category: defaultCat,
+      bank_statement_id: '',
       coa_account_id: defaultCoa ? String(defaultCoa) : prev.coa_account_id
     }));
   };
@@ -368,90 +395,195 @@ export default function PengeluaranOperasional() {
         </div>
       </div>
 
-      {/* 4 Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Pemasukan Operasional */}
-        <div className="bg-white rounded-xl border border-emerald-100 p-4 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
-              Pemasukan Operasional
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <ArrowDownLeft className="w-4 h-4" />
-            </div>
-          </div>
-          <h3 className="text-lg font-extrabold text-emerald-800 mt-1.5 font-mono">
-            {formatCurrency(summary?.total_income || 0)}
-          </h3>
-          <p className="text-[10px] text-slate-400 mt-1">
-            {summary?.count_income || 0} transaksi (Sewa lapak, insentif, limbah)
-          </p>
-        </div>
+      {/* 6 Intuitive Financial Condition Metric Cards */}
+      {(() => {
+        const fo = summary?.financial_overview || {};
+        const isProfitPositive = (fo.net_canteen_profit || 0) >= 0;
 
-        {/* Card 2: Pengeluaran Operasional */}
-        <div className="bg-white rounded-xl border border-rose-100 p-4 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">
-              Pengeluaran Operasional
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <ArrowUpRight className="w-4 h-4" />
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Card 1: Total Kas & Uang Fisik Kantin */}
+            <div className="bg-white rounded-2xl border border-emerald-100 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
+                    Uang Kas & Brankas Kantin
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-emerald-900 mt-2 font-mono">
+                  {formatCurrency(fo.estimated_cash_vault || 0)}
+                </h3>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-emerald-50 text-[11px] text-slate-500">
+                <div className="flex items-center justify-between">
+                  <span>Kas Fisik Kasir & Bank</span>
+                  <span className="font-semibold text-emerald-700">Tersedia Riil</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Setelah disisihkan untuk belanja operasional & bayar vendor
+                </p>
+              </div>
             </div>
-          </div>
-          <h3 className="text-lg font-extrabold text-rose-800 mt-1.5 font-mono">
-            {formatCurrency(summary?.total_expense || 0)}
-          </h3>
-          <p className="text-[10px] text-slate-400 mt-1">
-            {summary?.count_expense || 0} transaksi (Kemasan, es, gas, listrik)
-          </p>
-        </div>
 
-        {/* Card 3: Arus Kas Bersih Operasional */}
-        <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
-              Surplus / (Defisit) Operasional
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <h3 className={`text-lg font-extrabold mt-1.5 font-mono ${
-            (summary?.net_cashflow || 0) >= 0 ? 'text-indigo-800' : 'text-amber-700'
-          }`}>
-            {formatCurrency(summary?.net_cashflow || 0)}
-          </h3>
-          <p className="text-[10px] text-slate-400 mt-1">
-            Pemasukan dikurangi pengeluaran operasional
-          </p>
-        </div>
-
-        {/* Card 4: Posisi Kas Kantin */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              Rekap Akun Kas Kantin
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-              <Landmark className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 space-y-1">
-            {summary?.by_cash_account?.length > 0 ? (
-              summary.by_cash_account.slice(0, 2).map((acc, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-600 truncate max-w-[130px]">{acc.cash_account_name}</span>
-                  <span className="font-mono font-bold text-slate-800">
-                    {formatCurrency(acc.net_balance)}
+            {/* Card 2: Total Penjualan & Omzet POS */}
+            <div className="bg-white rounded-2xl border border-indigo-100 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
+                    Total Penjualan / Omzet POS
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-indigo-900 mt-2 font-mono">
+                  {formatCurrency(fo.total_gross_sales || 0)}
+                </h3>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-indigo-50 text-[11px] space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Bagi Hasil Milik Kantin:</span>
+                  <span className="font-bold text-indigo-700 font-mono">
+                    {formatCurrency(fo.total_canteen_pos_share || 0)}
                   </span>
                 </div>
-              ))
-            ) : (
-              <div className="text-[11px] text-slate-400 italic">Belum ada mutasi kas</div>
-            )}
+                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Tunai: {formatCurrency(fo.cash_sales_amount || 0)}</span>
+                  <span>Dompet: {formatCurrency(fo.wallet_sales_amount || 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Beban & Biaya Operasional */}
+            <div className="bg-white rounded-2xl border border-rose-100 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">
+                    Beban Biaya Operasional
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-rose-900 mt-2 font-mono">
+                  {formatCurrency(fo.total_operating_expense || summary?.total_expense || 0)}
+                </h3>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-rose-50 text-[11px] text-slate-500">
+                <div className="flex items-center justify-between">
+                  <span>{summary?.count_expense || 0} Pengeluaran Tercatat</span>
+                  <span className="font-semibold text-rose-600">Biaya Rutin</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Kemasan, cup plastik, es batu, gas LPG, listrik & kebersihan
+                </p>
+              </div>
+            </div>
+
+            {/* Card 4: Laba Bersih SBU Kantin */}
+            <div className={`bg-white rounded-2xl border p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition ${
+              isProfitPositive ? 'border-teal-200' : 'border-amber-200'
+            }`}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                    isProfitPositive ? 'text-teal-700' : 'text-amber-700'
+                  }`}>
+                    Laba Bersih Unit Kantin
+                  </span>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    isProfitPositive ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'
+                  }`}>
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <h3 className={`text-xl font-extrabold font-mono ${
+                    isProfitPositive ? 'text-teal-900' : 'text-amber-900'
+                  }`}>
+                    {formatCurrency(fo.net_canteen_profit || 0)}
+                  </h3>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    isProfitPositive ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {isProfitPositive ? 'Surplus' : 'Defisit'}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500">
+                <p className="text-[10px] text-slate-500">
+                  (Bagi Hasil POS + Pendapatan Lain) dikurangi Biaya Operasional
+                </p>
+              </div>
+            </div>
+
+            {/* Card 5: Hak Mitra / Vendor Titipan */}
+            <div className="bg-white rounded-2xl border border-amber-100 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">
+                    Hak Mitra / Vendor Makanan
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-amber-950 mt-2 font-mono">
+                  {formatCurrency(fo.vendor_total_right || 0)}
+                </h3>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-amber-50 text-[11px] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Sudah Diserahkan:</span>
+                  <span className="font-semibold text-emerald-700 font-mono">
+                    {formatCurrency(fo.vendor_paid_amount || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Belum Diserahkan (Titipan):</span>
+                  <span className="font-bold text-amber-700 font-mono">
+                    {formatCurrency(fo.vendor_unpaid_amount || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 6: Pemasukan Non-POS & Modal */}
+            <div className="bg-white rounded-2xl border border-sky-100 p-4 shadow-xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-sky-800 uppercase tracking-wider">
+                    Pemasukan Lain & Modal
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                    <BadgeDollarSign className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-sky-950 mt-2 font-mono">
+                  {formatCurrency((fo.total_non_pos_income || 0) + (fo.capital_injection || 0))}
+                </h3>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-sky-50 text-[11px] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Sewa Lapak & Limbah:</span>
+                  <span className="font-semibold text-sky-700 font-mono">
+                    {formatCurrency(fo.total_non_pos_income || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">Setoran Modal Usaha:</span>
+                  <span className="font-semibold text-indigo-700 font-mono">
+                    {formatCurrency(fo.capital_injection || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
@@ -994,7 +1126,41 @@ export default function PengeluaranOperasional() {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      let suggestedCoa = formData.coa_account_id;
+                      if (modalType === 'income') {
+                        if (newCat === 'modal_kantin') {
+                          const modalCoa = coaIncomeList.find(c => c.account_code === '30105' || (c.account_name || '').toLowerCase().includes('modal'));
+                          if (modalCoa) suggestedCoa = String(modalCoa.id);
+                        } else {
+                          suggestedCoa = defaultIncomeCoa ? String(defaultIncomeCoa) : formData.coa_account_id;
+                        }
+                      } else {
+                        if (newCat === 'gaji_upah') {
+                          const gajiCoa = coaExpenseList.find(c => c.account_code === '730' || c.account_code === '73000' || (c.account_name || '').toLowerCase().includes('gaji') || (c.account_name || '').toLowerCase().includes('honor'));
+                          if (gajiCoa) suggestedCoa = String(gajiCoa.id);
+                        } else if (newCat === 'listrik_air') {
+                          const listrikCoa = coaExpenseList.find(c => c.account_code === '711' || (c.account_name || '').toLowerCase().includes('listrik'));
+                          if (listrikCoa) suggestedCoa = String(listrikCoa.id);
+                        } else if (newCat === 'bahan_pelengkap') {
+                          const bbmCoa = coaExpenseList.find(c => c.account_code === '715' || (c.account_name || '').toLowerCase().includes('bakar'));
+                          if (bbmCoa) suggestedCoa = String(bbmCoa.id);
+                        } else if (newCat === 'kebersihan') {
+                          const cleanCoa = coaExpenseList.find(c => c.account_code === '720' || (c.account_name || '').toLowerCase().includes('kebersihan'));
+                          if (cleanCoa) suggestedCoa = String(cleanCoa.id);
+                        } else if (newCat === 'sewa_tempat') {
+                          const rentCoa = coaExpenseList.find(c => c.account_code === '726' || (c.account_name || '').toLowerCase().includes('sewa'));
+                          if (rentCoa) suggestedCoa = String(rentCoa.id);
+                        } else if (newCat === 'perawatan_alat') {
+                          const repairCoa = coaExpenseList.find(c => c.account_code === '760' || (c.account_name || '').toLowerCase().includes('pemeliharaan'));
+                          if (repairCoa) suggestedCoa = String(repairCoa.id);
+                        } else {
+                          suggestedCoa = defaultExpenseCoa ? String(defaultExpenseCoa) : formData.coa_account_id;
+                        }
+                      }
+                      setFormData({ ...formData, category: newCat, coa_account_id: suggestedCoa });
+                    }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
                   >
                     {(modalType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
@@ -1042,12 +1208,16 @@ export default function PengeluaranOperasional() {
               {/* Rekening Kas / Bank Kantin */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Rekening Kas / Bank Penampung <span className="text-rose-500">*</span>
+                  Jenis Kas / Rekening Bank Penampung <span className="text-rose-500">*</span>
                 </label>
                 <select
                   required
                   value={formData.cash_account_id}
-                  onChange={(e) => setFormData({ ...formData, cash_account_id: e.target.value })}
+                  onChange={(e) => {
+                    const newCaId = e.target.value;
+                    setFormData({ ...formData, cash_account_id: newCaId, bank_statement_id: '' });
+                    if (newCaId) fetchBankStatements(newCaId, modalType);
+                  }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
                 >
                   <option value="">-- Pilih Akun Kas Kantin --</option>
@@ -1059,20 +1229,92 @@ export default function PengeluaranOperasional() {
                 </select>
               </div>
 
-              {/* Akun COA Akuntansi */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {modalType === 'income' ? 'Akun COA Kredit (Pendapatan)' : 'Akun COA Debet (Beban Operasional)'}
-                </label>
-                <select
-                  value={formData.coa_account_id}
-                  onChange={(e) => setFormData({ ...formData, coa_account_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
-                >
-                  {(modalType === 'income' ? coaIncomeList : coaExpenseList).map(c => (
-                    <option key={c.id} value={c.id}>{c.display_label}</option>
-                  ))}
-                </select>
+              {/* Referensi Rekening Koran (Jika akun berupa Bank dan ada mutasi) */}
+              {selectedCashAccountObj?.bank_account_number && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Referensi Rekening Koran (Bank Statement)
+                    </label>
+                    <span className="text-[10px] text-indigo-600 font-medium bg-indigo-50 px-1.5 py-0.5 rounded">
+                      Rekonsiliasi Bank
+                    </span>
+                  </div>
+                  <select
+                    value={formData.bank_statement_id}
+                    onChange={(e) => {
+                      const stmtId = e.target.value;
+                      const selectedStmt = bankStatements.find(s => String(s.id) === String(stmtId));
+                      setFormData(prev => ({
+                        ...prev,
+                        bank_statement_id: stmtId,
+                        amount: selectedStmt && !prev.amount ? String(selectedStmt.amount) : prev.amount,
+                        expense_date: selectedStmt?.transaction_date ? String(selectedStmt.transaction_date).slice(0, 10) : prev.expense_date,
+                        expense_name: selectedStmt && !prev.expense_name ? selectedStmt.description : prev.expense_name
+                      }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+                  >
+                    <option value="">-- Tidak Terhubung / Input Manual --</option>
+                    {bankStatements.map(stmt => (
+                      <option key={stmt.id} value={stmt.id}>
+                        {formatDate(stmt.transaction_date)} | {formatCurrency(stmt.amount)} - {stmt.description?.slice(0, 45)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {bankStatements.length > 0
+                      ? `Ditemukan ${bankStatements.length} mutasi bank belum rekonsiliasi`
+                      : 'Belum ada mutasi bank pending yang belum rekonsiliasi'}
+                  </p>
+                </div>
+              )}
+
+              {/* Pos Dana Terkait & Akun COA Akuntansi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Pos Dana Terkait */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Pos Dana Terkait
+                  </label>
+                  <div className="px-3 py-2 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                    <span className="truncate">
+                      {formData.category === 'modal_kantin'
+                        ? 'Pos Ekuitas & Modal SBU'
+                        : formData.category === 'gaji_upah'
+                        ? 'Pos Beban Gaji & Upah SBU'
+                        : formData.category === 'sewa_tempat'
+                        ? 'Pos Beban Lokasi / Sewa'
+                        : modalType === 'income'
+                        ? 'Pos Pendapatan SBU Kantin'
+                        : 'Pos Beban Operasional SBU'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {formData.category === 'modal_kantin'
+                      ? 'Sumber: Setoran Modal Yayasan / Pemilik'
+                      : formData.category === 'gaji_upah'
+                      ? 'Alokasi: Biaya Tenaga Kerja Kantin'
+                      : 'Sumber: Unit Usaha Mandiri Kantin'}
+                  </span>
+                </div>
+
+                {/* Akun COA Akuntansi */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {modalType === 'income' ? (formData.category === 'modal_kantin' ? 'Akun COA Kredit (Modal / Ekuitas)' : 'Akun COA Kredit (Pendapatan)') : 'Akun COA Debet (Beban)'}
+                  </label>
+                  <select
+                    value={formData.coa_account_id}
+                    onChange={(e) => setFormData({ ...formData, coa_account_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+                  >
+                    {(modalType === 'income' ? coaIncomeList : coaExpenseList).map(c => (
+                      <option key={c.id} value={c.id}>{c.display_label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Catatan / Keterangan */}
@@ -1090,32 +1332,32 @@ export default function PengeluaranOperasional() {
               {/* Pratinjau Jurnal Ganda Akuntansi */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pratinjau Jurnal Akuntansi</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pratinjau Jurnal Akuntansi (Debet & Kredit)</span>
                   <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                    Double-Entry Sinkron
+                    Double-Entry Realtime
                   </span>
                 </div>
                 <div className="text-[11px] font-mono space-y-1 pt-1">
                   {modalType === 'income' ? (
                     <>
                       <div className="flex justify-between text-slate-700">
-                        <span>[DEBET] {selectedCashAccountObj?.name || 'Kas Kantin'}</span>
-                        <span className="font-bold">{formatCurrency(formData.amount || 0)}</span>
+                        <span>[DEBET] {selectedCashAccountObj?.name || 'Kas / Bank Kantin'}</span>
+                        <span className="font-bold text-emerald-700">{formatCurrency(formData.amount || 0)}</span>
                       </div>
                       <div className="flex justify-between text-slate-500 pl-4">
-                        <span>[KREDIT] {selectedCoaObj?.account_name || 'Pendapatan Unit Usaha Kantin'}</span>
-                        <span className="font-bold">{formatCurrency(formData.amount || 0)}</span>
+                        <span>[KREDIT] {selectedCoaObj?.account_name || 'Pendapatan Unit Usaha Kantin'} [{selectedCoaObj?.account_code || '617'}]</span>
+                        <span className="font-bold text-emerald-700">{formatCurrency(formData.amount || 0)}</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex justify-between text-slate-700">
-                        <span>[DEBET] {selectedCoaObj?.account_name || 'Beban Operasional Kantin'}</span>
-                        <span className="font-bold">{formatCurrency(formData.amount || 0)}</span>
+                        <span>[DEBET] {selectedCoaObj?.account_name || 'Beban Operasional Kantin'} [{selectedCoaObj?.account_code || '79200'}]</span>
+                        <span className="font-bold text-rose-700">{formatCurrency(formData.amount || 0)}</span>
                       </div>
                       <div className="flex justify-between text-slate-500 pl-4">
-                        <span>[KREDIT] {selectedCashAccountObj?.name || 'Kas Kantin'}</span>
-                        <span className="font-bold">{formatCurrency(formData.amount || 0)}</span>
+                        <span>[KREDIT] {selectedCashAccountObj?.name || 'Kas / Bank Kantin'}</span>
+                        <span className="font-bold text-rose-700">{formatCurrency(formData.amount || 0)}</span>
                       </div>
                     </>
                   )}

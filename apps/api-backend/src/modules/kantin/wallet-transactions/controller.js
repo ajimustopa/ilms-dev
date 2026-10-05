@@ -2,6 +2,26 @@ const walletTransactionsService = require('./service');
 const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class WalletTransactionsController {
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await walletTransactionsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await walletTransactionsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Konfigurasi akuntansi dompet berhasil diperbarui', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listTransactions(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
@@ -73,6 +93,7 @@ class WalletTransactionsController {
       next(err);
     }
   }
+
   async getReconciliationSummary(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);

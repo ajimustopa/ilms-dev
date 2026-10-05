@@ -26,11 +26,18 @@ import {
   Edit3,
   History,
   Clock,
+  Settings,
+  Sliders,
+  Layers,
+  Tag,
+  Info,
+  ChevronDown,
+  ChevronUp,
   X
 } from 'lucide-react';
 
 export default function TopUpTarikTunai() {
-  const [activeTab, setActiveTab] = useState('top_up'); // 'top_up' | 'withdrawal'
+  const [activeTab, setActiveTab] = useState('top_up'); // 'top_up' | 'withdrawal' | 'opening_balance'
   const [students, setStudents] = useState([]);
   const [cashAccounts, setCashAccounts] = useState([]);
   const [history, setHistory] = useState([]);
@@ -41,6 +48,31 @@ export default function TopUpTarikTunai() {
   const [bankStatements, setBankStatements] = useState([]);
   const [loadingBankStatements, setLoadingBankStatements] = useState(false);
 
+  // Accounting Config State
+  const [accountingConfig, setAccountingConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    cash_account_id_tunai: '',
+    cash_account_name_tunai: '',
+    cash_account_id_bank: '',
+    cash_account_name_bank: '',
+    wallet_liability_coa_id: '',
+    wallet_liability_coa_code: '',
+    wallet_liability_coa_name: '',
+    cash_coa_id: '',
+    cash_coa_code: '',
+    cash_coa_name: '',
+    bank_coa_id: '',
+    bank_coa_code: '',
+    bank_coa_name: '',
+    fund_source_name: 'Pos Dana Titipan Dompet Santri / SBU Kantin',
+    auto_journal: true
+  });
+  const [configSuccessMsg, setConfigSuccessMsg] = useState(null);
+  const [configErrorMsg, setConfigErrorMsg] = useState(null);
+
   // Form State
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [amount, setAmount] = useState('');
@@ -48,10 +80,10 @@ export default function TopUpTarikTunai() {
   const [occurredTime, setOccurredTime] = useState(() => new Date().toTimeString().slice(0, 5));
   const [selectedCashAccountId, setSelectedCashAccountId] = useState('');
   const [selectedBankStatementId, setSelectedBankStatementId] = useState('');
-  const [isChangingBankStatement, setIsChangingBankStatement] = useState(false);
+  const [fundSourceName, setFundSourceName] = useState('Pos Dana Titipan Dompet Santri / SBU Kantin');
   const [notes, setNotes] = useState('');
   const [historySearch, setHistorySearch] = useState('');
-  const [historyTypeFilter, setHistoryTypeFilter] = useState('all'); // 'all' | 'top_up' | 'withdrawal'
+  const [historyTypeFilter, setHistoryTypeFilter] = useState('all'); // 'all' | 'top_up' | 'withdrawal' | 'opening_balance'
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -94,12 +126,75 @@ export default function TopUpTarikTunai() {
       const list = res.data?.data || [];
       setCashAccounts(list);
       if (list.length > 0 && !selectedCashAccountId) {
-        // Default ke kas tunai jika ada, atau akun pertama
         const cashDefault = list.find(c => c.account_kind === 'cash') || list[0];
         setSelectedCashAccountId(String(cashDefault.id));
       }
     } catch (err) {
       console.error('Error fetching cash accounts:', err);
+    }
+  };
+
+  const fetchAccountingConfig = async () => {
+    setLoadingConfig(true);
+    try {
+      const res = await api.get('/kantin/wallet-transactions/accounting-config');
+      const data = res.data?.data;
+      if (data) {
+        setAccountingConfig(data);
+        if (data.settings) {
+          setConfigForm({
+            cash_account_id_tunai: data.settings.cash_account_id_tunai ? String(data.settings.cash_account_id_tunai) : '',
+            cash_account_name_tunai: data.settings.cash_account_name_tunai || '',
+            cash_account_id_bank: data.settings.cash_account_id_bank ? String(data.settings.cash_account_id_bank) : '',
+            cash_account_name_bank: data.settings.cash_account_name_bank || '',
+            wallet_liability_coa_id: data.settings.wallet_liability_coa_id ? String(data.settings.wallet_liability_coa_id) : '',
+            wallet_liability_coa_code: data.settings.wallet_liability_coa_code || '',
+            wallet_liability_coa_name: data.settings.wallet_liability_coa_name || '',
+            cash_coa_id: data.settings.cash_coa_id ? String(data.settings.cash_coa_id) : '',
+            cash_coa_code: data.settings.cash_coa_code || '',
+            cash_coa_name: data.settings.cash_coa_name || '',
+            bank_coa_id: data.settings.bank_coa_id ? String(data.settings.bank_coa_id) : '',
+            bank_coa_code: data.settings.bank_coa_code || '',
+            bank_coa_name: data.settings.bank_coa_name || '',
+            fund_source_name: data.settings.fund_source_name || 'Pos Dana Titipan Dompet Santri / SBU Kantin',
+            auto_journal: data.settings.auto_journal !== undefined ? data.settings.auto_journal : true
+          });
+          if (data.settings.fund_source_name) {
+            setFundSourceName(data.settings.fund_source_name);
+          }
+          if (data.settings.cash_account_id_tunai && !selectedCashAccountId) {
+            setSelectedCashAccountId(String(data.settings.cash_account_id_tunai));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat konfigurasi akuntansi dompet:', err.message);
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  const handleSaveAccountingConfig = async (e) => {
+    if (e) e.preventDefault();
+    setSavingConfig(true);
+    setConfigErrorMsg(null);
+    setConfigSuccessMsg(null);
+    try {
+      const res = await api.put('/kantin/wallet-transactions/accounting-config', configForm);
+      const data = res.data?.data;
+      if (data) {
+        setAccountingConfig(data);
+      }
+      setConfigSuccessMsg('✅ Konfigurasi default akuntansi dompet berhasil disimpan!');
+      setTimeout(() => {
+        setShowConfigModal(false);
+        setConfigSuccessMsg(null);
+      }, 1500);
+      fetchCashAccounts();
+    } catch (err) {
+      setConfigErrorMsg(err.response?.data?.message || err.message || 'Gagal menyimpan konfigurasi akuntansi');
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -119,7 +214,6 @@ export default function TopUpTarikTunai() {
       const res = await api.get('/kantin/wallet-transactions/bank-statements', { params });
       let list = res.data?.data || [];
 
-      // Fallback: Jika dengan filter cashAccId tidak ada mutasi, ambil semua mutasi kredit belum cocok
       if (list.length === 0 && cashAccId) {
         try {
           const fallbackParams = { dc_type: 'credit', is_reconciled: 0 };
@@ -151,33 +245,6 @@ export default function TopUpTarikTunai() {
     }
   };
 
-  // Filter Riwayat Transaksi Dompet
-  const filteredHistory = useMemo(() => {
-    return history.filter(tx => {
-      const q = historySearch.toLowerCase().trim();
-      const matchType = historyTypeFilter === 'all' || tx.transaction_type === historyTypeFilter;
-      if (!q) return matchType;
-
-      const sName = (tx.student_name || '').toLowerCase();
-      const sId = String(tx.student_id || '');
-      const jrn = (tx.journal_number || '').toLowerCase();
-      const noteText = (tx.notes || '').toLowerCase();
-      const cashAcc = (tx.cash_account_name || '').toLowerCase();
-      const amt = String(tx.amount || '');
-      const classGroup = (tx.class_group_name || '').toLowerCase();
-
-      const matchSearch = sName.includes(q) ||
-        sId.includes(q) ||
-        jrn.includes(q) ||
-        noteText.includes(q) ||
-        cashAcc.includes(q) ||
-        amt.includes(q) ||
-        classGroup.includes(q);
-
-      return matchType && matchSearch;
-    });
-  }, [history, historySearch, historyTypeFilter]);
-
   const fetchHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -193,6 +260,7 @@ export default function TopUpTarikTunai() {
   useEffect(() => {
     fetchStudents();
     fetchCashAccounts();
+    fetchAccountingConfig();
     fetchHistory();
     fetchReconData();
     fetchBankStatements();
@@ -212,13 +280,11 @@ export default function TopUpTarikTunai() {
   const handleSelectBankStatement = (bsId) => {
     if (!bsId) {
       setSelectedBankStatementId('');
-      setIsChangingBankStatement(false);
       return;
     }
     const stmt = bankStatements.find(b => String(b.id) === String(bsId));
     if (stmt) {
       setSelectedBankStatementId(String(stmt.id));
-      setIsChangingBankStatement(false);
       const allocAvailable = stmt.remaining_amount !== undefined ? stmt.remaining_amount : stmt.amount;
       setAmount(String(allocAvailable || stmt.amount));
       if (stmt.cash_account_id) {
@@ -237,12 +303,39 @@ export default function TopUpTarikTunai() {
     }
   };
 
-  const handleClearBankStatement = () => {
-    setSelectedBankStatementId('');
-    setIsChangingBankStatement(false);
-  };
+  // Filter Riwayat Transaksi Dompet
+  const filteredHistory = useMemo(() => {
+    return history.filter(tx => {
+      const q = historySearch.toLowerCase().trim();
+      const matchType = historyTypeFilter === 'all' || tx.transaction_type === historyTypeFilter;
+      if (!q) return matchType;
 
-  // Memoized Standard Bank Statements Options (Kaya Pencarian & Komprehensif)
+      const sName = (tx.student_name || '').toLowerCase();
+      const sId = String(tx.student_id || '');
+      const jrn = (tx.journal_number || '').toLowerCase();
+      const noteText = (tx.notes || '').toLowerCase();
+      const cashAcc = (tx.cash_account_name || '').toLowerCase();
+      const amt = String(tx.amount || '');
+      const classGroup = (tx.class_group_name || '').toLowerCase();
+      const debCoa = (tx.debit_coa_code || '').toLowerCase() + ' ' + (tx.debit_coa_name || '').toLowerCase();
+      const creCoa = (tx.credit_coa_code || '').toLowerCase() + ' ' + (tx.credit_coa_name || '').toLowerCase();
+      const fund = (tx.fund_source_name || '').toLowerCase();
+
+      const matchSearch = sName.includes(q) ||
+        sId.includes(q) ||
+        jrn.includes(q) ||
+        noteText.includes(q) ||
+        cashAcc.includes(q) ||
+        amt.includes(q) ||
+        classGroup.includes(q) ||
+        debCoa.includes(q) ||
+        creCoa.includes(q) ||
+        fund.includes(q);
+
+      return matchType && matchSearch;
+    });
+  }, [history, historySearch, historyTypeFilter]);
+
   const bankStatementsOptions = useMemo(() => {
     return bankStatements.map(b => {
       const refNo = b.reference_number || b.journal_number || b.import_batch_id || '';
@@ -342,6 +435,39 @@ export default function TopUpTarikTunai() {
   const selectedStudent = students.find(s => String(s.student_id) === String(selectedStudentId));
   const selectedCashAccount = cashAccounts.find(c => String(c.id) === String(selectedCashAccountId));
   const selectedBankStatement = bankStatements.find(b => String(b.id) === String(selectedBankStatementId));
+
+  // Resolved Dynamic Accounting Double Entry Info for Live Preview
+  const activeDebitCoa = useMemo(() => {
+    const isBank = selectedCashAccount?.account_kind === 'bank';
+    if (activeTab === 'top_up') {
+      return {
+        code: isBank ? (accountingConfig?.settings?.bank_coa_code || '10102') : (accountingConfig?.settings?.cash_coa_code || '10101'),
+        name: isBank ? (accountingConfig?.settings?.bank_coa_name || 'Kas Bank Penampung') : (accountingConfig?.settings?.cash_coa_name || 'Kas Tunai Kasir')
+      };
+    } else if (activeTab === 'withdrawal') {
+      return {
+        code: accountingConfig?.settings?.wallet_liability_coa_code || '20101',
+        name: accountingConfig?.settings?.wallet_liability_coa_name || 'Simpanan Dompet Santri'
+      };
+    }
+    return { code: '10102', name: 'Kas Bank Penampung' };
+  }, [activeTab, selectedCashAccount, accountingConfig]);
+
+  const activeCreditCoa = useMemo(() => {
+    const isBank = selectedCashAccount?.account_kind === 'bank';
+    if (activeTab === 'top_up') {
+      return {
+        code: accountingConfig?.settings?.wallet_liability_coa_code || '20101',
+        name: accountingConfig?.settings?.wallet_liability_coa_name || 'Simpanan Dompet Santri'
+      };
+    } else if (activeTab === 'withdrawal') {
+      return {
+        code: isBank ? (accountingConfig?.settings?.bank_coa_code || '10102') : (accountingConfig?.settings?.cash_coa_code || '10101'),
+        name: isBank ? (accountingConfig?.settings?.bank_coa_name || 'Kas Bank Penampung') : (accountingConfig?.settings?.cash_coa_name || 'Kas Tunai Kasir')
+      };
+    }
+    return { code: '20101', name: 'Simpanan Dompet Santri' };
+  }, [activeTab, selectedCashAccount, accountingConfig]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -488,22 +614,38 @@ export default function TopUpTarikTunai() {
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Layanan setoran top-up saldo cashless santri dan penarikan tunai saldo tersisa dengan auto-journaling ke Modul Keuangan
+            Layanan setoran top-up saldo cashless santri dan penarikan tunai dengan auto-journaling ganda (SBU Kantin &amp; Keuangan)
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            fetchReconData();
-            fetchHistory();
-          }}
-          disabled={reconLoading}
-          className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition cursor-pointer self-start md:self-auto disabled:opacity-50"
-        >
-          <RotateCcw className={`w-3.5 h-3.5 ${reconLoading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
-          <span>Audit &amp; Sinkronisasi Ulang</span>
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          {/* Tombol Setelan Akuntansi Dompet */}
+          <button
+            type="button"
+            onClick={() => setShowConfigModal(true)}
+            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Settings className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Setelan Akuntansi Dompet</span>
+            {accountingConfig?.settings?.auto_journal && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100" title="Auto-Journal Aktif" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              fetchReconData();
+              fetchHistory();
+              fetchAccountingConfig();
+            }}
+            disabled={reconLoading}
+            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${reconLoading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+            <span>Audit &amp; Sinkronisasi Ulang</span>
+          </button>
+        </div>
       </div>
 
       {/* Widget Monitoring & Rekonsiliasi Saldo Agregat Antar-Modul */}
@@ -563,21 +705,25 @@ export default function TopUpTarikTunai() {
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5">
             <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center justify-between">
               <span>Saldo Pos Sumber Dana</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-normal">canteen_wallet</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-normal">
+                {accountingConfig?.settings?.fund_source_name ? 'Terkonfigurasi' : 'canteen_wallet'}
+              </span>
             </div>
             <div className="text-lg font-black text-emerald-400 mt-1 font-mono">
               Rp {reconData ? (reconData.keuangan?.fund_balance || 0).toLocaleString('id-ID') : '-'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-1">
-              Alokasi Hak Dana Titipan di DB Keuangan
+            <div className="text-[10px] text-slate-400 mt-1 truncate">
+              {accountingConfig?.settings?.fund_source_name || 'Alokasi Hak Dana Titipan di DB Keuangan'}
             </div>
           </div>
 
-          {/* Box 3: Saldo Liabilitas Buku Besar COA 404 */}
+          {/* Box 3: Saldo Liabilitas Buku Besar COA */}
           <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-3.5">
             <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center justify-between">
               <span>Buku Besar Akun Titipan</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-normal">COA {reconData?.keuangan?.coa_code || '404'}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-normal">
+                COA {accountingConfig?.settings?.wallet_liability_coa_code || reconData?.keuangan?.coa_code || '20101'}
+              </span>
             </div>
             <div className="text-lg font-black text-cyan-400 mt-1 font-mono">
               Rp {reconData ? (reconData.keuangan?.coa_net_balance || 0).toLocaleString('id-ID') : '-'}
@@ -752,7 +898,7 @@ export default function TopUpTarikTunai() {
               </div>
             </div>
 
-            {/* Tanggal & Waktu Transaksi (Otomatis Terisi jika Mutasi Dipilih) */}
+            {/* Tanggal & Waktu Transaksi */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
               <div className="sm:col-span-8">
                 <DatePickerField
@@ -780,7 +926,7 @@ export default function TopUpTarikTunai() {
               </div>
             </div>
 
-            {/* Pilihan Rekening Kas / Bank Penerima (Live Search Dropdown) */}
+            {/* Pilihan Rekening Kas / Bank Penerima */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-bold text-slate-700">
@@ -809,7 +955,7 @@ export default function TopUpTarikTunai() {
               />
             </div>
 
-            {/* Referensi Mutasi Rekening Koran (Single Unified Component dengan Tracking Alokasi) */}
+            {/* Referensi Mutasi Rekening Koran */}
             {activeTab === 'top_up' && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between mb-1">
@@ -888,7 +1034,7 @@ export default function TopUpTarikTunai() {
               />
             </div>
 
-            {/* Preview Akuntansi Mini / Sub-Ledger Preview */}
+            {/* Preview Akuntansi Dinamis / Sub-Ledger Preview */}
             {activeTab === 'opening_balance' ? (
               <div className="p-3.5 bg-gradient-to-br from-indigo-50/70 via-slate-50 to-indigo-50/40 border border-indigo-200/80 rounded-xl space-y-2 text-[11px] shadow-xs">
                 <div className="flex items-center justify-between font-bold text-indigo-900 border-b border-indigo-200/60 pb-1.5">
@@ -902,7 +1048,6 @@ export default function TopUpTarikTunai() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
-                  {/* Kolom Sub-Ledger Kartu Santri */}
                   <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
                     <span className="text-indigo-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
                       [Sub-Ledger] Kartu Santri:
@@ -915,7 +1060,6 @@ export default function TopUpTarikTunai() {
                     </span>
                   </div>
 
-                  {/* Kolom Status Kas Bank */}
                   <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
                     <span className="text-slate-600 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
                       [Kas/Bank] Rekening Sumber:
@@ -941,93 +1085,55 @@ export default function TopUpTarikTunai() {
                 <div className="flex items-center justify-between font-bold text-emerald-900 border-b border-emerald-200/60 pb-1.5">
                   <div className="flex items-center gap-1.5">
                     <BadgeCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Alokasi Akuntansi Otomatis</span>
+                    <span>Catatan Akuntansi Otomatis (Double-Entry)</span>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono">
-                    Double-Entry JRN
+                  <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-mono font-bold">
+                    {accountingConfig?.settings?.auto_journal ? 'Auto-Journal Aktif' : 'Pencatatan Manual'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
                   {/* Kolom Debet */}
-                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                    <span className="text-emerald-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                      [Dr] Akun Debet:
+                  <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-200/70 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-emerald-700 font-bold uppercase text-[9px] tracking-wider">
+                        [Dr] Akun Debet:
+                      </span>
+                      <span className="font-mono text-[9px] bg-emerald-100/70 text-emerald-800 px-1 py-0.2 rounded font-bold">
+                        COA {activeDebitCoa.code}
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                      {activeDebitCoa.name}
                     </span>
-                    {activeTab === 'top_up' ? (
-                      <div>
-                        <span className="font-bold text-slate-900 block text-[11px]">
-                          {selectedCashAccount?.name || 'Kas Tunai'}
-                        </span>
-                        {selectedCashAccount?.bank_account_number ? (
-                          <span className="font-mono text-[10px] text-emerald-800 font-semibold block mt-0.5">
-                            {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 block mt-0.5">
-                            (Kas Fisik Tunai)
-                          </span>
-                        )}
-                        {selectedCashAccount?.coa_code && (
-                          <span className="text-[9px] text-slate-400 font-mono block">
-                            COA: {selectedCashAccount.coa_code}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="font-bold text-slate-900 block text-[11px]">
-                          404 - Dana Titipan Dompet
-                        </span>
-                        <span className="text-[10px] text-amber-700 block mt-0.5">
-                          Liabilitas / Titipan Santri
-                        </span>
-                      </div>
-                    )}
+                    <span className="text-[10px] text-slate-500 block truncate">
+                      {activeTab === 'top_up' ? (selectedCashAccount?.name || 'Kas Tunai') : 'Simpanan Santri'}
+                    </span>
                   </div>
 
                   {/* Kolom Kredit */}
-                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                    <span className="text-rose-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                      [Cr] Akun Kredit:
+                  <div className="p-2.5 rounded-lg bg-white/90 border border-rose-200/70 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-rose-700 font-bold uppercase text-[9px] tracking-wider">
+                        [Cr] Akun Kredit:
+                      </span>
+                      <span className="font-mono text-[9px] bg-rose-100/70 text-rose-800 px-1 py-0.2 rounded font-bold">
+                        COA {activeCreditCoa.code}
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                      {activeCreditCoa.name}
                     </span>
-                    {activeTab === 'top_up' ? (
-                      <div>
-                        <span className="font-bold text-slate-900 block text-[11px]">
-                          404 - Dana Titipan Dompet
-                        </span>
-                        <span className="text-[10px] text-emerald-800 block mt-0.5">
-                          Liabilitas / Titipan Santri
-                        </span>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="font-bold text-slate-900 block text-[11px]">
-                          {selectedCashAccount?.name || 'Kas Tunai'}
-                        </span>
-                        {selectedCashAccount?.bank_account_number ? (
-                          <span className="font-mono text-[10px] text-rose-800 font-semibold block mt-0.5">
-                            {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 block mt-0.5">
-                            (Kas Fisik Tunai)
-                          </span>
-                        )}
-                        {selectedCashAccount?.coa_code && (
-                          <span className="text-[9px] text-slate-400 font-mono block">
-                            COA: {selectedCashAccount.coa_code}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    <span className="text-[10px] text-slate-500 block truncate">
+                      {activeTab === 'top_up' ? 'Simpanan Santri' : (selectedCashAccount?.name || 'Kas Tunai')}
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-[10px] text-emerald-800 font-medium pt-1 flex items-center justify-between border-t border-emerald-200/60">
+                <div className="text-[10px] text-emerald-900 font-medium pt-1 flex items-center justify-between border-t border-emerald-200/60">
                   <span>Pos Sumber Dana:</span>
-                  <span className="font-bold bg-emerald-100/80 text-emerald-900 px-1.5 py-0.5 rounded">
-                    Pos Dana Dompet Santri (canteen_wallet)
+                  <span className="font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded truncate max-w-[200px]">
+                    {fundSourceName || 'Pos Dana Titipan Dompet Santri'}
                   </span>
                 </div>
               </div>
@@ -1073,9 +1179,9 @@ export default function TopUpTarikTunai() {
             <div>
               <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-emerald-600" />
-                <span>Riwayat Mutasi &amp; Jurnal Dompet Santri</span>
+                <span>Riwayat Mutasi &amp; Jurnal Akuntansi Dompet</span>
               </h2>
-              <p className="text-[11px] text-slate-400">Mutasi saldo dompet terkoneksi ke nomor bukti jurnal</p>
+              <p className="text-[11px] text-slate-400">Pencatatan mutasi saldo dompet lengkap dengan nomor jurnal &amp; akun COA</p>
             </div>
             <button
               type="button"
@@ -1095,7 +1201,7 @@ export default function TopUpTarikTunai() {
                 type="text"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Cari santri, jurnal, kas, catatan, nominal..."
+                placeholder="Cari santri, jurnal, akun COA, kas, catatan, nominal..."
                 className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-emerald-500 focus:bg-white transition"
               />
               {historySearch && (
@@ -1141,7 +1247,7 @@ export default function TopUpTarikTunai() {
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                Tarik Tunai
+                Tarik
               </button>
               <button
                 type="button"
@@ -1167,19 +1273,19 @@ export default function TopUpTarikTunai() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-3.5 py-2.5">Waktu &amp; Jurnal</th>
-                    <th className="px-3.5 py-2.5">Santri</th>
-                    <th className="px-3.5 py-2.5">Rekening Kas/Bank</th>
-                    <th className="px-3.5 py-2.5">Nominal</th>
-                    <th className="px-3.5 py-2.5 text-right">Saldo Akhir</th>
-                    <th className="px-3.5 py-2.5 text-center">Aksi</th>
+                    <th className="px-3 py-2.5">Waktu &amp; Jurnal</th>
+                    <th className="px-3 py-2.5">Santri</th>
+                    <th className="px-3 py-2.5">Kas &amp; Akun Akuntansi</th>
+                    <th className="px-3 py-2.5">Nominal</th>
+                    <th className="px-3 py-2.5 text-right">Saldo Akhir</th>
+                    <th className="px-3 py-2.5 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredHistory.map((tx) => (
                     <tr key={tx.id} className="hover:bg-slate-50/60 transition">
                       {/* Waktu & No Jurnal */}
-                      <td className="px-3.5 py-2.5">
+                      <td className="px-3 py-2.5">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[11px] text-slate-600 font-mono">
                             {tx.occurred_at ? new Date(tx.occurred_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
@@ -1211,7 +1317,7 @@ export default function TopUpTarikTunai() {
                       </td>
 
                       {/* Santri */}
-                      <td className="px-3.5 py-2.5 font-semibold text-slate-800">
+                      <td className="px-3 py-2.5 font-semibold text-slate-800">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[12px] font-bold text-slate-900">
                             {tx.student_name || `Santri #${tx.student_id}`}
@@ -1229,22 +1335,37 @@ export default function TopUpTarikTunai() {
                         </div>
                       </td>
 
-                      {/* Rekening Kas / Bank */}
-                      <td className="px-3.5 py-2.5">
-                        <div className="flex flex-col gap-0.5">
+                      {/* Rekening Kas & Akun Akuntansi */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-col gap-1">
                           <span className="font-semibold text-slate-800 text-[11px]">
                             {tx.cash_account_name || 'Kas Tunai'}
                           </span>
-                          {tx.cash_account_details && (
+                          {(tx.debit_coa_code || tx.credit_coa_code) ? (
+                            <div className="flex items-center gap-1 text-[9px] font-mono">
+                              <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-1 py-0.2 rounded">
+                                Dr: {tx.debit_coa_code || '-'}
+                              </span>
+                              <span>→</span>
+                              <span className="bg-rose-50 text-rose-800 border border-rose-200 px-1 py-0.2 rounded">
+                                Cr: {tx.credit_coa_code || '-'}
+                              </span>
+                            </div>
+                          ) : tx.cash_account_details ? (
                             <span className="text-[9px] text-slate-400 font-mono">
                               {tx.cash_account_details}
+                            </span>
+                          ) : null}
+                          {tx.fund_source_name && (
+                            <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded w-fit truncate max-w-[160px]">
+                              {tx.fund_source_name}
                             </span>
                           )}
                         </div>
                       </td>
 
                       {/* Nominal */}
-                      <td className="px-3.5 py-2.5 font-mono font-bold">
+                      <td className="px-3 py-2.5 font-mono font-bold">
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-bold ${
@@ -1274,12 +1395,12 @@ export default function TopUpTarikTunai() {
                       </td>
 
                       {/* Saldo Akhir */}
-                      <td className="px-3.5 py-2.5 font-mono text-slate-800 font-bold text-right text-[12px]">
+                      <td className="px-3 py-2.5 font-mono text-slate-800 font-bold text-right text-[12px]">
                         Rp{parseFloat(tx.balance_after).toLocaleString('id-ID')}
                       </td>
 
                       {/* Aksi */}
-                      <td className="px-3.5 py-2.5 text-center">
+                      <td className="px-3 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
@@ -1317,6 +1438,227 @@ export default function TopUpTarikTunai() {
           )}
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* MODAL SETELAN AKUNTANSI DOMPET */}
+      {/* ========================================================= */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800">Setelan Akuntansi Dompet Santri</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Konfigurasi akun kas/bank default, kode akun COA debet kredit, dan pos dana terkait
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {configErrorMsg && <FlatAlertBanner type="danger" message={configErrorMsg} />}
+            {configSuccessMsg && <FlatAlertBanner type="success" message={configSuccessMsg} />}
+
+            <form onSubmit={handleSaveAccountingConfig} className="space-y-4 text-xs">
+              {/* Seksi 1: Kas & Bank Default */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Rekening Kas &amp; Bank Default</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Kas Tunai Default</label>
+                    <SearchableSelect
+                      options={accountingConfig?.cash_accounts?.map(c => ({
+                        value: String(c.id),
+                        label: c.display_label || c.name,
+                        sublabel: c.account_kind === 'bank' ? 'Rekening Bank' : 'Kas Tunai'
+                      })) || []}
+                      value={String(configForm.cash_account_id_tunai)}
+                      onChange={(val) => {
+                        const acc = accountingConfig?.cash_accounts?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          cash_account_id_tunai: val,
+                          cash_account_name_tunai: acc?.display_label || acc?.name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih Kas Tunai --"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Rekening Bank Penampung Default</label>
+                    <SearchableSelect
+                      options={accountingConfig?.cash_accounts?.map(c => ({
+                        value: String(c.id),
+                        label: c.display_label || c.name,
+                        sublabel: c.bank_account_number ? `No: ${c.bank_account_number}` : 'Kas'
+                      })) || []}
+                      value={String(configForm.cash_account_id_bank)}
+                      onChange={(val) => {
+                        const acc = accountingConfig?.cash_accounts?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          cash_account_id_bank: val,
+                          cash_account_name_bank: acc?.display_label || acc?.name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih Rekening Bank --"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seksi 2: Bagan Akun (Chart of Accounts / COA) */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Akun Akuntansi Terkait (COA SBU Kantin &amp; Keuangan)</span>
+                </h4>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Akun Simpanan / Titipan Dompet Santri (Liabilitas)
+                    </label>
+                    <SearchableSelect
+                      options={accountingConfig?.coas?.wallet_liability?.map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Grup: ${c.account_group || 'Liabilitas'}`
+                      })) || []}
+                      value={String(configForm.wallet_liability_coa_id)}
+                      onChange={(val) => {
+                        const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                        setConfigForm(prev => ({
+                          ...prev,
+                          wallet_liability_coa_id: val,
+                          wallet_liability_coa_code: coa?.account_code || '',
+                          wallet_liability_coa_name: coa?.account_name || ''
+                        }));
+                      }}
+                      placeholder="-- Pilih Akun Titipan Santri (COA 20101/404) --"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Akun COA Kas Tunai</label>
+                      <SearchableSelect
+                        options={accountingConfig?.coas?.cash?.map(c => ({
+                          value: String(c.id),
+                          label: `[${c.account_code}] ${c.account_name}`,
+                          sublabel: `Grup: ${c.account_group || 'Aset'}`
+                        })) || []}
+                        value={String(configForm.cash_coa_id)}
+                        onChange={(val) => {
+                          const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                          setConfigForm(prev => ({
+                            ...prev,
+                            cash_coa_id: val,
+                            cash_coa_code: coa?.account_code || '',
+                            cash_coa_name: coa?.account_name || ''
+                          }));
+                        }}
+                        placeholder="-- Pilih COA Kas (10101) --"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">Akun COA Kas Bank</label>
+                      <SearchableSelect
+                        options={accountingConfig?.coas?.bank?.map(c => ({
+                          value: String(c.id),
+                          label: `[${c.account_code}] ${c.account_name}`,
+                          sublabel: `Grup: ${c.account_group || 'Aset'}`
+                        })) || []}
+                        value={String(configForm.bank_coa_id)}
+                        onChange={(val) => {
+                          const coa = accountingConfig?.coas?.all?.find(c => String(c.id) === String(val));
+                          setConfigForm(prev => ({
+                            ...prev,
+                            bank_coa_id: val,
+                            bank_coa_code: coa?.account_code || '',
+                            bank_coa_name: coa?.account_name || ''
+                          }));
+                        }}
+                        placeholder="-- Pilih COA Bank (10102) --"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seksi 3: Pos Dana & Saklar Auto-Journal */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Pos Dana &amp; Otomatisasi Jurnal</span>
+                </h4>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Nama Pos Dana Terkait</label>
+                  <input
+                    type="text"
+                    required
+                    value={configForm.fund_source_name}
+                    onChange={(e) => setConfigForm(prev => ({ ...prev, fund_source_name: e.target.value }))}
+                    placeholder="Contoh: Pos Dana Titipan Dompet Santri / SBU Kantin"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:border-emerald-500 transition"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 block text-xs">Posting Otomatis Jurnal (Auto-Journal)</span>
+                    <span className="text-[11px] text-slate-500">
+                      Otomatis catat jurnal umum ganda ke database SBU Kantin dan Modul Keuangan saat top up &amp; tarik tunai
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={configForm.auto_journal}
+                    onChange={(e) => setConfigForm(prev => ({ ...prev, auto_journal: e.target.checked }))}
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  disabled={savingConfig}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingConfig}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>Simpan Konfigurasi Akuntansi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* MODAL EDIT / REVISI TRANSAKSI DOMPET */}
@@ -1366,7 +1708,7 @@ export default function TopUpTarikTunai() {
                 />
               </div>
 
-              {/* Tanggal Transaksi (DatePickerField dengan format DD/MM/YYYY) & Jam */}
+              {/* Tanggal & Waktu */}
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                 <div className="sm:col-span-8">
                   <DatePickerField
@@ -1399,7 +1741,7 @@ export default function TopUpTarikTunai() {
                 </div>
               </div>
 
-              {/* Rekening Kas / Bank Penerima */}
+              {/* Rekening Kas / Bank */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   Rekening Kas / Bank
@@ -1425,7 +1767,7 @@ export default function TopUpTarikTunai() {
                 />
               </div>
 
-              {/* Referensi Mutasi Rekening Koran (Jika Bank / Ada Mutasi) */}
+              {/* Referensi Mutasi Rekening Koran */}
               {(bankStatements.length > 0 || editForm.bank_statement_id || cashAccounts.find(c => String(c.id) === String(editForm.cash_account_id))?.account_kind === 'bank') && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between mb-1">
@@ -1517,10 +1859,6 @@ export default function TopUpTarikTunai() {
                       </div>
                     );
                   })()}
-
-                  <span className="text-[10px] text-slate-500 block mt-1">
-                    <strong className="text-amber-700">Info:</strong> Jika referensi rekening koran diganti atau dihapus, alokasi yang sebelumnya terpakai pada mutasi rekening koran lama akan otomatis dibatalkan dan kuota mutasi lama dikembalikan.
-                  </span>
                 </div>
               )}
 
@@ -1551,9 +1889,6 @@ export default function TopUpTarikTunai() {
                   placeholder="Wajib diisi: Jelaskan alasan koreksi/perubahan data transaksi ini..."
                   className="w-full px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-xl text-xs focus:outline-hidden focus:border-amber-500 focus:bg-white transition placeholder:text-slate-400"
                 />
-                <span className="text-[10px] text-slate-400 block mt-0.5">
-                  Catatan ini akan tersimpan permanen di riwayat jejak audit (audit log).
-                </span>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
@@ -1678,4 +2013,3 @@ export default function TopUpTarikTunai() {
     </div>
   );
 }
-

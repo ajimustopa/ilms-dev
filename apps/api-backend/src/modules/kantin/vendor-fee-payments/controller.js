@@ -2,6 +2,26 @@ const vendorFeePaymentsService = require('./service');
 const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class VendorFeePaymentsController {
+  async getAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await vendorFeePaymentsService.getAccountingConfig(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveAccountingConfig(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await vendorFeePaymentsService.saveAccountingConfig(schoolUnitId, req.body);
+      res.json({ success: true, data, message: 'Konfigurasi akuntansi penyerahan hak vendor berhasil disimpan', errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listPayments(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);

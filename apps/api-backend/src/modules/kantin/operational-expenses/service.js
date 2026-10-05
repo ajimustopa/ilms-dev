@@ -60,24 +60,20 @@ class OperationalExpensesService {
    */
   async getSummary(schoolUnitId, query = {}) {
     const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
-    let q = db('operational_expenses');
+    
+    // 1. Ambil data pengeluaran & pemasukan operasional
+    let opQ = db('operational_expenses');
+    if (!isAll) opQ = opQ.where('school_unit_id', Number(schoolUnitId));
+    if (query.date_from) opQ = opQ.where('expense_date', '>=', query.date_from);
+    if (query.date_to) opQ = opQ.where('expense_date', '<=', query.date_to);
 
-    if (!isAll) {
-      q = q.where('school_unit_id', Number(schoolUnitId));
-    }
-    if (query.date_from) {
-      q = q.where('expense_date', '>=', query.date_from);
-    }
-    if (query.date_to) {
-      q = q.where('expense_date', '<=', query.date_to);
-    }
-
-    const rows = await q.select('id', 'type', 'amount', 'category', 'cash_account_id', 'cash_account_name');
+    const rows = await opQ.select('id', 'type', 'amount', 'category', 'cash_account_id', 'cash_account_name');
 
     let totalIncome = 0;
     let totalExpense = 0;
     let countIncome = 0;
     let countExpense = 0;
+    let capitalInjection = 0;
 
     const accountMap = {};
     const categoryMap = {};
@@ -89,6 +85,9 @@ class OperationalExpensesService {
       if (isIncome) {
         totalIncome += amt;
         countIncome++;
+        if (r.category === 'modal_kantin') {
+          capitalInjection += amt;
+        }
       } else {
         totalExpense += amt;
         countExpense++;
@@ -126,7 +125,83 @@ class OperationalExpensesService {
       categoryMap[catKey].count += 1;
     });
 
+    const nonPosIncome = Math.max(0, totalIncome - capitalInjection);
+
+    // 2. Ambil data Penjualan Kasir POS (Omzet, Hak Vendor, Bagi Hasil Kantin)
+    let salesQ = db('sales_transactions')
+      .leftJoin('sales_transaction_items', 'sales_transactions.id', 'sales_transaction_items.sales_transaction_id');
+
+    if (!isAll) salesQ = salesQ.where('sales_transactions.school_unit_id', Number(schoolUnitId));
+    if (query.date_from) salesQ = salesQ.where('sales_transactions.transaction_at', '>=', `${query.date_from} 00:00:00`);
+    if (query.date_to) salesQ = salesQ.where('sales_transactions.transaction_at', '<=', `${query.date_to} 23:59:59`);
+
+    const salesRows = await salesQ.select(
+      'sales_transaction_items.subtotal_price',
+      'sales_transaction_items.subtotal_cost',
+      'sales_transactions.payment_method'
+    );
+
+    let totalGrossSales = 0;
+    let totalVendorCost = 0;
+    let cashSalesAmount = 0;
+    let walletSalesAmount = 0;
+
+    salesRows.forEach(r => {
+      const p = parseFloat(r.subtotal_price || 0);
+      const c = parseFloat(r.subtotal_cost || 0);
+      totalGrossSales += p;
+      totalVendorCost += c;
+      if (r.payment_method !== 'wallet') {
+        cashSalesAmount += p;
+      } else {
+        walletSalesAmount += p;
+      }
+    });
+
+    const totalCanteenPosShare = Math.max(0, totalGrossSales - totalVendorCost);
+
+    // 3. Ambil data Hak Vendor yang SUDAH DISERAHKAN (vendor_fee_payments)
+    let vfpQ = db('vendor_fee_payments');
+    if (!isAll) vfpQ = vfpQ.where('school_unit_id', Number(schoolUnitId));
+    if (query.date_from) vfpQ = vfpQ.where('paid_at', '>=', `${query.date_from} 00:00:00`);
+    if (query.date_to) vfpQ = vfpQ.where('paid_at', '<=', `${query.date_to} 23:59:59`);
+
+    const vfpSum = await vfpQ.sum('amount as total_paid').first();
+    const vendorPaidAmount = vfpSum?.total_paid ? parseFloat(vfpSum.total_paid) : 0;
+    const vendorUnpaidAmount = Math.max(0, totalVendorCost - vendorPaidAmount);
+
+    // 4. Ambil data Hak Kantin yang SUDAH DISETOR (canteen_fee_payments)
+    let cfpQ = db('canteen_fee_payments');
+    if (!isAll) cfpQ = cfpQ.where('school_unit_id', Number(schoolUnitId));
+    if (query.date_from) cfpQ = cfpQ.where('paid_at', '>=', `${query.date_from} 00:00:00`);
+    if (query.date_to) cfpQ = cfpQ.where('paid_at', '<=', `${query.date_to} 23:59:59`);
+
+    const cfpSum = await cfpQ.sum('amount as total_paid').first();
+    const canteenSettledAmount = cfpSum?.total_paid ? parseFloat(cfpSum.total_paid) : 0;
+    const canteenUnsettledAmount = Math.max(0, totalCanteenPosShare - canteenSettledAmount);
+
+    // 5. Kalkulasi Laba Bersih & Posisi Kas
+    const netCanteenProfit = totalCanteenPosShare + nonPosIncome - totalExpense;
+    const estimatedCashInVault = cashSalesAmount + totalIncome - totalExpense - vendorPaidAmount;
+
     return {
+      // Metrik Utama Finansial Kantin
+      financial_overview: {
+        total_gross_sales: totalGrossSales,
+        total_canteen_pos_share: totalCanteenPosShare,
+        total_operating_expense: totalExpense,
+        total_non_pos_income: nonPosIncome,
+        capital_injection: capitalInjection,
+        net_canteen_profit: netCanteenProfit,
+        vendor_total_right: totalVendorCost,
+        vendor_paid_amount: vendorPaidAmount,
+        vendor_unpaid_amount: vendorUnpaidAmount,
+        canteen_settled_amount: canteenSettledAmount,
+        canteen_unsettled_amount: canteenUnsettledAmount,
+        estimated_cash_vault: estimatedCashInVault,
+        cash_sales_amount: cashSalesAmount,
+        wallet_sales_amount: walletSalesAmount
+      },
       total_income: totalIncome,
       total_expense: totalExpense,
       net_cashflow: totalIncome - totalExpense,
@@ -175,27 +250,51 @@ class OperationalExpensesService {
   async getCoaAccounts(schoolUnitId, type = 'expense') {
     try {
       const accounts = await masterDataService.listChartOfAccounts(schoolUnitId, false);
-      const filtered = accounts.filter(a => a.is_active !== false && a.is_active !== 0);
+      const activeList = accounts.filter(a => a.is_active !== false && a.is_active !== 0);
+
+      let groupFiltered = [];
+      if (type === 'income') {
+        groupFiltered = activeList.filter(a =>
+          ['pendapatan', 'revenue', 'income', 'modal', 'ekuitas'].includes((a.account_group || '').toLowerCase()) ||
+          (a.account_name || '').toLowerCase().includes('kantin') ||
+          (a.account_name || '').toLowerCase().includes('modal')
+        );
+      } else {
+        groupFiltered = activeList.filter(a =>
+          ['biaya', 'beban', 'expense', 'expenses', 'pengeluaran'].includes((a.account_group || '').toLowerCase()) ||
+          (a.account_name || '').toLowerCase().includes('kantin')
+        );
+      }
+
+      const listToUse = groupFiltered.length > 0 ? groupFiltered : activeList;
+
+      // Urutkan akun spesifik kantin & modal di urutan paling atas
+      const sorted = [...listToUse].sort((a, b) => {
+        const aIsCanteen = (a.account_name || '').toLowerCase().includes('kantin') || (a.account_code || '').startsWith('30105') || (a.account_code || '').startsWith('617') || (a.account_code || '').startsWith('618') || (a.account_code || '').startsWith('792') ? -1 : 1;
+        const bIsCanteen = (b.account_name || '').toLowerCase().includes('kantin') || (b.account_code || '').startsWith('30105') || (b.account_code || '').startsWith('617') || (b.account_code || '').startsWith('618') || (b.account_code || '').startsWith('792') ? -1 : 1;
+        return aIsCanteen - bIsCanteen;
+      });
 
       // Default COA
       let defaultAcc = null;
       if (type === 'income') {
-        defaultAcc = filtered.find(a => a.account_code === '617')
-          || filtered.find(a => a.account_code === '616')
-          || filtered.find(a => (a.account_name || '').toLowerCase().includes('kantin'))
-          || filtered.find(a => a.account_code === '60800')
-          || filtered.find(a => a.account_group === 'pendapatan')
-          || filtered[0];
+        defaultAcc = sorted.find(a => a.account_code === '617')
+          || sorted.find(a => a.account_code === '616')
+          || sorted.find(a => (a.account_name || '').toLowerCase().includes('kantin'))
+          || sorted.find(a => a.account_code === '60800')
+          || sorted.find(a => (a.account_group || '').toLowerCase().includes('pendapatan'))
+          || sorted[0];
       } else {
-        defaultAcc = filtered.find(a => a.account_code === '79200')
-          || filtered.find(a => a.account_code === '79100')
-          || filtered.find(a => (a.account_name || '').toLowerCase().includes('beban') && (a.account_name || '').toLowerCase().includes('kantin'))
-          || filtered.find(a => a.account_group === 'biaya')
-          || filtered[0];
+        defaultAcc = sorted.find(a => a.account_code === '79201')
+          || sorted.find(a => a.account_code === '79200')
+          || sorted.find(a => a.account_code === '79100')
+          || sorted.find(a => (a.account_name || '').toLowerCase().includes('beban') && (a.account_name || '').toLowerCase().includes('kantin'))
+          || sorted.find(a => (a.account_group || '').toLowerCase().includes('biaya'))
+          || sorted[0];
       }
 
       return {
-        accounts: filtered.map(a => ({
+        accounts: sorted.map(a => ({
           id: a.id,
           account_code: a.account_code,
           account_name: a.account_name,
@@ -347,15 +446,16 @@ class OperationalExpensesService {
     if (sync_finance && cash_account_id) {
       try {
         if (type === 'income') {
-          // Sync Penerimaan Kas Lainnya
+          // Sync Penerimaan Kas Lainnya / Setoran Modal
+          const isCapital = category === 'modal_kantin';
           const incomeRes = await otherIncomesService.createOtherIncome(effectiveUnitId, {
             amount: txAmount,
             received_at: txDate,
             cash_account_id: Number(cash_account_id),
             bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
             override_credit_account_id: coa_account_id ? Number(coa_account_id) : null,
-            source_category: 'business_unit',
-            payer_name: 'Operasional Kantin',
+            source_category: isCapital ? 'foundation_grant' : 'business_unit',
+            payer_name: isCapital ? 'Yayasan / Pemilik (Setoran Modal SBU Kantin)' : 'Operasional Kantin',
             notes: `[${receiptNumber}] ${expense_name.trim()}${note ? ' - ' + note : ''}`
           }, userId);
           if (incomeRes && incomeRes.id) {
@@ -396,7 +496,7 @@ class OperationalExpensesService {
   /**
    * Menghapus transaksi kas operasional kantin
    */
-  async deleteExpense(id, schoolUnitId) {
+  async deleteExpense(id, schoolUnitId, userId = null) {
     let q = db('operational_expenses').where('id', id);
     if (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation') {
       q = q.where('school_unit_id', Number(schoolUnitId));
@@ -408,8 +508,22 @@ class OperationalExpensesService {
       throw err;
     }
 
+    // Revert/Clean-up linked finance transaction in Keuangan Module if exists
+    if (item.finance_transaction_id) {
+      try {
+        const unitId = item.school_unit_id || schoolUnitId;
+        if (item.type === 'income') {
+          await otherIncomesService.deleteOtherIncome(unitId, item.finance_transaction_id, userId);
+        } else {
+          await expensesService.softDeleteExpense(unitId, item.finance_transaction_id, `Dibatalkan dari Operasional Kantin #${item.receipt_number || item.id}`, userId);
+        }
+      } catch (fErr) {
+        console.warn('[Operational Expenses] Reversing linked finance transaction error:', fErr.message);
+      }
+    }
+
     await db('operational_expenses').where('id', id).del();
-    return { deleted: true, id };
+    return { deleted: true, id, receipt_number: item.receipt_number };
   }
 
   /**

@@ -5,8 +5,146 @@
 const db = require('../../../config/db/kantin');
 const canteenStudentsService = require('../canteen-students/service');
 const keuanganInternalService = require('../../keuangan/internal/service');
+const masterDataService = require('../../keuangan/master-data/service');
+const canteenAccountingService = require('../accounting/service');
 
 class WalletTransactionsService {
+  /**
+   * Mengambil konfigurasi default akuntansi Dompet Santri dan opsi dropdown COA/Kas
+   */
+  async getAccountingConfig(schoolUnitId) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+
+    let settings = await db('canteen_wallet_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+
+    let cashAccounts = [];
+    let allCoas = [];
+    try {
+      cashAccounts = await masterDataService.listCashAccounts(effectiveUnitId, { is_active: true });
+    } catch (_) {}
+    try {
+      allCoas = await masterDataService.listChartOfAccounts(effectiveUnitId, false);
+    } catch (_) {}
+
+    const formattedCashAccounts = cashAccounts.map(a => ({
+      id: a.id,
+      name: a.name,
+      account_kind: a.account_kind,
+      bank_name: a.bank_name,
+      bank_account_number: a.bank_account_number,
+      is_canteen: (a.name || '').toLowerCase().includes('kantin') || (a.name || '').toLowerCase().includes('dompet'),
+      display_label: a.bank_account_number
+        ? `${a.name} (${a.bank_name || 'Bank'} - ${a.bank_account_number})`
+        : `${a.name} (Kas Tunai)`
+    }));
+
+    const formattedCoas = allCoas.map(c => ({
+      id: c.id,
+      account_code: c.account_code,
+      account_name: c.account_name,
+      account_group: c.account_group,
+      display_label: `[${c.account_code}] ${c.account_name} (${(c.account_group || '').toUpperCase()})`
+    }));
+
+    const walletLiabilityCoas = formattedCoas.filter(c =>
+      c.account_code === '20101' || c.account_code === '404' || c.account_code === '20100' ||
+      (c.account_name || '').toLowerCase().includes('dompet') || (c.account_name || '').toLowerCase().includes('titipan') || (c.account_name || '').toLowerCase().includes('simpanan')
+    );
+    const cashCoas = formattedCoas.filter(c =>
+      c.account_code === '10101' || c.account_code === '101' || (c.account_name || '').toLowerCase().includes('kas')
+    );
+    const bankCoas = formattedCoas.filter(c =>
+      c.account_code === '10102' || c.account_code === '102' || (c.account_name || '').toLowerCase().includes('bank') || (c.account_name || '').toLowerCase().includes('bni') || (c.account_name || '').toLowerCase().includes('bsi')
+    );
+
+    const defaultTunaiAcc = formattedCashAccounts.find(a => a.is_canteen && !a.bank_account_number) || formattedCashAccounts.find(a => !a.bank_account_number) || formattedCashAccounts[0] || null;
+    const defaultBankAcc = formattedCashAccounts.find(a => a.is_canteen && a.bank_account_number) || formattedCashAccounts.find(a => a.bank_account_number) || formattedCashAccounts[0] || null;
+
+    const defaultWalletCoa = formattedCoas.find(c => c.account_code === '20101') || formattedCoas.find(c => c.account_code === '404') || walletLiabilityCoas[0] || formattedCoas[0] || null;
+    const defaultCashCoa = formattedCoas.find(c => c.account_code === '10101') || formattedCoas.find(c => c.account_code === '101') || cashCoas[0] || formattedCoas[0] || null;
+    const defaultBankCoa = formattedCoas.find(c => c.account_code === '10102') || formattedCoas.find(c => c.account_code === '102') || bankCoas[0] || formattedCoas[0] || null;
+
+    const resolvedConfig = {
+      school_unit_id: effectiveUnitId,
+      cash_account_id_tunai: settings?.cash_account_id_tunai || defaultTunaiAcc?.id || null,
+      cash_account_name_tunai: settings?.cash_account_name_tunai || defaultTunaiAcc?.display_label || null,
+      cash_account_id_bank: settings?.cash_account_id_bank || defaultBankAcc?.id || null,
+      cash_account_name_bank: settings?.cash_account_name_bank || defaultBankAcc?.display_label || null,
+      wallet_liability_coa_id: settings?.wallet_liability_coa_id || defaultWalletCoa?.id || null,
+      wallet_liability_coa_code: settings?.wallet_liability_coa_code || defaultWalletCoa?.account_code || null,
+      wallet_liability_coa_name: settings?.wallet_liability_coa_name || defaultWalletCoa?.account_name || null,
+      cash_coa_id: settings?.cash_coa_id || defaultCashCoa?.id || null,
+      cash_coa_code: settings?.cash_coa_code || defaultCashCoa?.account_code || null,
+      cash_coa_name: settings?.cash_coa_name || defaultCashCoa?.account_name || null,
+      bank_coa_id: settings?.bank_coa_id || defaultBankCoa?.id || null,
+      bank_coa_code: settings?.bank_coa_code || defaultBankCoa?.account_code || null,
+      bank_coa_name: settings?.bank_coa_name || defaultBankCoa?.account_name || null,
+      fund_source_name: settings?.fund_source_name || 'Pos Dana Titipan Dompet Santri / SBU Kantin',
+      auto_journal: settings ? !!settings.auto_journal : true
+    };
+
+    return {
+      settings: resolvedConfig,
+      cash_accounts: formattedCashAccounts,
+      coas: {
+        all: formattedCoas,
+        wallet_liability: walletLiabilityCoas.length > 0 ? walletLiabilityCoas : formattedCoas,
+        cash: cashCoas.length > 0 ? cashCoas : formattedCoas,
+        bank: bankCoas.length > 0 ? bankCoas : formattedCoas
+      }
+    };
+  }
+
+  async saveAccountingConfig(schoolUnitId, payload) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? Number(schoolUnitId) : 1;
+    const {
+      cash_account_id_tunai,
+      cash_account_name_tunai,
+      cash_account_id_bank,
+      cash_account_name_bank,
+      wallet_liability_coa_id,
+      wallet_liability_coa_code,
+      wallet_liability_coa_name,
+      cash_coa_id,
+      cash_coa_code,
+      cash_coa_name,
+      bank_coa_id,
+      bank_coa_code,
+      bank_coa_name,
+      fund_source_name,
+      auto_journal
+    } = payload;
+
+    const dataToSave = {
+      school_unit_id: effectiveUnitId,
+      cash_account_id_tunai: cash_account_id_tunai ? Number(cash_account_id_tunai) : null,
+      cash_account_name_tunai: cash_account_name_tunai || null,
+      cash_account_id_bank: cash_account_id_bank ? Number(cash_account_id_bank) : null,
+      cash_account_name_bank: cash_account_name_bank || null,
+      wallet_liability_coa_id: wallet_liability_coa_id ? Number(wallet_liability_coa_id) : null,
+      wallet_liability_coa_code: wallet_liability_coa_code || null,
+      wallet_liability_coa_name: wallet_liability_coa_name || null,
+      cash_coa_id: cash_coa_id ? Number(cash_coa_id) : null,
+      cash_coa_code: cash_coa_code || null,
+      cash_coa_name: cash_coa_name || null,
+      bank_coa_id: bank_coa_id ? Number(bank_coa_id) : null,
+      bank_coa_code: bank_coa_code || null,
+      bank_coa_name: bank_coa_name || null,
+      fund_source_name: fund_source_name || 'Pos Dana Titipan Dompet Santri / SBU Kantin',
+      auto_journal: auto_journal !== undefined ? !!auto_journal : true,
+      updated_at: db.fn.now()
+    };
+
+    const existing = await db('canteen_wallet_accounting_settings').where({ school_unit_id: effectiveUnitId }).first();
+    if (existing) {
+      await db('canteen_wallet_accounting_settings').where({ school_unit_id: effectiveUnitId }).update(dataToSave);
+    } else {
+      await db('canteen_wallet_accounting_settings').insert(dataToSave);
+    }
+
+    return await this.getAccountingConfig(effectiveUnitId);
+  }
+
   async listCashAccounts(schoolUnitId) {
     try {
       return await keuanganInternalService.listCashAccounts(schoolUnitId);
@@ -59,7 +197,7 @@ class WalletTransactionsService {
 
     const txs = await q.orderBy('wallet_transactions.occurred_at', 'desc').orderBy('wallet_transactions.id', 'desc');
 
-    // Load nama kas/bank untuk enrich tampilan transaksi
+    // Load nama kas/bank untuk enrich tampilan transaksi jika belum tercatat di kolom
     let cashAccountsMap = new Map();
     try {
       const cashAccounts = await keuanganInternalService.listCashAccounts(schoolUnitId);
@@ -73,7 +211,7 @@ class WalletTransactionsService {
         amount: parseFloat(t.amount),
         balance_after: parseFloat(t.balance_after),
         bank_statement_id: t.bank_statement_id ? Number(t.bank_statement_id) : null,
-        cash_account_name: ca?.name || (t.payment_method === 'cash' ? 'Kas Tunai' : 'Transfer Bank'),
+        cash_account_name: t.cash_account_name || ca?.name || (t.payment_method === 'cash' ? 'Kas Tunai' : 'Transfer Bank'),
         cash_account_details: ca?.bank_account_number ? `${ca.bank_name || 'Bank'} (${ca.bank_account_number})` : null
       };
     });
@@ -101,6 +239,33 @@ class WalletTransactionsService {
     const student = await canteenStudentsService.ensureCanteenStudentRecord(schoolUnitId, student_id);
     const effectiveUnitId = student.school_unit_id || (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? schoolUnitId : 1);
 
+    // Ambil konfigurasi akuntansi default
+    const walletConfig = await this.getAccountingConfig(effectiveUnitId);
+    const conf = walletConfig.settings;
+
+    // Tentukan akun kas & metode
+    let selectedCashAccount = null;
+    if (cash_account_id) {
+      selectedCashAccount = walletConfig.cash_accounts.find(c => Number(c.id) === Number(cash_account_id));
+    }
+    const isBank = payment_method === 'transfer' || payment_method === 'bank' || selectedCashAccount?.account_kind === 'bank';
+    const effectivePaymentMethod = isBank ? 'transfer' : 'cash';
+
+    const finalCashAccId = cash_account_id ? Number(cash_account_id) : (isBank ? conf.cash_account_id_bank : conf.cash_account_id_tunai);
+    const finalCashAccName = selectedCashAccount?.display_label || (isBank ? conf.cash_account_name_bank : conf.cash_account_name_tunai) || (isBank ? 'Transfer Bank' : 'Kas Tunai');
+
+    // Tentukan Debet & Kredit COA
+    // Top-Up: DEBET Kas/Bank, KREDIT Simpanan/Titipan Dompet Santri
+    const debitCoaId = isBank ? (conf.bank_coa_id || 2) : (conf.cash_coa_id || 1);
+    const debitCoaCode = isBank ? (conf.bank_coa_code || '10102') : (conf.cash_coa_code || '10101');
+    const debitCoaName = isBank ? (conf.bank_coa_name || 'Kas Bank Kantin') : (conf.cash_coa_name || 'Kas Tunai Kasir');
+
+    const creditCoaId = conf.wallet_liability_coa_id || 3;
+    const creditCoaCode = conf.wallet_liability_coa_code || '20101';
+    const creditCoaName = conf.wallet_liability_coa_name || 'Simpanan Dompet Santri';
+
+    const fundSourceName = conf.fund_source_name || 'Pos Dana Titipan Dompet Santri / SBU Kantin';
+
     const newBalance = parseFloat(student.wallet_balance) + topUpAmount;
     const transactionDate = occurred_at ? new Date(occurred_at) : new Date();
 
@@ -112,42 +277,89 @@ class WalletTransactionsService {
         updated_at: db.fn.now()
       });
 
-    // 2. Catat Jurnal Akuntansi & Pos Dana Otomatis ke Modul Keuangan (In-Process)
-    let journalResult = null;
-    try {
-      journalResult = await keuanganInternalService.recordWalletTopUpJournal({
-        schoolUnitId: effectiveUnitId,
-        studentId: Number(student_id),
-        studentName: student.cached_student_name || `Siswa #${student_id}`,
-        amount: topUpAmount,
-        cashAccountId: cash_account_id ? Number(cash_account_id) : null,
-        bankStatementId: bank_statement_id ? Number(bank_statement_id) : null,
-        occurredAt: transactionDate,
-        notes: notes || `Top Up Saldo Dompet - ${student.cached_student_name || `Siswa #${student_id}`}`,
-        userId
-      });
-    } catch (journalErr) {
-      console.error(`[Kantin TopUp] Gagal posting jurnal ke Modul Keuangan: ${journalErr.message}`);
+    // 2. Catat Jurnal Akuntansi SBU Kantin (Database Kantin)
+    let sbuJournal = null;
+    if (conf.auto_journal) {
+      try {
+        const studentName = student.cached_student_name || `Siswa #${student_id}`;
+        sbuJournal = await canteenAccountingService.createJournalEntry(effectiveUnitId, {
+          entry_type: 'general',
+          entry_date: transactionDate.toISOString().slice(0, 10),
+          reference_number: bank_statement_id ? `RK#${bank_statement_id}` : null,
+          description: notes || `Top Up Saldo Dompet - ${studentName}`,
+          lines: [
+            {
+              coa_account_id: debitCoaId,
+              coa_account_code: debitCoaCode,
+              coa_account_name: debitCoaName,
+              debit: topUpAmount,
+              credit: 0,
+              memo: `Penerimaan Kas Top Up (${effectivePaymentMethod.toUpperCase()}) - ${studentName}`
+            },
+            {
+              coa_account_id: creditCoaId,
+              coa_account_code: creditCoaCode,
+              coa_account_name: creditCoaName,
+              debit: 0,
+              credit: topUpAmount,
+              memo: `Titipan Saldo Dompet Santri - ${studentName}`
+            }
+          ]
+        }, userId);
+      } catch (sbuJournalErr) {
+        console.warn(`[Kantin TopUp] Gagal mencatat jurnal internal SBU Kantin: ${sbuJournalErr.message}`);
+      }
     }
 
-    // 3. Simpan record transaksi di tabel wallet_transactions
+    // 3. Catat Jurnal Akuntansi & Pos Dana Otomatis ke Modul Keuangan (In-Process)
+    let journalResult = null;
+    if (conf.auto_journal) {
+      try {
+        journalResult = await keuanganInternalService.recordWalletTopUpJournal({
+          schoolUnitId: effectiveUnitId,
+          studentId: Number(student_id),
+          studentName: student.cached_student_name || `Siswa #${student_id}`,
+          amount: topUpAmount,
+          cashAccountId: finalCashAccId,
+          bankStatementId: bank_statement_id ? Number(bank_statement_id) : null,
+          occurredAt: transactionDate,
+          notes: notes || `Top Up Saldo Dompet - ${student.cached_student_name || `Siswa #${student_id}`}`,
+          userId
+        });
+      } catch (journalErr) {
+        console.error(`[Kantin TopUp] Gagal posting jurnal ke Modul Keuangan: ${journalErr.message}`);
+      }
+    }
+
+    const journalNumber = sbuJournal?.entry_number || journalResult?.journal_number || null;
+    const journalEntryId = sbuJournal?.id || journalResult?.journal_entry_id || null;
+
+    // 4. Simpan record transaksi di tabel wallet_transactions
     const [txId] = await db('wallet_transactions').insert({
       school_unit_id: effectiveUnitId,
       canteen_student_id: student.id,
       transaction_type: 'top_up',
       amount: topUpAmount,
       balance_after: newBalance,
-      payment_method,
-      cash_account_id: cash_account_id ? Number(cash_account_id) : null,
+      payment_method: effectivePaymentMethod,
+      cash_account_id: finalCashAccId,
+      cash_account_name: finalCashAccName,
+      debit_coa_id: debitCoaId,
+      debit_coa_code: debitCoaCode,
+      debit_coa_name: debitCoaName,
+      credit_coa_id: creditCoaId,
+      credit_coa_code: creditCoaCode,
+      credit_coa_name: creditCoaName,
+      fund_source_name: fundSourceName,
       bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
-      journal_entry_id: journalResult?.journal_entry_id || null,
-      journal_number: journalResult?.journal_number || null,
+      journal_entry_id: journalEntryId,
+      journal_number: journalNumber,
       notes,
       processed_by: userId || 1,
       occurred_at: transactionDate
     });
 
-    // 4. Publish webhook event
+    // 5. Publish webhook event
     try {
       await db('canteen_webhook_events').insert({
         event_type: 'kantin.wallet.updated',
@@ -157,7 +369,7 @@ class WalletTransactionsService {
           student_id: Number(student_id),
           amount: topUpAmount,
           balance_after: newBalance,
-          journal_number: journalResult?.journal_number || null,
+          journal_number: journalNumber,
           occurred_at: transactionDate.toISOString()
         })
       });
@@ -168,7 +380,9 @@ class WalletTransactionsService {
       student_id: Number(student_id),
       amount: topUpAmount,
       balance_after: newBalance,
-      journal_number: journalResult?.journal_number || null
+      journal_number: journalNumber,
+      cash_account_name: finalCashAccName,
+      fund_source_name: fundSourceName
     };
   }
 
@@ -205,7 +419,6 @@ class WalletTransactionsService {
       });
 
     // 2. Saldo Awal Migrasi (Cutover): Murni pencatatan Sub-Ledger Kartu Santri.
-    // Uang fisik/rekening sudah ada di Saldo Awal Kas BNI (Keuangan), sehingga TIDAK mendebit kas ulang.
     const journalNumber = 'SALDO-AWAL-CUTOVER';
 
     // 3. Simpan record transaksi di tabel wallet_transactions
@@ -217,6 +430,12 @@ class WalletTransactionsService {
       balance_after: newBalance,
       payment_method: payment_method || 'transfer',
       cash_account_id: cash_account_id ? Number(cash_account_id) : null,
+      cash_account_name: 'Saldo Awal Cutover',
+      debit_coa_code: '10102',
+      debit_coa_name: 'Kas Bank Penampung',
+      credit_coa_code: '20101',
+      credit_coa_name: 'Simpanan Dompet Santri',
+      fund_source_name: 'Pos Dana Titipan Dompet Santri (Cutover)',
       bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
       journal_entry_id: null,
       journal_number: journalNumber,
@@ -276,6 +495,32 @@ class WalletTransactionsService {
       throw err;
     }
 
+    // Ambil konfigurasi akuntansi default
+    const walletConfig = await this.getAccountingConfig(effectiveUnitId);
+    const conf = walletConfig.settings;
+
+    let selectedCashAccount = null;
+    if (cash_account_id) {
+      selectedCashAccount = walletConfig.cash_accounts.find(c => Number(c.id) === Number(cash_account_id));
+    }
+    const isBank = payment_method === 'transfer' || payment_method === 'bank' || selectedCashAccount?.account_kind === 'bank';
+    const effectivePaymentMethod = isBank ? 'transfer' : 'cash';
+
+    const finalCashAccId = cash_account_id ? Number(cash_account_id) : (isBank ? conf.cash_account_id_bank : conf.cash_account_id_tunai);
+    const finalCashAccName = selectedCashAccount?.display_label || (isBank ? conf.cash_account_name_bank : conf.cash_account_name_tunai) || (isBank ? 'Transfer Bank' : 'Kas Tunai');
+
+    // Tentukan Debet & Kredit COA
+    // Tarik Tunai: DEBET Simpanan/Titipan Dompet Santri, KREDIT Kas/Bank
+    const debitCoaId = conf.wallet_liability_coa_id || 3;
+    const debitCoaCode = conf.wallet_liability_coa_code || '20101';
+    const debitCoaName = conf.wallet_liability_coa_name || 'Simpanan Dompet Santri';
+
+    const creditCoaId = isBank ? (conf.bank_coa_id || 2) : (conf.cash_coa_id || 1);
+    const creditCoaCode = isBank ? (conf.bank_coa_code || '10102') : (conf.cash_coa_code || '10101');
+    const creditCoaName = isBank ? (conf.bank_coa_name || 'Kas Bank Kantin') : (conf.cash_coa_name || 'Kas Tunai Kasir');
+
+    const fundSourceName = conf.fund_source_name || 'Pos Dana Titipan Dompet Santri / SBU Kantin';
+
     const newBalance = parseFloat(student.wallet_balance) - withdrawAmount;
     const transactionDate = occurred_at ? new Date(occurred_at) : new Date();
 
@@ -287,34 +532,80 @@ class WalletTransactionsService {
         updated_at: db.fn.now()
       });
 
-    // 2. Catat Jurnal Akuntansi Penarikan ke Modul Keuangan (In-Process)
-    let journalResult = null;
-    try {
-      journalResult = await keuanganInternalService.recordWalletWithdrawalJournal({
-        schoolUnitId: effectiveUnitId,
-        studentId: Number(student_id),
-        studentName: student.cached_student_name || `Siswa #${student_id}`,
-        amount: withdrawAmount,
-        cashAccountId: cash_account_id ? Number(cash_account_id) : null,
-        occurredAt: transactionDate,
-        notes: notes || `Penarikan Tunai Saldo Dompet - ${student.cached_student_name || `Siswa #${student_id}`}`,
-        userId
-      });
-    } catch (journalErr) {
-      console.error(`[Kantin Withdrawal] Gagal posting jurnal ke Modul Keuangan: ${journalErr.message}`);
+    // 2. Catat Jurnal Akuntansi SBU Kantin
+    let sbuJournal = null;
+    if (conf.auto_journal) {
+      try {
+        const studentName = student.cached_student_name || `Siswa #${student_id}`;
+        sbuJournal = await canteenAccountingService.createJournalEntry(effectiveUnitId, {
+          entry_type: 'general',
+          entry_date: transactionDate.toISOString().slice(0, 10),
+          description: notes || `Penarikan Tunai Saldo Dompet - ${studentName}`,
+          lines: [
+            {
+              coa_account_id: debitCoaId,
+              coa_account_code: debitCoaCode,
+              coa_account_name: debitCoaName,
+              debit: withdrawAmount,
+              credit: 0,
+              memo: `Penarikan Saldo Dompet Santri - ${studentName}`
+            },
+            {
+              coa_account_id: creditCoaId,
+              coa_account_code: creditCoaCode,
+              coa_account_name: creditCoaName,
+              debit: 0,
+              credit: withdrawAmount,
+              memo: `Pengeluaran Kas/Bank Penarikan (${effectivePaymentMethod.toUpperCase()}) - ${studentName}`
+            }
+          ]
+        }, userId);
+      } catch (sbuJournalErr) {
+        console.warn(`[Kantin Withdrawal] Gagal mencatat jurnal internal SBU Kantin: ${sbuJournalErr.message}`);
+      }
     }
 
-    // 3. Simpan record transaksi di tabel wallet_transactions
+    // 3. Catat Jurnal Akuntansi Penarikan ke Modul Keuangan (In-Process)
+    let journalResult = null;
+    if (conf.auto_journal) {
+      try {
+        journalResult = await keuanganInternalService.recordWalletWithdrawalJournal({
+          schoolUnitId: effectiveUnitId,
+          studentId: Number(student_id),
+          studentName: student.cached_student_name || `Siswa #${student_id}`,
+          amount: withdrawAmount,
+          cashAccountId: finalCashAccId,
+          occurredAt: transactionDate,
+          notes: notes || `Penarikan Tunai Saldo Dompet - ${student.cached_student_name || `Siswa #${student_id}`}`,
+          userId
+        });
+      } catch (journalErr) {
+        console.error(`[Kantin Withdrawal] Gagal posting jurnal ke Modul Keuangan: ${journalErr.message}`);
+      }
+    }
+
+    const journalNumber = sbuJournal?.entry_number || journalResult?.journal_number || null;
+    const journalEntryId = sbuJournal?.id || journalResult?.journal_entry_id || null;
+
+    // 4. Simpan record transaksi di tabel wallet_transactions
     const [txId] = await db('wallet_transactions').insert({
       school_unit_id: effectiveUnitId,
       canteen_student_id: student.id,
       transaction_type: 'withdrawal',
       amount: withdrawAmount,
       balance_after: newBalance,
-      payment_method,
-      cash_account_id: cash_account_id ? Number(cash_account_id) : null,
-      journal_entry_id: journalResult?.journal_entry_id || null,
-      journal_number: journalResult?.journal_number || null,
+      payment_method: effectivePaymentMethod,
+      cash_account_id: finalCashAccId,
+      cash_account_name: finalCashAccName,
+      debit_coa_id: debitCoaId,
+      debit_coa_code: debitCoaCode,
+      debit_coa_name: debitCoaName,
+      credit_coa_id: creditCoaId,
+      credit_coa_code: creditCoaCode,
+      credit_coa_name: creditCoaName,
+      fund_source_name: fundSourceName,
+      journal_entry_id: journalEntryId,
+      journal_number: journalNumber,
       notes,
       processed_by: userId || 1,
       occurred_at: transactionDate
@@ -329,7 +620,7 @@ class WalletTransactionsService {
           student_id: Number(student_id),
           amount: withdrawAmount,
           balance_after: newBalance,
-          journal_number: journalResult?.journal_number || null,
+          journal_number: journalNumber,
           occurred_at: transactionDate.toISOString()
         })
       });
@@ -340,12 +631,14 @@ class WalletTransactionsService {
       student_id: Number(student_id),
       amount: withdrawAmount,
       balance_after: newBalance,
-      journal_number: journalResult?.journal_number || null
+      journal_number: journalNumber,
+      cash_account_name: finalCashAccName,
+      fund_source_name: fundSourceName
     };
   }
 
   /**
-   * Menghitung Rekonsiliasi Saldo Agregat Kartu Santri (Kantin) vs Pos Dana & COA 404 (Keuangan)
+   * Menghitung Rekonsiliasi Saldo Agregat Kartu Santri (Kantin) vs Pos Dana & COA 404/20101 (Keuangan)
    * @param {number|string|null} schoolUnitId
    * @returns {Promise<Object>}
    */
@@ -519,6 +812,7 @@ class WalletTransactionsService {
       balance_after: parseFloat(tx.balance_after),
       payment_method: tx.payment_method,
       cash_account_id: tx.cash_account_id,
+      cash_account_name: tx.cash_account_name,
       bank_statement_id: tx.bank_statement_id,
       notes: tx.notes,
       occurred_at: tx.occurred_at

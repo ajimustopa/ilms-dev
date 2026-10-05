@@ -792,6 +792,14 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/kantin/pages/PengeluaranOperasional')),
           },
           {
+            path: 'akuntansi',
+            element: lazyLoad(() => import('./apps/kantin/pages/AkuntansiKantin')),
+          },
+          {
+            path: 'accounting',
+            element: lazyLoad(() => import('./apps/kantin/pages/AkuntansiKantin')),
+          },
+          {
             path: 'reports',
             element: lazyLoad(() => import('./apps/kantin/pages/LaporanKantin')),
           },
