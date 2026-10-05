@@ -5,12 +5,12 @@ node_modules/
 
 # Environment Variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+*.env
 apps/*/.env
-apps/*/.env.local
+apps/*/.env.*
+
+
 
 # Production Build outputs
 dist/
@@ -39,6 +39,15 @@ apps/*/scratch/
 *.sql
 *.sql.gz
 
+# Credentials & Deployment Notes (Private)
+database_config_hostinger.txt
+*credentials*
+*CREDENTIALS*
+*.secret*
+*.local.txt
+*.local.md
+
 # Temporary build timestamps
 *.timestamp-*.mjs
+
 
