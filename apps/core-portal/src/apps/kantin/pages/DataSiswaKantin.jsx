@@ -269,7 +269,8 @@ export default function DataSiswaKantin() {
     show_pin: true,
     show_qr: true,
     show_class: true,
-    regenerate_pins: false
+    regenerate_pins: false,
+    active_only: true
   });
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [printSearch, setPrintSearch] = useState('');
@@ -447,28 +448,47 @@ export default function DataSiswaKantin() {
     setSelectedStudentIds(new Set());
   };
 
-  const handleOpenPrintModal = (singleStudent = null) => {
+  const handleOpenPrintModal = (singleStudent = null, defaultScope = 'active_only') => {
     if (singleStudent) {
       setSelectedStudentIds(new Set([singleStudent.student_id]));
+      setPrintConfig(prev => ({ ...prev, active_only: false }));
     } else if (selectedStudentIds.size === 0) {
-      // Jika belum ada yang dipilih, otomatis pilih semua siswa dari filter aktif
-      const allFilteredIds = new Set(filteredStudents.map(s => s.student_id));
-      setSelectedStudentIds(allFilteredIds);
+      if (defaultScope === 'active_only') {
+        const activeIds = new Set(
+          filteredStudents
+            .filter(s => s.is_active_ta && s.status === 'active')
+            .map(s => s.student_id)
+        );
+        setSelectedStudentIds(activeIds.size > 0 ? activeIds : new Set(filteredStudents.map(s => s.student_id)));
+        setPrintConfig(prev => ({ ...prev, active_only: true }));
+      } else {
+        const allFilteredIds = new Set(filteredStudents.map(s => s.student_id));
+        setSelectedStudentIds(allFilteredIds);
+      }
     }
     setPrintModalOpen(true);
   };
 
+  // Daftar santri efektif yang akan dicetak berdasarkan seleksi & opsi filter aktif
+  const effectivePrintStudents = useMemo(() => {
+    let list = students.filter(s => selectedStudentIds.has(s.student_id));
+    if (printConfig.active_only) {
+      list = list.filter(s => s.is_active_ta && s.status === 'active');
+    }
+    return list;
+  }, [students, selectedStudentIds, printConfig.active_only]);
+
   // Eksekusi Pembuatan File PDF Label PIN / Kartu
   const handleExecutePrintPdf = async (actionType = 'open') => {
-    const targetStudents = students.filter(s => selectedStudentIds.has(s.student_id));
+    const targetStudents = effectivePrintStudents;
     if (targetStudents.length === 0) {
-      alert('Pilih minimal satu santri untuk dicetak.');
+      alert('Tidak ada santri aktif yang dipilih untuk dicetak. Pastikan santri yang dipilih memiliki status aktif di TA berjalan.');
       return;
     }
 
     if (printConfig.regenerate_pins) {
       const confirmRegen = window.confirm(
-        `PERHATIAN: Anda memilih opsi "Generate PIN Baru (Acak 6-Digit)".\n\nSebanyak ${targetStudents.length} santri yang dipilih akan diberikan PIN baru secara acak dan langsung disimpan ke database.\n\nLanjutkan proses cetak & reset PIN?`
+        `PERHATIAN: Anda memilih opsi "Generate PIN Baru (Acak 6-Digit)".\n\nSebanyak ${targetStudents.length} santri aktif yang dipilih akan diberikan PIN baru secara acak dan langsung disimpan ke database.\n\nLanjutkan proses cetak & reset PIN?`
       );
       if (!confirmRegen) return;
     }
@@ -500,8 +520,8 @@ export default function DataSiswaKantin() {
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const downloadName = printConfig.show_pin
-        ? `slip-label-pin-santri-${targetStudents.length}-siswa.pdf`
-        : `kartu-santri-kantin-${targetStudents.length}-siswa.pdf`;
+        ? `slip-label-pin-santri-aktif-${targetStudents.length}-siswa.pdf`
+        : `kartu-santri-kantin-aktif-${targetStudents.length}-siswa.pdf`;
 
       if (actionType === 'open') {
         const printWindow = window.open(blobUrl, '_blank');
@@ -567,7 +587,7 @@ export default function DataSiswaKantin() {
     const cols = Math.max(1, Math.floor((availW + gap) / (cW + gap)));
     const rows = Math.max(1, Math.floor((availH + gap) / (cH + gap)));
     const cardsPerPage = cols * rows;
-    const selectedCount = selectedStudentIds.size;
+    const selectedCount = effectivePrintStudents.length;
     const totalPages = selectedCount > 0 ? Math.ceil(selectedCount / cardsPerPage) : 1;
 
     return {
@@ -581,12 +601,13 @@ export default function DataSiswaKantin() {
       totalPages,
       selectedCount
     };
-  }, [printConfig, selectedStudentIds]);
+  }, [printConfig, effectivePrintStudents]);
 
   // Santri contoh untuk live preview di modal
   const sampleStudentForPreview = useMemo(() => {
-    const selectedList = students.filter(s => selectedStudentIds.has(s.student_id));
-    if (selectedList.length > 0) return selectedList[0];
+    if (effectivePrintStudents.length > 0) return effectivePrintStudents[0];
+    const activeFiltered = filteredStudents.filter(s => s.is_active_ta && s.status === 'active');
+    if (activeFiltered.length > 0) return activeFiltered[0];
     if (filteredStudents.length > 0) return filteredStudents[0];
     return students[0] || {
       student_name: 'AHMAD DAFI FAKHRUDIN',
@@ -596,7 +617,7 @@ export default function DataSiswaKantin() {
       child_pin: '123456',
       qr_code: '2024001'
     };
-  }, [students, selectedStudentIds, filteredStudents]);
+  }, [effectivePrintStudents, filteredStudents, students]);
 
   // Generate QR Per Siswa
   const handleGenerateQr = async (studentId) => {
@@ -2054,7 +2075,44 @@ export default function DataSiswaKantin() {
                   </div>
                 </div>
 
-                {/* 2. Opsi Regenerasi PIN Masal Sebelum Cetak */}
+                {/* 2. Opsi Filter Khusus: Hanya Santri Aktif Saja */}
+                <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="active_only_checkbox"
+                      checked={printConfig.active_only}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        setPrintConfig(prev => ({ ...prev, active_only: isChecked }));
+                        if (isChecked) {
+                          const activeIds = new Set(
+                            students
+                              .filter(s => s.is_active_ta && s.status === 'active')
+                              .map(s => s.student_id)
+                          );
+                          setSelectedStudentIds(activeIds);
+                        }
+                      }}
+                      className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer accent-emerald-600"
+                    />
+                    <label htmlFor="active_only_checkbox" className="text-xs cursor-pointer select-none">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 block">
+                          Hanya Cetak Santri Aktif (TA Berjalan &amp; Kasir Aktif)
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-emerald-600 text-white font-extrabold text-[9px] rounded-full">
+                          Rekomendasi
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-600 block mt-0.5">
+                        Mengabaikan seluruh santri alumni (lulus), mutasi (pindah/keluar), dan non-aktif rombel agar hemat kertas.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 3. Opsi Regenerasi PIN Masal Sebelum Cetak */}
                 <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
                   <div className="flex items-start gap-2.5">
                     <input
@@ -2066,10 +2124,10 @@ export default function DataSiswaKantin() {
                     />
                     <label htmlFor="regenerate_pins_checkbox" className="text-xs cursor-pointer select-none">
                       <span className="font-bold text-slate-900 block">
-                        Generate PIN Baru (6-Digit Acak) untuk Santri Terpilih
+                        Generate PIN Baru (6-Digit Acak) untuk Santri yang Dicetak
                       </span>
                       <span className="text-[11px] text-slate-500 block mt-0.5">
-                        Jika diaktifkan, PIN transaksi dari {selectedStudentIds.size} santri terpilih akan di-reset dengan PIN baru dan langsung tersimpan otomatis ke sistem saat file PDF dibuat.
+                        Jika diaktifkan, PIN transaksi dari {effectivePrintStudents.length} santri yang dicetak akan di-reset dengan PIN baru dan langsung tersimpan otomatis ke database saat PDF dibuat.
                       </span>
                     </label>
                   </div>
@@ -2289,18 +2347,40 @@ export default function DataSiswaKantin() {
 
                 {/* List Siswa Terpilih & Pencarian Cepat */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
                     <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Daftar Siswa Terpilih ({selectedStudentIds.size})</span>
+                      <span>Daftar Santri Siap Cetak ({effectivePrintStudents.length})</span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectAllFiltered(filteredStudents)}
-                      className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 transition cursor-pointer"
-                    >
-                      Pilih Semua ({filteredStudents.length})
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const activeIds = new Set(
+                            students
+                              .filter(s => s.is_active_ta && s.status === 'active')
+                              .map(s => s.student_id)
+                          );
+                          setSelectedStudentIds(activeIds);
+                          setPrintConfig(prev => ({ ...prev, active_only: true }));
+                        }}
+                        className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100/60 px-2 py-0.5 rounded-md transition cursor-pointer"
+                        title="Pilih seluruh santri aktif TA berjalan"
+                      >
+                        Santri Aktif ({stats.activeTa})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectAllFiltered(filteredStudents);
+                          setPrintConfig(prev => ({ ...prev, active_only: false }));
+                        }}
+                        className="text-[10px] font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                        title="Pilih seluruh santri hasil filter tabel"
+                      >
+                        Semua Filter ({filteredStudents.length})
+                      </button>
+                    </div>
                   </div>
 
                   {/* Input Search Siswa di Modal */}
@@ -2308,7 +2388,7 @@ export default function DataSiswaKantin() {
                     <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Cari dalam santri terpilih..."
+                      placeholder="Cari dalam santri yang dicetak..."
                       value={printSearch}
                       onChange={(e) => setPrintSearch(e.target.value)}
                       className="w-full pl-7 pr-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:border-emerald-500"
@@ -2317,8 +2397,7 @@ export default function DataSiswaKantin() {
 
                   {/* Mini List Siswa Terpilih */}
                   <div className="max-h-36 overflow-y-auto space-y-1 pr-1 flex-1">
-                    {students
-                      .filter(s => selectedStudentIds.has(s.student_id))
+                    {effectivePrintStudents
                       .filter(s => {
                         if (!printSearch) return true;
                         const q = printSearch.toLowerCase();
@@ -2334,9 +2413,20 @@ export default function DataSiswaKantin() {
                           className="px-2.5 py-1.5 bg-white rounded-lg border border-slate-200 text-xs flex items-center justify-between gap-2 shadow-2xs"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-slate-800 text-[11px] truncate">{s.student_name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-slate-800 text-[11px] truncate">{s.student_name}</p>
+                              {s.is_active_ta ? (
+                                <span className="px-1 py-0.2 rounded bg-emerald-50 text-emerald-700 text-[9px] font-bold border border-emerald-200 shrink-0">
+                                  Aktif
+                                </span>
+                              ) : (
+                                <span className="px-1 py-0.2 rounded bg-slate-100 text-slate-600 text-[9px] font-bold border border-slate-200 shrink-0">
+                                  {s.academic_status_label || 'Alumni'}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-slate-500 font-mono">
-                              NIPD: {s.nipd || s.nis || '-'} • PIN: {s.child_pin || '123456'}
+                              NIPD: {s.nipd || s.nis || '-'} • PIN: {s.child_pin || '123456'} • Kls: {s.class_group_name || '-'}
                             </p>
                           </div>
                           <button
@@ -2350,9 +2440,9 @@ export default function DataSiswaKantin() {
                         </div>
                       ))}
 
-                    {selectedStudentIds.size === 0 && (
+                    {effectivePrintStudents.length === 0 && (
                       <div className="py-6 text-center text-xs text-rose-500 font-medium">
-                        Belum ada santri yang dipilih. Silakan centang minimal 1 santri.
+                        Belum ada santri aktif yang dipilih. Silakan klik tombol "Santri Aktif" di atas.
                       </div>
                     )}
                   </div>
@@ -2373,7 +2463,7 @@ export default function DataSiswaKantin() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={generatingPdf || selectedStudentIds.size === 0}
+                  disabled={generatingPdf || effectivePrintStudents.length === 0}
                   onClick={() => handleExecutePrintPdf('download')}
                   className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                   title="Unduh file PDF label PIN santri"
@@ -2388,7 +2478,7 @@ export default function DataSiswaKantin() {
 
                 <button
                   type="button"
-                  disabled={generatingPdf || selectedStudentIds.size === 0}
+                  disabled={generatingPdf || effectivePrintStudents.length === 0}
                   onClick={() => handleExecutePrintPdf('open')}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-emerald-600/25 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                   title="Buka PDF di tab baru dan langsung cetak"
@@ -2401,7 +2491,7 @@ export default function DataSiswaKantin() {
                   ) : (
                     <>
                       <Printer className="w-4 h-4" />
-                      <span>Buka &amp; Cetak PDF ({selectedStudentIds.size} Label)</span>
+                      <span>Buka &amp; Cetak PDF ({effectivePrintStudents.length} Label)</span>
                     </>
                   )}
                 </button>
