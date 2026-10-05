@@ -2,10 +2,12 @@
   "name": "aldepos-sistem-root",
   "private": true,
   "version": "1.0.0",
+  "main": "server.js",
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
+    "start": "node server.js",
     "build": "npm --workspace=apps/core-portal run build",
     "build:portal": "npm --workspace=apps/core-portal run build",
     "dev": "npm --workspace=apps/core-portal run dev",
@@ -21,5 +23,17 @@
     "seed:perpustakaan": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.perpustakaan.js seed:run",
     "migrate:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js migrate:latest",
     "seed:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js seed:run"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "mysql2": "^3.10.1",
+    "pdfkit": "^0.20.2",
+    "zod": "^4.4.3"
   }
 }
