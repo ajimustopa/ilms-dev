@@ -2,8 +2,9 @@
  * Knex Database Connection Instance for Sarpras Module
  */
 const knex = require('knex');
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+} catch (e) {}
 
 function getDbHost() {
   const h = process.env.SARPRAS_DB_HOST || process.env.DB_HOST || '127.0.0.1';

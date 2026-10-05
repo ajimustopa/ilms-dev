@@ -4,7 +4,7 @@
   "description": "Central Authentication & API Gateway Core Service - Sistem Manajemen Sekolah Terintegrasi",
   "main": "server.js",
   "scripts": {
-    "build": "echo Backend ready",
+    "build": "npm install",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "migrate": "knex migrate:latest",
