@@ -1,8 +1,26 @@
 /**
  * Server Entry Point for Aldepos API Backend (Modular Monolith)
  */
+const path = require('path');
+
+// Pastikan Node.js menemukan dependencies baik di subfolder maupun root Hostinger
+const extraPaths = [
+  path.resolve(__dirname, 'node_modules'),
+  path.resolve(__dirname, '../node_modules'),
+  path.resolve(__dirname, '../../node_modules'),
+  path.resolve(__dirname, '../../../node_modules'),
+  path.resolve(process.cwd(), 'node_modules'),
+  path.resolve(process.cwd(), '../node_modules'),
+];
+for (const p of extraPaths) {
+  if (!module.paths.includes(p)) {
+    module.paths.push(p);
+  }
+}
+
 require('dotenv').config();
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(process.cwd(), '.env') });
 
 const app = require('./app');
 const dbCore = require('./config/db/core');
