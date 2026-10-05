@@ -1,6 +1,7 @@
 /**
  * Server Entry Point for Aldepos API Backend (Modular Monolith)
  */
+require('./resolve-paths');
 const path = require('path');
 
 // Pastikan Node.js menemukan dependencies baik di subfolder maupun root Hostinger
