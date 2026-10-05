@@ -5,6 +5,7 @@ const db = require('../../../config/db/kantin');
 const { getStudentDisplayInfo } = require('../utils/studentHelper');
 const { generateStudentQr, saveQrSvgFile, QR_STORAGE_DIR } = require('../utils/qrCodeGenerator');
 const academicInternalService = require('../../akademik/internal/service');
+const dailySpendingLimitsService = require('../daily-spending-limits/service');
 
 class CanteenStudentsService {
   async listStudents(schoolUnitId, query = {}) {
