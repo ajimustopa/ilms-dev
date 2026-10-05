@@ -25,24 +25,31 @@ import {
   Eye,
   Settings,
   HelpCircle,
-  LayoutGrid
+  LayoutGrid,
+  GraduationCap,
+  UserCheck,
+  Briefcase
 } from 'lucide-react';
 
 const ECOSYSTEM_APPS = [
   { module: 'core', name: 'Core Service & Sistem', desc: 'Profil Yayasan, Satuan Pendidikan, User, Role RBAC, Audit Log, API Client' },
+  { module: 'website_utama', name: 'Website Utama CMS', desc: 'Profil Sekolah, Berita, Pengumuman, Agenda, Galeri & Konten Website Publik' },
   { module: 'kepegawaian', name: 'Kepegawaian & SDM', desc: 'Data Induk GTK, Alamat & Berkas, DUK, Presensi, Cuti, Payroll, Rekrutmen, Psikotes' },
   { module: 'akademik', name: 'Akademik & Kurikulum', desc: 'Data Siswa Dapodik, Rombel/Kelas, Jadwal, Nilai & Rapor, Presensi Siswa, Kelulusan' },
   { module: 'keuangan', name: 'Keuangan & SPP', desc: 'Pos Keuangan, Tagihan SPP & Uang Gedung, Virtual Account/Payment, Kas & Jurnal' },
-  { module: 'kesiswaan', name: 'Kesiswaan & Ekskul', desc: 'Ekstrakurikuler, Prestasi Siswa, Tata Tertib & Poin Pelanggaran, OSIS / Beasiswa' },
+  { module: 'kantin', name: 'Kantin & e-Wallet', desc: 'Kasir POS, Katalog Produk & Barcode, Vendor/Suplier, Top Up & Saldo Santri' },
+  { module: 'dapur', name: 'Dapur & Logistik', desc: 'Menu Makanan Harian, Pengadaan Bahan Dapur, Stok Beras & Lauk Santri' },
   { module: 'sarpras', name: 'Sarana & Prasarana', desc: 'Inventaris Gedung & Ruang, Aset Sekolah, Peminjaman Fasilitas, Servis & Pemeliharaan' },
   { module: 'perpustakaan', name: 'Perpustakaan Digital', desc: 'Katalog Buku & ISBN, Sirkulasi Peminjaman, E-Book Digital, Kartu Anggota' },
-  { module: 'cbt', name: 'CBT & Ujian Online', desc: 'Bank Soal, Jadwal Ujian Online, Monitoring Anti-Cheat, Analisis Butir Soal' },
-  { module: 'bk', name: 'Bimbingan & Konseling', desc: 'Catatan Konseling, Sosiometri & Home Visit, Rekomendasi Peminatan / Karir Siswa' },
-  { module: 'alumni', name: 'Tracer Study & Alumni', desc: 'Database Alumni, Forum Karir & Lowongan Kerja, Donasi & Kontribusi Alumni' },
+  { module: 'al_quran', name: 'Al-Qur\'an & Tahfidz', desc: 'Setoran Hafalan, Ziyadah & Muraja\'ah, Penilaian Tajwid/Tilawah, Ujian Tahfidz' },
+  { module: 'manajemen', name: 'Manajemen & RKT', desc: 'RIPS, Renstra, RKJM, RKT, Evaluasi Diri (EVADIR), Monev & Balanced Scorecard' },
   { module: 'ppdb', name: 'PPDB / PSB Online', desc: 'Formulir Pendaftaran, Seleksi Berkas, Tes Masuk Online, Pengumuman & Daftar Ulang' },
+  { module: 'kesiswaan', name: 'Kesiswaan & Ekskul', desc: 'Ekstrakurikuler, Prestasi Siswa, Tata Tertib & Poin Pelanggaran, OSIS / Beasiswa' },
+  { module: 'bk', name: 'Bimbingan & Konseling', desc: 'Catatan Konseling, Sosiometri & Home Visit, Rekomendasi Peminatan / Karir Siswa' },
+  { module: 'cbt', name: 'CBT & Ujian Online', desc: 'Bank Soal, Jadwal Ujian Online, Monitoring Anti-Cheat, Analisis Butir Soal' },
+  { module: 'alumni', name: 'Tracer Study & Alumni', desc: 'Database Alumni, Forum Karir & Lowongan Kerja, Donasi & Kontribusi Alumni' },
   { module: 'portal_ortu', name: 'Portal Orang Tua', desc: 'Monitoring Nilai, Presensi, Tagihan SPP, & Catatan Karakter Anak Mandiri' },
-  { module: 'portal_siswa', name: 'Portal Siswa', desc: 'Jadwal Kelas, Materi Pembelajaran, Tugas Online, Presensi, & Raport Siswa' },
-  { module: 'al_quran', name: 'Al-Qur\'an & Tahfidz', desc: 'Setoran Hafalan, Ziyadah & Muraja\'ah, Penilaian Tajwid/Tilawah, Ujian Tahfidz' }
+  { module: 'portal_siswa', name: 'Portal Siswa', desc: 'Jadwal Kelas, Materi Pembelajaran, Tugas Online, Presensi, & Raport Siswa' }
 ];
 
 export default function ManajemenUser() {
@@ -54,13 +61,28 @@ export default function ManajemenUser() {
   const [errorMsg, setErrorMsg] = useState('');
   const [formError, setFormError] = useState('');
 
+  // Tab State: 'all' | 'guru' | 'staff' | 'siswa'
+  const [activeTab, setActiveTab] = useState('all');
+  const [tabCounts, setTabCounts] = useState({ all: 0, guru: 0, staff: 0, siswa: 0 });
+
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [schoolUnitFilter, setSchoolUnitFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const pageSize = 10;
+
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -101,9 +123,11 @@ export default function ManajemenUser() {
     try {
       const res = await api.get('/core/users', {
         params: {
-          search: search || undefined,
+          search: debouncedSearch.trim() || undefined,
+          tab: activeTab !== 'all' ? activeTab : undefined,
           account_type: typeFilter !== 'all' ? typeFilter : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
+          school_unit_id: schoolUnitFilter !== 'all' ? schoolUnitFilter : undefined,
           page: currentPage,
           limit: pageSize,
         },
@@ -111,6 +135,9 @@ export default function ManajemenUser() {
 
       if (res.data?.success && res.data.data) {
         setUsers(res.data.data.items || []);
+        if (res.data.data.tab_counts) {
+          setTabCounts(res.data.data.tab_counts);
+        }
         if (res.data.data.pagination) {
           setTotalPages(res.data.data.pagination.total_pages || 1);
           setTotalItems(res.data.data.pagination.total_items || 0);
@@ -152,7 +179,7 @@ export default function ManajemenUser() {
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, typeFilter, statusFilter]);
+  }, [currentPage, activeTab, typeFilter, statusFilter, schoolUnitFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchMetadata();
@@ -160,8 +187,8 @@ export default function ManajemenUser() {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    setDebouncedSearch(search);
     setCurrentPage(1);
-    fetchUsers();
   };
 
   // Open Access Modal for existing user
@@ -344,27 +371,100 @@ export default function ManajemenUser() {
         </div>
       </div>
 
+      {/* Navigation Tabs: Guru, Staff, Siswa, Semua Pengguna */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 overflow-x-auto">
+        {[
+          { key: 'all', label: 'Semua Pengguna', icon: Users, count: tabCounts.all, activeColor: 'bg-slate-900 text-white' },
+          { key: 'guru', label: 'Akun Guru & Pendidik', icon: GraduationCap, count: tabCounts.guru, activeColor: 'bg-emerald-600 text-white' },
+          { key: 'staff', label: 'Akun Staf & Manajemen', icon: Building2, count: tabCounts.staff, activeColor: 'bg-blue-600 text-white' },
+          { key: 'siswa', label: 'Akun Siswa / Santri', icon: UserCheck, count: tabCounts.siswa, activeColor: 'bg-amber-600 text-white' }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key);
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition shrink-0 ${
+                isActive
+                  ? `${tab.activeColor} shadow-xs`
+                  : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 shadow-2xs'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+              <span>{tab.label}</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono transition ${
+                  isActive
+                    ? 'bg-black/20 text-white'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filter & Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
         <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
           <input
             type="text"
-            placeholder="Cari username atau nama..."
+            placeholder="Cari username, nama, peran, unit..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setDebouncedSearch('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              title="Bersihkan pencarian"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </form>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Filter Satuan Pendidikan */}
+          <select
+            value={schoolUnitFilter}
+            onChange={(e) => {
+              setSchoolUnitFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Semua Satuan Pendidikan / Yayasan</option>
+            <option value="yayasan">Yayasan (Lintas Satuan)</option>
+            {schoolUnits.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Filter Tipe Akun */}
           <select
             value={typeFilter}
             onChange={(e) => {
               setTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">Semua Tipe Akun</option>
             <option value="admin">Admin</option>
@@ -373,18 +473,38 @@ export default function ManajemenUser() {
             <option value="parent">Orang Tua</option>
           </select>
 
+          {/* Filter Status */}
           <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700"
+            className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">Semua Status</option>
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
           </select>
+
+          {(search || typeFilter !== 'all' || statusFilter !== 'all' || schoolUnitFilter !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setDebouncedSearch('');
+                setTypeFilter('all');
+                setStatusFilter('all');
+                setSchoolUnitFilter('all');
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-2 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold transition flex items-center gap-1"
+              title="Reset Semua Filter"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 

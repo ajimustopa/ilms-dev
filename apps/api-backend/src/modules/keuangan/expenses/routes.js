@@ -9,15 +9,27 @@ const controller = require('./controller');
 const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
 
 router.get(
+  '/expenses/summary',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  controller.getExpenseSummary
+);
+router.get(
+  '/expenses/:id/voucher',
+  verifyJwt,
+  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  controller.getExpenseVoucher
+);
+router.get(
   '/expenses',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
   controller.listExpenses
 );
 router.get(
   '/expenses/:id',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
   controller.getExpenseById
 );
 router.post(

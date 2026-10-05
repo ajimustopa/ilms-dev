@@ -3,21 +3,16 @@ import api from '../../../shared/services/api';
 import {
   BookmarkCheck,
   Plus,
-  Search,
-  Filter,
-  Loader2,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  X,
   BookOpen,
   User,
-  ChevronLeft,
-  ChevronRight,
-  AlertTriangle
+  XCircle,
+  Loader2
 } from 'lucide-react';
+import DataTable from '../../../shared/components/DataTable';
+import FilterBar from '../../../shared/components/FilterBar';
+import Modal from '../../../shared/components/Modal';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import StatusPill from '../../../shared/components/StatusPill';
 
 export default function Reservasi() {
   const [reservations, setReservations] = useState([]);
@@ -102,250 +97,229 @@ export default function Reservasi() {
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  const columns = [
+    {
+      key: 'book_title',
+      label: 'Judul Buku Dipesan',
+      render: (val, row) => (
         <div>
-          <h1 className="text-xl font-black text-slate-900 sm:text-2xl tracking-tight">
+          <div className="font-semibold text-slate-800 leading-snug">{val}</div>
+          <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+            Buku ID #{row.book_id} • Antrean #{row.id}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'member_name',
+      label: 'Nama Pemesan',
+      render: (val, row) => (
+        <div>
+          <div className="font-medium text-slate-700">{val || '-'}</div>
+          <div className="text-[11px] font-mono text-slate-400">
+            Anggota #{row.member_id}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'created_at',
+      label: 'Tgl Booking',
+      type: 'date',
+      render: (val) => (
+        <span className="text-xs text-slate-600 font-mono">
+          {val ? new Date(val).toLocaleDateString('id-ID') : '-'}
+        </span>
+      )
+    },
+    {
+      key: 'available_at',
+      label: 'Batas Ambil',
+      render: (val) => (
+        <span className="text-xs text-slate-600 font-mono">
+          {val ? new Date(val).toLocaleDateString('id-ID') : '-'}
+        </span>
+      )
+    },
+    {
+      key: 'reservation_status',
+      label: 'Status Antrean',
+      type: 'status',
+      width: '120px'
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      width: '100px',
+      render: (_, resv) => (
+        <div className="flex items-center justify-end">
+          {resv.reservation_status === 'waiting' || resv.reservation_status === 'ready' ? (
+            <button
+              type="button"
+              onClick={() => handleCancelReservation(resv)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              title="Batalkan Reservasi"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Batal</span>
+            </button>
+          ) : (
+            <span className="text-[11px] text-slate-400">-</span>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="space-y-4 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800 leading-snug">
             Antrean Reservasi Buku
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Daftar pemesanan/booking judul buku yang sedang habis stok dan menunggu eksemplar dikembalikan.
+            Daftar antrean pemesanan buku yang sedang dipinjam santri/guru lain.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Buat Antrean Reservasi</span>
         </button>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
+      {/* FilterBar Standar */}
+      <FilterBar
+        onReset={() => {
+          setSelectedStatus('');
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        hasActiveFilters={Boolean(selectedStatus)}
+        filters={
           <select
             value={selectedStatus}
             onChange={(e) => {
               setSelectedStatus(e.target.value);
               setPagination((prev) => ({ ...prev, page: 1 }));
             }}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-hidden focus:border-teal-500"
+            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
           >
-            <option value="">Semua Status Antrean</option>
-            <option value="waiting">Menunggu Pengembalian (Waiting)</option>
-            <option value="ready_to_pickup">Siap Diambil di Perpustakaan</option>
-            <option value="fulfilled">Selesai (Sudah Dipinjam)</option>
+            <option value="">Semua Status Reservasi</option>
+            <option value="waiting">Menunggu Stok (Waiting)</option>
+            <option value="ready">Siap Diambil (Ready)</option>
+            <option value="fulfilled">Selesai / Dipinjam</option>
             <option value="cancelled">Dibatalkan</option>
-            <option value="expired">Kedaluwarsa</option>
           </select>
-        </div>
+        }
+        actions={
+          <span className="text-xs text-slate-500">
+            Total: <span className="font-bold text-slate-800 tnum">{pagination.total}</span> antrean
+          </span>
+        }
+      />
 
-        <div className="text-xs text-slate-500">
-          Total: <span className="font-bold text-slate-800">{pagination.total}</span> reservasi
-        </div>
-      </div>
-
-      {/* Table Content */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
-          </div>
-        ) : reservations.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400">
-            Tidak ada data antrean reservasi buku.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 uppercase text-[10px] font-bold tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Judul Buku</th>
-                  <th className="py-3 px-4">Pemesan (Anggota)</th>
-                  <th className="py-3 px-4">Waktu Booking</th>
-                  <th className="py-3 px-4 text-center">Status Antrean</th>
-                  <th className="py-3 px-4">Batas Ambil</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {reservations.map((resv) => (
-                  <tr key={resv.id} className="hover:bg-slate-50/60 transition">
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-800">{resv.book_title}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {resv.book_author || '-'} • Rak {resv.book_shelf || '-'}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-800">{resv.member_name}</div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        {resv.member_card_number}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      {new Date(resv.reserved_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          resv.reservation_status === 'ready_to_pickup'
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 animate-pulse'
-                            : resv.reservation_status === 'waiting'
-                            ? 'bg-amber-50 text-amber-600 border border-amber-200'
-                            : resv.reservation_status === 'fulfilled'
-                            ? 'bg-teal-50 text-teal-600 border border-teal-200'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
-                        }`}
-                      >
-                        {resv.reservation_status === 'ready_to_pickup'
-                          ? 'Siap Diambil'
-                          : resv.reservation_status === 'waiting'
-                          ? 'Menunggu Stok'
-                          : resv.reservation_status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      {resv.expires_at
-                        ? new Date(resv.expires_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      {['waiting', 'ready_to_pickup'].includes(resv.reservation_status) && (
-                        <button
-                          onClick={() => handleCancelReservation(resv)}
-                          className="px-2 py-1 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200/60 text-[11px] font-semibold transition cursor-pointer"
-                          title="Batalkan Reservasi"
-                        >
-                          Batalkan
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination Footer */}
-        <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <div>
-            Menampilkan halaman <span className="font-bold text-slate-800">{pagination.page}</span> dari{' '}
-            <span className="font-bold text-slate-800">{pagination.total_pages || 1}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled={pagination.page <= 1}
-              onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              disabled={pagination.page >= pagination.total_pages}
-              onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Generic DataTable */}
+      <DataTable
+        columns={columns}
+        data={reservations}
+        loading={loading}
+        density="compact"
+        emptyTitle="Belum Ada Antrean Reservasi"
+        emptyDescription="Tidak ada pemesanan buku aktif dalam daftar antrean perpustakaan."
+        emptyAction={
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Buat Reservasi Baru</span>
+          </button>
+        }
+        pagination={{
+          currentPage: pagination.page,
+          totalItems: pagination.total,
+          pageSize: pagination.per_page,
+          onPageChange: (newPage) => setPagination((prev) => ({ ...prev, page: newPage }))
+        }}
+      />
 
       {/* Modal Buat Reservasi Baru */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <BookmarkCheck className="w-4 h-4 text-teal-600" />
-                <span>Buat Antrean Reservasi Buku</span>
-              </h2>
-              <button
-                onClick={() => setCreateModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Buat Antrean Reservasi Baru"
+        subtitle="Daftarkan antrean pemesanan buku untuk anggota perpustakaan."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(false)}
+              className="px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateSubmit}
+              disabled={submitting}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Reservasi</span>
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3.5">
+          {errorMsg && (
+            <FlatAlertBanner
+              variant="danger"
+              title="Gagal Membuat Reservasi"
+              description={errorMsg}
+            />
+          )}
+
+          <form onSubmit={handleCreateSubmit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ID Judul Buku yang Dipesan
+              </label>
+              <input
+                type="number"
+                required
+                value={formData.book_id}
+                onChange={(e) => setFormData({ ...formData, book_id: e.target.value })}
+                placeholder="Masukkan ID Buku"
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+              />
             </div>
 
-            {errorMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ID Judul Buku <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formData.book_id}
-                  onChange={(e) => setFormData({ ...formData, book_id: e.target.value })}
-                  placeholder="Masukkan ID Buku (book_id)"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Catatan: Reservasi hanya dapat dibuat jika seluruh eksemplar buku sedang dipinjam.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ID Anggota Perpustakaan <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formData.member_id}
-                  onChange={(e) => setFormData({ ...formData, member_id: e.target.value })}
-                  placeholder="Masukkan ID Anggota (member_id)"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                />
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Buat Reservasi</span>
-                </button>
-              </div>
-            </form>
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ID Anggota Pemesan
+              </label>
+              <input
+                type="number"
+                required
+                value={formData.member_id}
+                onChange={(e) => setFormData({ ...formData, member_id: e.target.value })}
+                placeholder="Masukkan ID Anggota"
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+              />
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -27,6 +27,8 @@ export default function KategoriProduk() {
     description: ''
   });
 
+  const [successMessage, setSuccessMessage] = useState(null);
+
   const fetchCategories = async () => {
     setLoading(true);
     try {
@@ -68,12 +70,15 @@ export default function KategoriProduk() {
     try {
       if (editingCategory) {
         await api.put(`/kantin/product-categories/${editingCategory.id}`, formData);
+        setSuccessMessage(`Kategori "${formData.category_name}" berhasil diperbarui.`);
       } else {
         await api.post('/kantin/product-categories', formData);
+        setSuccessMessage(`Kategori baru "${formData.category_name}" berhasil ditambahkan.`);
       }
 
       setShowModal(false);
       fetchCategories();
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Gagal menyimpan kategori');
     } finally {
@@ -85,7 +90,9 @@ export default function KategoriProduk() {
     const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
     try {
       await api.patch(`/kantin/product-categories/${id}/status`, { status: nextStatus });
+      setSuccessMessage(`Status kategori berhasil diubah menjadi ${nextStatus === 'active' ? 'Aktif' : 'Non-Aktif'}.`);
       fetchCategories();
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal update status');
     }
@@ -114,6 +121,14 @@ export default function KategoriProduk() {
           <span>Tambah Kategori Baru</span>
         </button>
       </div>
+
+      {successMessage && (
+        <FlatAlertBanner
+          type="success"
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      )}
 
       <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">

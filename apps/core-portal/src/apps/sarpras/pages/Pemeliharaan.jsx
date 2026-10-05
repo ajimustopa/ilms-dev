@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
+import DataTable from '../../../shared/components/DataTable';
+import FilterBar from '../../../shared/components/FilterBar';
+import Modal from '../../../shared/components/Modal';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   Wrench,
   Plus,
   Edit2,
-  CheckCircle2,
-  AlertTriangle,
-  Search,
-  Filter,
-  Loader2,
-  Check,
-  Clock
+  Loader2
 } from 'lucide-react';
 
 export default function Pemeliharaan() {
@@ -41,8 +41,8 @@ export default function Pemeliharaan() {
       if (selectedStatus) params.append('repair_status', selectedStatus);
 
       const res = await api.get(`/sarpras/maintenance-requests?${params.toString()}`);
-      if (res.data.success) {
-        setRequests(res.data.data);
+      if (res.data?.success) {
+        setRequests(res.data.data || []);
       }
     } catch (err) {
       console.error('Error fetching maintenance:', err);
@@ -57,8 +57,8 @@ export default function Pemeliharaan() {
         api.get('/sarpras/assets'),
         api.get('/sarpras/rooms')
       ]);
-      if (astRes.data.success) setAssets(astRes.data.data);
-      if (rmsRes.data.success) setRooms(rmsRes.data.data);
+      if (astRes.data?.success) setAssets(astRes.data.data || []);
+      if (rmsRes.data?.success) setRooms(rmsRes.data.data || []);
     } catch (err) {
       console.error('Error fetching assets/rooms:', err);
     }
@@ -84,11 +84,11 @@ export default function Pemeliharaan() {
     setSubmitting(true);
     try {
       await api.post('/sarpras/maintenance-requests', formData);
-      setMessage({ type: 'success', text: 'Laporan kerusakan fasilitas berhasil dikirim' });
+      setMessage({ type: 'emerald', title: 'Berhasil', text: 'Laporan kerusakan fasilitas berhasil dikirim' });
       setCreateModalOpen(false);
       fetchRequests();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -111,22 +111,100 @@ export default function Pemeliharaan() {
         await api.post(`/sarpras/maintenance-requests/${targetRequest.id}/close`, {
           cost: updateData.cost ? Number(updateData.cost) : null
         });
-        setMessage({ type: 'success', text: 'Tiket perbaikan berhasil ditutup' });
+        setMessage({ type: 'emerald', title: 'Berhasil', text: 'Tiket perbaikan berhasil ditutup' });
       } else {
         await api.put(`/sarpras/maintenance-requests/${targetRequest.id}`, {
           repair_status: updateData.repair_status,
           cost: updateData.cost ? Number(updateData.cost) : null
         });
-        setMessage({ type: 'success', text: 'Status penanganan berhasil diperbarui' });
+        setMessage({ type: 'emerald', title: 'Berhasil', text: 'Status penanganan berhasil diperbarui' });
       }
       setUpdateModalOpen(false);
       fetchRequests();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Filtered requests by search
+  const filteredRequests = useMemo(() => {
+    if (!search) return requests;
+    const q = search.toLowerCase();
+    return requests.filter(r =>
+      r.asset_name?.toLowerCase().includes(q) ||
+      r.asset_code?.toLowerCase().includes(q) ||
+      r.room_name?.toLowerCase().includes(q) ||
+      r.damage_report?.toLowerCase().includes(q)
+    );
+  }, [requests, search]);
+
+  const columns = useMemo(() => [
+    {
+      key: 'object',
+      header: 'Objek / Aset Rusak',
+      sortable: true,
+      render: (row) => (
+        <div>
+          {row.asset_name ? (
+            <div>
+              <span className="font-semibold text-slate-800">{row.asset_name}</span>
+              <span className="text-[11px] font-mono font-bold text-slate-700 block">{row.asset_code}</span>
+            </div>
+          ) : row.room_name ? (
+            <span className="font-semibold text-slate-800">Ruangan: {row.room_name}</span>
+          ) : (
+            <span className="font-mono text-slate-500 font-bold">Tiket #{row.id}</span>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'damage_report',
+      header: 'Deskripsi Kerusakan',
+      render: (row) => <span className="text-slate-600 line-clamp-2">{row.damage_report}</span>
+    },
+    {
+      key: 'cost',
+      header: 'Biaya Servis',
+      sortable: true,
+      align: 'right',
+      className: 'num-cell font-medium text-slate-700',
+      render: (row) => row.cost ? formatCurrency(row.cost) : '-'
+    },
+    {
+      key: 'repair_status',
+      header: 'Status',
+      align: 'center',
+      className: 'w-28 text-center',
+      render: (row) => <StatusPill status={row.repair_status || 'dilaporkan'} />
+    },
+    {
+      key: 'created_at',
+      header: 'Waktu Lapor',
+      sortable: true,
+      className: 'w-28 text-slate-500 text-xs',
+      render: (row) => formatDate(row.created_at)
+    },
+    {
+      key: 'actions',
+      header: 'Tindak Lanjut',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-28 text-right bg-white',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => openUpdateModal(row)}
+          className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg text-slate-700 font-semibold text-xs transition inline-flex items-center gap-1"
+        >
+          <Edit2 className="w-3.5 h-3.5" />
+          <span>Update</span>
+        </button>
+      )
+    }
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -140,8 +218,9 @@ export default function Pemeliharaan() {
         </div>
 
         <button
+          type="button"
           onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-md shadow-rose-600/30 transition"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-xs transition"
         >
           <Plus className="w-4 h-4" />
           <span>Lapor Kerusakan</span>
@@ -149,223 +228,174 @@ export default function Pemeliharaan() {
       </div>
 
       {message && (
-        <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="font-bold ml-4">&times;</button>
-        </div>
+        <FlatAlertBanner
+          variant={message.type}
+          title={message.title}
+          onClose={() => setMessage(null)}
+        >
+          {message.text}
+        </FlatAlertBanner>
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div className="w-48">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
-          >
-            <option value="">Semua Status Tiket</option>
-            <option value="dilaporkan">Dilaporkan (Baru)</option>
-            <option value="diproses">Sedang Diproses / Servis</option>
-            <option value="selesai">Selesai Dikerjakan</option>
-            <option value="ditutup">Ditutup / Selesai</option>
-          </select>
-        </div>
-      </div>
+      <FilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari nama aset, kode, atau kerusakan..."
+        filters={[
+          {
+            id: 'status',
+            label: 'Status Tiket',
+            type: 'select',
+            value: selectedStatus,
+            defaultValue: '',
+            options: [
+              { label: 'Semua Status Tiket', value: '' },
+              { label: 'Dilaporkan (Baru)', value: 'dilaporkan' },
+              { label: 'Sedang Diproses / Servis', value: 'diproses' },
+              { label: 'Selesai Dikerjakan', value: 'selesai' },
+              { label: 'Ditutup / Selesai', value: 'ditutup' }
+            ]
+          }
+        ]}
+        onFilterChange={(_, val) => setSelectedStatus(val)}
+        onReset={() => { setSearch(''); setSelectedStatus(''); }}
+      />
 
       {/* Maintenance Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="px-4 py-3">Objek / Aset Rusak</th>
-                <th className="px-4 py-3">Deskripsi Kerusakan</th>
-                <th className="px-4 py-3 text-right">Biaya Servis</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3">Waktu Lapor</th>
-                <th className="px-4 py-3 text-right">Tindak Lanjut</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {requests.length > 0 ? (
-                requests.map((req) => (
-                  <tr key={req.id} className="hover:bg-slate-50 transition">
-                    <td className="px-4 py-3 font-semibold text-slate-800">
-                      {req.asset_name ? (
-                        <div>
-                          <span>{req.asset_name}</span>
-                          <span className="text-[10px] font-mono text-indigo-600 block">{req.asset_code}</span>
-                        </div>
-                      ) : req.room_name ? (
-                        <span>Ruangan: {req.room_name}</span>
-                      ) : (
-                        `Tiket #${req.id}`
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 max-w-xs">{req.damage_report}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-700">
-                      {req.cost ? `Rp ${Number(req.cost).toLocaleString('id-ID')}` : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                        req.repair_status === 'ditutup' || req.repair_status === 'selesai'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : req.repair_status === 'diproses'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {req.repair_status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 text-[11px]">
-                      {new Date(req.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => openUpdateModal(req)}
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-700 font-semibold text-[11px] transition inline-flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span>Update</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-xs text-slate-400">
-                    Tidak ada tiket pemeliharaan / laporan kerusakan
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={filteredRequests}
+        loading={loading}
+        emptyTitle="Tidak Ada Tiket Kerusakan"
+        emptyDescription="Seluruh sarana dan prasarana dalam kondisi baik, tidak ada laporan kerusakan aktif."
+      />
 
       {/* Modal Lapor Kerusakan */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative">
-            <h3 className="text-base font-bold text-slate-900 mb-4">Lapor Kerusakan Sarana / Aset</h3>
-
-            <form onSubmit={handleCreateRequest} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Aset (Barang Rusak)</label>
-                <select
-                  value={formData.asset_id || ''}
-                  onChange={(e) => setFormData({ ...formData, asset_id: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                >
-                  <option value="">-- Atau Pilih Ruangan di Bawah --</option>
-                  {assets.map(a => <option key={a.id} value={a.id}>{a.name} ({a.asset_code})</option>)}
-                </select>
-              </div>
-
-              {!formData.asset_id && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Ruangan / Fasilitas Rusak</label>
-                  <select
-                    value={formData.facility_room_id || ''}
-                    onChange={(e) => setFormData({ ...formData, facility_room_id: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  >
-                    <option value="">-- Pilih Ruangan --</option>
-                    {rooms.map(r => <option key={r.id} value={r.id}>{r.room_name} ({r.room_code})</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Kerusakan & Gejala *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formData.damage_report || ''}
-                  onChange={(e) => setFormData({ ...formData, damage_report: e.target.value })}
-                  placeholder="Jelaskan bagian yang rusak atau kendala yang dialami..."
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition"
-                >
-                  Kirim Laporan
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Lapor Kerusakan Sarana / Aset"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(false)}
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-lapor-rusak"
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Kirim Laporan</span>
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form id="form-lapor-rusak" onSubmit={handleCreateRequest} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Aset (Barang Rusak)</label>
+            <select
+              value={formData.asset_id || ''}
+              onChange={(e) => setFormData({ ...formData, asset_id: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            >
+              <option value="">-- Atau Pilih Ruangan di Bawah --</option>
+              {assets.map(a => <option key={a.id} value={a.id}>{a.name} ({a.asset_code})</option>)}
+            </select>
+          </div>
+
+          {!formData.asset_id && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Ruangan / Fasilitas Rusak</label>
+              <select
+                value={formData.facility_room_id || ''}
+                onChange={(e) => setFormData({ ...formData, facility_room_id: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              >
+                <option value="">-- Pilih Ruangan --</option>
+                {rooms.map(r => <option key={r.id} value={r.id}>{r.room_name} ({r.room_code})</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Kerusakan & Gejala *</label>
+            <textarea
+              required
+              rows={3}
+              value={formData.damage_report || ''}
+              onChange={(e) => setFormData({ ...formData, damage_report: e.target.value })}
+              placeholder="Jelaskan bagian yang rusak atau kendala yang dialami..."
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Update Tindak Lanjut */}
-      {updateModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-2">Tindak Lanjut Pemeliharaan</h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Laporan: {targetRequest?.damage_report}
-            </p>
-
-            <form onSubmit={handleUpdateStatus} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Status Penanganan *</label>
-                <select
-                  value={updateData.repair_status}
-                  onChange={(e) => setUpdateData({ ...updateData, repair_status: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs font-semibold"
-                >
-                  <option value="dilaporkan">Dilaporkan (Menunggu)</option>
-                  <option value="diproses">Sedang Dikerjakan / Diservis</option>
-                  <option value="selesai">Selesai Perbaikan</option>
-                  <option value="ditutup">Tutup Tiket (Final)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Total Biaya Perbaikan (Rp)</label>
-                <input
-                  type="number"
-                  value={updateData.cost || ''}
-                  onChange={(e) => setUpdateData({ ...updateData, cost: e.target.value })}
-                  placeholder="Contoh: 250000"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setUpdateModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-                >
-                  Simpan Status
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        title="Tindak Lanjut Pemeliharaan"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setUpdateModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-update-rusak"
+              disabled={submitting}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition"
+            >
+              Simpan Status
+            </button>
           </div>
+        }
+      >
+        <div className="mb-4 text-xs text-slate-500">
+          Laporan: <strong className="text-slate-800">{targetRequest?.damage_report}</strong>
         </div>
-      )}
+
+        <form id="form-update-rusak" onSubmit={handleUpdateStatus} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Status Penanganan *</label>
+            <select
+              value={updateData.repair_status}
+              onChange={(e) => setUpdateData({ ...updateData, repair_status: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden focus:border-emerald-500"
+            >
+              <option value="dilaporkan">Dilaporkan (Menunggu)</option>
+              <option value="diproses">Sedang Dikerjakan / Diservis</option>
+              <option value="selesai">Selesai Perbaikan</option>
+              <option value="ditutup">Tutup Tiket (Final)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Total Biaya Perbaikan (Rp)</label>
+            <input
+              type="number"
+              value={updateData.cost || ''}
+              onChange={(e) => setUpdateData({ ...updateData, cost: e.target.value })}
+              placeholder="Contoh: 250000"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X, Check, Loader2 } from 'lucide-react';
 import useIsDarkMode from '../hooks/useIsDarkMode';
 
@@ -58,8 +59,10 @@ export default function SearchableSelect({
   const containerRef = useRef(null);
   const searchRef = useRef(null);
   const triggerRef = useRef(null);
+  const panelRef = useRef(null);
   const listRef = useRef(null);
   const optionRefs = useRef([]);
+  const [dropdownCoords, setDropdownCoords] = useState(null);
 
   // Normalisasi selected values (Array string untuk perbandingan akurat)
   const selectedValues = useMemo(() => {
@@ -73,25 +76,90 @@ export default function SearchableSelect({
 
   const [align, setAlign] = useState('left');
 
-  // Posisi dan perataan dropdown dinamis (up / down, left / right)
-  useEffect(() => {
-    if (open && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      if (dropdownPosition === 'auto') {
-        const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        setPosition(spaceBelow < 280 && spaceAbove > spaceBelow ? 'up' : 'down');
-      } else {
-        setPosition(dropdownPosition);
-      }
+  // Posisi dan perataan dropdown dinamis berbasis koordinat viewport (Portal)
+  const calculateDropdownCoords = useCallback(() => {
+    if (!triggerRef.current && !containerRef.current) return null;
+    const targetEl = triggerRef.current || containerRef.current;
+    const rect = targetEl.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
 
-      if (dropdownAlign === 'auto') {
-        setAlign(rect.left + rect.width / 2 > window.innerWidth / 2 ? 'right' : 'left');
-      } else {
-        setAlign(dropdownAlign);
-      }
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    let isUp = false;
+    if (dropdownPosition === 'up') {
+      isUp = true;
+    } else if (dropdownPosition === 'down') {
+      isUp = false;
+    } else {
+      isUp = spaceBelow < 280 && spaceAbove > spaceBelow;
     }
-  }, [open, dropdownPosition, dropdownAlign]);
+
+    let isRight = false;
+    if (dropdownAlign === 'right') {
+      isRight = true;
+    } else if (dropdownAlign === 'left') {
+      isRight = false;
+    } else {
+      isRight = (rect.left + rect.width / 2) > (viewportWidth / 2);
+    }
+
+    let left = isRight ? (rect.right - rect.width) : rect.left;
+    let width = rect.width;
+
+    if (left < 10) left = 10;
+    if (left + width > viewportWidth - 10) {
+      width = Math.min(width, viewportWidth - 20);
+      if (isRight) left = Math.max(10, viewportWidth - width - 10);
+    }
+
+    return {
+      top: Math.round(rect.bottom + 6),
+      bottom: Math.round(viewportHeight - rect.top + 6),
+      left: Math.round(left),
+      width: Math.round(width),
+      isUp,
+      isRight
+    };
+  }, [dropdownPosition, dropdownAlign]);
+
+  useLayoutEffect(() => {
+    if (open) {
+      const coords = calculateDropdownCoords();
+      if (coords) setDropdownCoords(coords);
+    }
+  }, [open, calculateDropdownCoords]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleOutsideClick = (e) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target) &&
+        panelRef.current &&
+        !panelRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleScrollOrResize = () => {
+      const coords = calculateDropdownCoords();
+      if (coords) setDropdownCoords(coords);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [open, calculateDropdownCoords]);
 
   // Filter options berdasarkan live search: Setiap kata kunci / token harus benar-benar cocok
   const filteredOptions = useMemo(() => {
@@ -113,16 +181,21 @@ export default function SearchableSelect({
         opt.reference,
         opt.reference_number,
         opt.journal_number,
+        opt.reconciliation_notes,
         opt.notes,
         opt.batch,
+        opt.import_batch_id,
         opt.code,
         opt.nis,
         opt.nisn,
-        opt.name
+        opt.name,
+        opt.bank_name,
+        opt.cash_account_name,
+        opt.bank_account_number
       ];
 
       if (Array.isArray(opt.searchTerms)) {
-        parts.push(...opt.searchTerms);
+        parts.push(...opt.searchTerms.flat());
       } else if (opt.searchTerms) {
         parts.push(opt.searchTerms);
       }
@@ -130,14 +203,22 @@ export default function SearchableSelect({
       if (opt.searchText) parts.push(opt.searchText);
       if (opt.keywords) parts.push(opt.keywords);
 
-      const fullText = parts.filter(p => p !== null && p !== undefined).map(String).join(' ').toLowerCase();
+      const fullText = parts
+        .filter((p) => p !== null && p !== undefined)
+        .map(String)
+        .join(' ')
+        .toLowerCase();
+
       const normFull = fullText.replace(/[^a-z0-9]/gi, ' ');
+      const strippedFull = fullText.replace(/[^a-z0-9]/gi, '');
       const fullDigits = fullText.replace(/[^0-9]/g, '');
 
       // 1. Direct exact phrase match
       if (fullText.includes(rawQ)) return true;
       const normQ = rawQ.replace(/[^a-z0-9]/gi, ' ').replace(/\s+/g, ' ').trim();
       if (normQ && normFull.includes(normQ)) return true;
+      const strippedQ = rawQ.replace(/[^a-z0-9]/gi, '');
+      if (strippedQ && strippedFull.includes(strippedQ)) return true;
 
       // 2. Token-based multi-keyword match (SEMUA token yang diketik pengguna HARUS cocok)
       return tokens.every((tok) => {
@@ -147,12 +228,12 @@ export default function SearchableSelect({
         // Normalized alphanumeric match (mengabaikan spasi / tanda baca seperti garis miring, strip, titik)
         const normTok = tok.replace(/[^a-z0-9]/gi, '');
         if (normTok) {
-          const strippedFull = fullText.replace(/[^a-z0-9]/gi, '');
           if (strippedFull.includes(normTok)) return true;
+          if (normFull.includes(normTok)) return true;
         }
 
-        // HANYA jika token yang diketik adalah MURNI ANGKA (misal user mengetik "2250000" untuk nominal "Rp 2.250.000")
-        if (/^\d+$/.test(tok) && tok.length >= 3 && fullDigits.includes(tok)) {
+        // Token angka (misal user mengetik "2250000" atau "2250" untuk nominal "Rp 2.250.000")
+        if (/^\d+$/.test(tok) && tok.length >= 2 && fullDigits.includes(tok)) {
           return true;
         }
 
@@ -182,16 +263,7 @@ export default function SearchableSelect({
     }
   }, [highlightIndex, open]);
 
-  // Tutup dropdown saat klik di luar
-  useEffect(() => {
-    const handleOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    if (open) document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [open]);
+
 
   // Handle seleksi opsi (Single atau Toggle Multi)
   const handleSelect = (opt) => {
@@ -471,23 +543,25 @@ export default function SearchableSelect({
         </div>
       </button>
 
-      {/* Dropdown Panel */}
-      {open && (
+      {/* Dropdown Panel (Portal) */}
+      {open && dropdownCoords && typeof document !== 'undefined' && createPortal(
         <div
+          ref={panelRef}
           className={`
-            absolute z-[1000] rounded-2xl shadow-2xl overflow-hidden border
+            rounded-2xl shadow-2xl overflow-hidden border
             animate-in fade-in zoom-in-95 duration-100
-            ${align === 'right' ? 'right-0 left-auto' : 'left-0 right-auto'}
-            ${position === 'up' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}
-            ${
-              effectiveDark
-                ? 'bg-slate-900 border-slate-700/90 text-slate-100'
-                : 'bg-white border-slate-200 text-slate-800'
-            }
+            ${effectiveDark ? 'bg-slate-900 border-slate-700/90 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}
           `}
           style={{
-            minWidth: menuMinWidth,
-            ...(menuMinWidth === '100%' ? { width: '100%', maxWidth: '100%' } : { maxWidth: 'calc(100vw - 32px)' })
+            position: 'fixed',
+            zIndex: 99999,
+            left: `${dropdownCoords.left}px`,
+            width: `${dropdownCoords.width}px`,
+            minWidth: menuMinWidth !== '100%' ? menuMinWidth : `${dropdownCoords.width}px`,
+            maxWidth: 'calc(100vw - 20px)',
+            ...(dropdownCoords.isUp
+              ? { bottom: `${dropdownCoords.bottom}px` }
+              : { top: `${dropdownCoords.top}px` })
           }}
         >
           {/* Live Search Box */}
@@ -659,7 +733,8 @@ export default function SearchableSelect({
             </span>
             <span className="font-mono text-[9px] opacity-70">↑↓ navigasi &bull; Enter pilih</span>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

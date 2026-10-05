@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
+import DataTable from '../../../shared/components/DataTable';
+import Modal from '../../../shared/components/Modal';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatNumber } from '../../../shared/utils/formatters';
 import {
   Truck,
   Plus,
   Edit2,
   Trash2,
   Store,
-  CheckCircle,
   PackageCheck,
-  Search,
-  Loader2,
-  FileText
+  Check,
+  Loader2
 } from 'lucide-react';
 
 export default function Pengadaan() {
@@ -37,8 +40,8 @@ export default function Pengadaan() {
         api.get('/sarpras/procurements'),
         api.get('/sarpras/vendors')
       ]);
-      if (procRes.data.success) setProcurements(procRes.data.data);
-      if (vndRes.data.success) setVendors(vndRes.data.data);
+      if (procRes.data?.success) setProcurements(procRes.data.data || []);
+      if (vndRes.data?.success) setVendors(vndRes.data.data || []);
     } catch (err) {
       console.error('Error fetching procurement:', err);
     } finally {
@@ -66,11 +69,11 @@ export default function Pengadaan() {
     setSubmitting(true);
     try {
       await api.post('/sarpras/procurements', procFormData);
-      setMessage({ type: 'success', text: 'Pengajuan pengadaan barang berhasil dikirim' });
+      setMessage({ type: 'emerald', title: 'Berhasil', text: 'Pengajuan pengadaan barang berhasil dikirim' });
       setProcModalOpen(false);
       fetchData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -80,10 +83,10 @@ export default function Pengadaan() {
     if (!window.confirm('Setujui pengadaan barang ini?')) return;
     try {
       await api.put(`/sarpras/procurements/${id}/approve`);
-      setMessage({ type: 'success', text: 'Pengadaan barang berhasil disetujui' });
+      setMessage({ type: 'emerald', title: 'Disetujui', text: 'Pengadaan barang berhasil disetujui' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
 
@@ -91,10 +94,10 @@ export default function Pengadaan() {
     if (!window.confirm('Tandai barang telah diterima fisik?')) return;
     try {
       await api.put(`/sarpras/procurements/${id}/receive`);
-      setMessage({ type: 'success', text: 'Barang pengadaan berhasil ditandai diterima' });
+      setMessage({ type: 'emerald', title: 'Diterima', text: 'Barang pengadaan berhasil ditandai diterima fisik' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
 
@@ -117,15 +120,15 @@ export default function Pengadaan() {
     try {
       if (vendorEditItem) {
         await api.put(`/sarpras/vendors/${vendorEditItem.id}`, vendorFormData);
-        setMessage({ type: 'success', text: 'Data vendor berhasil diperbarui' });
+        setMessage({ type: 'emerald', title: 'Berhasil', text: 'Data vendor berhasil diperbarui' });
       } else {
         await api.post('/sarpras/vendors', vendorFormData);
-        setMessage({ type: 'success', text: 'Vendor baru berhasil ditambahkan' });
+        setMessage({ type: 'emerald', title: 'Berhasil', text: 'Vendor baru berhasil ditambahkan' });
       }
       setVendorModalOpen(false);
       fetchData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -135,20 +138,140 @@ export default function Pengadaan() {
     if (!window.confirm('Yakin ingin menghapus vendor ini?')) return;
     try {
       await api.delete(`/sarpras/vendors/${id}`);
-      setMessage({ type: 'success', text: 'Vendor berhasil dihapus' });
+      setMessage({ type: 'emerald', title: 'Dihapus', text: 'Vendor berhasil dihapus' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
+
+  // Procurement table columns
+  const procurementColumns = useMemo(() => [
+    {
+      key: 'item_name',
+      header: 'Nama Barang',
+      sortable: true,
+      render: (row) => <span className="font-semibold text-slate-800">{row.item_name}</span>
+    },
+    {
+      key: 'vendor_name',
+      header: 'Vendor Rekomendasi',
+      sortable: true,
+      render: (row) => <span className="text-slate-600">{row.vendor_name || '-'}</span>
+    },
+    {
+      key: 'quantity',
+      header: 'Jumlah',
+      sortable: true,
+      align: 'right',
+      className: 'num-cell font-bold text-slate-700',
+      render: (row) => `${formatNumber(row.quantity)} ${row.unit || 'unit'}`
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      className: 'w-28 text-center',
+      render: (row) => <StatusPill status={row.status || 'diajukan'} />
+    },
+    {
+      key: 'finance_ref',
+      header: 'Ref. Keuangan',
+      align: 'center',
+      className: 'w-32 text-center font-mono text-xs text-slate-500',
+      render: (row) => row.finance_reference_id ? `TX-#${row.finance_reference_id}` : '-'
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-36 text-right bg-white',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {row.status === 'diajukan' && (
+            <button
+              type="button"
+              onClick={() => handleApproveProc(row.id)}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition"
+            >
+              Setujui
+            </button>
+          )}
+          {row.status === 'disetujui' && (
+            <button
+              type="button"
+              onClick={() => handleReceiveProc(row.id)}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+            >
+              <PackageCheck className="w-3.5 h-3.5" />
+              <span>Terima</span>
+            </button>
+          )}
+        </div>
+      )
+    }
+  ], []);
+
+  // Vendor table columns
+  const vendorColumns = useMemo(() => [
+    {
+      key: 'name',
+      header: 'Nama Vendor / Perusahaan',
+      sortable: true,
+      render: (row) => <span className="font-semibold text-slate-800">{row.name}</span>
+    },
+    {
+      key: 'category',
+      header: 'Kategori Pasokan',
+      sortable: true,
+      render: (row) => (
+        <span className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700 capitalize text-xs">
+          {row.category || 'Umum'}
+        </span>
+      )
+    },
+    {
+      key: 'contact',
+      header: 'Kontak / Telepon',
+      render: (row) => <span className="text-slate-600 font-mono text-xs">{row.contact || '-'}</span>
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-24 text-right bg-white',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => openEditVendorModal(row)}
+            className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100 transition"
+            title="Edit Vendor"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteVendor(row.id)}
+            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+            title="Hapus Vendor"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )
+    }
+  ], []);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Pengadaan Barang & Mitra Vendor</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pengadaan Barang & Mitra Vendor</h1>
+          <p className="text-xs text-slate-500 mt-1">
             Pengajuan kebutuhan pengadaan sarpras, status persetujuan, penerimaan fisik, dan master supplier
           </p>
         </div>
@@ -156,16 +279,18 @@ export default function Pengadaan() {
         <div className="flex items-center gap-2">
           {activeTab === 'procurements' ? (
             <button
+              type="button"
               onClick={openCreateProcModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-xs transition"
             >
               <Plus className="w-4 h-4" />
               <span>Ajukan Pengadaan</span>
             </button>
           ) : (
             <button
+              type="button"
               onClick={openCreateVendorModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-xs transition"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Vendor</span>
@@ -175,21 +300,23 @@ export default function Pengadaan() {
       </div>
 
       {message && (
-        <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="font-bold ml-4">&times;</button>
-        </div>
+        <FlatAlertBanner
+          variant={message.type}
+          title={message.title}
+          onClose={() => setMessage(null)}
+        >
+          {message.text}
+        </FlatAlertBanner>
       )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200">
         <button
+          type="button"
           onClick={() => setActiveTab('procurements')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'procurements'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -197,10 +324,11 @@ export default function Pengadaan() {
           <span>Pengadaan Barang ({procurements.length})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('vendors')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'vendors'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -211,255 +339,167 @@ export default function Pengadaan() {
 
       {/* Tab 1: Procurements Table */}
       {activeTab === 'procurements' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="px-4 py-3">Nama Barang</th>
-                  <th className="px-4 py-3">Vendor Rekomendasi</th>
-                  <th className="px-4 py-3 text-center">Jumlah</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-center">Ref. Keuangan</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {procurements.length > 0 ? (
-                  procurements.map((proc) => (
-                    <tr key={proc.id} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-3 font-semibold text-slate-800">{proc.item_name}</td>
-                      <td className="px-4 py-3 text-slate-600">{proc.vendor_name || '-'}</td>
-                      <td className="px-4 py-3 text-center font-bold text-slate-700">{proc.quantity} {proc.unit}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                          proc.status === 'diterima'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : proc.status === 'disetujui'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : proc.status === 'diajukan'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {proc.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono text-[11px] text-slate-500">
-                        {proc.finance_reference_id ? `TX-#${proc.finance_reference_id}` : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {proc.status === 'diajukan' && (
-                            <button
-                              onClick={() => handleApproveProc(proc.id)}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-semibold transition"
-                            >
-                              Setujui
-                            </button>
-                          )}
-                          {proc.status === 'disetujui' && (
-                            <button
-                              onClick={() => handleReceiveProc(proc.id)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 transition"
-                            >
-                              <PackageCheck className="w-3.5 h-3.5" />
-                              <span>Terima Barang</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-xs text-slate-400">
-                      Tidak ada data pengadaan barang
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          columns={procurementColumns}
+          data={procurements}
+          loading={loading}
+          emptyTitle="Belum Ada Pengadaan"
+          emptyDescription="Klik 'Ajukan Pengadaan' untuk mengajukan pengadaan barang inventaris atau logistik."
+        />
       )}
 
       {/* Tab 2: Vendors Table */}
       {activeTab === 'vendors' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {vendors.map((v) => (
-            <div key={v.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
-                    <Store className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 capitalize">
-                    {v.category || 'Umum'}
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mt-3">{v.name}</h3>
-                <p className="text-xs text-slate-500 mt-1">Kontak: {v.contact || '-'}</p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => openEditVendorModal(v)}
-                  className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-100 transition"
-                  title="Edit Vendor"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteVendor(v.id)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
-                  title="Hapus Vendor"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <DataTable
+          columns={vendorColumns}
+          data={vendors}
+          loading={loading}
+          emptyTitle="Belum Ada Data Vendor"
+          emptyDescription="Klik 'Tambah Vendor' untuk mencatat data supplier atau rekanan sarpras."
+        />
       )}
 
       {/* Modal Ajukan Pengadaan */}
-      {procModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-4">Ajukan Pengadaan Barang</h3>
-
-            <form onSubmit={handleCreateProcurement} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Barang *</label>
-                <input
-                  type="text"
-                  required
-                  value={procFormData.item_name || ''}
-                  onChange={(e) => setProcFormData({ ...procFormData, item_name: e.target.value })}
-                  placeholder="Contoh: AC Split 1.5 PK Daikin"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jumlah *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={procFormData.quantity || 1}
-                    onChange={(e) => setProcFormData({ ...procFormData, quantity: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Satuan</label>
-                  <input
-                    type="text"
-                    value={procFormData.unit || 'unit'}
-                    onChange={(e) => setProcFormData({ ...procFormData, unit: e.target.value })}
-                    placeholder="unit / set / pcs"
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mitra Vendor (Opsional)</label>
-                <select
-                  value={procFormData.vendor_id || ''}
-                  onChange={(e) => setProcFormData({ ...procFormData, vendor_id: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                >
-                  <option value="">-- Pilih Vendor --</option>
-                  {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setProcModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-                >
-                  Ajukan
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={procModalOpen}
+        onClose={() => setProcModalOpen(false)}
+        title="Ajukan Pengadaan Barang"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setProcModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-proc"
+              disabled={submitting}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Ajukan</span>
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form id="form-proc" onSubmit={handleCreateProcurement} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Barang *</label>
+            <input
+              type="text"
+              required
+              value={procFormData.item_name || ''}
+              onChange={(e) => setProcFormData({ ...procFormData, item_name: e.target.value })}
+              placeholder="Contoh: AC Split 1.5 PK Daikin"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Jumlah *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={procFormData.quantity || 1}
+                onChange={(e) => setProcFormData({ ...procFormData, quantity: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Satuan</label>
+              <input
+                type="text"
+                value={procFormData.unit || 'unit'}
+                onChange={(e) => setProcFormData({ ...procFormData, unit: e.target.value })}
+                placeholder="unit / set / pcs"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mitra Vendor (Opsional)</label>
+            <select
+              value={procFormData.vendor_id || ''}
+              onChange={(e) => setProcFormData({ ...procFormData, vendor_id: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            >
+              <option value="">-- Pilih Vendor --</option>
+              {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+            </select>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Tambah/Edit Vendor */}
-      {vendorModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-4">
-              {vendorEditItem ? 'Edit Data Vendor' : 'Tambah Vendor Supplier'}
-            </h3>
-
-            <form onSubmit={handleSaveVendor} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Vendor / Perusahaan *</label>
-                <input
-                  type="text"
-                  required
-                  value={vendorFormData.name || ''}
-                  onChange={(e) => setVendorFormData({ ...vendorFormData, name: e.target.value })}
-                  placeholder="CV Sumber Sarana"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kontak / Telepon / Email</label>
-                <input
-                  type="text"
-                  value={vendorFormData.contact || ''}
-                  onChange={(e) => setVendorFormData({ ...vendorFormData, contact: e.target.value })}
-                  placeholder="021-9998888 / sales@vendor.com"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Barang</label>
-                <input
-                  type="text"
-                  value={vendorFormData.category || ''}
-                  onChange={(e) => setVendorFormData({ ...vendorFormData, category: e.target.value })}
-                  placeholder="furnitur & ATK / Elektronik"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setVendorModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-                >
-                  Simpan Vendor
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={vendorModalOpen}
+        onClose={() => setVendorModalOpen(false)}
+        title={vendorEditItem ? 'Edit Data Vendor' : 'Tambah Vendor Supplier'}
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setVendorModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-vendor"
+              disabled={submitting}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Vendor</span>
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form id="form-vendor" onSubmit={handleSaveVendor} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Vendor / Perusahaan *</label>
+            <input
+              type="text"
+              required
+              value={vendorFormData.name || ''}
+              onChange={(e) => setVendorFormData({ ...vendorFormData, name: e.target.value })}
+              placeholder="CV Sumber Sarana"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Kontak / Telepon / Email</label>
+            <input
+              type="text"
+              value={vendorFormData.contact || ''}
+              onChange={(e) => setVendorFormData({ ...vendorFormData, contact: e.target.value })}
+              placeholder="021-9998888 / sales@vendor.com"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Pasokan</label>
+            <input
+              type="text"
+              value={vendorFormData.category || ''}
+              onChange={(e) => setVendorFormData({ ...vendorFormData, category: e.target.value })}
+              placeholder="furnitur & ATK / Elektronik"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

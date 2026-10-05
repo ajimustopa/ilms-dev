@@ -5,6 +5,7 @@ const verifyJwt = require('../../../middlewares/verifyJwt');
 const requireRole = require('../middlewares/requireRole');
 
 router.get('/product-returns', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.listReturns);
+router.get('/product-returns/eligible-items', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.getEligibleReceiptItems);
 router.post('/product-returns', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.createReturn);
 
 module.exports = router;

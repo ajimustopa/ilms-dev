@@ -1,9 +1,10 @@
 const canteenStudentsService = require('./service');
+const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class CanteenStudentsController {
   async listStudents(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenStudentsService.listStudents(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -13,7 +14,7 @@ class CanteenStudentsController {
 
   async getStudentByStudentId(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenStudentsService.getStudentByStudentId(schoolUnitId, req.params.student_id);
       if (!data) {
         return res.status(404).json({ success: false, data: null, message: 'Data kantin siswa tidak ditemukan', errors: null });
@@ -26,7 +27,7 @@ class CanteenStudentsController {
 
   async updateStatus(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const { status } = req.body;
       if (!status || !['active', 'inactive'].includes(status)) {
         return res.status(422).json({ success: false, data: null, message: 'status harus active atau inactive', errors: null });
@@ -40,7 +41,7 @@ class CanteenStudentsController {
 
   async generateQr(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenStudentsService.generateQr(schoolUnitId, req.params.student_id);
       res.json({ success: true, data, message: 'QR code santri berhasil di-generate', errors: null });
     } catch (err) {
@@ -48,9 +49,19 @@ class CanteenStudentsController {
     }
   }
 
+  async bulkGenerateQr(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenStudentsService.bulkGenerateQr(schoolUnitId, req.body);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async updateQr(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const { qr_code } = req.body;
       if (!qr_code) {
         return res.status(422).json({ success: false, data: null, message: 'qr_code wajib diisi', errors: null });
@@ -64,7 +75,7 @@ class CanteenStudentsController {
 
   async resetChildPin(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenStudentsService.resetChildPin(schoolUnitId, req.params.student_id);
       res.json({ success: true, data, message: data.message, errors: null });
     } catch (err) {
@@ -74,8 +85,18 @@ class CanteenStudentsController {
 
   async resetParentPin(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenStudentsService.resetParentPin(schoolUnitId, req.params.student_id);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async syncAcademic(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenStudentsService.syncFromAcademic(schoolUnitId);
       res.json({ success: true, data, message: data.message, errors: null });
     } catch (err) {
       next(err);

@@ -22,9 +22,11 @@ const operationalExpensesRoutes = require('./operational-expenses/routes');
 const parentRoutes = require('./parent/routes');
 const reportsRoutes = require('./reports/routes');
 const dashboardRoutes = require('./dashboard/routes');
+const cashiersRoutes = require('./cashiers/routes');
 
 // Mount all submodules
 router.use('/', accessMenusRoutes);
+router.use('/', cashiersRoutes);
 router.use('/', vendorsRoutes);
 router.use('/', productCategoriesRoutes);
 router.use('/', vendorProductsRoutes);

@@ -47,24 +47,26 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Filter
+  Filter,
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 
 const COA_GROUPS = {
-  harta: { label: 'Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  piutang: { label: 'Piutang', normal: 'debit', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-  inventaris: { label: 'Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-  aset_tetap: { label: 'Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-  utang: { label: 'Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
-  modal: { label: 'Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
-  pendapatan: { label: 'Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
-  biaya: { label: 'Biaya', normal: 'debit', bg: 'bg-pink-50 text-pink-700 border-pink-200' },
+  harta: { order: 1, number: '1', label: '1. Harta (Aset Lancar & Kas/Bank)', shortLabel: '1. Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', headerBg: 'bg-emerald-50 text-emerald-900 border-emerald-200' },
+  piutang: { order: 2, number: '2', label: '2. Piutang Santri & Tagihan', shortLabel: '2. Piutang', normal: 'debit', bg: 'bg-amber-50 text-amber-700 border-amber-200', headerBg: 'bg-amber-50 text-amber-900 border-amber-200' },
+  inventaris: { order: 3, number: '3', label: '3. Aset Tetap & Inventaris Sarpras', shortLabel: '3. Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200', headerBg: 'bg-cyan-50 text-cyan-900 border-cyan-200' },
+  aset_tetap: { order: 3, number: '3', label: '3. Aset Tetap & Inventaris Sarpras', shortLabel: '3. Aset Tetap', normal: 'debit', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200', headerBg: 'bg-cyan-50 text-cyan-900 border-cyan-200' },
+  utang: { order: 4, number: '4', label: '4. Utang & Kewajiban (Liabilitas)', shortLabel: '4. Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200', headerBg: 'bg-rose-50 text-rose-900 border-rose-200' },
+  modal: { order: 5, number: '5', label: '5. Modal & Ekuitas Yayasan', shortLabel: '5. Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200', headerBg: 'bg-purple-50 text-purple-900 border-purple-200' },
+  pendapatan: { order: 6, number: '6', label: '6. Pendapatan Pendidikan & Operasional', shortLabel: '6. Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200', headerBg: 'bg-teal-50 text-teal-900 border-teal-200' },
+  biaya: { order: 7, number: '7', label: '7. Biaya & Beban Operasional / Belanja', shortLabel: '7. Biaya (Beban)', normal: 'debit', bg: 'bg-pink-50 text-pink-700 border-pink-200', headerBg: 'bg-pink-50 text-pink-900 border-pink-200' },
   // Backward-compat
-  asset: { label: 'Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  liability: { label: 'Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
-  equity: { label: 'Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
-  revenue: { label: 'Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
-  expense: { label: 'Biaya', normal: 'debit', bg: 'bg-pink-50 text-pink-700 border-pink-200' }
+  asset: { order: 1, number: '1', label: '1. Harta (Aset Lancar & Kas/Bank)', shortLabel: '1. Harta (Aset)', normal: 'debit', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', headerBg: 'bg-emerald-50 text-emerald-900 border-emerald-200' },
+  liability: { order: 4, number: '4', label: '4. Utang & Kewajiban (Liabilitas)', shortLabel: '4. Utang', normal: 'credit', bg: 'bg-rose-50 text-rose-700 border-rose-200', headerBg: 'bg-rose-50 text-rose-900 border-rose-200' },
+  equity: { order: 5, number: '5', label: '5. Modal & Ekuitas Yayasan', shortLabel: '5. Modal', normal: 'credit', bg: 'bg-purple-50 text-purple-700 border-purple-200', headerBg: 'bg-purple-50 text-purple-900 border-purple-200' },
+  revenue: { order: 6, number: '6', label: '6. Pendapatan Pendidikan & Operasional', shortLabel: '6. Pendapatan', normal: 'credit', bg: 'bg-teal-50 text-teal-700 border-teal-200', headerBg: 'bg-teal-50 text-teal-900 border-teal-200' },
+  expense: { order: 7, number: '7', label: '7. Biaya & Beban Operasional / Belanja', shortLabel: '7. Biaya (Beban)', normal: 'debit', bg: 'bg-pink-50 text-pink-700 border-pink-200', headerBg: 'bg-pink-50 text-pink-900 border-pink-200' }
 };
 
 const RULE_SECTIONS = [
@@ -179,7 +181,7 @@ export default function MasterData() {
   const [ruleTypeFilter, setRuleTypeFilter] = useState(''); // '' | 'penambahan_kas' | 'pengurangan_kas' | 'non_kas' | 'pemindahan_kas'
 
   // Sort & Filter States untuk Tab COA (Bagan Akun)
-  const [coaSortField, setCoaSortField] = useState('account_code'); // 'account_code' | 'account_name' | 'account_group' | 'normal_balance' | 'is_active'
+  const [coaSortField, setCoaSortField] = useState('account_group'); // 'account_group' (default hirarki) | 'account_code' | 'account_name' | 'normal_balance' | 'is_active'
   const [coaSortOrder, setCoaSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [coaGroupFilter, setCoaGroupFilter] = useState('all'); // 'all' | group key
   const [coaBalanceFilter, setCoaBalanceFilter] = useState('all'); // 'all' | 'debit' | 'credit'
@@ -196,15 +198,33 @@ export default function MasterData() {
 
   const handleResetCoaFilters = () => {
     setSearchQuery('');
-    setCoaSortField('account_code');
+    setCoaSortField('account_group');
     setCoaSortOrder('asc');
     setCoaGroupFilter('all');
     setCoaBalanceFilter('all');
     setCoaStatusFilter('all');
   };
 
+  // Master Data & Academic Year State
+  const [academicYears, setAcademicYears] = useState([]);
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(() => {
+    try {
+      return (
+        localStorage.getItem('keuangan_master_selected_ay') ||
+        localStorage.getItem('keuangan_fee_schemes_selected_ay') ||
+        localStorage.getItem('keuangan_payments_selected_ay') ||
+        localStorage.getItem('keuangan_bills_selected_ay_id') ||
+        ''
+      );
+    } catch {
+      return '';
+    }
+  });
+
   // Data States
   const [cashAccounts, setCashAccounts] = useState([]);
+  const [fundBalancesData, setFundBalancesData] = useState(null);
+  const [fundCategoryFilter, setFundCategoryFilter] = useState('all'); // 'all' | 'fee_type' | 'budget_income_item' | 'opening_pool'
   const [coaList, setCoaList] = useState([]);
   const [transactionRules, setTransactionRules] = useState([]);
   const [feeTypes, setFeeTypes] = useState([]);
@@ -223,6 +243,13 @@ export default function MasterData() {
   const [historyItem, setHistoryItem] = useState(null);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Modal State Riwayat Mutasi Pos Dana
+  const [fundMutationsModalOpen, setFundMutationsModalOpen] = useState(false);
+  const [selectedFundForMutations, setSelectedFundForMutations] = useState(null);
+  const [fundMutationsList, setFundMutationsList] = useState([]);
+  const [loadingFundMutations, setLoadingFundMutations] = useState(false);
+  const [fundMutationError, setFundMutationError] = useState('');
 
   // Modal State Override Struktural Aturan Sistem
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
@@ -255,9 +282,80 @@ export default function MasterData() {
   const isYayasan = !activeSchoolUnit || activeSchoolUnit.id === 'all' || activeSchoolUnit.is_foundation || activeSchoolUnit.id === null;
   const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin_yayasan' || user?.is_super_admin || isYayasan;
 
-  const fetchTabData = async () => {
+  // 1. Fetch Academic Years with persistence
+  const fetchAcademicYears = async () => {
+    try {
+      const ayRes = await api.get('/akademik/academic-years').catch(() => null)
+        || await api.get('/akademik/internal/academic-years').catch(() => null);
+      const list = ayRes?.data?.data || ayRes?.data?.academic_years || [];
+      const unitIdNum = activeSchoolUnit?.id ? Number(activeSchoolUnit.id) : null;
+      let filtered = list;
+      if (unitIdNum && !isYayasan) {
+        filtered = list.filter(y => !y.satuan_pendidikan_id || Number(y.satuan_pendidikan_id) === unitIdNum);
+      }
+      const uniqueYears = [];
+      const seen = new Set();
+      filtered.forEach(y => {
+        if (!seen.has(y.name || y.id)) {
+          seen.add(y.name || y.id);
+          uniqueYears.push(y);
+        }
+      });
+      setAcademicYears(uniqueYears);
+
+      const saved = (() => {
+        try {
+          return (
+            localStorage.getItem('keuangan_master_selected_ay') ||
+            localStorage.getItem('keuangan_fee_schemes_selected_ay') ||
+            localStorage.getItem('keuangan_payments_selected_ay') ||
+            ''
+          );
+        } catch {
+          return '';
+        }
+      })();
+
+      const matchedSaved = uniqueYears.find(y => String(y.id) === String(saved));
+      const activeYear = uniqueYears.find(y => y.is_active) || uniqueYears[0];
+      const finalAyId = matchedSaved ? String(matchedSaved.id) : activeYear ? String(activeYear.id) : '';
+
+      if (finalAyId) {
+        setSelectedAcademicYearId(finalAyId);
+        try {
+          localStorage.setItem('keuangan_master_selected_ay', finalAyId);
+          localStorage.setItem('keuangan_fee_schemes_selected_ay', finalAyId);
+        } catch (_) {}
+      }
+      return finalAyId;
+    } catch (err) {
+      console.warn('Gagal memuat tahun ajaran:', err);
+      return '';
+    }
+  };
+
+  // Handle perubahan dropdown Tahun Ajaran
+  const handleAcademicYearChange = (newYearId) => {
+    setSelectedAcademicYearId(newYearId);
+    try {
+      localStorage.setItem('keuangan_master_selected_ay', String(newYearId));
+      localStorage.setItem('keuangan_fee_schemes_selected_ay', String(newYearId));
+      localStorage.setItem('keuangan_payments_selected_ay', String(newYearId));
+    } catch (e) {
+      console.warn('Gagal menyimpan pilihan tahun ajaran ke localStorage:', e);
+    }
+    fetchTabData(newYearId);
+  };
+
+  const selectedAcademicYearObj = useMemo(() => {
+    return academicYears.find((y) => String(y.id) === String(selectedAcademicYearId)) || null;
+  }, [academicYears, selectedAcademicYearId]);
+
+  // 2. Fetch Tab Data
+  const fetchTabData = async (targetAyId = null) => {
     setLoading(true);
     setErrorMsg('');
+    const ayParam = targetAyId || selectedAcademicYearId || undefined;
     try {
       if (activeTab === 'cash_accounts') {
         const [cashRes, coaRes] = await Promise.allSettled([
@@ -266,6 +364,15 @@ export default function MasterData() {
         ]);
         if (cashRes.status === 'fulfilled') setCashAccounts(cashRes.value.data?.data || []);
         if (coaRes.status === 'fulfilled') setCoaList(coaRes.value.data?.data || []);
+      } else if (activeTab === 'fund_sources') {
+        const [fundsRes, coaRes, catsRes] = await Promise.allSettled([
+          api.get('/keuangan/fund-balances', { params: { academic_year_id: ayParam } }),
+          api.get('/keuangan/chart-of-accounts'),
+          api.get('/keuangan/transaction-categories')
+        ]);
+        if (fundsRes.status === 'fulfilled') setFundBalancesData(fundsRes.value.data?.data || null);
+        if (coaRes.status === 'fulfilled') setCoaList(coaRes.value.data?.data || []);
+        if (catsRes.status === 'fulfilled') setCategories(catsRes.value.data?.data || []);
       } else if (activeTab === 'coa') {
         const res = await api.get('/keuangan/chart-of-accounts');
         setCoaList(res.data?.data || []);
@@ -306,10 +413,15 @@ export default function MasterData() {
     }
   };
 
-  // Load Data saat Tab Berubah
+  // Load Tahun Ajaran saat unit berubah
+  useEffect(() => {
+    fetchAcademicYears();
+  }, [activeSchoolUnit]);
+
+  // Load Data saat Tab atau Tahun Ajaran Berubah
   useEffect(() => {
     fetchTabData();
-  }, [activeTab, activeSchoolUnit]);
+  }, [activeTab, activeSchoolUnit, selectedAcademicYearId]);
 
   // Buka Modal Tambah Data Baru
   const openCreateModal = () => {
@@ -323,8 +435,15 @@ export default function MasterData() {
         bank_account_number: '',
         account_id: '',
         opening_balance: 0,
-        opening_date: new Date().toISOString().slice(0, 10),
+        opening_date: '2024-07-01',
         is_active: true,
+        edit_reason: ''
+      });
+    } else if (activeTab === 'fund_sources') {
+      setFormData({
+        name: '',
+        category_kind: 'special_income',
+        related_account_id: '',
         edit_reason: ''
       });
     } else if (activeTab === 'coa') {
@@ -391,7 +510,7 @@ export default function MasterData() {
       ...item,
       transaction_type: item.transaction_type || 'non_kas',
       opening_balance: item.opening_balance ?? 0,
-      opening_date: item.opening_date || new Date().toISOString().slice(0, 10),
+      opening_date: item.opening_date || '2024-07-01',
       default_cash_account_id: item.default_cash_account_id || '',
       related_fee_type_id: item.related_fee_type_id || '',
       related_transaction_category_id: item.related_transaction_category_id || '',
@@ -446,9 +565,35 @@ export default function MasterData() {
       });
       setHistoryLogs(res.data?.data || []);
     } catch (err) {
-      console.warn('Gagal memuat audit logs:', err);
+      console.warn('Gagal memuat log audit:', err);
+      setHistoryLogs([]);
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  // Buka Modal Riwayat Mutasi Pos Dana
+  const openFundMutationsModal = async (fund) => {
+    setSelectedFundForMutations(fund);
+    setFundMutationsModalOpen(true);
+    setLoadingFundMutations(true);
+    setFundMutationsList([]);
+    setFundMutationError('');
+    try {
+      const fundIdentifier = fund.id || `${fund.fund_type}:${fund.fund_ref_id || 0}`;
+      const res = await api.get(`/keuangan/fund-balances/${fundIdentifier}/mutations`, {
+        params: {
+          fund_type: fund.fund_type,
+          fund_ref_id: fund.fund_ref_id || 0,
+          academic_year_id: selectedAcademicYearId || undefined
+        }
+      });
+      setFundMutationsList(res.data?.data?.mutations || []);
+    } catch (err) {
+      console.warn('Gagal memuat mutasi pos dana:', err);
+      setFundMutationError(err.response?.data?.message || 'Belum ada rincian mutasi transaksi untuk pos dana ini.');
+    } finally {
+      setLoadingFundMutations(false);
     }
   };
 
@@ -464,6 +609,7 @@ export default function MasterData() {
     try {
       let endpoint = '';
       if (activeTab === 'cash_accounts') endpoint = '/keuangan/cash-accounts';
+      else if (activeTab === 'fund_sources') endpoint = '/keuangan/transaction-categories';
       else if (activeTab === 'coa') endpoint = '/keuangan/chart-of-accounts';
       else if (activeTab === 'transaction_rules') endpoint = '/keuangan/transaction-account-mappings';
       else if (activeTab === 'fee_types') endpoint = '/keuangan/fee-types';
@@ -642,21 +788,31 @@ export default function MasterData() {
   }, [coaList]);
 
   // Available groups for COA filter dropdown
+  // Available groups for COA filter dropdown
   const availableCoaGroups = useMemo(() => {
     const map = {};
     cleanCoaList.forEach((a) => {
       if (a.account_group) {
         const grpKey = a.account_group;
-        const meta = COA_GROUPS[grpKey] || { label: grpKey };
-        map[grpKey] = meta.label || grpKey;
+        const meta = COA_GROUPS[grpKey] || { label: grpKey, shortLabel: grpKey, order: 99 };
+        if (!map[grpKey]) {
+          map[grpKey] = {
+            key: grpKey,
+            label: meta.label || grpKey,
+            shortLabel: meta.shortLabel || meta.label || grpKey,
+            order: meta.order || 99,
+            count: 0
+          };
+        }
+        map[grpKey].count += 1;
       }
     });
-    return Object.entries(map).map(([key, label]) => ({ key, label }));
+    return Object.values(map).sort((a, b) => a.order - b.order);
   }, [cleanCoaList]);
 
   const filteredCashAccounts = filterList(cashAccounts, ['name', 'account_kind', 'bank_name', 'bank_account_number', 'account_code', 'account_name']);
 
-  // Filtered & Sorted COA List
+  // Filtered & Sorted COA List (Mengikuti Urutan Hirarki Standar Akuntansi)
   const filteredCoa = useMemo(() => {
     let list = [...cleanCoaList];
 
@@ -691,21 +847,31 @@ export default function MasterData() {
       list = list.filter((item) => Boolean(item.is_active) === targetActive);
     }
 
-    // 5. Sorting
+    // 5. Sorting Sesuai Pengelompokan Akun
     list.sort((a, b) => {
       let comp = 0;
-      if (coaSortField === 'account_code') {
-        const codeA = String(a.account_code || '');
-        const codeB = String(b.account_code || '');
-        comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true, sensitivity: 'base' });
+      if (coaSortField === 'account_group') {
+        const orderA = COA_GROUPS[a.account_group]?.order || 99;
+        const orderB = COA_GROUPS[b.account_group]?.order || 99;
+        comp = orderA - orderB;
+        if (comp === 0) {
+          const codeA = String(a.account_code || '');
+          const codeB = String(b.account_code || '');
+          comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true, sensitivity: 'base' });
+        }
+      } else if (coaSortField === 'account_code') {
+        const orderA = COA_GROUPS[a.account_group]?.order || 99;
+        const orderB = COA_GROUPS[b.account_group]?.order || 99;
+        comp = orderA - orderB;
+        if (comp === 0) {
+          const codeA = String(a.account_code || '');
+          const codeB = String(b.account_code || '');
+          comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true, sensitivity: 'base' });
+        }
       } else if (coaSortField === 'account_name') {
         const nameA = String(a.account_name || '');
         const nameB = String(b.account_name || '');
         comp = nameA.localeCompare(nameB, 'id-ID', { sensitivity: 'base' });
-      } else if (coaSortField === 'account_group') {
-        const grpA = String(COA_GROUPS[a.account_group]?.label || a.account_group || '');
-        const grpB = String(COA_GROUPS[b.account_group]?.label || b.account_group || '');
-        comp = grpA.localeCompare(grpB, 'id-ID', { sensitivity: 'base' });
       } else if (coaSortField === 'normal_balance') {
         const normA = (a.normal_balance || COA_GROUPS[a.account_group]?.normal || 'debit').toLowerCase();
         const normB = (b.normal_balance || COA_GROUPS[b.account_group]?.normal || 'debit').toLowerCase();
@@ -716,11 +882,16 @@ export default function MasterData() {
         comp = statB - statA; // active first by default
       }
 
-      // Tie breaker by account_code
-      if (comp === 0 && coaSortField !== 'account_code') {
-        const codeA = String(a.account_code || '');
-        const codeB = String(b.account_code || '');
-        comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true });
+      // Tie breaker by group order and then account_code
+      if (comp === 0 && coaSortField !== 'account_group' && coaSortField !== 'account_code') {
+        const orderA = COA_GROUPS[a.account_group]?.order || 99;
+        const orderB = COA_GROUPS[b.account_group]?.order || 99;
+        comp = orderA - orderB;
+        if (comp === 0) {
+          const codeA = String(a.account_code || '');
+          const codeB = String(b.account_code || '');
+          comp = codeA.localeCompare(codeB, 'id-ID', { numeric: true });
+        }
       }
 
       return coaSortOrder === 'asc' ? comp : -comp;
@@ -738,6 +909,24 @@ export default function MasterData() {
   const filteredFeeTypes = filterList(feeTypes, ['name', 'billing_pattern', 'description', 'revenue_account_name', 'revenue_account_code', 'billing_mapping_label', 'billing_mapping_code', 'payment_mapping_label', 'payment_mapping_code']);
   const filteredCategories = filterList(categories, ['name', 'category_kind', 'related_account_name']);
   const filteredAdjustments = filterList(feeAdjustments, ['student_name', 'fee_type_name', 'waiver_type']);
+
+  const filteredFundSources = useMemo(() => {
+    if (!fundBalancesData?.funds) return [];
+    let list = fundBalancesData.funds;
+    if (fundCategoryFilter !== 'all') {
+      list = list.filter((f) => f.fund_type === fundCategoryFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((f) =>
+        (f.name && f.name.toLowerCase().includes(q)) ||
+        (f.code && f.code.toLowerCase().includes(q)) ||
+        (f.category && f.category.toLowerCase().includes(q)) ||
+        (f.description && f.description.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [fundBalancesData, fundCategoryFilter, searchQuery]);
 
   const renderTypeBadge = (type) => {
     switch (type) {
@@ -804,10 +993,49 @@ export default function MasterData() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pengaturan dompet kas, bagan akun (COA), jenis tagihan, kategori transaksi &amp; beasiswa dengan perlindungan integritas audit
+            Pengaturan dompet kas, pos sumber dana, bagan akun (COA), jenis tagihan, kategori transaksi &amp; beasiswa dengan perlindungan integritas audit
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          {/* Dropdown Konteks Tahun Ajaran (Desain Enterprise Premium) */}
+          {academicYears.length > 0 && (
+            <div className="relative group shrink-0">
+              <div className="flex items-center gap-2.5 bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 hover:from-white hover:to-indigo-50/50 border border-slate-200/90 hover:border-indigo-300 rounded-xl px-3 py-1.5 shadow-2xs hover:shadow-xs transition-all duration-200">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-2xs">
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <div className="flex items-center gap-1.5 leading-none">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                      Tahun Ajaran
+                    </span>
+                    {selectedAcademicYearObj?.is_active && (
+                      <span className="inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-extrabold bg-emerald-100 text-emerald-800 leading-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        AKTIF
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative flex items-center mt-0.5">
+                    <select
+                      value={selectedAcademicYearId}
+                      onChange={(e) => handleAcademicYearChange(e.target.value)}
+                      className="appearance-none bg-transparent text-xs font-bold text-slate-800 pr-5 focus:outline-none cursor-pointer border-none py-0 select-none"
+                      title="Pilih Tahun Ajaran sebagai Konteks Data Keuangan (Pilihan tersimpan otomatis)"
+                    >
+                      {academicYears.map((ay) => (
+                        <option key={ay.id} value={String(ay.id)} className="font-sans text-slate-800 font-medium">
+                          T.A. {ay.name} {ay.is_active ? '★ (T.A. Aktif)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-0 pointer-events-none group-hover:text-indigo-600 transition-colors" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'cash_accounts' && (
             <>
               <button
@@ -832,7 +1060,7 @@ export default function MasterData() {
           )}
           <button
             type="button"
-            onClick={fetchTabData}
+            onClick={() => fetchTabData()}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition disabled:opacity-60"
             title="Muat ulang data master dari database"
@@ -846,7 +1074,9 @@ export default function MasterData() {
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Data Baru</span>
+            <span>
+              {activeTab === 'fund_sources' ? 'Tambah Sumber Dana Non-Tagihan' : 'Tambah Data Baru'}
+            </span>
           </button>
         </div>
       </div>
@@ -867,6 +1097,12 @@ export default function MasterData() {
             label: 'Jenis Kas',
             icon: Wallet,
             badge: 'Dompet & Rekening'
+          },
+          {
+            id: 'fund_sources',
+            label: 'Pos Sumber Dana',
+            icon: Layers,
+            badge: 'Alokasi & Saldo'
           },
           {
             id: 'coa',
@@ -968,6 +1204,54 @@ export default function MasterData() {
         </div>
       )}
 
+      {activeTab === 'fund_sources' && (
+        <div className="space-y-4">
+          {/* Summary Cards Pos Sumber Dana */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatRibbonCard
+              label="Total Saldo Siap Belanja"
+              value={formatCurrency(fundBalancesData?.summary?.total_fund_balance || 0)}
+              subvalue={`Dari ${fundBalancesData?.funds?.length || 0} pos sumber dana`}
+              status="success"
+              icon={Layers}
+            />
+            <StatRibbonCard
+              label="Saldo Bawaan Lalu (Carry-Over)"
+              value={formatCurrency(fundBalancesData?.summary?.total_prior_carry_over || 0)}
+              subvalue="Sisa saldo tahun ajaran sebelumnya"
+              status="info"
+              icon={History}
+            />
+            <StatRibbonCard
+              label="Penerimaan Tahun Ini"
+              value={formatCurrency(fundBalancesData?.summary?.total_current_year_in || 0)}
+              subvalue="Total mutasi kas masuk ke kantong"
+              status="neutral"
+              icon={ArrowDownLeft}
+            />
+            <StatRibbonCard
+              label="Pengeluaran Terpakai"
+              value={formatCurrency(fundBalancesData?.summary?.total_current_year_out || 0)}
+              subvalue="Total belanja dipotong dari pos dana"
+              status="warning"
+              icon={ArrowUpRight}
+            />
+          </div>
+
+          <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-900">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Pos Sumber Dana (Fund Accounting):</strong> Memisahkan asal-usul uang (SPP, BOS, Subsidi Yayasan, Usaha Kantin, Donasi) dan membatasi peruntukan belanjanya secara berkesinambungan lintas tahun ajaran.
+              </span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded shrink-0">
+              {fundBalancesData?.academic_year_name || (selectedAcademicYearObj ? `T.A. ${selectedAcademicYearObj.name}` : 'T.A. Berjalan')}
+            </span>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'transaction_rules' && (
         <div className="bg-slate-100/80 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-slate-600">
           <div className="flex items-center gap-2">
@@ -1009,6 +1293,7 @@ export default function MasterData() {
             <span>
               Menampilkan <strong className="text-slate-800 font-bold">
                 {activeTab === 'cash_accounts' && filteredCashAccounts.length}
+                {activeTab === 'fund_sources' && `${filteredFundSources.length} dari ${fundBalancesData?.funds?.length || 0}`}
                 {activeTab === 'coa' && `${filteredCoa.length} dari ${cleanCoaList.length}`}
                 {activeTab === 'transaction_rules' && filteredRules.length}
                 {activeTab === 'fee_types' && filteredFeeTypes.length}
@@ -1019,13 +1304,50 @@ export default function MasterData() {
           </div>
         </div>
 
+        {/* Khusus Tab Pos Sumber Dana: Filter Kategori Asal Bar */}
+        {activeTab === 'fund_sources' && (
+          <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 mr-1">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <span>Kelompok Sumber:</span>
+              </div>
+              {[
+                { key: 'all', label: 'Semua Pos Dana', count: fundBalancesData?.funds?.length || 0 },
+                { key: 'fee_type', label: 'Tagihan Siswa', count: fundBalancesData?.funds?.filter(f => f.fund_type === 'fee_type').length || 0 },
+                { key: 'budget_income_item', label: 'Non-Tagihan / RAPBS (BOS & Yayasan)', count: fundBalancesData?.funds?.filter(f => f.fund_type === 'budget_income_item' || f.fund_type === 'transaction_category').length || 0 },
+                { key: 'opening_pool', label: 'Kas Utama & Saldo Awal', count: fundBalancesData?.funds?.filter(f => f.fund_type === 'opening_pool').length || 0 },
+              ].map((c) => {
+                const isSelected = fundCategoryFilter === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setFundCategoryFilter(c.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{c.label}</span>
+                    <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                      {c.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Khusus Tab COA: Filter & Sort Controls Bar */}
         {activeTab === 'coa' && (
           <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 mr-1">
                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <span>Filter &amp; Sortir:</span>
+                <span>Filter:</span>
               </div>
 
               {/* Filter Kelompok Akun */}
@@ -1034,10 +1356,10 @@ export default function MasterData() {
                 onChange={(e) => setCoaGroupFilter(e.target.value)}
                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer"
               >
-                <option value="all">Semua Kelompok Akun</option>
+                <option value="all">Semua Kelompok Akun ({cleanCoaList.length})</option>
                 {availableCoaGroups.map((g) => (
                   <option key={g.key} value={g.key}>
-                    {g.label}
+                    {g.label} ({g.count})
                   </option>
                 ))}
               </select>
@@ -1065,7 +1387,7 @@ export default function MasterData() {
               </select>
 
               {/* Reset Filter Button */}
-              {(coaGroupFilter !== 'all' || coaBalanceFilter !== 'all' || coaStatusFilter !== 'all' || searchQuery || coaSortField !== 'account_code' || coaSortOrder !== 'asc') && (
+              {(coaGroupFilter !== 'all' || coaBalanceFilter !== 'all' || coaStatusFilter !== 'all' || searchQuery || coaSortField !== 'account_group' || coaSortOrder !== 'asc') && (
                 <button
                   type="button"
                   onClick={handleResetCoaFilters}
@@ -1089,17 +1411,55 @@ export default function MasterData() {
                 }}
                 className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none cursor-pointer shadow-2xs"
               >
+                <option value="account_group-asc">Kelompok Akun Standar (1 - 7)</option>
                 <option value="account_code-asc">Kode Akun (0 - 9)</option>
                 <option value="account_code-desc">Kode Akun (9 - 0)</option>
                 <option value="account_name-asc">Nama Akun (A - Z)</option>
                 <option value="account_name-desc">Nama Akun (Z - A)</option>
-                <option value="account_group-asc">Kelompok Akun (A - Z)</option>
-                <option value="account_group-desc">Kelompok Akun (Z - A)</option>
                 <option value="normal_balance-asc">Saldo Normal (Debit - Kredit)</option>
                 <option value="normal_balance-desc">Saldo Normal (Kredit - Debit)</option>
                 <option value="is_active-asc">Status (Aktif Terlebih Dahulu)</option>
                 <option value="is_active-desc">Status (Nonaktif Terlebih Dahulu)</option>
               </select>
+            </div>
+
+            {/* Quick Horizontal Group Tabs */}
+            <div className="w-full pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto pb-0.5 custom-scrollbar">
+              <button
+                type="button"
+                onClick={() => setCoaGroupFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  coaGroupFilter === 'all'
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <span>Semua Kelompok</span>
+                <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${coaGroupFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                  {cleanCoaList.length}
+                </span>
+              </button>
+
+              {availableCoaGroups.map((g) => {
+                const isSelected = coaGroupFilter === g.key;
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => setCoaGroupFilter(g.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shrink-0 border ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{g.label}</span>
+                    <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                      {g.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1265,6 +1625,140 @@ export default function MasterData() {
               </table>
             )}
 
+            {/* 1b. TAB POS SUMBER DANA (FUND BALANCES & MULTI-YEAR TRACKING) */}
+            {activeTab === 'fund_sources' && (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-5 py-3">Pos Sumber Dana</th>
+                    <th className="px-5 py-3">Kelompok Asal</th>
+                    <th className="px-5 py-3 text-right">Saldo Bawaan Lalu</th>
+                    <th className="px-5 py-3 text-right">Penerimaan (Inflow)</th>
+                    <th className="px-5 py-3 text-right">Pengeluaran (Outflow)</th>
+                    <th className="px-5 py-3 text-right">Saldo Tersedia</th>
+                    <th className="px-5 py-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Aksi &amp; Mutasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredFundSources.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-5 py-8 text-center text-slate-400">
+                        Tidak ada data pos sumber dana yang sesuai.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredFundSources.map((item, idx) => {
+                      const isOpeningPool = item.fund_type === 'opening_pool';
+                      const isFeeType = item.fund_type === 'fee_type';
+                      return (
+                        <tr key={item.id || `${item.fund_type}_${item.fund_ref_id}_${idx}`} className="hover:bg-slate-50/60 transition">
+                          <td className="px-5 py-3.5 font-bold text-slate-800">
+                            <div className="flex items-start gap-2.5">
+                              <div className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-700 shrink-0 mt-0.5">
+                                <Layers className="w-3.5 h-3.5" />
+                              </div>
+                              <div>
+                                <div className="text-slate-800 font-bold">{item.name}</div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1 py-0.2 rounded">
+                                    {item.code}
+                                  </span>
+                                  {item.description && (
+                                    <span className="text-[10px] text-slate-400 truncate max-w-xs" title={item.description}>
+                                      {item.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                isOpeningPool
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
+                                  : isFeeType
+                                  ? 'bg-blue-50 text-indigo-700 border border-blue-200/60'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                              }`}
+                            >
+                              {item.category || (isOpeningPool ? 'Kas Utama' : isFeeType ? 'Tagihan Siswa' : 'Penerimaan Lain')}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-semibold text-slate-600">
+                            {formatCurrency(item.prior_years_carry_over || 0)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600">
+                            +{formatCurrency(item.current_year_in || item.total_in || 0)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-mono font-bold text-rose-600">
+                            -{formatCurrency(item.current_year_out || item.total_out || 0)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <span className="font-mono font-bold text-slate-900 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-2 py-1 rounded-lg text-xs inline-block">
+                              {formatCurrency(item.balance || 0)}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* Tombol Lihat Mutasi Pos Dana */}
+                              <button
+                                type="button"
+                                onClick={() => openFundMutationsModal(item)}
+                                title="Lihat Rincian Mutasi Keluar/Masuk Pos Dana Ini"
+                                className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-lg border border-indigo-200/60 transition"
+                              >
+                                <History className="w-3.5 h-3.5" />
+                                <span>Mutasi</span>
+                              </button>
+
+                              {/* Tombol Edit jika non-tagihan */}
+                              {!isOpeningPool && !isFeeType && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cat = categories.find(c => c.name === item.name || c.id === item.fund_ref_id);
+                                    if (cat) openEditModal(cat);
+                                    else alert('Pos dana ini terintegrasi dengan RAPBS.');
+                                  }}
+                                  title="Ubah Konfigurasi Pos Dana"
+                                  className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                {filteredFundSources.length > 0 && (
+                  <tfoot className="bg-slate-50/90 border-t-2 border-slate-200 font-bold text-slate-800 text-xs">
+                    <tr>
+                      <td colSpan="2" className="px-5 py-3.5 text-slate-600 uppercase tracking-wider">
+                        Total ({filteredFundSources.length} Pos Sumber Dana)
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono text-slate-600">
+                        {formatCurrency(filteredFundSources.reduce((sum, item) => sum + (parseFloat(item.prior_years_carry_over) || 0), 0))}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono text-emerald-600">
+                        +{formatCurrency(filteredFundSources.reduce((sum, item) => sum + (parseFloat(item.current_year_in || item.total_in) || 0), 0))}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono text-rose-600">
+                        -{formatCurrency(filteredFundSources.reduce((sum, item) => sum + (parseFloat(item.current_year_out || item.total_out) || 0), 0))}
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono text-emerald-800 font-extrabold text-sm">
+                        {formatCurrency(filteredFundSources.reduce((sum, item) => sum + (parseFloat(item.balance) || 0), 0))}
+                      </td>
+                      <td className="px-5 py-3.5"></td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            )}
+
             {/* 2. TAB BAGAN AKUN (COA) */}
             {activeTab === 'coa' && (
               <table className="w-full text-left text-xs">
@@ -1351,13 +1845,42 @@ export default function MasterData() {
                       </td>
                     </tr>
                   ) : (
-                    filteredCoa.map((item) => {
-                      const grp = COA_GROUPS[item.account_group] || { label: item.account_group, bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+                    filteredCoa.map((item, idx) => {
+                      const grp = COA_GROUPS[item.account_group] || { label: item.account_group, bg: 'bg-slate-100 text-slate-700 border-slate-200', headerBg: 'bg-slate-100 text-slate-900 border-slate-200' };
                       const normal = item.normal_balance || grp.normal || 'debit';
                       const isHeader = ['101', '102', '103', '105', '200', '301', '302', '303', '304', '305', '306', '307', '308', '690', '800'].includes(String(item.account_code));
 
+                      // Cek awal kelompok akun baru
+                      const prevItem = idx > 0 ? filteredCoa[idx - 1] : null;
+                      const isNewGroup = !prevItem || prevItem.account_group !== item.account_group;
+                      const groupCount = filteredCoa.filter(x => x.account_group === item.account_group).length;
+
                       return (
-                        <tr key={item.id} className={`transition ${isHeader ? 'bg-slate-100/70 font-semibold border-t-2 border-slate-200' : 'hover:bg-slate-50/60'}`}>
+                        <React.Fragment key={item.id}>
+                          {isNewGroup && (coaSortField === 'account_group' || coaGroupFilter === 'all') && (
+                            <tr className={`border-t-2 border-b font-semibold select-none ${grp.headerBg || 'bg-slate-100 text-slate-800 border-slate-300'}`}>
+                              <td colSpan="6" className="px-5 py-2.5">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                                    <span className="font-bold text-xs uppercase tracking-wider text-slate-900">
+                                      {grp.label}
+                                    </span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-slate-300 text-slate-800 shadow-2xs">
+                                      {groupCount} Akun
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-600 flex items-center gap-2">
+                                    <span>Saldo Normal:</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${grp.bg}`}>
+                                      {(grp.normal || normal || 'debit').toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          <tr className={`transition ${isHeader ? 'bg-slate-100/70 font-semibold border-t-2 border-slate-200' : 'hover:bg-slate-50/60'}`}>
                           <td className="px-5 py-3.5 font-mono text-xs">
                             <span className={isHeader ? 'font-mono font-black text-slate-900' : item.level === 2 ? 'pl-3 font-mono font-medium text-emerald-600' : 'font-mono font-bold text-emerald-800'}>
                               {item.account_code}
@@ -1429,9 +1952,10 @@ export default function MasterData() {
                             </div>
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
+                      </React.Fragment>
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             )}
@@ -2224,6 +2748,51 @@ export default function MasterData() {
                       </div>
                     </div>
                   )}
+                </>
+              )}
+
+              {/* Form Input Tab: Pos Sumber Dana Non-Tagihan */}
+              {activeTab === 'fund_sources' && (
+                <>
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+                    <p className="font-semibold flex items-center gap-1.5 mb-0.5">
+                      <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                      Tambah Pos Sumber Dana Non-Tagihan
+                    </p>
+                    <p className="text-[11px] text-emerald-700">
+                      Gunakan form ini untuk mendaftarkan pos penerimaan rutin/khusus seperti <strong>Dana BOS, Subsidi Yayasan, Unit Usaha Kantin, Donasi/Infaq</strong>. Pos dana tagihan siswa dikelola otomatis melalui tab <em>Jenis Biaya Tagihan</em>.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Pos Sumber Dana *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Contoh: Dana BOS Kemenag Reguler / Subsidi Operasional Yayasan / Pendapatan Kantin"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Akun Pendapatan Terkait (COA) *</label>
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: '-- Pilih Akun Pendapatan --', sublabel: 'COA Kelompok 6. Pendapatan' },
+                        ...cleanCoaList
+                          .filter(a => a.account_group === 'pendapatan' || a.account_group === 'revenue' || String(a.account_code).startsWith('4') || String(a.account_code).startsWith('6'))
+                          .map((a) => ({
+                            value: a.id,
+                            label: `[${a.account_code}] ${a.account_name}`,
+                            sublabel: `Kelompok: ${(a.account_group || '').toUpperCase()}`
+                          }))
+                      ]}
+                      value={formData.related_account_id || ''}
+                      onChange={(val) => setFormData({ ...formData, related_account_id: val ? Number(val) : '' })}
+                      placeholder="-- Pilih Akun Pendapatan --"
+                      searchPlaceholder="Cari akun pendapatan..."
+                    />
+                  </div>
                 </>
               )}
 
@@ -3309,6 +3878,123 @@ export default function MasterData() {
               <button
                 type="button"
                 onClick={() => setTransferHistoryOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Riwayat Mutasi Pos Dana */}
+      {fundMutationsModalOpen && selectedFundForMutations && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col border border-slate-100 overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-50 border border-indigo-200/60 text-indigo-700">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>Mutasi: {selectedFundForMutations.name}</span>
+                    <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                      {selectedFundForMutations.code}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Total Saldo Tersedia: <strong className="text-emerald-700 font-mono">{formatCurrency(selectedFundForMutations.balance || 0)}</strong>
+                    {selectedFundForMutations.prior_years_carry_over > 0 && (
+                      <span className="ml-2 text-slate-400 font-normal">
+                        (Termasuk sisa bawaan lalu: {formatCurrency(selectedFundForMutations.prior_years_carry_over)})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFundMutationsModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+              {loadingFundMutations ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2">
+                  <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+                  <p className="text-xs text-slate-400">Memuat rincian mutasi pos dana...</p>
+                </div>
+              ) : fundMutationError ? (
+                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-600">{fundMutationError}</p>
+                </div>
+              ) : fundMutationsList.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <History className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-600">Belum ada mutasi tercatat pada pos dana ini</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Semua transaksi penerimaan (inflow) dan belanja (outflow) yang memotong pos dana ini akan otomatis terekam di sini.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3">Waktu / Tanggal</th>
+                      <th className="px-4 py-3">Arah Mutasi</th>
+                      <th className="px-4 py-3 text-right">Nominal</th>
+                      <th className="px-4 py-3 text-right">Saldo Setelah</th>
+                      <th className="px-4 py-3">Keterangan / Sumber Transaksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {fundMutationsList.map((m, idx) => (
+                      <tr key={m.id || idx} className="hover:bg-slate-50/60 transition">
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          {formatDateTime(m.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {m.direction === 'in' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <ArrowDownLeft className="w-3 h-3 text-emerald-600" /> Kas Masuk (Inflow)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <ArrowUpRight className="w-3 h-3 text-rose-600" /> Belanja Keluar (Outflow)
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold">
+                          <span className={m.direction === 'in' ? 'text-emerald-700' : 'text-rose-700'}>
+                            {m.direction === 'in' ? '+' : '-'}{formatCurrency(m.amount)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-semibold text-slate-800">
+                          {formatCurrency(m.balance_after)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <p className="line-clamp-2">{m.notes || '-'}</p>
+                          {m.source_table && (
+                            <span className="text-[10px] text-slate-400 font-mono">Sumber: {m.source_table} #{m.source_id || ''}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <span className="text-xs text-slate-400">Total {fundMutationsList.length} riwayat mutasi dana</span>
+              <button
+                type="button"
+                onClick={() => setFundMutationsModalOpen(false)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shadow-xs transition"
               >
                 Tutup

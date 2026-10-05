@@ -6,15 +6,17 @@ const db = require('../../../config/db/kantin');
 
 class ReportsService {
   async getProductsReport(schoolUnitId, query = {}) {
-    const products = await db('vendor_products')
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let pQuery = db('vendor_products')
       .leftJoin('vendors', 'vendor_products.vendor_id', 'vendors.id')
-      .leftJoin('product_categories', 'vendor_products.product_category_id', 'product_categories.id')
-      .where('vendor_products.school_unit_id', schoolUnitId)
-      .select(
-        'vendor_products.*',
-        'vendors.vendor_name as vendor',
-        'product_categories.category_name as category'
-      );
+      .leftJoin('product_categories', 'vendor_products.product_category_id', 'product_categories.id');
+    if (!isAll) pQuery = pQuery.where('vendor_products.school_unit_id', schoolUnitId);
+
+    const products = await pQuery.select(
+      'vendor_products.*',
+      'vendors.vendor_name as vendor',
+      'product_categories.category_name as category'
+    );
 
     const result = [];
     for (const p of products) {
@@ -66,7 +68,10 @@ class ReportsService {
   }
 
   async getVendorsReport(schoolUnitId, query = {}) {
-    const vendors = await db('vendors').where('school_unit_id', schoolUnitId);
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let vQuery = db('vendors');
+    if (!isAll) vQuery = vQuery.where('school_unit_id', schoolUnitId);
+    const vendors = await vQuery;
 
     const result = [];
     for (const v of vendors) {
@@ -79,8 +84,9 @@ class ReportsService {
         .first();
 
       // Hitung pembayaran hak vendor
-      const paidRow = await db('vendor_fee_payments')
-        .where({ vendor_id: v.id, school_unit_id: schoolUnitId })
+      let paidQuery = db('vendor_fee_payments').where({ vendor_id: v.id });
+      if (!isAll) paidQuery = paidQuery.where('school_unit_id', schoolUnitId);
+      const paidRow = await paidQuery
         .sum('amount as total_paid')
         .first();
 
@@ -110,20 +116,24 @@ class ReportsService {
   }
 
   async getCashReport(schoolUnitId, query = {}) {
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
     const { date_from, date_to } = query;
 
-    let topUpQ = db('wallet_transactions')
-      .where({ school_unit_id: schoolUnitId, transaction_type: 'top_up' });
-    let withdrawQ = db('wallet_transactions')
-      .where({ school_unit_id: schoolUnitId, transaction_type: 'withdrawal' });
-    let salesCashQ = db('sales_transactions')
-      .where({ school_unit_id: schoolUnitId, payment_method: 'cash' });
-    let expensesQ = db('operational_expenses')
-      .where('school_unit_id', schoolUnitId);
-    let canteenFeePaidQ = db('canteen_fee_payments')
-      .where('school_unit_id', schoolUnitId);
-    let vendorFeePaidQ = db('vendor_fee_payments')
-      .where('school_unit_id', schoolUnitId);
+    let topUpQ = db('wallet_transactions').where('transaction_type', 'top_up');
+    let withdrawQ = db('wallet_transactions').where('transaction_type', 'withdrawal');
+    let salesCashQ = db('sales_transactions').where('payment_method', 'cash');
+    let expensesQ = db('operational_expenses');
+    let canteenFeePaidQ = db('canteen_fee_payments');
+    let vendorFeePaidQ = db('vendor_fee_payments');
+
+    if (!isAll) {
+      topUpQ = topUpQ.where('school_unit_id', schoolUnitId);
+      withdrawQ = withdrawQ.where('school_unit_id', schoolUnitId);
+      salesCashQ = salesCashQ.where('school_unit_id', schoolUnitId);
+      expensesQ = expensesQ.where('school_unit_id', schoolUnitId);
+      canteenFeePaidQ = canteenFeePaidQ.where('school_unit_id', schoolUnitId);
+      vendorFeePaidQ = vendorFeePaidQ.where('school_unit_id', schoolUnitId);
+    }
 
     if (date_from) {
       topUpQ = topUpQ.where('occurred_at', '>=', date_from);
@@ -174,18 +184,21 @@ class ReportsService {
   }
 
   async getMonthlyReport(schoolUnitId, query = {}) {
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
     const month = query.month || new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
-    const salesRow = await db('sales_transactions')
-      .where('school_unit_id', schoolUnitId)
-      .whereRaw('DATE_FORMAT(transaction_at, "%Y-%m") = ?', [month])
+    let salesQ = db('sales_transactions')
+      .whereRaw('DATE_FORMAT(transaction_at, "%Y-%m") = ?', [month]);
+    if (!isAll) salesQ = salesQ.where('school_unit_id', schoolUnitId);
+    const salesRow = await salesQ
       .count('id as total_transactions')
       .sum('total_amount as total_revenue')
       .first();
 
-    const expensesRow = await db('operational_expenses')
-      .where('school_unit_id', schoolUnitId)
-      .whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [month])
+    let expensesQ = db('operational_expenses')
+      .whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [month]);
+    if (!isAll) expensesQ = expensesQ.where('school_unit_id', schoolUnitId);
+    const expensesRow = await expensesQ
       .sum('amount as total_expenses')
       .first();
 
@@ -202,12 +215,15 @@ class ReportsService {
   }
 
   async getMonthlySpending(schoolUnitId, query = {}) {
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
     const month = query.month || new Date().toISOString().slice(0, 7);
 
-    const students = await db('sales_transactions')
+    let spendingQ = db('sales_transactions')
       .join('canteen_students', 'sales_transactions.canteen_student_id', 'canteen_students.id')
-      .where('sales_transactions.school_unit_id', schoolUnitId)
-      .whereRaw('DATE_FORMAT(sales_transactions.transaction_at, "%Y-%m") = ?', [month])
+      .whereRaw('DATE_FORMAT(sales_transactions.transaction_at, "%Y-%m") = ?', [month]);
+    if (!isAll) spendingQ = spendingQ.where('sales_transactions.school_unit_id', schoolUnitId);
+
+    const students = await spendingQ
       .groupBy('canteen_students.student_id', 'canteen_students.cached_student_name', 'canteen_students.cached_class_group_name')
       .select(
         'canteen_students.student_id',

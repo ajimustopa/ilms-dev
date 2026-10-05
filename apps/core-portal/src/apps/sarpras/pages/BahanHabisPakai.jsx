@@ -1,26 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
+import DataTable from '../../../shared/components/DataTable';
+import FilterBar from '../../../shared/components/FilterBar';
+import Modal from '../../../shared/components/Modal';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
   Archive,
   Plus,
   ArrowUpRight,
   ArrowDownLeft,
   ClipboardList,
-  AlertTriangle,
-  CheckCircle,
-  Search,
-  Loader2,
   Check,
-  History,
-  Lock
+  Loader2
 } from 'lucide-react';
 
 export default function BahanHabisPakai() {
-  const [activeTab, setActiveTab] = useState('items'); // 'items', 'opname', 'mutations'
+  const [activeTab, setActiveTab] = useState('items'); // 'items', 'opname'
   const [items, setItems] = useState([]);
   const [opnames, setOpnames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   // Modals
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -46,8 +47,8 @@ export default function BahanHabisPakai() {
         api.get('/sarpras/consumables'),
         api.get('/sarpras/stock-opnames')
       ]);
-      if (itemsRes.data.success) setItems(itemsRes.data.data);
-      if (opnameRes.data.success) setOpnames(opnameRes.data.data);
+      if (itemsRes.data?.success) setItems(itemsRes.data.data || []);
+      if (opnameRes.data?.success) setOpnames(opnameRes.data.data || []);
     } catch (err) {
       console.error('Error fetching consumables:', err);
     } finally {
@@ -77,11 +78,11 @@ export default function BahanHabisPakai() {
     setSubmitting(true);
     try {
       await api.post('/sarpras/consumables', itemFormData);
-      setMessage({ type: 'success', text: 'Item bahan habis pakai berhasil ditambahkan' });
+      setMessage({ type: 'emerald', title: 'Berhasil', text: 'Item bahan habis pakai berhasil didaftarkan' });
       setItemModalOpen(false);
       fetchData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -105,13 +106,14 @@ export default function BahanHabisPakai() {
 
       await api.post(endpoint, mutationFormData);
       setMessage({
-        type: 'success',
+        type: 'emerald',
+        title: 'Berhasil',
         text: `Stok ${mutationType === 'in' ? 'masuk' : 'keluar'} berhasil dicatat`
       });
       setMutationModalOpen(false);
       fetchData();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -125,20 +127,20 @@ export default function BahanHabisPakai() {
         opname_date: new Date().toISOString().split('T')[0],
         notes: 'Sesi Stock Opname Sarpras'
       });
-      if (res.data.success) {
-        setMessage({ type: 'success', text: 'Sesi stock opname berhasil dimulai' });
+      if (res.data?.success) {
+        setMessage({ type: 'emerald', title: 'Berhasil', text: 'Sesi stock opname berhasil dimulai' });
         fetchData();
         openOpnameDetail(res.data.data);
       }
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
 
   const openOpnameDetail = async (opname) => {
     try {
       const res = await api.get(`/sarpras/stock-opnames/${opname.id}`);
-      if (res.data.success) {
+      if (res.data?.success) {
         const data = res.data.data;
         setSelectedOpname(data);
         const inputs = {};
@@ -149,7 +151,7 @@ export default function BahanHabisPakai() {
         setOpnameModalOpen(true);
       }
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
 
@@ -164,10 +166,10 @@ export default function BahanHabisPakai() {
       await api.put(`/sarpras/stock-opnames/${selectedOpname.id}/items`, {
         items: itemsPayload
       });
-      setMessage({ type: 'success', text: 'Data hitungan fisik berhasil disimpan' });
+      setMessage({ type: 'emerald', title: 'Tersimpan', text: 'Data hitungan fisik berhasil disimpan' });
       openOpnameDetail(selectedOpname);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -178,15 +180,161 @@ export default function BahanHabisPakai() {
     setSubmitting(true);
     try {
       await api.post(`/sarpras/stock-opnames/${selectedOpname.id}/finalize`);
-      setMessage({ type: 'success', text: 'Stock opname berhasil difinalisasi dan stok barang telah diperbarui' });
+      setMessage({ type: 'emerald', title: 'Selesai', text: 'Stock opname berhasil difinalisasi dan master stok telah diperbarui' });
       setOpnameModalOpen(false);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Filtered items
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = !search ||
+        item.name?.toLowerCase().includes(search.toLowerCase()) ||
+        item.item_code?.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !categoryFilter || item.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, search, categoryFilter]);
+
+  // Unique categories for filter
+  const categories = useMemo(() => {
+    const set = new Set(items.map(i => i.category).filter(Boolean));
+    return Array.from(set);
+  }, [items]);
+
+  // Columns for Items DataTable
+  const itemColumns = useMemo(() => [
+    {
+      key: 'item_code',
+      header: 'Kode Barang',
+      sortable: true,
+      className: 'w-36 font-mono font-bold text-slate-800',
+      render: (row) => row.item_code
+    },
+    {
+      key: 'name',
+      header: 'Nama Barang',
+      sortable: true,
+      render: (row) => (
+        <div>
+          <div className="font-semibold text-slate-800">{row.name}</div>
+          <div className="text-[11px] text-slate-400 capitalize">{row.category || 'Umum'}</div>
+        </div>
+      )
+    },
+    {
+      key: 'minimum_stock',
+      header: 'Stok Minimal',
+      sortable: true,
+      align: 'right',
+      className: 'num-cell text-slate-500 font-medium',
+      render: (row) => `${row.minimum_stock} ${row.unit || 'pcs'}`
+    },
+    {
+      key: 'current_stock',
+      header: 'Stok Saat Ini',
+      sortable: true,
+      align: 'right',
+      className: 'num-cell font-bold text-slate-800',
+      render: (row) => {
+        const isLow = Number(row.current_stock) <= Number(row.minimum_stock);
+        return (
+          <span className={isLow ? 'text-rose-600' : 'text-slate-800'}>
+            {row.current_stock} {row.unit || 'pcs'}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      className: 'w-28 text-center',
+      render: (row) => {
+        const isLow = Number(row.current_stock) <= Number(row.minimum_stock);
+        return <StatusPill status={isLow ? 'menipis' : 'aman'} />;
+      }
+    },
+    {
+      key: 'actions',
+      header: 'Mutasi Cepat',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-36 text-right bg-white',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => openMutationModal(row, 'in')}
+            className="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+            title="Catat Stok Masuk"
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Masuk</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openMutationModal(row, 'out')}
+            className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+            title="Catat Stok Keluar"
+          >
+            <ArrowDownLeft className="w-3.5 h-3.5" />
+            <span>Keluar</span>
+          </button>
+        </div>
+      )
+    }
+  ], []);
+
+  // Columns for Opname DataTable
+  const opnameColumns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'ID Sesi',
+      sortable: true,
+      className: 'w-32 font-mono font-bold text-slate-800',
+      render: (row) => `OPN-#${row.id}`
+    },
+    {
+      key: 'opname_date',
+      header: 'Tanggal Opname',
+      sortable: true,
+      render: (row) => <span className="font-medium text-slate-800">{row.opname_date}</span>
+    },
+    {
+      key: 'notes',
+      header: 'Keterangan',
+      render: (row) => <span className="text-slate-600">{row.notes || '-'}</span>
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      className: 'w-28 text-center',
+      render: (row) => <StatusPill status={row.status || 'draft'} />
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-28 text-right bg-white',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => openOpnameDetail(row)}
+          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+        >
+          {row.status === 'draft' ? 'Input Fisik' : 'Lihat Rekap'}
+        </button>
+      )
+    }
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -202,8 +350,9 @@ export default function BahanHabisPakai() {
         <div className="flex items-center gap-2">
           {activeTab === 'items' && (
             <button
+              type="button"
               onClick={openCreateItemModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white shadow-2xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Item BHP</span>
@@ -211,8 +360,9 @@ export default function BahanHabisPakai() {
           )}
           {activeTab === 'opname' && (
             <button
+              type="button"
               onClick={handleStartOpname}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white shadow-2xs transition cursor-pointer"
             >
               <ClipboardList className="w-4 h-4" />
               <span>Mulai Sesi Opname Baru</span>
@@ -222,21 +372,23 @@ export default function BahanHabisPakai() {
       </div>
 
       {message && (
-        <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="font-bold ml-4">&times;</button>
-        </div>
+        <FlatAlertBanner
+          variant={message.type}
+          title={message.title}
+          onClose={() => setMessage(null)}
+        >
+          {message.text}
+        </FlatAlertBanner>
       )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200">
         <button
+          type="button"
           onClick={() => setActiveTab('items')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'items'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -244,10 +396,11 @@ export default function BahanHabisPakai() {
           <span>Master Persediaan Barang ({items.length})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('opname')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'opname'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -258,398 +411,306 @@ export default function BahanHabisPakai() {
 
       {/* Tab 1: Master Items Table */}
       {activeTab === 'items' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="px-4 py-3">Kode Barang</th>
-                  <th className="px-4 py-3">Nama Barang</th>
-                  <th className="px-4 py-3">Kategori</th>
-                  <th className="px-4 py-3 text-center">Stok Minimal</th>
-                  <th className="px-4 py-3 text-center">Stok Saat Ini</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Mutasi Cepat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.length > 0 ? (
-                  items.map((item) => {
-                    const isLow = Number(item.current_stock) <= Number(item.minimum_stock);
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50 transition">
-                        <td className="px-4 py-3 font-mono font-bold text-indigo-600">{item.item_code}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{item.name}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700">
-                            {item.category || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center text-slate-500 font-medium">
-                          {item.minimum_stock} {item.unit}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`font-bold ${isLow ? 'text-rose-600' : 'text-slate-800'}`}>
-                            {item.current_stock} {item.unit}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {isLow ? (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" />
-                              <span>Menipis</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" />
-                              <span>Aman</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => openMutationModal(item, 'in')}
-                              className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition"
-                              title="Catat Stok Masuk"
-                            >
-                              <ArrowUpRight className="w-3 h-3" />
-                              <span>Masuk</span>
-                            </button>
-                            <button
-                              onClick={() => openMutationModal(item, 'out')}
-                              className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition"
-                              title="Catat Stok Keluar"
-                            >
-                              <ArrowDownLeft className="w-3 h-3" />
-                              <span>Keluar</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-slate-400">
-                      Belum ada master bahan habis pakai
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-4">
+          <FilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Cari kode atau nama barang BHP..."
+            filters={[
+              {
+                id: 'category',
+                label: 'Kategori',
+                type: 'select',
+                value: categoryFilter,
+                defaultValue: '',
+                options: [
+                  { label: 'Semua Kategori', value: '' },
+                  ...categories.map(c => ({ label: c, value: c }))
+                ]
+              }
+            ]}
+            onFilterChange={(_, val) => setCategoryFilter(val)}
+            onReset={() => { setSearch(''); setCategoryFilter(''); }}
+          />
+
+          <DataTable
+            columns={itemColumns}
+            data={filteredItems}
+            loading={loading}
+            emptyTitle="Tidak Ada Bahan Habis Pakai"
+            emptyDescription="Belum ada data barang atau filter pencarian tidak menemukan hasil."
+          />
         </div>
       )}
 
       {/* Tab 2: Stock Opnames List */}
       {activeTab === 'opname' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
+        <DataTable
+          columns={opnameColumns}
+          data={opnames}
+          loading={loading}
+          emptyTitle="Belum Ada Sesi Opname"
+          emptyDescription="Klik 'Mulai Sesi Opname Baru' untuk melakukan rekonsiliasi stok fisik."
+        />
+      )}
+
+      {/* Modal Tambah Item BHP */}
+      <Modal
+        isOpen={itemModalOpen}
+        onClose={() => setItemModalOpen(false)}
+        title="Tambah Master Bahan Habis Pakai"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setItemModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-item-bhp"
+              disabled={submitting}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Item</span>
+            </button>
+          </div>
+        }
+      >
+        <form id="form-item-bhp" onSubmit={handleSaveItem} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Kode Barang *</label>
+              <input
+                type="text"
+                required
+                value={itemFormData.item_code || ''}
+                onChange={(e) => setItemFormData({ ...itemFormData, item_code: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+              <input
+                type="text"
+                value={itemFormData.category || ''}
+                onChange={(e) => setItemFormData({ ...itemFormData, category: e.target.value })}
+                placeholder="ATK / Kebersihan"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Barang *</label>
+            <input
+              type="text"
+              required
+              value={itemFormData.name || ''}
+              onChange={(e) => setItemFormData({ ...itemFormData, name: e.target.value })}
+              placeholder="Contoh: Kertas A4 70gr"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Satuan *</label>
+              <input
+                type="text"
+                required
+                value={itemFormData.unit || 'pcs'}
+                onChange={(e) => setItemFormData({ ...itemFormData, unit: e.target.value })}
+                placeholder="rim / botol"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Stok Minimal</label>
+              <input
+                type="number"
+                value={itemFormData.minimum_stock || 0}
+                onChange={(e) => setItemFormData({ ...itemFormData, minimum_stock: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Stok Awal</label>
+              <input
+                type="number"
+                value={itemFormData.current_stock || 0}
+                onChange={(e) => setItemFormData({ ...itemFormData, current_stock: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Mutasi Masuk / Keluar */}
+      <Modal
+        isOpen={mutationModalOpen}
+        onClose={() => setMutationModalOpen(false)}
+        title={`Catat Stok ${mutationType === 'in' ? 'Masuk (Pasokan)' : 'Keluar (Pemakaian)'}`}
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setMutationModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-mutate-bhp"
+              disabled={submitting}
+              className={`px-4 py-2 text-white rounded-lg text-xs font-semibold transition cursor-pointer ${
+                mutationType === 'in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+              }`}
+            >
+              Simpan Mutasi
+            </button>
+          </div>
+        }
+      >
+        <div className="mb-4 text-xs text-slate-500">
+          Barang: <strong className="text-slate-800">{targetItem?.name}</strong> (Stok saat ini: {targetItem?.current_stock} {targetItem?.unit})
+        </div>
+
+        <form id="form-mutate-bhp" onSubmit={handleMutationSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Jumlah ({targetItem?.unit}) *
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              value={mutationFormData.quantity || 1}
+              onChange={(e) => setMutationFormData({ ...mutationFormData, quantity: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Keterangan / Tujuan</label>
+            <textarea
+              rows={2}
+              value={mutationFormData.notes || ''}
+              onChange={(e) => setMutationFormData({ ...mutationFormData, notes: e.target.value })}
+              placeholder={mutationType === 'in' ? 'Pembelian / pengadaan baru' : 'Pemakaian kegiatan ujian'}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Detail & Input Stock Opname */}
+      <Modal
+        isOpen={opnameModalOpen && !!selectedOpname}
+        onClose={() => setOpnameModalOpen(false)}
+        title={`Stock Opname #${selectedOpname?.id} • ${selectedOpname?.opname_date}`}
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              onClick={() => setOpnameModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Tutup
+            </button>
+            {selectedOpname?.status === 'draft' && (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSaveOpnameCounts}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Simpan Draft Hitungan</span>
+              </button>
+            )}
+          </div>
+        }
+      >
+        <div>
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Status Sesi:</span>
+              <StatusPill status={selectedOpname?.status || 'draft'} />
+            </div>
+            {selectedOpname?.status === 'draft' && (
+              <button
+                type="button"
+                onClick={handleFinalizeOpname}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>Finalisasi Sesi</span>
+              </button>
+            )}
+          </div>
+
+          {/* Items List for Opname */}
+          <div className="overflow-y-auto max-h-96 border border-slate-200 rounded-lg">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+              <thead className="bg-slate-50 text-slate-600 font-semibold text-[10px] uppercase border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">ID Sesi</th>
-                  <th className="px-4 py-3">Tanggal Opname</th>
-                  <th className="px-4 py-3">Keterangan</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
+                  <th className="px-3 py-2.5">Barang</th>
+                  <th className="px-3 py-2.5 text-right">Stok Sistem</th>
+                  <th className="px-3 py-2.5 text-center">Hitung Fisik</th>
+                  <th className="px-3 py-2.5 text-right">Selisih</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {opnames.length > 0 ? (
-                  opnames.map((op) => (
-                    <tr key={op.id} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-3 font-mono font-bold text-indigo-600">OPN-#{op.id}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-800">{op.opname_date}</td>
-                      <td className="px-4 py-3 text-slate-600">{op.notes || '-'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                          op.status === 'final'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                          {op.status}
+                {selectedOpname?.items?.map((item) => {
+                  const phys = opnamePhysicalInputs[item.consumable_item_id] ?? item.physical_stock;
+                  const diff = Number(phys) - Number(item.system_stock);
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50 transition">
+                      <td className="px-3 py-2.5 font-medium text-slate-800">
+                        {item.item_name}
+                        <span className="text-[10px] text-slate-400 block font-mono">{item.item_code}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-slate-600 num-cell">
+                        {item.system_stock} {item.item_unit}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        {selectedOpname.status === 'draft' ? (
+                          <input
+                            type="number"
+                            min="0"
+                            value={opnamePhysicalInputs[item.consumable_item_id] ?? item.physical_stock}
+                            onChange={(e) => setOpnamePhysicalInputs({
+                              ...opnamePhysicalInputs,
+                              [item.consumable_item_id]: e.target.value
+                            })}
+                            className="w-20 px-2 py-1 text-center font-bold border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+                          />
+                        ) : (
+                          <span className="font-bold text-slate-800">{item.physical_stock}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-bold num-cell">
+                        <span className={diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-rose-600' : 'text-slate-400'}>
+                          {diff > 0 ? `+${diff}` : diff}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => openOpnameDetail(op)}
-                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition"
-                        >
-                          {op.status === 'draft' ? 'Input Fisik' : 'Lihat Rekap'}
-                        </button>
-                      </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-xs text-slate-400">
-                      Belum ada sesi stock opname
-                    </td>
-                  </tr>
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
-      )}
-
-      {/* Modal Tambah Item BHP */}
-      {itemModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-4">Tambah Master Bahan Habis Pakai</h3>
-
-            <form onSubmit={handleSaveItem} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Kode Barang *</label>
-                  <input
-                    type="text"
-                    required
-                    value={itemFormData.item_code || ''}
-                    onChange={(e) => setItemFormData({ ...itemFormData, item_code: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
-                  <input
-                    type="text"
-                    value={itemFormData.category || ''}
-                    onChange={(e) => setItemFormData({ ...itemFormData, category: e.target.value })}
-                    placeholder="ATK / Kebersihan"
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Barang *</label>
-                <input
-                  type="text"
-                  required
-                  value={itemFormData.name || ''}
-                  onChange={(e) => setItemFormData({ ...itemFormData, name: e.target.value })}
-                  placeholder="Contoh: Kertas A4 70gr"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Satuan *</label>
-                  <input
-                    type="text"
-                    required
-                    value={itemFormData.unit || 'pcs'}
-                    onChange={(e) => setItemFormData({ ...itemFormData, unit: e.target.value })}
-                    placeholder="rim / botol"
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stok Minimal</label>
-                  <input
-                    type="number"
-                    value={itemFormData.minimum_stock || 0}
-                    onChange={(e) => setItemFormData({ ...itemFormData, minimum_stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stok Awal</label>
-                  <input
-                    type="number"
-                    value={itemFormData.current_stock || 0}
-                    onChange={(e) => setItemFormData({ ...itemFormData, current_stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setItemModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-                >
-                  Simpan Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Mutasi Masuk / Keluar */}
-      {mutationModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              Catat Stok {mutationType === 'in' ? 'Masuk (Pasokan)' : 'Keluar (Pemakaian)'}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Barang: <strong>{targetItem?.name}</strong> (Stok saat ini: {targetItem?.current_stock} {targetItem?.unit})
-            </p>
-
-            <form onSubmit={handleMutationSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Jumlah ({targetItem?.unit}) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={mutationFormData.quantity || 1}
-                  onChange={(e) => setMutationFormData({ ...mutationFormData, quantity: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Keterangan / Tujuan</label>
-                <textarea
-                  rows={2}
-                  value={mutationFormData.notes || ''}
-                  onChange={(e) => setMutationFormData({ ...mutationFormData, notes: e.target.value })}
-                  placeholder={mutationType === 'in' ? 'Pembelian / pengadaan baru' : 'Pemakaian kegiatan ujian'}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setMutationModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`px-4 py-2 text-white rounded-xl text-xs font-semibold ${
-                    mutationType === 'in' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
-                  }`}
-                >
-                  Simpan Mutasi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Detail & Input Stock Opname */}
-      {opnameModalOpen && selectedOpname && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Stock Opname #{selectedOpname.id} &bull; {selectedOpname.opname_date}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Status: <span className="font-semibold uppercase">{selectedOpname.status}</span>
-                  </p>
-                </div>
-                {selectedOpname.status === 'draft' && (
-                  <button
-                    onClick={handleFinalizeOpname}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Finalisasi Sesi</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Items List for Opname */}
-              <div className="overflow-y-auto max-h-96">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold text-[10px] uppercase">
-                    <tr>
-                      <th className="px-3 py-2">Barang</th>
-                      <th className="px-3 py-2 text-center">Stok Sistem</th>
-                      <th className="px-3 py-2 text-center">Hitung Fisik</th>
-                      <th className="px-3 py-2 text-center">Selisih</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {selectedOpname.items?.map((item) => {
-                      const phys = opnamePhysicalInputs[item.consumable_item_id] ?? item.physical_stock;
-                      const diff = Number(phys) - Number(item.system_stock);
-                      return (
-                        <tr key={item.id}>
-                          <td className="px-3 py-2 font-medium text-slate-800">
-                            {item.item_name}
-                            <span className="text-[10px] text-slate-400 block font-mono">{item.item_code}</span>
-                          </td>
-                          <td className="px-3 py-2 text-center font-semibold text-slate-600">
-                            {item.system_stock} {item.item_unit}
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            {selectedOpname.status === 'draft' ? (
-                              <input
-                                type="number"
-                                min="0"
-                                value={opnamePhysicalInputs[item.consumable_item_id] ?? item.physical_stock}
-                                onChange={(e) => setOpnamePhysicalInputs({
-                                  ...opnamePhysicalInputs,
-                                  [item.consumable_item_id]: e.target.value
-                                })}
-                                className="w-20 px-2 py-1 text-center font-bold border rounded-lg text-xs"
-                              />
-                            ) : (
-                              <span className="font-bold text-slate-800">{item.physical_stock}</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-center font-bold">
-                            <span className={diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-rose-600' : 'text-slate-400'}>
-                              {diff > 0 ? `+${diff}` : diff}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-4">
-              <button
-                type="button"
-                onClick={() => setOpnameModalOpen(false)}
-                className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50"
-              >
-                Tutup
-              </button>
-              {selectedOpname.status === 'draft' && (
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={handleSaveOpnameCounts}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold"
-                >
-                  Simpan Draft Hitungan
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

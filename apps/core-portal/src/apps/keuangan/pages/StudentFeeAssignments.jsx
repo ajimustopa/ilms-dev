@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber } from '../../../shared/utils/formatters';
 import {
   UserCheck,
   Users,
@@ -488,10 +492,7 @@ export default function StudentFeeAssignments() {
   });
 
   // Format currency helper
-  const formatRupiah = (val) => {
-    if (val === null || val === undefined || val === '') return 'Rp 0';
-    return `Rp ${Number(val).toLocaleString('id-ID')}`;
-  };
+  const formatRupiah = (val) => formatCurrency(val || 0);
 
   // Sorting
   const sortedAndFilteredStudents = [...filteredStudents].sort((a, b) => {
@@ -547,11 +548,11 @@ export default function StudentFeeAssignments() {
   return (
     <div className="space-y-6">
       {/* Header & Stats Cards */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                 <UserCheck className="w-5 h-5" />
               </div>
               <h1 className="text-xl font-bold text-slate-800">Penetapan Biaya Siswa</h1>
@@ -580,7 +581,7 @@ export default function StudentFeeAssignments() {
               type="button"
               onClick={fetchStudentAssignments}
               title="Sinkronkan Data"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-semibold transition"
             >
               <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               Muat Ulang
@@ -589,7 +590,7 @@ export default function StudentFeeAssignments() {
               type="button"
               onClick={openBulkAssign}
               disabled={selectedStudentIds.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg text-xs font-semibold shadow-xs transition"
             >
               <Layers className="w-4 h-4" />
               Tetapkan Massal ({selectedStudentIds.length} Santri)
@@ -597,24 +598,150 @@ export default function StudentFeeAssignments() {
           </div>
         </div>
 
-        {/* 4 Stat Mini Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-slate-100">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase">Total Santri T.A. Ini</span>
-            <p className="text-lg font-bold text-slate-800 mt-0.5">{totalStudents}</p>
-          </div>
-          <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
-            <span className="text-[10px] font-semibold text-emerald-700 uppercase">Skema Standar</span>
-            <p className="text-lg font-bold text-emerald-800 mt-0.5">{assignedStandardCount}</p>
-          </div>
-          <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3">
-            <span className="text-[10px] font-semibold text-purple-700 uppercase">Khusus / Custom</span>
-            <p className="text-lg font-bold text-purple-800 mt-0.5">{assignedCustomCount}</p>
-          </div>
-          <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3">
-            <span className="text-[10px] font-semibold text-amber-700 uppercase">Belum Ditetapkan</span>
-            <p className="text-lg font-bold text-amber-800 mt-0.5">{unassignedCount}</p>
-          </div>
+        {/* 4 Vibrant Stat Cards (Interactive Filter Shortcuts) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5 pt-4 border-t border-slate-100">
+          
+          {/* Card 1: Total Santri (Deep Navy / Indigo Gradient) */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`text-left p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white border transition-all duration-200 shadow-md relative overflow-hidden group cursor-pointer hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ${
+              statusFilter === 'all' ? 'ring-2 ring-indigo-400 border-indigo-400' : 'border-slate-700/80 hover:border-slate-600'
+            }`}
+          >
+            {/* Background Glow */}
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+            
+            <div className="flex items-center justify-between gap-2 relative z-10">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                Total Santri T.A. Ini
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-indigo-300 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                <Users className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+              <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                {formatNumber(totalStudents)}
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/25 border border-indigo-400/30 text-indigo-200">
+                100% Total
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-300 mt-1 relative z-10 flex items-center gap-1">
+              <span>Semua santri terdaftar</span>
+              {statusFilter === 'all' && <span className="font-bold text-indigo-300">• (Aktif)</span>}
+            </p>
+          </button>
+
+          {/* Card 2: Skema Standar (Vibrant Emerald / Teal Gradient) */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter('assigned')}
+            className={`text-left p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-emerald-50 to-teal-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+              statusFilter === 'assigned' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-emerald-500/10' : 'border-emerald-300/80 hover:border-emerald-400'
+            }`}
+          >
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/15 rounded-full blur-xl group-hover:bg-emerald-500/25 transition-all pointer-events-none" />
+
+            <div className="flex items-center justify-between gap-2 relative z-10">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                Skema Standar
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-950 tracking-tight">
+                {formatNumber(assignedStandardCount)}
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/15 border border-emerald-400 text-emerald-800">
+                {totalStudents > 0 ? ((assignedStandardCount / totalStudents) * 100).toFixed(0) : 0}%
+              </span>
+            </div>
+
+            <p className="text-[11px] text-emerald-700 mt-1 relative z-10 font-medium flex items-center gap-1">
+              <span>Mengikuti tarif baku skema</span>
+              {statusFilter === 'assigned' && <span className="font-bold text-emerald-900">• (Aktif)</span>}
+            </p>
+          </button>
+
+          {/* Card 3: Khusus / Custom (Vibrant Purple / Violet Gradient) */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter('custom')}
+            className={`text-left p-4 rounded-2xl bg-gradient-to-br from-purple-500/15 via-purple-50 to-indigo-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+              statusFilter === 'custom' ? 'ring-2 ring-purple-500 border-purple-500 shadow-purple-500/10' : 'border-purple-300/80 hover:border-purple-400'
+            }`}
+          >
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/15 rounded-full blur-xl group-hover:bg-purple-500/25 transition-all pointer-events-none" />
+
+            <div className="flex items-center justify-between gap-2 relative z-10">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-purple-800">
+                Khusus / Custom
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+              <div className="text-2xl sm:text-3xl font-black text-purple-950 tracking-tight">
+                {formatNumber(assignedCustomCount)}
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-600/15 border border-purple-400 text-purple-800">
+                {totalStudents > 0 ? ((assignedCustomCount / totalStudents) * 100).toFixed(0) : 0}%
+              </span>
+            </div>
+
+            <p className="text-[11px] text-purple-700 mt-1 relative z-10 font-medium flex items-center gap-1">
+              <span>Dispensasi &amp; beasiswa khusus</span>
+              {statusFilter === 'custom' && <span className="font-bold text-purple-900">• (Aktif)</span>}
+            </p>
+          </button>
+
+          {/* Card 4: Belum Ditetapkan (Vibrant Amber / Orange Gradient) */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter('unassigned')}
+            className={`text-left p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-orange-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+              statusFilter === 'unassigned' ? 'ring-2 ring-amber-500 border-amber-500 shadow-amber-500/10' : 'border-amber-300/90 hover:border-amber-400'
+            }`}
+          >
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/15 rounded-full blur-xl group-hover:bg-amber-500/25 transition-all pointer-events-none" />
+
+            <div className="flex items-center justify-between gap-2 relative z-10">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
+                Belum Ditetapkan
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+              <div className="text-2xl sm:text-3xl font-black text-amber-950 tracking-tight">
+                {formatNumber(unassignedCount)}
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                unassignedCount > 0
+                  ? 'bg-rose-500/20 text-rose-900 border-rose-400 animate-pulse'
+                  : 'bg-amber-600/15 text-amber-800 border-amber-300'
+              }`}>
+                {unassignedCount > 0 ? `${unassignedCount} Perlu Aksi` : '0 (Selesai)'}
+              </span>
+            </div>
+
+            <p className="text-[11px] text-amber-800 mt-1 relative z-10 font-medium flex items-center gap-1">
+              <span>Perlu penetapan skema segera</span>
+              {statusFilter === 'unassigned' && <span className="font-bold text-amber-950">• (Aktif)</span>}
+            </p>
+          </button>
+
         </div>
 
         {/* Filter Controls Bar */}
@@ -649,7 +776,7 @@ export default function StudentFeeAssignments() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari santri berdasarkan Nama atau NIS..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
             />
           </div>
 
@@ -658,7 +785,7 @@ export default function StudentFeeAssignments() {
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700"
             >
               <option value="">Semua Rombel / Kelas</option>
               {classes.map(c => (
@@ -670,7 +797,7 @@ export default function StudentFeeAssignments() {
             <select
               value={selectedSchemeFilter}
               onChange={(e) => setSelectedSchemeFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700"
             >
               <option value="">Semua Skema Biaya</option>
               {schemes.map(s => (
@@ -682,7 +809,7 @@ export default function StudentFeeAssignments() {
             <select
               value={registrationTypeFilter}
               onChange={(e) => setRegistrationTypeFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700"
             >
               <option value="all">Semua Jenis Pendaftaran</option>
               <option value="siswa_baru">Siswa Baru</option>
@@ -693,7 +820,7 @@ export default function StudentFeeAssignments() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700"
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700"
             >
               <option value="all">Semua Status</option>
               <option value="assigned">Skema Standar</option>
@@ -705,7 +832,7 @@ export default function StudentFeeAssignments() {
       </div>
 
       {/* Student List Table with Breakdown Columns */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
         {loading ? (
           <div className="py-16 text-center text-slate-400 flex flex-col items-center gap-2">
             <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
@@ -718,7 +845,7 @@ export default function StudentFeeAssignments() {
             <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter rombel/skema.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto max-h-[calc(100vh-320px)] min-h-[400px] overflow-y-auto relative border border-slate-200/80 rounded-b-2xl">
+          <div className="table-container max-h-[calc(100vh-320px)] min-h-[400px] relative border border-slate-200/80 rounded-b-xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 select-none sticky top-0 z-30 shadow-xs">
                 <tr>
@@ -912,7 +1039,7 @@ export default function StudentFeeAssignments() {
                             {isTransfer ? 'Siswa Pindahan' : 'Siswa Baru'}
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-0.5">
+                        <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 tnum">
                           <span>NIS: {st.nis || '-'}</span>
                           {st.nisn && <span className="text-slate-300">/ {st.nisn}</span>}
                         </div>
@@ -933,9 +1060,7 @@ export default function StudentFeeAssignments() {
                       <td className="px-4 py-2.5">
                         {isCustom ? (
                           <div className="flex flex-col">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded w-max">
-                              <Sparkles className="w-2.5 h-2.5" /> Khusus (Custom)
-                            </span>
+                            <StatusPill variant="info" label="Khusus (Custom)" />
                             <span className="text-[10px] text-slate-400 mt-0.5">
                               {st.custom_adjustments?.length || 0} penyesuaian khusus
                             </span>
@@ -943,7 +1068,7 @@ export default function StudentFeeAssignments() {
                         ) : isAssigned ? (
                           <div>
                             <span className="font-semibold text-slate-800">{asg.scheme_name}</span>
-                            <span className="ml-1.5 text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            <span className="ml-1.5 text-[10px] tnum font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                               {asg.scheme_code}
                             </span>
                           </div>
@@ -964,7 +1089,7 @@ export default function StudentFeeAssignments() {
                         return (
                           <td
                             key={ft.id}
-                            className={`px-3 py-2.5 text-right font-mono text-[11px] ${
+                            className={`px-3 py-2.5 num-cell text-[11px] ${
                               isArrears
                                 ? `${isSelected ? 'bg-amber-100/80' : 'bg-amber-50/50'} border-x border-amber-200/70`
                                 : ''
@@ -979,7 +1104,7 @@ export default function StudentFeeAssignments() {
                                     isArrears
                                       ? 'text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded border border-amber-300 shadow-2xs'
                                       : isAdj
-                                      ? 'text-purple-700'
+                                      ? 'text-indigo-700'
                                       : 'text-slate-700 font-semibold'
                                   }`}
                                   title={item?.adjustment_note || (isArrears && isAuto ? 'Sisa tunggakan tahun sebelumnya (Otomatis)' : '')}
@@ -992,7 +1117,7 @@ export default function StudentFeeAssignments() {
                                   </span>
                                 )}
                                 {isArrears && isAdj && (
-                                  <span className="text-[9px] text-purple-700 font-sans font-medium">
+                                  <span className="text-[9px] text-indigo-700 font-sans font-medium">
                                     (Manual)
                                   </span>
                                 )}
@@ -1008,7 +1133,7 @@ export default function StudentFeeAssignments() {
                       <td className={`px-4 py-2.5 text-right sticky right-0 z-10 shadow-[-1px_0_0_0_#e2e8f0] ${isSelected ? 'bg-emerald-100' : 'bg-emerald-50'}`}>
                         <div className="flex items-center justify-between gap-3">
                           {/* Rincian Bulanan & Non-Bulanan */}
-                          <div className="flex flex-col items-start text-left text-[11px] font-mono">
+                          <div className="flex flex-col items-start text-left text-[11px] tnum">
                             {isAssigned || (stMonthly + stNonMonthly > 0) ? (
                               <>
                                 <div className="flex items-center gap-1">
@@ -1041,8 +1166,8 @@ export default function StudentFeeAssignments() {
                               title="Input Manual / Tarif Khusus"
                               className={`p-1.5 rounded-lg transition ${
                                 isCustom
-                                  ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-xs'
-                                  : 'text-purple-700 hover:bg-purple-100'
+                                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs'
+                                  : 'text-indigo-700 hover:bg-indigo-50'
                               }`}
                             >
                               <Sliders className="w-3.5 h-3.5" />
@@ -1087,7 +1212,7 @@ export default function StudentFeeAssignments() {
                     return (
                       <td
                         key={ft.id}
-                        className={`px-3 py-3 text-right font-mono text-[11px] font-bold ${
+                        className={`px-3 py-3 num-cell text-[11px] font-bold ${
                           isArrears
                             ? 'bg-amber-100 text-amber-950 border-x border-amber-300'
                             : 'bg-slate-100 text-slate-900'
@@ -1122,7 +1247,7 @@ export default function StudentFeeAssignments() {
                     });
 
                     return (
-                      <td className="px-4 py-2.5 text-right sticky right-0 bg-emerald-100 z-30 shadow-[-1px_0_0_0_#cbd5e1] text-emerald-950 font-mono font-extrabold">
+                      <td className="px-4 py-2.5 text-right sticky right-0 bg-emerald-100 z-30 shadow-[-1px_0_0_0_#cbd5e1] text-emerald-950 tnum font-extrabold">
                         <div className="flex flex-col items-start text-left text-[11px]">
                           <div className="flex items-center gap-1">
                             <span className="text-[10px] font-sans text-emerald-800 font-semibold">Bln:</span>
@@ -1146,7 +1271,7 @@ export default function StudentFeeAssignments() {
       {/* Modal Single Assign (Per Orangan) */}
       {singleAssignModalOpen && targetStudent && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-lg shadow-xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
                 <UserCheck className="w-4 h-4 text-emerald-600" />
@@ -1173,7 +1298,7 @@ export default function StudentFeeAssignments() {
                   required
                   value={selectedSchemeId}
                   onChange={(e) => setSelectedSchemeId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
                 >
                   <option value="">-- Pilih Skema Biaya --</option>
                   {schemes.map(s => (
@@ -1184,7 +1309,7 @@ export default function StudentFeeAssignments() {
 
               {/* Preview Rincian Skema yang Dipilih */}
               {selectedSchemeObj && selectedSchemeObj.items && (
-                <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800 pb-2 border-b border-slate-200">
                     <span>Rincian Nominal Skema</span>
                     <span className="text-emerald-700">Total: {formatRupiah(selectedSchemeObj.total_amount)}</span>
@@ -1193,7 +1318,7 @@ export default function StudentFeeAssignments() {
                     {selectedSchemeObj.items.map((it) => (
                       <div key={it.id} className="flex justify-between py-0.5 text-slate-600 border-b border-slate-100">
                         <span className="truncate max-w-[120px]">{it.fee_type_name}:</span>
-                        <span className="font-mono font-semibold text-slate-800">{formatRupiah(it.value)}</span>
+                        <span className="tnum font-semibold text-slate-800">{formatRupiah(it.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -1210,7 +1335,7 @@ export default function StudentFeeAssignments() {
                   value={assignReason}
                   onChange={(e) => setAssignReason(e.target.value)}
                   placeholder="Wajib jelaskan alasan penetapan atau penggantian skema santri untuk audit trail..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                 />
               </div>
 
@@ -1218,14 +1343,14 @@ export default function StudentFeeAssignments() {
                 <button
                   type="button"
                   onClick={() => setSingleAssignModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingSingle}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50"
                 >
                   {submittingSingle && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Simpan Penetapan
@@ -1239,7 +1364,7 @@ export default function StudentFeeAssignments() {
       {/* Modal Bulk Assign (Massal) */}
       {bulkAssignModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-lg shadow-xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
                 <Layers className="w-4 h-4 text-emerald-600" />
@@ -1260,7 +1385,7 @@ export default function StudentFeeAssignments() {
             </div>
 
             <form onSubmit={handleSaveBulkAssign} className="p-6 space-y-4">
-              <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+              <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg text-xs text-emerald-800">
                 Skema biaya yang dipilih akan diterapkan secara serentak ke seluruh <strong>{selectedStudentIds.length}</strong> santri yang dicentang.
               </div>
 
@@ -1270,7 +1395,7 @@ export default function StudentFeeAssignments() {
                   required
                   value={bulkSchemeId}
                   onChange={(e) => setBulkSchemeId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
                 >
                   <option value="">-- Pilih Skema Biaya --</option>
                   {schemes.map(s => (
@@ -1281,7 +1406,7 @@ export default function StudentFeeAssignments() {
 
               {/* Preview Rincian Skema Massal */}
               {bulkSchemeObj && bulkSchemeObj.items && (
-                <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800 pb-2 border-b border-slate-200">
                     <span>Rincian Nominal per Santri</span>
                     <span className="text-emerald-700">Total: {formatRupiah(bulkSchemeObj.total_amount)}</span>
@@ -1290,7 +1415,7 @@ export default function StudentFeeAssignments() {
                     {bulkSchemeObj.items.map((it) => (
                       <div key={it.id} className="flex justify-between py-0.5 text-slate-600 border-b border-slate-100">
                         <span className="truncate max-w-[120px]">{it.fee_type_name}:</span>
-                        <span className="font-mono font-semibold text-slate-800">{formatRupiah(it.value)}</span>
+                        <span className="tnum font-semibold text-slate-800">{formatRupiah(it.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -1307,7 +1432,7 @@ export default function StudentFeeAssignments() {
                   value={bulkReason}
                   onChange={(e) => setBulkReason(e.target.value)}
                   placeholder="Contoh: Penetapan serentak Skema Reguler santri baru TA 2026/2027..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                 />
               </div>
 
@@ -1315,14 +1440,14 @@ export default function StudentFeeAssignments() {
                 <button
                   type="button"
                   onClick={() => setBulkAssignModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingBulk}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50"
                 >
                   {submittingBulk && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Terapkan Massal ({selectedStudentIds.length})
@@ -1336,10 +1461,10 @@ export default function StudentFeeAssignments() {
       {/* Modal Custom / Manual Input Langsung Nominal Angka */}
       {customModalOpen && customStudent && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center gap-2 flex-wrap">
-                <Sliders className="w-4 h-4 text-purple-600" />
+                <Sliders className="w-4 h-4 text-indigo-600" />
                 <h2 className="text-sm font-bold text-slate-800">
                   Penetapan Biaya Manual: {customStudent.student_name}
                 </h2>
@@ -1357,17 +1482,17 @@ export default function StudentFeeAssignments() {
             </div>
 
             <form onSubmit={handleSaveCustomAssign} className="p-6 space-y-4">
-              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-lg text-xs text-indigo-900 flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold">Input Langsung Nominal Angka Biaya:</p>
-                  <p className="text-[11px] text-purple-700 mt-0.5">
+                  <p className="text-[11px] text-indigo-700 mt-0.5">
                     Data nominal yang telah ditetapkan sebelumnya (dari skema atau manual) telah terisi otomatis di bawah. Anda dapat langsung mengedit nilai rupiah untuk masing-masing pos tagihan.
                   </p>
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+              <div className="border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                     <tr>
@@ -1389,7 +1514,7 @@ export default function StudentFeeAssignments() {
                               <span className="font-semibold text-slate-800">{item.fee_type_name}</span>
                               {isArrears && (
                                 <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${isAutoUsed ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}`}>
-                                  {isAutoUsed ? '⚡ Otomatis Sistem' : '✏️ Override Manual'}
+                                   {isAutoUsed ? '⚡ Otomatis Sistem' : '✏️ Override Manual'}
                                 </span>
                               )}
                             </div>
@@ -1416,10 +1541,10 @@ export default function StudentFeeAssignments() {
                                   value={item.override_amount}
                                   onChange={(e) => handleCustomItemChange(idx, 'override_amount', e.target.value)}
                                   placeholder={isArrears ? (hasAutoArrears ? `${item.auto_arrears} (Otomatis)` : 'Otomatis (kosongkan)') : '0'}
-                                  className={`w-44 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-xl text-xs font-mono font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-200'}`}
+                                  className={`w-44 px-3 py-1.5 bg-slate-50 focus:bg-white border rounded-lg text-xs tnum font-bold text-right text-slate-900 focus:ring-2 outline-none transition ${isArrears ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-200' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-200'}`}
                                 />
                               </div>
-                              <div className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? (isAutoUsed ? 'text-emerald-800 bg-emerald-50 border-emerald-300' : 'text-amber-800 bg-amber-100/70 border-amber-300') : 'text-purple-700 bg-purple-50/80 border-purple-200/60'}`}>
+                              <div className={`text-[11px] tnum font-bold px-2 py-0.5 rounded border shadow-2xs ${isArrears ? (isAutoUsed ? 'text-emerald-800 bg-emerald-50 border-emerald-300' : 'text-amber-800 bg-amber-100/70 border-amber-300') : 'text-indigo-700 bg-indigo-50/80 border-indigo-200/60'}`}>
                                 {effectiveDisplayAmount.toLocaleString('id-ID')} {isAutoUsed && isArrears ? '(Otomatis)' : ''}
                               </div>
                             </div>
@@ -1428,12 +1553,12 @@ export default function StudentFeeAssignments() {
                       );
                     })}
                   </tbody>
-                  <tfoot className="bg-purple-50/60 border-t-2 border-purple-200 font-bold text-slate-900">
+                  <tfoot className="bg-indigo-50/60 border-t-2 border-indigo-200 font-bold text-slate-900">
                     <tr>
-                      <td className="px-4 py-3 text-purple-950 font-bold">
+                      <td className="px-4 py-3 text-indigo-950 font-bold">
                         Total Akumulasi Biaya Santri:
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-purple-950 text-sm font-extrabold">
+                      <td className="px-4 py-3 text-right tnum text-indigo-950 text-sm font-extrabold">
                         {formatRupiah(
                           customItems.reduce((sum, it) => {
                             const isArrears = it.is_arrears || it.fee_type_code === 'arrears_previous_year' || it.fee_type_name?.toLowerCase().includes('tunggakan') || it.fee_type_id === 11;
@@ -1458,7 +1583,7 @@ export default function StudentFeeAssignments() {
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
                   placeholder="Contoh: Penetapan nominal khusus santri jalur khusus / penyesuaian biaya mandiri..."
-                  className="w-full px-3.5 py-2.5 bg-purple-50/20 border border-purple-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-300 outline-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-300 outline-none"
                 />
               </div>
 
@@ -1466,14 +1591,14 @@ export default function StudentFeeAssignments() {
                 <button
                   type="button"
                   onClick={() => setCustomModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingCustom}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50 shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 shadow-xs"
                 >
                   {submittingCustom && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Simpan Penetapan Manual
@@ -1487,7 +1612,7 @@ export default function StudentFeeAssignments() {
       {/* Modal History Audit */}
       {historyModalOpen && historyStudent && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-xl max-h-[85vh] overflow-y-auto shadow-xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center gap-2">
                 <History className="w-4 h-4 text-indigo-600" />
@@ -1519,7 +1644,7 @@ export default function StudentFeeAssignments() {
                       <div className="absolute left-2 top-1.5 w-3.5 h-3.5 bg-indigo-600 rounded-full border-2 border-white -translate-x-1/2" />
                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 w-full text-xs space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-indigo-700 uppercase font-mono text-[10px]">
+                          <span className="font-bold text-indigo-700 uppercase tnum text-[10px]">
                             {log.action}
                           </span>
                           <span className="text-[10px] text-slate-400">

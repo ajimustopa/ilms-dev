@@ -35,6 +35,10 @@ Thumbs.db
 # Scratch & Temporary test scripts
 scratch/
 apps/*/scratch/
-apps/*/scratch_*.js
-*.tmp
+# Database Dumps
+*.sql
+*.sql.gz
+
+# Temporary build timestamps
+*.timestamp-*.mjs
 

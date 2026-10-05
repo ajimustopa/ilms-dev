@@ -228,6 +228,14 @@ class BookkeepingController {
       res.json({ success: true, data, message: 'Lembar kerja (worksheet) berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
+
+  getCashLedger = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await bookkeepingService.getCashLedger(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Buku kas terpadu berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
 }
 
 module.exports = new BookkeepingController();

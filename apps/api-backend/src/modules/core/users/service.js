@@ -17,19 +17,95 @@ class UsersService {
 
     let baseQuery = db('users');
 
-    if (query.search) {
+    if (query.search && query.search.trim()) {
+      const s = query.search.trim();
       baseQuery = baseQuery.where((builder) => {
-        builder.where('username', 'like', `%${query.search}%`)
-          .orWhere('full_name', 'like', `%${query.search}%`);
+        builder.where('users.username', 'like', `%${s}%`)
+          .orWhere('users.full_name', 'like', `%${s}%`)
+          .orWhereExists(function() {
+            this.select('*')
+              .from('user_school_roles')
+              .leftJoin('roles', 'user_school_roles.role_id', 'roles.id')
+              .leftJoin('school_units', 'user_school_roles.school_unit_id', 'school_units.id')
+              .whereRaw('user_school_roles.user_id = users.id')
+              .andWhere(function() {
+                this.where('roles.name', 'like', `%${s}%`)
+                  .orWhere('roles.description', 'like', `%${s}%`)
+                  .orWhere('school_units.name', 'like', `%${s}%`);
+              });
+          });
       });
     }
 
     if (query.account_type && query.account_type !== 'all') {
-      baseQuery = baseQuery.where('account_type', query.account_type);
+      baseQuery = baseQuery.where('users.account_type', query.account_type);
     }
 
     if (query.status && query.status !== 'all') {
-      baseQuery = baseQuery.where('status', query.status);
+      baseQuery = baseQuery.where('users.status', query.status);
+    }
+
+    if (query.school_unit_id && query.school_unit_id !== 'all') {
+      if (query.school_unit_id === 'yayasan') {
+        baseQuery = baseQuery.whereExists(function() {
+          this.select('*')
+            .from('user_school_roles')
+            .whereRaw('user_school_roles.user_id = users.id')
+            .whereNull('user_school_roles.school_unit_id');
+        });
+      } else {
+        baseQuery = baseQuery.whereExists(function() {
+          this.select('*')
+            .from('user_school_roles')
+            .whereRaw('user_school_roles.user_id = users.id')
+            .where('user_school_roles.school_unit_id', query.school_unit_id);
+        });
+      }
+    }
+
+    // Filter Khusus Tab Akun (Guru, Staff, Siswa, Ortu)
+    if (query.tab && query.tab !== 'all') {
+      if (query.tab === 'guru') {
+        baseQuery = baseQuery.where((builder) => {
+          builder.where('users.account_type', 'teacher')
+            .orWhereExists(function() {
+              this.select('*').from('user_school_roles')
+                .join('roles', 'user_school_roles.role_id', 'roles.id')
+                .whereRaw('user_school_roles.user_id = users.id')
+                .whereIn('roles.name', ['guru', 'wali_kelas', 'waka_kurikulum', 'guru_bk', 'pelatih_ekskul', 'guru_tamu']);
+            });
+        });
+      } else if (query.tab === 'staff') {
+        baseQuery = baseQuery.where((builder) => {
+          builder.whereIn('users.account_type', ['staff', 'admin'])
+            .whereNotExists(function() {
+              this.select('*').from('user_school_roles')
+                .join('roles', 'user_school_roles.role_id', 'roles.id')
+                .whereRaw('user_school_roles.user_id = users.id')
+                .whereIn('roles.name', ['guru', 'wali_kelas', 'waka_kurikulum', 'guru_bk', 'pelatih_ekskul', 'guru_tamu']);
+            });
+        });
+      } else if (query.tab === 'siswa') {
+        baseQuery = baseQuery.where((builder) => {
+          builder.where('users.account_type', 'student')
+            .orWhereExists(function() {
+              this.select('*').from('user_school_roles')
+                .join('roles', 'user_school_roles.role_id', 'roles.id')
+                .whereRaw('user_school_roles.user_id = users.id')
+                .where('roles.name', 'siswa');
+            });
+        });
+      } else if (query.tab === 'ortu') {
+        baseQuery = baseQuery.where((builder) => {
+          builder.where('users.account_type', 'parent')
+            .orWhereExists(function() {
+              this.select('*').from('user_school_roles')
+                .join('roles', 'user_school_roles.role_id', 'roles.id')
+                .whereRaw('user_school_roles.user_id = users.id')
+                .where('roles.name', 'wali_santri');
+            });
+        });
+      }
     }
 
     const countResult = await baseQuery.clone().count('id as total').first();
@@ -65,8 +141,59 @@ class UsersService {
       school_roles: allSchoolRoles.filter((sr) => sr.user_id === u.id)
     }));
 
+    // Hitung ringkasan badge per tab
+    let tabBaseQuery = db('users');
+    if (query.school_unit_id && query.school_unit_id !== 'all') {
+      if (query.school_unit_id === 'yayasan') {
+        tabBaseQuery = tabBaseQuery.whereExists(function() {
+          this.select('*').from('user_school_roles').whereRaw('user_school_roles.user_id = users.id').whereNull('user_school_roles.school_unit_id');
+        });
+      } else {
+        tabBaseQuery = tabBaseQuery.whereExists(function() {
+          this.select('*').from('user_school_roles').whereRaw('user_school_roles.user_id = users.id').where('user_school_roles.school_unit_id', query.school_unit_id);
+        });
+      }
+    }
+
+    const [allTab, guruTab, staffTab, siswaTab] = await Promise.all([
+      tabBaseQuery.clone().count('id as total').first(),
+      tabBaseQuery.clone().where((b) => {
+        b.where('users.account_type', 'teacher')
+          .orWhereExists(function() {
+            this.select('*').from('user_school_roles')
+              .join('roles', 'user_school_roles.role_id', 'roles.id')
+              .whereRaw('user_school_roles.user_id = users.id')
+              .whereIn('roles.name', ['guru', 'wali_kelas', 'waka_kurikulum', 'guru_bk', 'pelatih_ekskul', 'guru_tamu']);
+          });
+      }).count('id as total').first(),
+      tabBaseQuery.clone().where((b) => {
+        b.whereIn('users.account_type', ['staff', 'admin'])
+          .whereNotExists(function() {
+            this.select('*').from('user_school_roles')
+              .join('roles', 'user_school_roles.role_id', 'roles.id')
+              .whereRaw('user_school_roles.user_id = users.id')
+              .whereIn('roles.name', ['guru', 'wali_kelas', 'waka_kurikulum', 'guru_bk', 'pelatih_ekskul', 'guru_tamu']);
+          });
+      }).count('id as total').first(),
+      tabBaseQuery.clone().where((b) => {
+        b.where('users.account_type', 'student')
+          .orWhereExists(function() {
+            this.select('*').from('user_school_roles')
+              .join('roles', 'user_school_roles.role_id', 'roles.id')
+              .whereRaw('user_school_roles.user_id = users.id')
+              .where('roles.name', 'siswa');
+          });
+      }).count('id as total').first()
+    ]);
+
     return {
       items,
+      tab_counts: {
+        all: parseInt(allTab.total, 10) || 0,
+        guru: parseInt(guruTab.total, 10) || 0,
+        staff: parseInt(staffTab.total, 10) || 0,
+        siswa: parseInt(siswaTab.total, 10) || 0
+      },
       pagination: {
         current_page: page,
         per_page: limit,

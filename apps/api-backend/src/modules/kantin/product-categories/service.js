@@ -6,7 +6,11 @@ const db = require('../../../config/db/kantin');
 
 class ProductCategoriesService {
   async listCategories(schoolUnitId, query = {}) {
-    let q = db('product_categories').where('school_unit_id', schoolUnitId);
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('product_categories');
+    if (!isAll) {
+      q = q.where('school_unit_id', schoolUnitId);
+    }
 
     if (query.status) {
       q = q.where('status', query.status);
@@ -19,18 +23,24 @@ class ProductCategoriesService {
   }
 
   async getCategoryById(schoolUnitId, id) {
-    return db('product_categories').where({ id, school_unit_id: schoolUnitId }).first();
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('product_categories').where({ id });
+    if (!isAll) {
+      q = q.where({ school_unit_id: schoolUnitId });
+    }
+    return q.first();
   }
 
   async createCategory(schoolUnitId, payload) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? schoolUnitId : 1;
     const { category_name, description = null } = payload;
     const [id] = await db('product_categories').insert({
-      school_unit_id: schoolUnitId,
+      school_unit_id: effectiveUnitId,
       category_name,
       description,
       status: 'active'
     });
-    return this.getCategoryById(schoolUnitId, id);
+    return this.getCategoryById(effectiveUnitId, id);
   }
 
   async updateCategory(schoolUnitId, id, payload) {
@@ -39,7 +49,7 @@ class ProductCategoriesService {
 
     const { category_name, description } = payload;
     await db('product_categories')
-      .where({ id, school_unit_id: schoolUnitId })
+      .where({ id: category.id, school_unit_id: category.school_unit_id })
       .update({
         category_name: category_name !== undefined ? category_name : category.category_name,
         description: description !== undefined ? description : category.description,
@@ -55,7 +65,7 @@ class ProductCategoriesService {
 
     const { status, status_note = null } = payload;
     await db('product_categories')
-      .where({ id, school_unit_id: schoolUnitId })
+      .where({ id: category.id, school_unit_id: category.school_unit_id })
       .update({
         status,
         status_note,

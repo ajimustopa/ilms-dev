@@ -29,6 +29,25 @@ function maskIncome(val) {
   return val ? '[Dirahasiakan]' : null;
 }
 
+function formatDateOnly(val) {
+  if (!val) return null;
+  if (typeof val === 'string') {
+    const clean = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+    const match = clean.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (match) {
+      return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+    }
+  }
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
 function isPrivilegedUser(user) {
   if (!user) return false;
   if (user.is_super_admin || user.account_type === 'super_admin') return true;
@@ -226,12 +245,14 @@ class StudentsService {
 
       const baseItem = {
         ...item,
+        birth_date: formatDateOnly(item.birth_date),
+        enrolled_at: formatDateOnly(item.enrolled_at),
         registration_type: regTypeDisplay,
         previous_school_name: adm?.previous_school_name || null,
         previous_school_address: adm?.previous_school_address || null,
         initial_grade_level_id: adm?.initial_grade_level_id || null,
         initial_grade_name: adm?.initial_grade_name || null,
-        admission_date: adm?.admission_date || item.enrolled_at || null,
+        admission_date: formatDateOnly(adm?.admission_date || item.enrolled_at),
         class_group_id: enr?.class_group_id || null,
         class_group_name: enr?.class_group_name || null,
         enrollment_id: enr?.enrollment_id || null,
@@ -370,12 +391,14 @@ class StudentsService {
 
     return {
       ...student,
+      birth_date: formatDateOnly(student.birth_date),
+      enrolled_at: formatDateOnly(student.enrolled_at),
       family_card_number: privileged ? student.family_card_number : maskPii(student.family_card_number),
       nik: privileged ? student.nik : maskPii(student.nik),
       student_address: address || null,
       physical_data: physicalData || null,
       periodic_physical_records: periodicPhysicalRecords || [],
-      admission: admission || null,
+      admission: admission ? { ...admission, admission_date: formatDateOnly(admission.admission_date) } : null,
       document_checklist: documentChecklist || null,
       guardians: guardians || [],
       report_card_recaps: reportCardRecaps || [],
@@ -496,7 +519,7 @@ class StudentsService {
       nickname: nickname ? nickname.trim() : null,
       gender,
       birth_place: birth_place || null,
-      birth_date: birth_date || null,
+      birth_date: formatDateOnly(birth_date),
       birth_certificate_reg_no: birth_certificate_reg_no || null,
       order_in_family: order_in_family || null,
       number_of_siblings: number_of_siblings || null,
@@ -514,7 +537,7 @@ class StudentsService {
       data_entry_mode: data_entry_mode || 'lengkap',
       dapodik_status: dapodik_status || 'belum_masuk_dapodik',
       dapodik_notes: dapodik_notes || null,
-      enrolled_at: enrolled_at || new Date().toISOString().split('T')[0],
+      enrolled_at: formatDateOnly(enrolled_at) || formatDateOnly(new Date()),
       created_at: db.fn.now(),
       updated_at: db.fn.now()
     });
@@ -572,7 +595,7 @@ class StudentsService {
       initial_grade_level_id: admData.initial_grade_level_id ? Number(admData.initial_grade_level_id) : (payload.initial_grade_level_id ? Number(payload.initial_grade_level_id) : null),
       initial_class_group_id: admData.initial_class_group_id ? Number(admData.initial_class_group_id) : null,
       registration_type: regType,
-      admission_date: admData.admission_date || payload.admission_date || enrolled_at || new Date().toISOString().split('T')[0],
+      admission_date: formatDateOnly(admData.admission_date || payload.admission_date || enrolled_at) || formatDateOnly(new Date()),
       previous_school_name: admData.previous_school_name || payload.previous_school_name || null,
       previous_school_address: admData.previous_school_address || payload.previous_school_address || null,
       created_at: db.fn.now(),
@@ -838,7 +861,13 @@ class StudentsService {
     ];
 
     for (const key of allowed) {
-      if (payload[key] !== undefined) updateData[key] = payload[key];
+      if (payload[key] !== undefined) {
+        if (key === 'birth_date' || key === 'enrolled_at') {
+          updateData[key] = formatDateOnly(payload[key]);
+        } else {
+          updateData[key] = payload[key];
+        }
+      }
     }
 
     await db('students').where({ id }).update(updateData);
@@ -862,42 +891,101 @@ class StudentsService {
       const targetAyId = Number(payload.academic_year_id);
       const targetCgId = payload.class_group_id ? Number(payload.class_group_id) : null;
 
-      const existingEnrollment = await db('student_class_enrollments')
-        .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
-        .where({
-          'student_class_enrollments.student_id': id,
-          'student_class_enrollments.academic_year_id': targetAyId
-        })
-        .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
-        .where(function() {
-          this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
-        })
-        .select('student_class_enrollments.id')
-        .first();
-
       if (targetCgId) {
-        if (existingEnrollment) {
+        // Cek apakah sudah ada enrollment untuk target class_group_id ini
+        const exactEnrollment = await db('student_class_enrollments')
+          .where({
+            student_id: id,
+            academic_year_id: targetAyId,
+            class_group_id: targetCgId
+          })
+          .first();
+
+        if (exactEnrollment) {
+          // Aktifkan exact enrollment
           await db('student_class_enrollments')
-            .where({ id: existingEnrollment.id })
+            .where({ id: exactEnrollment.id })
             .update({
-              class_group_id: targetCgId,
               status: 'aktif',
               updated_at: db.fn.now()
             });
+
+          // Batalkan rombel reguler lain pada tahun ajaran yang sama
+          await db('student_class_enrollments')
+            .where({
+              student_id: id,
+              academic_year_id: targetAyId
+            })
+            .whereNot({ id: exactEnrollment.id })
+            .whereIn('class_group_id', function() {
+              this.select('id').from('class_groups').where(function() {
+                this.whereNull('type').orWhere('type', 'reguler');
+              });
+            })
+            .update({
+              status: 'dibatalkan',
+              updated_at: db.fn.now()
+            });
         } else {
-          await db('student_class_enrollments').insert({
-            satuan_pendidikan_id: student.satuan_pendidikan_id || payload.satuan_pendidikan_id || 1,
-            student_id: id,
-            academic_year_id: targetAyId,
-            class_group_id: targetCgId,
-            status: 'aktif',
-            created_at: db.fn.now(),
-            updated_at: db.fn.now()
-          });
+          // Cari enrollment reguler lain di tahun ajaran ini
+          const otherEnrollments = await db('student_class_enrollments')
+            .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+            .where({
+              'student_class_enrollments.student_id': id,
+              'student_class_enrollments.academic_year_id': targetAyId
+            })
+            .where(function() {
+              this.whereNull('class_groups.type').orWhere('class_groups.type', 'reguler');
+            })
+            .select('student_class_enrollments.id')
+            .orderBy('student_class_enrollments.id', 'desc');
+
+          if (otherEnrollments.length > 0) {
+            // Update enrollment pertama ke targetCgId
+            const primaryId = otherEnrollments[0].id;
+            await db('student_class_enrollments')
+              .where({ id: primaryId })
+              .update({
+                class_group_id: targetCgId,
+                status: 'aktif',
+                updated_at: db.fn.now()
+              });
+
+            // Batalkan sisanya jika ada duplikasi lama
+            if (otherEnrollments.length > 1) {
+              const extraIds = otherEnrollments.slice(1).map(e => e.id);
+              await db('student_class_enrollments')
+                .whereIn('id', extraIds)
+                .update({
+                  status: 'dibatalkan',
+                  updated_at: db.fn.now()
+                });
+            }
+          } else {
+            // Belum ada enrollment, buat baru
+            await db('student_class_enrollments').insert({
+              satuan_pendidikan_id: student.satuan_pendidikan_id || payload.satuan_pendidikan_id || 1,
+              student_id: id,
+              academic_year_id: targetAyId,
+              class_group_id: targetCgId,
+              status: 'aktif',
+              created_at: db.fn.now(),
+              updated_at: db.fn.now()
+            });
+          }
         }
-      } else if (existingEnrollment) {
+      } else {
+        // targetCgId kosong / null -> batalkan enrollment reguler di tahun ajaran ini
         await db('student_class_enrollments')
-          .where({ id: existingEnrollment.id })
+          .where({
+            student_id: id,
+            academic_year_id: targetAyId
+          })
+          .whereIn('class_group_id', function() {
+            this.select('id').from('class_groups').where(function() {
+              this.whereNull('type').orWhere('type', 'reguler');
+            });
+          })
           .update({
             status: 'dibatalkan',
             updated_at: db.fn.now()
@@ -1009,7 +1097,7 @@ class StudentsService {
       initial_grade_level_id: payload.initial_grade_level_id !== undefined ? (payload.initial_grade_level_id ? Number(payload.initial_grade_level_id) : null) : undefined,
       initial_class_group_id: payload.initial_class_group_id !== undefined ? (payload.initial_class_group_id ? Number(payload.initial_class_group_id) : null) : undefined,
       registration_type: regType,
-      admission_date: payload.admission_date !== undefined ? payload.admission_date : undefined,
+      admission_date: payload.admission_date !== undefined ? formatDateOnly(payload.admission_date) : undefined,
       previous_school_name: payload.previous_school_name !== undefined ? (payload.previous_school_name || null) : undefined,
       previous_school_address: payload.previous_school_address !== undefined ? (payload.previous_school_address || null) : undefined,
       updated_at: db.fn.now()

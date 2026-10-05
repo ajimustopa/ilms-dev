@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
+import { isCashierOnlyUser } from '../../../shared/utils/authHelper';
 import { UtensilsCrossed, AlertCircle, Loader2, KeyRound, User, Lock, School, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, schoolUnits, activeSchoolUnit, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, user, schoolUnits, activeSchoolUnit, loading: authLoading } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -17,10 +18,14 @@ export default function Login() {
   // Auto redirect jika sudah memiliki sesi aktif (SSO Satu Sesi)
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/kantin/dashboard';
-      navigate(from, { replace: true });
+      if (isCashierOnlyUser(user)) {
+        navigate('/kantin/pos', { replace: true });
+      } else {
+        const from = location.state?.from?.pathname || '/kantin/dashboard';
+        navigate(from, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, user, navigate, location]);
 
   useEffect(() => {
     if (activeSchoolUnit) {
@@ -37,7 +42,11 @@ export default function Login() {
 
     const res = await login(username, password, schoolUnitId ? Number(schoolUnitId) : undefined);
     if (res.success) {
-      navigate('/kantin/dashboard', { replace: true });
+      if (isCashierOnlyUser(res.user || user)) {
+        navigate('/kantin/pos', { replace: true });
+      } else {
+        navigate('/kantin/dashboard', { replace: true });
+      }
     } else {
       setError(res.message || 'Gagal login ke Modul Kantin');
     }

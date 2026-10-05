@@ -7,5 +7,6 @@ const requireRole = require('../middlewares/requireRole');
 router.get('/receivables/canteen-share', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.getCanteenShare);
 router.get('/receivables/canteen-share/detail', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.getCanteenShareDetail);
 router.get('/receivables/vendor-share', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.getVendorShare);
+router.get('/receivables/vendor-share/detail', verifyJwt, requireRole('admin', 'kepala_kantin', 'bendahara'), controller.getVendorShareDetail);
 
 module.exports = router;

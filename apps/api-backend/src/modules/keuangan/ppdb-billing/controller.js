@@ -202,6 +202,26 @@ class PpdbBillingController {
     } catch (err) { next(err); }
   };
 
+  recordPpdbMultiPayment = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const userId = this.getUserId(req);
+      const data = await ppdbBillingService.recordPpdbMultiPayment(
+        schoolUnitId,
+        req.body,
+        userId
+      );
+      res.status(201).json({
+        success: true,
+        data,
+        message: data.is_legacy
+          ? 'Pencatatan riwayat pembayaran PPDB berhasil disimpan (Non-Kas)'
+          : `Pembayaran PPDB berhasil dicatat (Kwitansi #${data.receipt_number})`,
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
   recordRegistrationPayment = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -253,6 +273,39 @@ class PpdbBillingController {
     } catch (err) { next(err); }
   };
 
+  listRegistrationPayments = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await ppdbBillingService.listRegistrationPayments(schoolUnitId, req.query);
+      res.json({
+        success: true,
+        data,
+        message: 'Daftar riwayat pembayaran PPDB berhasil diambil',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  voidRegistrationPayment = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const user = req.user || { id: this.getUserId(req) };
+      const { void_reason, reason } = req.body;
+      const data = await ppdbBillingService.voidRegistrationPayment(
+        schoolUnitId,
+        req.params.payment_id,
+        void_reason || reason,
+        user
+      );
+      res.json({
+        success: true,
+        data,
+        message: data.message || 'Pembayaran berhasil dibatalkan (void)',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
   getReceiptPdf = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -262,6 +315,27 @@ class PpdbBillingController {
           success: false,
           data: null,
           message: 'Bukti pembayaran tidak ditemukan',
+          errors: null
+        });
+      }
+      res.json({
+        success: true,
+        data,
+        message: 'Data kwitansi pembayaran PPDB berhasil diambil',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  getReceiptByNumber = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await ppdbBillingService.getReceiptByNumber(schoolUnitId, req.params.receipt_number);
+      if (!data) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'Data kwitansi pembayaran tidak ditemukan',
           errors: null
         });
       }

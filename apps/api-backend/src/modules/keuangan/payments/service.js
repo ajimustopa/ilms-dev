@@ -104,9 +104,9 @@ class PaymentsService {
 
       // 1. Handle Multi-Allocation Mode (Array of allocations)
       if (data.allocations && Array.isArray(data.allocations) && data.allocations.length > 0) {
-        const validAllocations = data.allocations.filter(a => parseFloat(a.amount || 0) > 0);
+        const validAllocations = data.allocations.filter(a => parseFloat(a.amount || 0) > 0 || (a.has_discount && parseFloat(a.discount_amount || 0) > 0));
         if (validAllocations.length === 0) {
-          return { error: 'VALIDATION', message: 'Nominal alokasi pembayaran harus lebih besar dari 0' };
+          return { error: 'VALIDATION', message: 'Nominal alokasi pembayaran atau diskon harus lebih besar dari 0' };
         }
 
         const createdPaymentIds = [];
@@ -119,6 +119,8 @@ class PaymentsService {
         for (const alloc of validAllocations) {
           const billId = alloc.student_bill_id || alloc.bill_id;
           const allocAmount = parseFloat(alloc.amount || 0);
+          const hasDiscount = Boolean(alloc.has_discount && parseFloat(alloc.discount_amount || 0) > 0);
+          const discountAmount = hasDiscount ? parseFloat(alloc.discount_amount) : 0;
 
           const bill = await trx('student_bills')
             .where({ id: billId })
@@ -148,23 +150,43 @@ class PaymentsService {
             .first();
           const currentPaid = existingPayments?.total_paid ? parseFloat(existingPayments.total_paid) : 0;
           const newTotalPaid = currentPaid + allocAmount;
-          const billAmount = parseFloat(bill.amount);
-          const billStatusAfter = newTotalPaid >= billAmount ? 'paid' : 'partially_paid';
+          const billAmount = parseFloat(bill.amount || 0);
 
-          const [paymentId] = await trx('bill_payments').insert({
-            student_bill_id: bill.id,
-            cash_account_id: cashAccountId,
-            paid_at: paidAt,
-            amount: allocAmount,
-            payment_method: paymentMethod,
-            receipt_number: receiptNumber,
-            is_legacy: isLegacy,
-            historical_cash_note: historicalCashNote,
-            notes: data.notes || (data.bank_statement_reference ? `Ref RK: ${data.bank_statement_reference}` : null)
-          });
+          // Update Diskon pada Tagihan Siswa jika ada
+          let newDiscountTotal = parseFloat(bill.discount_amount || 0);
+          if (hasDiscount && discountAmount > 0) {
+            newDiscountTotal += discountAmount;
+            await trx('student_bills')
+              .where({ id: bill.id })
+              .update({
+                discount_amount: newDiscountTotal,
+                discount_type: alloc.discount_type || (alloc.discount_percentage ? 'percentage' : 'nominal'),
+                discount_percentage: alloc.discount_percentage || (billAmount > 0 ? (discountAmount / billAmount * 100) : null),
+                discount_reason: alloc.discount_reason || 'Diskon saat pencatatan pembayaran'
+              });
+          }
 
-          const actualPaymentId = paymentId || (await trx('bill_payments').where({ receipt_number: receiptNumber, student_bill_id: bill.id }).first()).id;
-          createdPaymentIds.push(actualPaymentId);
+          const effectiveBillAmount = Math.max(0, billAmount - newDiscountTotal);
+          const billStatusAfter = (newTotalPaid >= effectiveBillAmount) ? 'paid' : (newTotalPaid > 0 ? 'partially_paid' : (newDiscountTotal > 0 ? 'partially_paid' : bill.status));
+
+          let actualPaymentId = null;
+
+          if (allocAmount > 0) {
+            const [paymentId] = await trx('bill_payments').insert({
+              student_bill_id: bill.id,
+              cash_account_id: cashAccountId,
+              paid_at: paidAt,
+              amount: allocAmount,
+              payment_method: paymentMethod,
+              receipt_number: receiptNumber,
+              is_legacy: isLegacy,
+              historical_cash_note: historicalCashNote,
+              notes: data.notes || (data.bank_statement_reference ? `Ref RK: ${data.bank_statement_reference}` : null)
+            });
+
+            actualPaymentId = paymentId || (await trx('bill_payments').where({ receipt_number: receiptNumber, student_bill_id: bill.id }).first()).id;
+            createdPaymentIds.push(actualPaymentId);
+          }
 
           await trx('student_bills')
             .where({ id: bill.id })
@@ -187,8 +209,43 @@ class PaymentsService {
 
           const targetUnitId = bill.school_unit_id || schoolUnitId || 1;
 
-          // Auto-journal per pos alokasi (Hanya untuk transaksi kas berjalan / non-historis)
-          if (!isLegacy) {
+          // Auto-journal for Discount (Non-Kas)
+          if (hasDiscount && discountAmount > 0 && !isLegacy) {
+            try {
+              let ftDiscMappingId = alloc.discount_mapping_id || null;
+              if (!ftDiscMappingId && bill.fee_type_id) {
+                const ft = await trx('fee_types').where({ id: bill.fee_type_id }).first();
+                if (ft && ft.payment_discount_account_mapping_id) {
+                  ftDiscMappingId = ft.payment_discount_account_mapping_id;
+                } else if (ft && ft.billing_discount_account_mapping_id) {
+                  ftDiscMappingId = ft.billing_discount_account_mapping_id;
+                }
+              }
+
+              await recordJournal({
+                schoolUnitId: targetUnitId,
+                academicYearId: Number(bill.academic_year_id || 2),
+                transactionCode: 'student_bill_discount',
+                mappingId: ftDiscMappingId,
+                amount: discountAmount,
+                sourceType: 'student_bill_discount',
+                sourceId: bill.id,
+                description: `Diskon tagihan #${bill.id} (${bill.fee_type_name || ''}) - Kwitansi ${receiptNumber}${alloc.discount_reason ? `: ${alloc.discount_reason}` : ''}`,
+                journalDate: paidAt,
+                overrideDebitAccountId: alloc.override_discount_debit_account_id || null,
+                overrideCreditAccountId: alloc.override_discount_credit_account_id || null,
+                overrideReason: alloc.discount_reason || 'Diskon saat pembayaran tagihan siswa',
+                userId,
+                trx
+              });
+            } catch (discJournalErr) {
+              if (discJournalErr.statusCode === 422) throw discJournalErr;
+              console.warn('Discount auto journal skipped or error:', discJournalErr.message);
+            }
+          }
+
+          // Auto-journal per pos alokasi (Hanya untuk transaksi kas berjalan / non-historis dan jika ada nominal bayar)
+          if (!isLegacy && allocAmount > 0 && actualPaymentId) {
             try {
               let ftMappingId = alloc.transaction_mapping_id || data.transaction_mapping_id || null;
               if (!ftMappingId && bill.fee_type_id) {
@@ -226,8 +283,8 @@ class PaymentsService {
             }
           }
 
-          // Fund balance mutation (Hanya jika non-historis)
-          if (!isLegacy) {
+          // Fund balance mutation (Hanya jika non-historis dan ada nominal bayar)
+          if (!isLegacy && allocAmount > 0 && actualPaymentId) {
             try {
               await fundBalanceEngine.applyFundMutation({
                 schoolUnitId: targetUnitId,
@@ -311,15 +368,14 @@ class PaymentsService {
           }
         }
 
-        const primaryPaymentId = createdPaymentIds[0];
-        const primaryPaymentRecord = await trx('bill_payments').where({ id: primaryPaymentId }).first();
+        const primaryPaymentId = createdPaymentIds.length > 0 ? createdPaymentIds[0] : null;
 
         await logFinanceAudit({
           schoolUnitId: schoolUnitId || lastBillUnitId || 1,
           userId,
           action: isLegacy ? 'RECORD_BILL_PAYMENT_HISTORICAL_MULTI' : 'RECORD_BILL_PAYMENT_MULTI',
           entityType: 'bill_payment',
-          entityId: primaryPaymentId,
+          entityId: primaryPaymentId || (validAllocations[0] ? (validAllocations[0].student_bill_id || validAllocations[0].bill_id) : 0),
           dataAfter: {
             receipt_number: receiptNumber,
             allocations_count: validAllocations.length,
@@ -803,11 +859,47 @@ class PaymentsService {
     payment.component_display = `${payment.fee_type_name} (${payment.period_display})`.trim();
 
     // Check bank statement reference
-    const ref = await db('bank_statement_references')
+    let foundBsId = null;
+    const directRef = await db('bank_statement_references')
       .where({ reference_type: 'student_bill_payment', reference_id: id })
       .first();
-    if (ref) {
-      payment.bank_statement_id = ref.bank_statement_id;
+    if (directRef) {
+      foundBsId = directRef.bank_statement_id;
+    }
+
+    if (!foundBsId && payment.receipt_number) {
+      const siblingRefs = await db('bank_statement_references')
+        .join('bill_payments', 'bank_statement_references.reference_id', 'bill_payments.id')
+        .where('bank_statement_references.reference_type', 'student_bill_payment')
+        .where('bill_payments.receipt_number', payment.receipt_number)
+        .select('bank_statement_references.bank_statement_id')
+        .first();
+      if (siblingRefs) {
+        foundBsId = siblingRefs.bank_statement_id;
+      }
+    }
+
+    if (!foundBsId) {
+      const stmt = await db('bank_statements')
+        .where({ reconciled_reference_type: 'student_bill_payment', reconciled_reference_id: id })
+        .first();
+      if (stmt) {
+        foundBsId = stmt.id;
+      } else if (payment.receipt_number) {
+        const stmtSib = await db('bank_statements')
+          .join('bill_payments', 'bank_statements.reconciled_reference_id', 'bill_payments.id')
+          .where('bank_statements.reconciled_reference_type', 'student_bill_payment')
+          .where('bill_payments.receipt_number', payment.receipt_number)
+          .select('bank_statements.id')
+          .first();
+        if (stmtSib) {
+          foundBsId = stmtSib.id;
+        }
+      }
+    }
+
+    if (foundBsId) {
+      payment.bank_statement_id = foundBsId;
     }
 
     // Check existing journal entry
@@ -821,6 +913,43 @@ class PaymentsService {
       const kLine = jLines.find(l => parseFloat(l.credit || 0) > 0);
       if (dLine) payment.override_debit_account_id = dLine.account_id;
       if (kLine) payment.override_credit_account_id = kLine.account_id;
+    }
+
+    // Fetch All Sibling Bill Payment Items in the Same Receipt (Multi-Bill / Multi-Student Transactions)
+    if (payment.receipt_number) {
+      const siblingPayments = await db('bill_payments')
+        .join('student_bills', 'bill_payments.student_bill_id', 'student_bills.id')
+        .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
+        .where('bill_payments.receipt_number', payment.receipt_number)
+        .select(
+          'bill_payments.*',
+          'student_bills.student_id',
+          'student_bills.school_unit_id',
+          'student_bills.academic_year_id',
+          'student_bills.period_month',
+          'student_bills.period_year',
+          'student_bills.amount as bill_amount',
+          'student_bills.discount_amount as bill_discount_amount',
+          'student_bills.discount_type as bill_discount_type',
+          'student_bills.discount_percentage as bill_discount_percentage',
+          'student_bills.discount_reason as bill_discount_reason',
+          'fee_types.id as fee_type_id',
+          'fee_types.name as fee_type_name',
+          'fee_types.code as fee_type_code',
+          'fee_types.billing_pattern',
+          'fee_types.payment_account_mapping_id'
+        );
+
+      payment.items = siblingPayments.map(sp => ({
+        ...sp,
+        amount: parseFloat(sp.amount || 0)
+      }));
+      payment.total_amount = siblingPayments.reduce((acc, sp) => acc + parseFloat(sp.amount || 0), 0);
+      payment.all_student_ids = [...new Set(siblingPayments.map(sp => sp.student_id))];
+    } else {
+      payment.items = [{ ...payment, amount: parseFloat(payment.amount || 0) }];
+      payment.total_amount = parseFloat(payment.amount || 0);
+      payment.all_student_ids = [payment.student_id];
     }
 
     return payment;
@@ -850,14 +979,18 @@ class PaymentsService {
       override_debit_account_id,
       override_credit_account_id,
       override_cash_account_id,
-      override_reason
+      override_reason,
+      allocations,
+      is_historical
     } = data;
+
     if (!correction_reason || !correction_reason.trim()) {
-      return { error: 'VALIDATION', message: 'Alasan koreksi (correction_reason) wajib diisi' };
+      return { error: 'VALIDATION', message: 'Alasan koreksi (correction_reason) wajib diisi untuk menjaga integritas audit transaksi' };
     }
 
     return db.transaction(async (trx) => {
-      const payment = await trx('bill_payments')
+      // 1. Ambil record payment utama
+      const primaryPayment = await trx('bill_payments')
         .join('student_bills', 'bill_payments.student_bill_id', 'student_bills.id')
         .leftJoin('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
         .where({ 'bill_payments.id': id })
@@ -872,23 +1005,37 @@ class PaymentsService {
         )
         .first();
 
-      if (!payment) return { error: 'NOT_FOUND', message: 'Pembayaran tidak ditemukan' };
+      if (!primaryPayment) return { error: 'NOT_FOUND', message: 'Pembayaran tidak ditemukan' };
 
-      const previousSnapshot = {
-        amount: payment.amount,
-        paid_at: payment.paid_at,
-        cash_account_id: payment.cash_account_id,
-        payment_method: payment.payment_method,
-        notes: payment.notes
-      };
+      const targetUnitId = primaryPayment.school_unit_id || schoolUnitId || 1;
+      const receiptNumber = primaryPayment.receipt_number;
 
-      const newAmount = amount !== undefined ? parseFloat(amount) : parseFloat(payment.amount);
-      const newPaidAt = paid_at || payment.paid_at;
-      const newCashAccountId = cash_account_id !== undefined ? (cash_account_id ? Number(cash_account_id) : null) : payment.cash_account_id;
-      const newPaymentMethod = payment_method !== undefined ? payment_method : payment.payment_method;
-      const newNotes = notes !== undefined ? notes : payment.notes;
+      // Ambil seluruh bill_payments lama yang memiliki receipt_number yang sama
+      let oldPayments = [];
+      if (receiptNumber) {
+        oldPayments = await trx('bill_payments').where({ receipt_number: receiptNumber });
+      } else {
+        oldPayments = [primaryPayment];
+      }
 
-      if (!payment.is_legacy && paid_at) {
+      const previousSnapshot = oldPayments.map(op => ({
+        id: op.id,
+        student_bill_id: op.student_bill_id,
+        amount: op.amount,
+        paid_at: op.paid_at,
+        cash_account_id: op.cash_account_id,
+        payment_method: op.payment_method,
+        notes: op.notes
+      }));
+
+      const newPaidAt = paid_at || primaryPayment.paid_at;
+      const isLegacy = is_historical !== undefined ? Boolean(is_historical) : Boolean(primaryPayment.is_legacy);
+      const newCashAccountId = isLegacy ? null : (cash_account_id !== undefined ? (cash_account_id ? Number(cash_account_id) : null) : primaryPayment.cash_account_id);
+      const newPaymentMethod = isLegacy ? 'cash' : (payment_method !== undefined ? payment_method : primaryPayment.payment_method);
+      const newNotes = notes !== undefined ? notes : primaryPayment.notes;
+
+      // Validasi cutover jika non-historis
+      if (!isLegacy && paid_at) {
         const cutoverSetting = await trx('finance_cutover_settings')
           .where({ school_unit_id: schoolUnitId })
           .first();
@@ -904,6 +1051,316 @@ class PaymentsService {
         }
       }
 
+      // KASUS 1: Koreksi dengan Rincian Alokasi Lengkap (allocations array)
+      if (Array.isArray(allocations) && allocations.length > 0) {
+        const oldPaymentIds = oldPayments.map(op => op.id);
+        const oldBillIds = [...new Set(oldPayments.map(op => op.student_bill_id))];
+
+        // 1. Ambil bank_statement_id yang sebelumnya terhubung untuk di-recalculate statusnya
+        const oldRefs = await trx('bank_statement_references')
+          .where({ reference_type: 'student_bill_payment' })
+          .whereIn('reference_id', oldPaymentIds);
+        const oldBsIds = [...new Set(oldRefs.map(r => r.bank_statement_id))];
+
+        // Hapus bank statement references lama
+        await trx('bank_statement_references')
+          .where({ reference_type: 'student_bill_payment' })
+          .whereIn('reference_id', oldPaymentIds)
+          .delete();
+
+        // Recalculate status mutasi bank lama jika referensi dilepas/diganti
+        for (const oldBsId of oldBsIds) {
+          const stmt = await trx('bank_statements').where({ id: oldBsId }).first();
+          if (stmt) {
+            const allocSum = await trx('bank_statement_references')
+              .where('bank_statement_id', stmt.id)
+              .sum('amount as total_allocated')
+              .first();
+            const curAlloc = allocSum?.total_allocated ? parseFloat(allocSum.total_allocated) : 0;
+            const stmtTotal = parseFloat(stmt.amount || 0);
+            const isFullyReconciled = curAlloc >= stmtTotal - 0.01 && curAlloc > 0;
+            const isPartial = curAlloc > 0 && !isFullyReconciled;
+
+            const remainingRefs = await trx('bank_statement_references')
+              .where('bank_statement_id', stmt.id)
+              .orderBy('id', 'desc')
+              .first();
+
+            await trx('bank_statements')
+              .where({ id: stmt.id })
+              .update({
+                is_reconciled: isFullyReconciled,
+                reconciled_reference_type: remainingRefs ? remainingRefs.reference_type : null,
+                reconciled_reference_id: remainingRefs ? remainingRefs.reference_id : null,
+                reconciliation_notes: isFullyReconciled
+                  ? `Lunas teralokasi ke transaksi`
+                  : isPartial
+                  ? `Teralokasi Rp ${curAlloc.toLocaleString('id-ID')} / Rp ${stmtTotal.toLocaleString('id-ID')}`
+                  : null,
+                reconciled_at: isFullyReconciled ? stmt.reconciled_at : (isPartial ? stmt.reconciled_at : null),
+                updated_at: trx.fn.now()
+              });
+          }
+        }
+
+        const directStmts = await trx('bank_statements')
+          .where('reconciled_reference_type', 'student_bill_payment')
+          .whereIn('reconciled_reference_id', oldPaymentIds);
+        for (const ds of directStmts) {
+          if (!oldBsIds.includes(ds.id)) {
+            await trx('bank_statements')
+              .where({ id: ds.id })
+              .update({
+                is_reconciled: false,
+                reconciled_reference_type: null,
+                reconciled_reference_id: null,
+                reconciliation_notes: null,
+                reconciled_at: null,
+                updated_at: trx.fn.now()
+              });
+          }
+        }
+
+        // 2. Hapus journal entries lama
+        const oldJournals = await trx('journal_entries')
+          .where({ source_type: 'student_bill_payment' })
+          .whereIn('source_id', oldPaymentIds);
+        const oldJournalIds = oldJournals.map(j => j.id);
+        if (oldJournalIds.length > 0) {
+          await trx('journal_entry_lines').whereIn('journal_entry_id', oldJournalIds).delete();
+          await trx('journal_entries').whereIn('id', oldJournalIds).delete();
+        }
+
+        // Hapus journal diskon lama jika ada
+        const oldDiscJournals = await trx('journal_entries')
+          .where({ source_type: 'student_bill_discount' })
+          .whereIn('source_id', oldBillIds);
+        const oldDiscJournalIds = oldDiscJournals.map(j => j.id);
+        if (oldDiscJournalIds.length > 0) {
+          await trx('journal_entry_lines').whereIn('journal_entry_id', oldDiscJournalIds).delete();
+          await trx('journal_entries').whereIn('id', oldDiscJournalIds).delete();
+        }
+
+        // 3. Hapus bill_payments lama
+        await trx('bill_payments').whereIn('id', oldPaymentIds).delete();
+
+        // B. Masukkan alokasi baru
+        const createdPaymentIds = [];
+        let totalAllocAmount = 0;
+        const affectedBillIds = new Set(oldBillIds);
+
+        for (const alloc of allocations) {
+          const billId = Number(alloc.student_bill_id);
+          affectedBillIds.add(billId);
+          const allocAmount = parseFloat(alloc.amount || 0);
+          totalAllocAmount += allocAmount;
+          const hasDiscount = Boolean(alloc.has_discount);
+          const discountAmount = parseFloat(alloc.discount_amount || 0);
+
+          const bill = await trx('student_bills')
+            .join('fee_types', 'student_bills.fee_type_id', 'fee_types.id')
+            .where('student_bills.id', billId)
+            .select('student_bills.*', 'fee_types.name as fee_type_name', 'fee_types.payment_account_mapping_id')
+            .first();
+
+          if (!bill) continue;
+
+          // Update Diskon Tagihan
+          const billAmount = parseFloat(bill.amount || 0);
+          if (hasDiscount && discountAmount > 0) {
+            await trx('student_bills')
+              .where({ id: bill.id })
+              .update({
+                discount_amount: discountAmount,
+                discount_type: alloc.discount_type || (alloc.discount_percentage ? 'percentage' : 'nominal'),
+                discount_percentage: alloc.discount_percentage || (billAmount > 0 ? (discountAmount / billAmount * 100) : null),
+                discount_reason: alloc.discount_reason || 'Diskon saat koreksi pembayaran'
+              });
+          } else if (bill.discount_amount > 0 && !hasDiscount) {
+            await trx('student_bills')
+              .where({ id: bill.id })
+              .update({
+                discount_amount: 0,
+                discount_type: null,
+                discount_percentage: null,
+                discount_reason: null
+              });
+          }
+
+          // Insert bill_payment baru
+          let newPaymentId = null;
+          if (allocAmount > 0) {
+            const [insertedId] = await trx('bill_payments').insert({
+              student_bill_id: bill.id,
+              cash_account_id: newCashAccountId,
+              paid_at: newPaidAt,
+              amount: allocAmount,
+              payment_method: newPaymentMethod,
+              receipt_number: receiptNumber || `KW/${new Date().getFullYear()}/${id}`,
+              is_legacy: isLegacy,
+              historical_cash_note: isLegacy ? 'Riwayat Saja (Non-Kas)' : null,
+              notes: newNotes,
+              previous_data: JSON.stringify(previousSnapshot),
+              correction_reason: correction_reason.trim()
+            });
+
+            newPaymentId = insertedId || (await trx('bill_payments').where({ receipt_number: receiptNumber, student_bill_id: bill.id }).orderBy('id', 'desc').first()).id;
+            createdPaymentIds.push(newPaymentId);
+          }
+
+          const billUnitId = bill.school_unit_id || targetUnitId;
+
+          // Auto journal Diskon (Non-Kas)
+          if (hasDiscount && discountAmount > 0 && !isLegacy) {
+            try {
+              let ftDiscMappingId = alloc.discount_mapping_id || null;
+              if (!ftDiscMappingId && bill.fee_type_id) {
+                const ft = await trx('fee_types').where({ id: bill.fee_type_id }).first();
+                if (ft && ft.payment_discount_account_mapping_id) {
+                  ftDiscMappingId = ft.payment_discount_account_mapping_id;
+                } else if (ft && ft.billing_discount_account_mapping_id) {
+                  ftDiscMappingId = ft.billing_discount_account_mapping_id;
+                }
+              }
+
+              await recordJournal({
+                schoolUnitId: billUnitId,
+                academicYearId: Number(bill.academic_year_id || 2),
+                transactionCode: 'student_bill_discount',
+                mappingId: ftDiscMappingId,
+                amount: discountAmount,
+                sourceType: 'student_bill_discount',
+                sourceId: bill.id,
+                description: `Diskon tagihan #${bill.id} (${bill.fee_type_name || ''}) - Kwitansi ${receiptNumber}${alloc.discount_reason ? `: ${alloc.discount_reason}` : ''}`,
+                journalDate: newPaidAt,
+                overrideDebitAccountId: alloc.override_discount_debit_account_id || null,
+                overrideCreditAccountId: alloc.override_discount_credit_account_id || null,
+                overrideReason: alloc.discount_reason || correction_reason || 'Diskon saat koreksi pembayaran',
+                userId,
+                trx
+              });
+            } catch (discJournalErr) {
+              console.warn('Discount auto journal skipped:', discJournalErr.message);
+            }
+          }
+
+          // Auto journal Pembayaran Kas
+          if (!isLegacy && allocAmount > 0 && newPaymentId) {
+            try {
+              let ftMappingId = alloc.transaction_mapping_id || data.transaction_mapping_id || bill.payment_account_mapping_id || null;
+              await recordJournal({
+                schoolUnitId: billUnitId,
+                academicYearId: Number(bill.academic_year_id || 2),
+                transactionCode: 'student_bill_payment',
+                mappingId: ftMappingId,
+                amount: allocAmount,
+                sourceType: 'student_bill_payment',
+                sourceId: newPaymentId,
+                description: `Koreksi Pembayaran tagihan #${bill.id} (${receiptNumber})`,
+                journalDate: newPaidAt,
+                overrideDebitAccountId: alloc.override_debit_account_id || override_debit_account_id || null,
+                overrideCreditAccountId: alloc.override_credit_account_id || override_credit_account_id || null,
+                overrideCashAccountId: alloc.override_cash_account_id || override_cash_account_id || newCashAccountId || null,
+                overrideReason: override_reason || correction_reason || 'Koreksi pembayaran tagihan siswa',
+                userId,
+                trx
+              });
+            } catch (journalErr) {
+              console.warn('Auto journal on correctPayment allocations skipped:', journalErr.message);
+            }
+          }
+        }
+
+        // C. Link Rekening Koran jika Non-Tunai
+        if (bank_statement_id && !isLegacy && createdPaymentIds.length > 0) {
+          try {
+            const stmt = await trx('bank_statements').where({ id: Number(bank_statement_id) }).first();
+            if (stmt) {
+              const allocSum = await trx('bank_statement_references')
+                .where('bank_statement_id', stmt.id)
+                .sum('amount as total_allocated')
+                .first();
+              const curAlloc = allocSum?.total_allocated ? parseFloat(allocSum.total_allocated) : 0;
+              const stmtTotal = parseFloat(stmt.amount || 0);
+              const remainingPlafon = Math.max(0, stmtTotal - curAlloc);
+              const thisAlloc = Math.min(totalAllocAmount, remainingPlafon);
+
+              if (thisAlloc > 0) {
+                await trx('bank_statement_references').insert({
+                  bank_statement_id: stmt.id,
+                  school_unit_id: targetUnitId,
+                  reference_type: 'student_bill_payment',
+                  reference_id: createdPaymentIds[0],
+                  amount: thisAlloc,
+                  notes: `Koreksi Kwitansi #${receiptNumber || id}`,
+                  created_by: userId
+                });
+
+                const newAlloc = curAlloc + thisAlloc;
+                const isFullyReconciled = newAlloc >= stmtTotal - 0.01;
+
+                await trx('bank_statements')
+                  .where({ id: stmt.id })
+                  .update({
+                    transaction_date: stmt.transaction_date,
+                    is_reconciled: isFullyReconciled,
+                    reconciled_reference_type: 'student_bill_payment',
+                    reconciled_reference_id: createdPaymentIds[0],
+                    reconciliation_notes: isFullyReconciled
+                      ? `Lunas teralokasi ke transaksi (terakhir Kwitansi #${receiptNumber || id})`
+                      : `Teralokasi Rp ${newAlloc.toLocaleString('id-ID')} / Rp ${stmtTotal.toLocaleString('id-ID')}`,
+                    reconciled_at: isFullyReconciled ? trx.fn.now() : stmt.reconciled_at,
+                    updated_at: trx.fn.now()
+                  });
+              }
+            }
+          } catch (bsErr) {
+            console.warn('Bank statement linking on correctPayment skipped:', bsErr.message);
+          }
+        }
+
+        // D. Hitung ulang status semua tagihan yang terpengaruh
+        for (const billId of affectedBillIds) {
+          const billRow = await trx('student_bills').where({ id: billId }).first();
+          if (!billRow) continue;
+          const allPay = await trx('bill_payments')
+            .where('student_bill_id', billId)
+            .sum('amount as total_paid')
+            .first();
+          const totalPaid = allPay?.total_paid ? parseFloat(allPay.total_paid) : 0;
+          const effectiveBill = Math.max(0, parseFloat(billRow.amount || 0) - parseFloat(billRow.discount_amount || 0));
+          const newStatus = (totalPaid >= effectiveBill) ? 'paid' : (totalPaid > 0 ? 'partially_paid' : (parseFloat(billRow.discount_amount || 0) > 0 ? 'partially_paid' : 'unpaid'));
+
+          await trx('student_bills')
+            .where({ id: billId })
+            .update({ status: newStatus });
+        }
+
+        await logFinanceAudit({
+          schoolUnitId: targetUnitId,
+          userId,
+          action: 'CORRECT_BILL_PAYMENT_MULTI',
+          entityType: 'bill_payment',
+          entityId: createdPaymentIds[0] || id,
+          dataBefore: previousSnapshot,
+          dataAfter: { receipt_number: receiptNumber, total_amount: totalAllocAmount, paid_at: newPaidAt, allocations },
+          trx
+        });
+
+        return {
+          data: {
+            id: createdPaymentIds[0] || id,
+            receipt_number: receiptNumber,
+            total_amount: totalAllocAmount,
+            paid_at: newPaidAt,
+            payment_ids: createdPaymentIds
+          }
+        };
+      }
+
+      // KASUS 2: Fallback Single Payment Update (Legacy flow)
+      const newAmount = amount !== undefined ? parseFloat(amount) : parseFloat(primaryPayment.amount);
+
       await trx('bill_payments')
         .where({ id })
         .update({
@@ -918,19 +1375,18 @@ class PaymentsService {
 
       // Recalculate status tagihan
       const allPayments = await trx('bill_payments')
-        .where('student_bill_id', payment.student_bill_id)
+        .where('student_bill_id', primaryPayment.student_bill_id)
         .sum('amount as total_paid')
         .first();
       const totalPaid = allPayments?.total_paid ? parseFloat(allPayments.total_paid) : 0;
-      const billStatus = totalPaid >= parseFloat(payment.bill_amount) ? 'paid' : (totalPaid > 0 ? 'partially_paid' : 'unpaid');
+      const billStatus = totalPaid >= parseFloat(primaryPayment.bill_amount) ? 'paid' : (totalPaid > 0 ? 'partially_paid' : 'unpaid');
 
       await trx('student_bills')
-        .where({ id: payment.student_bill_id })
+        .where({ id: primaryPayment.student_bill_id })
         .update({ status: billStatus });
 
       // Bank Statement Linking Update
-      if (bank_statement_id !== undefined && !payment.is_legacy) {
-        // Hapus link rujukan lama
+      if (bank_statement_id !== undefined && !primaryPayment.is_legacy) {
         await trx('bank_statement_references')
           .where({ reference_type: 'student_bill_payment', reference_id: id })
           .delete();
@@ -950,11 +1406,11 @@ class PaymentsService {
             if (thisAlloc > 0) {
               await trx('bank_statement_references').insert({
                 bank_statement_id: stmt.id,
-                school_unit_id: payment.school_unit_id || schoolUnitId || 1,
+                school_unit_id: primaryPayment.school_unit_id || schoolUnitId || 1,
                 reference_type: 'student_bill_payment',
                 reference_id: id,
                 amount: thisAlloc,
-                notes: `Koreksi Kwitansi #${payment.receipt_number || id}`,
+                notes: `Koreksi Kwitansi #${primaryPayment.receipt_number || id}`,
                 created_by: userId
               });
 
@@ -969,7 +1425,7 @@ class PaymentsService {
                   reconciled_reference_type: 'student_bill_payment',
                   reconciled_reference_id: id,
                   reconciliation_notes: isFullyReconciled
-                    ? `Lunas teralokasi ke transaksi (terakhir Kwitansi #${payment.receipt_number})`
+                    ? `Lunas teralokasi ke transaksi (terakhir Kwitansi #${primaryPayment.receipt_number})`
                     : `Teralokasi Rp ${newAlloc.toLocaleString('id-ID')} / Rp ${stmtTotal.toLocaleString('id-ID')}`,
                   reconciled_at: isFullyReconciled ? trx.fn.now() : stmt.reconciled_at,
                   updated_at: trx.fn.now()
@@ -980,9 +1436,8 @@ class PaymentsService {
       }
 
       // Update Journal Entry jika non-historis
-      if (!payment.is_legacy) {
+      if (!primaryPayment.is_legacy) {
         try {
-          // Hapus journal entry lama jika ada
           const oldJ = await trx('journal_entries')
             .where({ source_type: 'student_bill_payment', source_id: id })
             .first();
@@ -991,16 +1446,16 @@ class PaymentsService {
             await trx('journal_entries').where({ id: oldJ.id }).delete();
           }
 
-          let ftMappingId = transaction_mapping_id || payment.payment_account_mapping_id || null;
+          let ftMappingId = transaction_mapping_id || primaryPayment.payment_account_mapping_id || null;
           await recordJournal({
-            schoolUnitId: payment.school_unit_id || schoolUnitId || 1,
-            academicYearId: Number(payment.academic_year_id || 2),
+            schoolUnitId: primaryPayment.school_unit_id || schoolUnitId || 1,
+            academicYearId: Number(primaryPayment.academic_year_id || 2),
             transactionCode: 'student_bill_payment',
             mappingId: ftMappingId,
             amount: newAmount,
             sourceType: 'student_bill_payment',
             sourceId: id,
-            description: `Koreksi Pembayaran tagihan #${payment.student_bill_id} (${payment.receipt_number})`,
+            description: `Koreksi Pembayaran tagihan #${primaryPayment.student_bill_id} (${primaryPayment.receipt_number})`,
             journalDate: newPaidAt,
             overrideDebitAccountId: override_debit_account_id || null,
             overrideCreditAccountId: override_credit_account_id || null,
@@ -1022,7 +1477,7 @@ class PaymentsService {
         action: 'CORRECT_BILL_PAYMENT',
         entityType: 'bill_payment',
         entityId: id,
-        dataBefore: payment,
+        dataBefore: primaryPayment,
         dataAfter: updated,
         trx
       });
@@ -1556,6 +2011,25 @@ class PaymentsService {
           userId,
           trx
         });
+
+        // Mutasi kantong dana (Fund Balance Mutation)
+        try {
+          await fundBalanceEngine.applyFundMutation({
+            schoolUnitId,
+            fundType: 'fee_type',
+            fundRefId: bill.fee_type_id,
+            academicYearId: Number(bill.academic_year_id || 2),
+            direction: 'in',
+            amount: parseFloat(alloc.allocated_amount),
+            sourceTable: 'bill_payments',
+            sourceId: paymentId,
+            notes: `Penerimaan pos biaya verifikasi bukti transfer #${proof.id} tagihan #${bill.id} (${receiptNumber})`,
+            userId,
+            trx
+          });
+        } catch (fbErr) {
+          console.warn('Fund balance mutation for proof verification skipped or error:', fbErr.message);
+        }
       }
 
       // 4. Update status bukti transfer menjadi verified
@@ -1923,6 +2397,149 @@ class PaymentsService {
       inflows: paginated
     };
   }
+
+  // ============================================================
+  // 8. SISWA YANG BERHAK MEMBAYAR TAGIHAN (Fitur Pembayaran Siswa)
+  // Siswa Aktif, Siswa Baru/Pindahan T.A. Depan, & Alumni Bertunggakan
+  // ============================================================
+  async getEligibleStudentsForPayments(schoolUnitId, params = {}) {
+    const selectedAcademicYearId = params.academic_year_id || null;
+
+    // 1. Resolve Academic Year Context
+    let currentAy = null;
+    if (selectedAcademicYearId && selectedAcademicYearId !== 'all') {
+      currentAy = await dbAkademik('academic_years').where('id', Number(selectedAcademicYearId)).first();
+    }
+    if (!currentAy) {
+      currentAy = await dbAkademik('academic_years').where('is_active', 1).first() || await dbAkademik('academic_years').first();
+    }
+
+    const allAys = await dbAkademik('academic_years').orderBy('name', 'asc');
+    const currentMatchingAys = currentAy ? allAys.filter(a => a.name === currentAy.name).map(a => a.id) : [];
+    const unitIdFilter = (q) => {
+      if (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' && Number(schoolUnitId) > 0) {
+        q.where('students.satuan_pendidikan_id', Number(schoolUnitId));
+      }
+    };
+
+    // 2. KELOMPOK 1: SISWA AKTIF TERDAFTAR DI TAHUN AJARAN INI
+    const enrollmentsInAy = await dbAkademik('student_class_enrollments')
+      .join('students', 'student_class_enrollments.student_id', 'students.id')
+      .leftJoin('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+      .whereIn('student_class_enrollments.academic_year_id', currentMatchingAys)
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal', 'calon'])
+      .whereNotIn('students.status', ['batal', 'calon', 'pendaftaran', 'ppdb'])
+      .modify(unitIdFilter)
+      .select(
+        'students.id',
+        'students.full_name',
+        'students.nis',
+        'students.nipd',
+        'students.nisn',
+        'students.status as student_status',
+        'student_class_enrollments.status as enrollment_status',
+        'students.satuan_pendidikan_id',
+        'class_groups.name as class_name',
+        'class_groups.type as class_type'
+      );
+
+    // 3. KELOMPOK 2: ALUMNI / SISWA LULUS YANG MASIH MEMILIKI TUNGGAKAN
+    const unpaidBills = await db('student_bills')
+      .where('student_bills.status', '!=', 'paid')
+      .whereRaw('(student_bills.amount - COALESCE(student_bills.discount_amount, 0) - COALESCE(student_bills.paid_amount, 0)) > 0')
+      .select('student_bills.student_id');
+
+    const unpaidStudentIds = [...new Set(unpaidBills.map(b => b.student_id))];
+
+    let extraStudentsWithBills = [];
+    if (unpaidStudentIds.length > 0) {
+      extraStudentsWithBills = await dbAkademik('students')
+        .whereIn('students.id', unpaidStudentIds)
+        .whereIn('students.status', ['lulus', 'alumni'])
+        .modify(unitIdFilter)
+        .select(
+          'students.id',
+          'students.full_name',
+          'students.nis',
+          'students.nipd',
+          'students.nisn',
+          'students.status as student_status',
+          'students.satuan_pendidikan_id'
+        );
+    }
+
+    // 4. Gabungkan ke Map untuk deduplikasi dan standarisasi output
+    const resultMap = new Map();
+
+    const getBadgeInfo = (studentStatus, enrollmentStatus, className) => {
+      const st = (studentStatus || '').toLowerCase();
+      const en = (enrollmentStatus || '').toLowerCase();
+
+      if (st === 'pindah') {
+        return {
+          category: 'transfer',
+          badge: className ? `${className} (Pindah)` : 'Pindah',
+          badgeClass: 'bg-amber-50 text-amber-700 border-amber-200'
+        };
+      }
+      if (st === 'keluar' || st === 'dikeluarkan' || en === 'keluar') {
+        return {
+          category: 'withdrawn',
+          badge: className ? `${className} (Keluar)` : 'Keluar',
+          badgeClass: 'bg-red-50 text-red-700 border-red-200'
+        };
+      }
+      if (st === 'lulus' || st === 'alumni') {
+        return {
+          category: 'alumni_arrears',
+          badge: className ? `${className} (Alumni)` : 'Alumni',
+          badgeClass: 'bg-purple-50 text-purple-700 border-purple-200'
+        };
+      }
+      return {
+        category: 'active',
+        badge: className || 'Aktif',
+        badgeClass: 'bg-blue-50 text-blue-700 border-blue-200'
+      };
+    };
+
+    // Masukkan siswa aktif terdaftar di T.A. ini
+    enrollmentsInAy.forEach(s => {
+      const { category, badge, badgeClass } = getBadgeInfo(s.student_status, s.enrollment_status, s.class_name);
+      resultMap.set(s.id, {
+        id: s.id,
+        name: s.full_name || `Siswa #${s.id}`,
+        nis: s.nipd || s.nis || s.nisn || '-',
+        class_name: s.class_name || 'Siswa Aktif',
+        student_status: s.student_status,
+        category,
+        badge,
+        badgeClass
+      });
+    });
+
+    // Masukkan alumni yang masih memiliki sisa tunggakan
+    extraStudentsWithBills.forEach(s => {
+      if (!resultMap.has(s.id)) {
+        resultMap.set(s.id, {
+          id: s.id,
+          name: s.full_name || `Siswa #${s.id}`,
+          nis: s.nipd || s.nis || s.nisn || '-',
+          class_name: 'Alumni (Tunggakan)',
+          student_status: s.student_status,
+          category: 'alumni_arrears',
+          badge: 'Alumni (Tunggakan)',
+          badgeClass: 'bg-purple-50 text-purple-800 border-purple-300 font-bold'
+        });
+      }
+    });
+
+    const finalStudentsList = Array.from(resultMap.values());
+    finalStudentsList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    return finalStudentsList;
+  }
 }
 
 module.exports = new PaymentsService();
+

@@ -30,6 +30,14 @@ router.get(
   controller.getAllInflows
 );
 
+// 1.2 Siswa Berhak Bayar (Siswa Aktif, Siswa Baru/Pindahan T.A. Depan, & Alumni Bertunggakan)
+router.get(
+  '/payments/eligible-students',
+  verifyJwt,
+  requirePermission('keuangan.payments.record'),
+  controller.getEligibleStudents
+);
+
 // 2. Edit & Riwayat Koreksi Pembayaran (Fitur #18)
 router.get(
   '/bill-payments/:id',

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import { format, parse, isValid, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -124,44 +125,102 @@ export default function DatePickerField({
     return new Date();
   });
 
-  // Auto flip positioning calculation
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const neededHeight = 370; // DayPicker approximate height
+  const [popoverCoords, setPopoverCoords] = useState(null);
 
-      if (spaceBelow < neededHeight && rect.top > neededHeight) {
-        setOpenAbove(true);
-      } else {
-        setOpenAbove(false);
-      }
+  // Auto flip & viewport bounds positioning calculation
+  const calculateCoords = useCallback(() => {
+    if (!containerRef.current) return null;
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+
+    const popoverH = popoverRef.current?.offsetHeight || 370;
+    const popoverW = popoverRef.current?.offsetWidth || 315;
+
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    const neededHeight = popoverH + 10;
+    let shouldOpenAbove = false;
+
+    if (spaceBelow >= neededHeight) {
+      shouldOpenAbove = false;
+    } else if (spaceAbove >= neededHeight) {
+      shouldOpenAbove = true;
+    } else {
+      shouldOpenAbove = spaceAbove > spaceBelow;
     }
-  }, [isOpen]);
 
-  // Click outside and Esc listener
+    let top = 0;
+    let maxHeight = popoverH;
+
+    if (shouldOpenAbove) {
+      top = Math.max(8, rect.top - popoverH - 6);
+      const availableAbove = rect.top - 12;
+      maxHeight = Math.min(popoverH, Math.max(240, availableAbove));
+    } else {
+      top = rect.bottom + 6;
+      const availableBelow = viewportHeight - top - 12;
+      maxHeight = Math.min(popoverH, Math.max(240, availableBelow));
+    }
+
+    let left = rect.left;
+    if (rect.left + popoverW > viewportWidth - 12) {
+      left = rect.right - popoverW;
+    }
+    if (left < 12) left = 12;
+    if (left + popoverW > viewportWidth - 12) {
+      left = Math.max(12, viewportWidth - popoverW - 12);
+    }
+
+    return {
+      top: Math.round(top),
+      left: Math.round(left),
+      maxHeight: Math.round(maxHeight)
+    };
+  }, []);
+
+  // Update koordinat saat dibuka, scroll, atau resize
   useEffect(() => {
+    if (!isOpen) return;
+
+    const coords = calculateCoords();
+    if (coords) setPopoverCoords(coords);
+
     const handleOutsideClick = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target) &&
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     };
+
+    const handleScrollOrResize = () => {
+      const c = calculateCoords();
+      if (c) setPopoverCoords(c);
+    };
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-      document.addEventListener('keydown', handleKeyDown);
-    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
     };
-  }, [isOpen]);
+  }, [isOpen, calculateCoords]);
 
   // Single date selection handler
   const handleDaySelect = (selectedDate) => {
@@ -340,104 +399,110 @@ export default function DatePickerField({
         </div>
       </div>
 
-      {/* Floating Custom DayPicker Popover */}
-      {isOpen && !disabled && (
-        <div
-          ref={popoverRef}
-          className={`absolute z-[99999] w-[310px] p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-md animate-scaleUp text-left transition-all ${
-            openAbove ? 'bottom-full mb-2' : 'top-full mt-2'
-          }`}
-          style={{
-            boxShadow: '0 20px 35px -5px rgba(0, 0, 0, 0.15), 0 8px 16px -6px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          {/* DayPicker Container */}
-          <div className="mj-daypicker-container">
-            {mode === 'range' ? (
-              <DayPicker
-                mode="range"
-                selected={rangeDateObj}
-                onSelect={handleRangeSelect}
-                month={month}
-                onMonthChange={setMonth}
-                locale={localeId}
-                disabled={disabledMatcher}
-                showOutsideDays={true}
-              />
-            ) : (
-              <DayPicker
-                mode="single"
-                selected={singleDateObj}
-                onSelect={handleDaySelect}
-                month={month}
-                onMonthChange={setMonth}
-                locale={localeId}
-                disabled={disabledMatcher}
-                showOutsideDays={true}
-              />
-            )}
-          </div>
-
-          {/* Quick Shortcuts & Action Footer */}
-          <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleSelectToday}
-                className="px-2 py-1 rounded-lg font-bold bg-indigo-50 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-200 dark:border-indigo-500/30 transition cursor-pointer"
-              >
-                Hari Ini
-              </button>
-
-              {mode === 'single' ? (
-                <button
-                  type="button"
-                  onClick={handleSelectTomorrow}
-                  className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                >
-                  Besok
-                </button>
+      {/* Floating Custom DayPicker Popover via Portal */}
+      {isOpen && !disabled && popoverCoords && (
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: 'fixed',
+              top: `${popoverCoords.top}px`,
+              left: `${popoverCoords.left}px`,
+              maxHeight: popoverCoords.maxHeight ? `${popoverCoords.maxHeight}px` : undefined,
+              zIndex: 99999,
+              boxShadow: '0 20px 35px -5px rgba(0, 0, 0, 0.25), 0 8px 16px -6px rgba(0, 0, 0, 0.15)',
+            }}
+            className="w-[315px] p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 text-left overflow-y-auto overflow-x-hidden"
+          >
+            {/* DayPicker Container */}
+            <div className="mj-daypicker-container">
+              {mode === 'range' ? (
+                <DayPicker
+                  mode="range"
+                  selected={rangeDateObj}
+                  onSelect={handleRangeSelect}
+                  month={month}
+                  onMonthChange={setMonth}
+                  locale={localeId}
+                  disabled={disabledMatcher}
+                  showOutsideDays={true}
+                />
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleSelectThisWeek}
-                    className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    Pekan Ini
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectThisMonth}
-                    className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    Bulan Ini
-                  </button>
-                </>
+                <DayPicker
+                  mode="single"
+                  selected={singleDateObj}
+                  onSelect={handleDaySelect}
+                  month={month}
+                  onMonthChange={setMonth}
+                  locale={localeId}
+                  disabled={disabledMatcher}
+                  showOutsideDays={true}
+                />
               )}
             </div>
 
-            <div className="flex items-center gap-1">
-              {hasValue && (
+            {/* Quick Shortcuts & Action Footer */}
+            <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={handleClear}
-                  className="px-2 py-1 rounded-lg font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
-                  title="Hapus pilihan"
+                  onClick={handleSelectToday}
+                  className="px-2 py-1 rounded-lg font-bold bg-indigo-50 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-200 dark:border-indigo-500/30 transition cursor-pointer"
                 >
-                  Reset
+                  Hari Ini
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                Tutup
-              </button>
+
+                {mode === 'single' ? (
+                  <button
+                    type="button"
+                    onClick={handleSelectTomorrow}
+                    className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    Besok
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSelectThisWeek}
+                      className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      Pekan Ini
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSelectThisMonth}
+                      className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      Bulan Ini
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                {hasValue && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="px-2 py-1 rounded-lg font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
+                    title="Hapus pilihan"
+                  >
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-2 py-1 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          </div>,
+          document.body
+        )
       )}
     </div>
   );

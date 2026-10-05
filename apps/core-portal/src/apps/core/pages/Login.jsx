@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
+import { isCashierOnlyUser } from '../../../shared/utils/authHelper';
 import {
   ShieldCheck,
   Lock,
@@ -23,17 +24,21 @@ export default function Login() {
   const [errorMsg, setErrorMsg] = useState('');
   const [errorList, setErrorList] = useState([]);
 
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      if (isCashierOnlyUser(user)) {
+        navigate('/kantin/pos', { replace: true });
+      } else {
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, user, navigate, location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,8 +52,12 @@ export default function Login() {
 
     const res = await login(username, password);
     if (res.success) {
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      if (isCashierOnlyUser(res.user || user)) {
+        navigate('/kantin/pos', { replace: true });
+      } else {
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }
     } else {
       setErrorMsg(res.message || 'Kredensial tidak valid atau server tidak dapat dihubungi');
       if (res.errors && Array.isArray(res.errors)) {

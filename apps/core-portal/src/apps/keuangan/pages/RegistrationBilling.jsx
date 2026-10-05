@@ -9,6 +9,7 @@ import StatusPill from '../../../shared/components/StatusPill';
 import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import Drawer from '../../../shared/components/Drawer';
 import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
+import { FeeTypeBadge, getFeeTypeColorStyle, StatementMatchIndicator } from './Payments';
 import * as XLSX from 'xlsx';
 import {
   UserCheck,
@@ -76,6 +77,376 @@ import {
   UploadCloud
 } from 'lucide-react';
 
+export function terbilang(nominal) {
+  const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+  const n = Math.floor(Math.abs(Number(nominal) || 0));
+  if (n < 12) return bilangan[n];
+  if (n < 20) return `${terbilang(n - 10)} Belas`;
+  if (n < 100) return `${terbilang(Math.floor(n / 10))} Puluh ${terbilang(n % 10)}`.trim();
+  if (n < 200) return `Seratus ${terbilang(n - 100)}`.trim();
+  if (n < 1000) return `${terbilang(Math.floor(n / 100))} Ratus ${terbilang(n % 100)}`.trim();
+  if (n < 2000) return `Seribu ${terbilang(n - 1000)}`.trim();
+  if (n < 1000000) return `${terbilang(Math.floor(n / 1000))} Ribu ${terbilang(n % 1000)}`.trim();
+  if (n < 1000000000) return `${terbilang(Math.floor(n / 1000000))} Juta ${terbilang(n % 1000000)}`.trim();
+  if (n < 1000000000000) return `${terbilang(Math.floor(n / 1000000000))} Milyar ${terbilang(n % 1000000000)}`.trim();
+  return `${terbilang(Math.floor(n / 1000000000000))} Triliun ${terbilang(n % 1000000000000)}`.trim();
+}
+
+export const formatDateToDMY = (dateInput) => formatDate(dateInput);
+
+export const formatStatementDatesForSearch = (isoDateStr) => {
+  if (!isoDateStr) return [];
+  const dateObj = new Date(isoDateStr);
+  if (isNaN(dateObj.getTime())) {
+    const s = String(isoDateStr).slice(0, 10);
+    return [s];
+  }
+  const yyyy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  const d = dateObj.getDate();
+  const mIndex = dateObj.getMonth();
+
+  const indoMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const indoMonthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+  const monthNameIndo = indoMonths[mIndex];
+  const monthShortIndo = indoMonthsShort[mIndex];
+
+  return [
+    `${yyyy}-${mm}-${dd}`,
+    `${dd}/${mm}/${yyyy}`,
+    `${dd}-${mm}-${yyyy}`,
+    `${dd}.${mm}.${yyyy}`,
+    `${d}/${mIndex + 1}/${yyyy}`,
+    `${d}-${mIndex + 1}-${yyyy}`,
+    `${d} ${monthNameIndo} ${yyyy}`,
+    `${d} ${monthShortIndo} ${yyyy}`,
+    monthNameIndo,
+    monthShortIndo
+  ];
+};
+
+export const mapBankStatementOption = (r, pDate, currentBsId = '') => {
+  const desc = r.description || r.mutation_description || 'Mutasi Masuk';
+  const refNo = r.journal_number || r.reference_number || r.reconciliation_notes || r.import_batch_id || '';
+  const rkDate = r.transaction_date ? String(r.transaction_date).slice(0, 10) : '';
+  const isExactDate = pDate && rkDate === pDate;
+  const isCurrentLinked = currentBsId && String(r.id) === String(currentBsId);
+  const totalPlafon = parseFloat(r.amount || 0);
+  const allocatedAmt = parseFloat(r.allocated_amount || 0);
+  const remainingAmt = r.remaining_amount !== undefined ? parseFloat(r.remaining_amount) : Math.max(0, totalPlafon - allocatedAmt);
+  const isFullyAllocated = Boolean(r.is_reconciled) || (remainingAmt <= 0.01 && totalPlafon > 0);
+  const isPartial = !isFullyAllocated && allocatedAmt > 0 && remainingAmt > 0.01;
+
+  const bankName = r.bank_name || r.cash_account_name || '';
+  const bankAccNo = r.bank_account_number || '';
+  const bankPrefix = bankName ? `[${bankName}] ` : '';
+
+  let badgeText = isCurrentLinked ? '📌 LINKED' : (isExactDate ? '⭐ TGL COCOK' : 'KREDIT');
+  let badgeStyle = isCurrentLinked
+    ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold'
+    : (isExactDate ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-indigo-50 text-indigo-700');
+
+  if (!isCurrentLinked && isPartial) {
+    badgeText = isExactDate ? '⭐ TGL COCOK | SISA' : '⚡ SISA PLAFON';
+    badgeStyle = 'bg-amber-100 text-amber-900 border border-amber-300 font-bold';
+  }
+
+  if (!isCurrentLinked && isFullyAllocated) {
+    badgeText = '⛔ HABIS TERPAKAI';
+    badgeStyle = 'bg-rose-100 text-rose-800 border border-rose-300 font-bold';
+  }
+
+  const labelText = isCurrentLinked
+    ? `[DITAUTKAN] ${bankPrefix}${formatCurrency(totalPlafon)} - ${desc}`
+    : isFullyAllocated
+    ? `[HABIS TERPAKAI] ${bankPrefix}${formatCurrency(totalPlafon)} - ${desc}`
+    : isPartial
+    ? `${bankPrefix}Sisa: ${formatCurrency(remainingAmt)} (Plafon: ${formatCurrency(totalPlafon)}) - ${desc}`
+    : `${bankPrefix}${formatCurrency(totalPlafon)} - ${desc}`;
+
+  const sublabelText = isFullyAllocated && !isCurrentLinked
+    ? `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | ${bankName ? `${bankName}${bankAccNo ? ` (${bankAccNo})` : ''} | ` : ''}Plafon: ${formatCurrency(totalPlafon)} (Teralokasi: ${formatCurrency(allocatedAmt)}) • Habis`
+    : `Tgl: ${rkDate || '-'} | Ref: ${refNo || '-'} | ${bankName ? `${bankName}${bankAccNo ? ` (${bankAccNo})` : ''} | ` : ''}Plafon: ${formatCurrency(totalPlafon)}${allocatedAmt > 0 ? ` (Teralokasi: ${formatCurrency(allocatedAmt)})` : ''}`;
+
+  const dateVariations = formatStatementDatesForSearch(r.transaction_date);
+
+  const searchTerms = [
+    refNo,
+    r.journal_number,
+    r.reference_number,
+    r.reconciliation_notes,
+    r.import_batch_id,
+    desc,
+    r.description,
+    r.mutation_description,
+    bankName,
+    bankAccNo,
+    r.cash_account_name,
+    String(r.amount || ''),
+    String(totalPlafon),
+    String(remainingAmt),
+    String(allocatedAmt),
+    formatCurrency(totalPlafon),
+    formatCurrency(remainingAmt),
+    `#${r.id}`,
+    String(r.id),
+    ...dateVariations
+  ].filter(Boolean);
+
+  return {
+    value: String(r.id),
+    label: labelText,
+    sublabel: sublabelText,
+    badge: badgeText,
+    badgeClass: badgeStyle,
+    amount: totalPlafon,
+    allocated_amount: allocatedAmt,
+    remaining_amount: remainingAmt,
+    rawDate: rkDate,
+    desc: desc,
+    refNo: refNo,
+    journal_number: r.journal_number,
+    reference_number: r.reference_number,
+    reconciliation_notes: r.reconciliation_notes,
+    import_batch_id: r.import_batch_id,
+    cash_account_id: r.cash_account_id,
+    cash_account_name: bankName,
+    bank_name: bankName,
+    bank_account_number: bankAccNo,
+    searchTerms: searchTerms,
+    isExactDate,
+    disabled: isFullyAllocated && !isCurrentLinked,
+    isFullyAllocated: isFullyAllocated && !isCurrentLinked,
+    disabledReason: `Mutasi rekening koran (${desc}) sebesar ${formatCurrency(totalPlafon)} sudah habis terpakai. Tidak dapat dipilih untuk transaksi baru.`
+  };
+};
+
+export function openPpdbReceiptInNewTab(receipt, unitName = 'Satuan Pendidikan Aldepos') {
+  if (!receipt) return;
+  const bill = receipt.bill || {};
+  const payment = receipt.payment || {};
+  const schoolUnit = receipt.school_unit || {};
+
+  const receiptNo = payment.receipt_number || bill.receipt_number || `KWT-PPDB-${Date.now()}`;
+  const schoolUnitName = schoolUnit.name || unitName || 'Pondok Pesantren Aldepos';
+  const schoolUnitAddress = schoolUnit.address || 'Jl. Abdul Fatah No.24, Tapos II, Kec. Tenjolaya, Kabupaten Bogor, Jawa Barat 16370';
+  const registrantName = bill.registrant_name_snapshot || '-';
+  const regNumber = bill.registration_number_snapshot || '-';
+  const feeName = bill.fee_type_name || 'Uang Pangkal PPDB';
+  const amountPaid = parseFloat(payment.total_amount || payment.amount_paid || bill.paid_amount || 0);
+  const totalBill = parseFloat(bill.amount || 0);
+  const remaining = Math.max(0, totalBill - parseFloat(bill.discount_amount || 0) - parseFloat(bill.paid_amount || 0));
+  const words = `${terbilang(amountPaid)} Rupiah`;
+  const paidDate = payment.payment_date ? String(payment.payment_date).slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const paymentMethod = payment.payment_method === 'cash' ? 'Tunai / Kasir' : (payment.payment_method === 'transfer' || payment.payment_method === 'bank_transfer' ? 'Transfer Bank' : (payment.payment_method || 'Kasir'));
+  const cashAccount = payment.cash_account_name || 'Kasir PPDB';
+
+  const isVoid = Boolean(payment.is_void || payment.status === 'voided');
+  const voidReason = payment.void_reason || '';
+  const voidedAt = payment.voided_at || '';
+
+  const verifyUrl = `https://core.aldepos.sch.id/verify/kwitansi?receipt=${encodeURIComponent(receiptNo)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Pop-up terblokir oleh browser. Izinkan pop-up untuk mencetak kwitansi.');
+    return;
+  }
+
+  const receiptItems = payment.items && payment.items.length > 0 ? payment.items : [{
+    fee_type_name: feeName,
+    bill_amount: totalBill,
+    amount_paid: amountPaid,
+    discount_amount: bill.discount_amount || 0,
+    bill_paid_amount: bill.paid_amount || 0,
+    notes: payment.notes || 'Pembayaran Kasir PPDB'
+  }];
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Kwitansi Resmi PPDB - ${receiptNo}${isVoid ? ' [VOID/DIBATALKAN]' : ''}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; color: #1e293b; padding: 24px; position: relative; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 36px; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        .watermark-void {
+          position: absolute;
+          top: 48%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-28deg);
+          font-size: 70px;
+          font-weight: 900;
+          color: rgba(225, 29, 72, 0.18);
+          border: 8px dashed rgba(225, 29, 72, 0.35);
+          padding: 16px 40px;
+          border-radius: 20px;
+          text-transform: uppercase;
+          letter-spacing: 6px;
+          pointer-events: none;
+          z-index: 10;
+          text-align: center;
+        }
+        .void-banner {
+          background: #fff1f2;
+          border: 1.5px solid #fda4af;
+          color: #9f1239;
+          padding: 12px 18px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; }
+        .brand h1 { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
+        .brand p { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.4; }
+        .receipt-badge { text-align: right; }
+        .badge-title { font-size: 16px; font-weight: 800; color: ${isVoid ? '#e11d48' : '#0284c7'}; }
+        .badge-no { font-family: monospace; font-size: 13px; font-weight: 700; color: #334155; margin-top: 3px; }
+        
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-size: 12px; background: #f8fafc; padding: 14px 18px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .meta-row { display: flex; margin-bottom: 6px; }
+        .meta-row:last-child { margin-bottom: 0; }
+        .meta-label { width: 130px; color: #64748b; font-weight: 600; }
+        .meta-val { font-weight: 700; color: #0f172a; flex: 1; }
+        
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+        .table th { background: #f1f5f9; padding: 10px 14px; text-align: left; font-weight: 700; color: #334155; border-bottom: 1px solid #cbd5e1; }
+        .table td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+        .text-right { text-align: right; }
+        
+        .summary-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 14px 18px; border-radius: 12px; margin-bottom: 24px; }
+        .summary-title { font-size: 11px; text-transform: uppercase; font-weight: 800; color: #15803d; letter-spacing: 0.5px; }
+        .summary-amount { font-size: 22px; font-weight: 800; color: #166534; margin: 4px 0; }
+        .summary-words { font-size: 12px; font-style: italic; color: #14532d; }
+        
+        .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+        .signature-box { text-align: center; width: 220px; font-size: 12px; }
+        .signature-space { height: 60px; }
+        .signature-name { font-weight: 700; color: #0f172a; border-top: 1px solid #94a3b8; padding-top: 4px; }
+        .signature-title { color: #64748b; font-size: 11px; }
+
+        .btn-print { background: #0284c7; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+        .btn-print:hover { background: #0369a1; }
+
+        @media print {
+          body { background: #fff; padding: 0; }
+          .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+          .no-print { display: none !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="max-width: 800px; margin: 0 auto 16px auto; display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="btn-print" onclick="window.print()">Cetak Kwitansi</button>
+      </div>
+
+      <div class="container">
+        ${isVoid ? `
+          <div class="watermark-void">BATAL / VOID</div>
+          <div class="void-banner">
+            <strong>⚠️ PERHATIAN: TRANSAKSI TELAH DIBATALKAN (VOID)</strong><br />
+            Kwitansi ini dinyatakan <strong>TIDAK BERLAKU</strong> sebagai bukti setor kas karena telah dibatalkan pada <strong>${voidedAt || '-'}</strong>.<br />
+            <strong>Alasan Pembatalan:</strong> <em>"${voidReason || 'Pembatalan transaksi oleh kasir/bendahara'}"</em>
+          </div>
+        ` : ''}
+        <div class="header">
+          <div class="brand">
+            <h1>${schoolUnitName}</h1>
+            <p>${schoolUnitAddress}</p>
+          </div>
+          <div class="receipt-badge">
+            <div class="badge-title">KWITANSI RESMI PPDB</div>
+            <div class="badge-no">${receiptNo}</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div>
+            <div class="meta-row"><span class="meta-label">Nama Calon Santri:</span><span class="meta-val">${registrantName}</span></div>
+            <div class="meta-row"><span class="meta-label">No. Registrasi:</span><span class="meta-val">${regNumber}</span></div>
+            <div class="meta-row"><span class="meta-label">Komponen Biaya:</span><span class="meta-val">${feeName}</span></div>
+          </div>
+          <div>
+            <div class="meta-row"><span class="meta-label">Tanggal Setor:</span><span class="meta-val">${paidDate}</span></div>
+            <div class="meta-row"><span class="meta-label">Metode Pembayaran:</span><span class="meta-val">${paymentMethod}</span></div>
+            <div class="meta-row"><span class="meta-label">Akun Kas / Bank:</span><span class="meta-val">${cashAccount}</span></div>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Deskripsi Penerimaan Kas PPDB</th>
+              <th class="text-right">Total Kewajiban</th>
+              <th class="text-right">Jumlah Disetor</th>
+              <th class="text-right">Sisa Piutang</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${receiptItems.map((it) => {
+              const itName = it.fee_type_name || feeName;
+              const itBill = parseFloat(it.bill_amount || it.amount || 0);
+              const itPaid = parseFloat(it.amount_paid || 0);
+              const itDisc = parseFloat(it.discount_amount || 0);
+              const itPrevPaid = parseFloat(it.bill_paid_amount || 0);
+              const itRem = Math.max(0, itBill - itDisc - itPrevPaid);
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight: 700;">${itName}</div>
+                    ${itDisc > 0 ? `<div style="font-size: 11px; color: #059669; font-weight: 600;">Potongan Diskon: Rp ${itDisc.toLocaleString('id-ID')}</div>` : ''}
+                    <div style="font-size: 11px; color: #64748b;">${it.notes || payment.notes || 'Pembayaran Kasir PPDB'}</div>
+                  </td>
+                  <td class="text-right" style="font-family: monospace;">Rp ${itBill.toLocaleString('id-ID')}</td>
+                  <td class="text-right" style="font-family: monospace; font-weight: 700; color: #15803d;">Rp ${itPaid.toLocaleString('id-ID')}</td>
+                  <td class="text-right" style="font-family: monospace; color: #b91c1c;">Rp ${itRem.toLocaleString('id-ID')}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div class="summary-box">
+          <div class="summary-title">Jumlah Kas Diterima:</div>
+          <div class="summary-amount">Rp ${amountPaid.toLocaleString('id-ID')}</div>
+          <div class="summary-words">Terbilang: # ${words} #</div>
+        </div>
+
+        <div class="footer">
+          <div>
+            <img src="${qrUrl}" alt="QR Verifikasi" style="width: 70px; height: 70px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px;" />
+            <div style="font-size: 9px; color: #64748b; margin-top: 4px;">Pindai untuk verifikasi keabsahan kwitansi</div>
+          </div>
+          <div class="signature-box">
+            <div>Bogor, ${paidDate}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Petugas Kasir PPDB,</div>
+            <div class="signature-space"></div>
+            <div class="signature-name">Bagian Keuangan PPDB</div>
+            <div class="signature-title">${schoolUnitName}</div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
 export default function RegistrationBilling() {
   const navigate = useNavigate();
   const { activeSchoolUnit, user } = useAuth();
@@ -92,7 +463,7 @@ export default function RegistrationBilling() {
   const [billsSubTab, setBillsSubTab] = useState('matrix'); // 'matrix' | 'history' | 'reminders'
 
   // Sub-tabs inside Tab 3 (Penerimaan Pembayaran)
-  const [paymentsSubTab, setPaymentsSubTab] = useState('cashier'); // 'cashier' | 'proofs'
+  const [paymentsSubTab, setPaymentsSubTab] = useState('bills'); // 'bills' | 'history' | 'proofs'
 
   // Master Data states
   const [academicYears, setAcademicYears] = useState([]);
@@ -132,6 +503,7 @@ export default function RegistrationBilling() {
   const [assignmentStatusFilter, setAssignmentStatusFilter] = useState('all'); // 'all', 'assigned', 'custom', 'unassigned'
   const [selectedProcessFilter, setSelectedProcessFilter] = useState('');
   const [selectedSchemeFilter, setSelectedSchemeFilter] = useState('');
+  const [candidateTypeFilter, setCandidateTypeFilter] = useState('all'); // 'all', 'unplaced', 'placed_new', 'transfer'
   const [sortConfig, setSortConfig] = useState({ key: 'student_name', direction: 'asc' });
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
 
@@ -253,20 +625,90 @@ export default function RegistrationBilling() {
   // ============================================================
   // TAB 3: PENERIMAAN PEMBAYARAN PPDB STATES
   // ============================================================
+  // TAB 3: POPUP MULTIPAYMENT KASIR PPDB STATES (TAHAP 4)
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedBillForPay, setSelectedBillForPay] = useState(null);
-  const [payForm, setPayForm] = useState({
-    cash_account_id: '',
-    amount_paid: 0,
-    payment_date: new Date().toISOString().slice(0, 10),
-    payment_method: 'transfer',
-    notes: ''
-  });
-  const [submittingPay, setSubmittingPay] = useState(false);
+  const [multiPaySelectedCandidateIds, setMultiPaySelectedCandidateIds] = useState([]);
+  const [multiPayBillsSearch, setMultiPayBillsSearch] = useState('');
+  const [multiPayDate, setMultiPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [multiPayTotalAmount, setMultiPayTotalAmount] = useState('');
+  const [isMultiPayHistoricalOnly, setIsMultiPayHistoricalOnly] = useState(false);
+  const [multiPayMethod, setMultiPayMethod] = useState('transfer'); // 'transfer' | 'cash'
+  const [multiPayCashAccountId, setMultiPayCashAccountId] = useState('');
+  const [multiPayBankStatementId, setMultiPayBankStatementId] = useState('');
+  const [multiPayNotes, setMultiPayNotes] = useState('');
+  const [multiPayAllocations, setMultiPayAllocations] = useState({});
+  const [multiPayDiscounts, setMultiPayDiscounts] = useState({});
+  const [multiPayBankStatementsOptions, setMultiPayBankStatementsOptions] = useState([]);
+  const [loadingMultiPayBankStatements, setLoadingMultiPayBankStatements] = useState(false);
+  const [submittingMultiPay, setSubmittingMultiPay] = useState(false);
 
   // Receipt Modal
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  const [loadingReceipt, setLoadingReceipt] = useState(false);
+
+  // Tab 3: Riwayat Pembayaran PPDB States
+  const [paymentsHistory, setPaymentsHistory] = useState([]);
+  const [loadingPaymentsHistory, setLoadingPaymentsHistory] = useState(false);
+  const [paymentsHistorySummary, setPaymentsHistorySummary] = useState({ total_amount: 0, total_count: 0, valid_count: 0, voided_count: 0 });
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyCashAccountFilter, setHistoryCashAccountFilter] = useState('');
+  const [historyMethodFilter, setHistoryMethodFilter] = useState('all');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('all'); // 'all' | 'valid' | 'voided'
+  const [historyStartDate, setHistoryStartDate] = useState('');
+  const [historyEndDate, setHistoryEndDate] = useState('');
+
+  // Modal Pembatalan Pembayaran Kasir PPDB (Void)
+  const [voidModalOpen, setVoidModalOpen] = useState(false);
+  const [selectedPaymentForVoid, setSelectedPaymentForVoid] = useState(null);
+  const [voidReason, setVoidReason] = useState('');
+  const [submittingVoid, setSubmittingVoid] = useState(false);
+
+  // Tab 3: Filter Status Tagihan Kasir
+  const [cashierStatusFilter, setCashierStatusFilter] = useState('all'); // 'all' | 'unpaid' | 'partial' | 'paid'
+  const [cashierPhaseFilter, setCashierPhaseFilter] = useState('all'); // 'all' | 'registration_fee' | 'enrollment_fee'
+  const [cashierFeeTypeFilter, setCashierFeeTypeFilter] = useState('all');
+  const [cashierSearch, setCashierSearch] = useState('');
+  const [selectedCashierBillIds, setSelectedCashierBillIds] = useState([]);
+  const [cashierSortConfig, setCashierSortConfig] = useState({ key: 'registrant_name_snapshot', direction: 'asc' });
+
+  const handleSortCashier = (key) => {
+    setCashierSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const handleToggleSelectCashierBill = (billId) => {
+    setSelectedCashierBillIds((prev) =>
+      prev.includes(billId) ? prev.filter((id) => id !== billId) : [...prev, billId]
+    );
+  };
+
+  const handleToggleSelectAllCashierBills = () => {
+    const payableBills = sortedAndFilteredCashierBills.filter(
+      (b) =>
+        b.status !== 'paid' &&
+        Math.max(
+          0,
+          parseFloat(b.amount || 0) -
+            parseFloat(b.discount_amount || 0) -
+            parseFloat(b.paid_amount || 0)
+        ) > 0
+    );
+    const allSelected =
+      payableBills.length > 0 &&
+      payableBills.every((b) => selectedCashierBillIds.includes(b.id));
+
+    if (allSelected) {
+      setSelectedCashierBillIds([]);
+    } else {
+      setSelectedCashierBillIds(payableBills.map((b) => b.id));
+    }
+  };
 
   // Bukti Transfer Queue (Proofs FIFO)
   const [proofsData, setProofsData] = useState({ proofs: [], summary: {} });
@@ -411,7 +853,8 @@ export default function RegistrationBilling() {
       else if (billsSubTab === 'history') fetchBillsHistory();
       else if (billsSubTab === 'reminders') fetchReminders();
     } else if (activeMainTab === 'payments') {
-      if (paymentsSubTab === 'cashier') fetchBillsHistory();
+      if (paymentsSubTab === 'bills' || paymentsSubTab === 'cashier') fetchBillsHistory();
+      else if (paymentsSubTab === 'history') fetchPaymentsHistoryData();
       else if (paymentsSubTab === 'proofs') fetchProofsQueue();
     } else if (activeMainTab === 'expenses') {
       fetchExpenses();
@@ -490,7 +933,7 @@ export default function RegistrationBilling() {
   // Debounced search for Tab 2 History & Tab 3 Kasir: Bills
   useEffect(() => {
     const isBillsHistory = activeMainTab === 'bills' && billsSubTab === 'history';
-    const isCashier = activeMainTab === 'payments' && paymentsSubTab === 'cashier';
+    const isCashier = activeMainTab === 'payments' && (paymentsSubTab === 'bills' || paymentsSubTab === 'cashier');
     if ((isBillsHistory || isCashier) && selectedTargetAyId) {
       const timer = setTimeout(() => {
         fetchBillsHistory();
@@ -498,6 +941,16 @@ export default function RegistrationBilling() {
       return () => clearTimeout(timer);
     }
   }, [billSearch, billStatusFilter, selectedTargetAyId, activeMainTab, billsSubTab, paymentsSubTab]);
+
+  // Debounced search for Tab 3: Riwayat Pembayaran PPDB
+  useEffect(() => {
+    if (activeMainTab === 'payments' && paymentsSubTab === 'history' && selectedTargetAyId) {
+      const timer = setTimeout(() => {
+        fetchPaymentsHistoryData();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [historySearch, historyCashAccountFilter, historyMethodFilter, historyStatusFilter, historyStartDate, historyEndDate, selectedTargetAyId, activeMainTab, paymentsSubTab]);
 
   // Debounced search for Tab 5 Recap
   useEffect(() => {
@@ -595,6 +1048,56 @@ export default function RegistrationBilling() {
     }
   };
 
+  // Tab 3 Payments History Fetcher
+  const fetchPaymentsHistoryData = async () => {
+    setLoadingPaymentsHistory(true);
+    try {
+      const res = await api.get('/keuangan/ppdb-billing/payments', {
+        params: {
+          target_academic_year_id: selectedTargetAyId,
+          search: historySearch,
+          cash_account_id: historyCashAccountFilter || undefined,
+          payment_method: historyMethodFilter !== 'all' ? historyMethodFilter : undefined,
+          status: historyStatusFilter !== 'all' ? historyStatusFilter : undefined,
+          start_date: historyStartDate || undefined,
+          end_date: historyEndDate || undefined
+        }
+      });
+      const data = res.data?.data || {};
+      setPaymentsHistory(data.payments || []);
+      setPaymentsHistorySummary({
+        total_amount: data.total_amount || 0,
+        total_count: data.total_count || (data.payments ? data.payments.length : 0),
+        valid_count: data.valid_count || (data.payments ? data.payments.filter((p) => p.status !== 'voided').length : 0),
+        voided_count: data.voided_count || (data.payments ? data.payments.filter((p) => p.status === 'voided').length : 0)
+      });
+    } catch (err) {
+      console.error('Error fetching PPDB payments history:', err);
+    } finally {
+      setLoadingPaymentsHistory(false);
+    }
+  };
+
+  // Tab 3 View / Print Receipt Handler
+  const handleViewReceipt = async (paymentId, openNewTab = false) => {
+    if (!paymentId) return;
+    setLoadingReceipt(true);
+    try {
+      const res = await api.get(`/keuangan/ppdb-billing/payments/${paymentId}/receipt`);
+      const rData = res.data?.data;
+      if (openNewTab) {
+        openPpdbReceiptInNewTab(rData, activeSchoolUnit?.name);
+      } else {
+        setReceiptData(rData);
+        setReceiptModalOpen(true);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memuat kwitansi pembayaran PPDB');
+    } finally {
+      setLoadingReceipt(false);
+    }
+  };
+
   // Tab 4 Expenses Fetcher
   const fetchExpenses = async () => {
     setLoadingExpenses(true);
@@ -668,6 +1171,15 @@ export default function RegistrationBilling() {
         list = list.filter((c) => !c.assignment?.id && !c.fee_scheme_id && c.assignment_status === 'unassigned');
       }
     }
+    if (candidateTypeFilter && candidateTypeFilter !== 'all') {
+      if (candidateTypeFilter === 'unplaced') {
+        list = list.filter((c) => !c.is_placed && c.candidate_category !== 'student_active' && c.candidate_category !== 'student_transfer');
+      } else if (candidateTypeFilter === 'placed_new') {
+        list = list.filter((c) => (c.is_placed || c.candidate_category === 'student_active') && c.entry_type !== 'pindahan');
+      } else if (candidateTypeFilter === 'transfer') {
+        list = list.filter((c) => c.entry_type === 'pindahan' || c.candidate_category === 'student_transfer');
+      }
+    }
     if (selectedProcessFilter) {
       list = list.filter((c) => c.process_name === selectedProcessFilter);
     }
@@ -685,7 +1197,7 @@ export default function RegistrationBilling() {
       );
     }
     return list;
-  }, [assignmentsData.candidates, assignmentStatusFilter, selectedProcessFilter, selectedSchemeFilter, assignmentSearch]);
+  }, [assignmentsData.candidates, assignmentStatusFilter, candidateTypeFilter, selectedProcessFilter, selectedSchemeFilter, assignmentSearch]);
 
   const sortedAndFilteredCandidates = useMemo(() => {
     return [...filteredCandidates].sort((a, b) => {
@@ -771,6 +1283,245 @@ export default function RegistrationBilling() {
     }
     return list;
   }, [billsData.bills, billStatusFilter, billSearch]);
+
+  const cashierBillsSummary = useMemo(() => {
+    const list = billsData.bills || [];
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let totalBills = 0;
+    let totalPaidCash = 0;
+    let totalPaidHistorical = 0;
+    let historicalCount = 0;
+    let totalDiscount = 0;
+    let discountCount = 0;
+    let totalRemaining = 0;
+    let unpaidCount = 0;
+    let paidCount = 0;
+    let partialCount = 0;
+    let totalOverdue = 0;
+    let overdueCount = 0;
+
+    for (const b of list) {
+      const amount = parseFloat(b.amount || 0);
+      const paid = parseFloat(b.paid_amount || 0);
+      const disc = parseFloat(b.discount_amount || 0);
+      const rem = Math.max(0, amount - paid - disc);
+
+      totalBills += amount;
+
+      if (b.payment_method === 'historical' || b.is_historical_only) {
+        totalPaidHistorical += paid;
+        if (paid > 0) historicalCount += 1;
+      } else {
+        totalPaidCash += paid;
+      }
+
+      if (disc > 0) {
+        totalDiscount += disc;
+        discountCount += 1;
+      }
+
+      totalRemaining += rem;
+
+      if (b.status === 'paid') {
+        paidCount += 1;
+      } else if (b.status === 'partially_paid') {
+        partialCount += 1;
+        unpaidCount += 1;
+      } else {
+        unpaidCount += 1;
+      }
+
+      if (b.due_date && b.due_date < todayStr && b.status !== 'paid' && b.status !== 'cancelled') {
+        totalOverdue += rem;
+        overdueCount += 1;
+      }
+    }
+
+    const totalPaid = totalPaidCash + totalPaidHistorical;
+    const totalObligation = totalRemaining;
+
+    return {
+      totalBills,
+      totalPaid,
+      totalPaidCash,
+      totalPaidHistorical,
+      historicalCount,
+      totalDiscount,
+      discountCount,
+      totalRemaining,
+      unpaidCount,
+      paidCount,
+      partialCount,
+      totalOverdue,
+      overdueCount,
+      totalObligation,
+      totalCount: list.length
+    };
+  }, [billsData.bills]);
+
+  const filteredCashierBills = useMemo(() => {
+    let list = billsData.bills || [];
+
+    // Filter Status Tagihan Kasir
+    if (cashierStatusFilter && cashierStatusFilter !== 'all') {
+      if (cashierStatusFilter === 'unpaid') {
+        list = list.filter((b) => b.status === 'unpaid' || parseFloat(b.paid_amount || 0) === 0);
+      } else if (cashierStatusFilter === 'partial') {
+        list = list.filter((b) => b.status === 'partially_paid' || (parseFloat(b.paid_amount || 0) > 0 && b.status !== 'paid'));
+      } else if (cashierStatusFilter === 'paid') {
+        list = list.filter((b) => b.status === 'paid');
+      } else {
+        list = list.filter((b) => b.status === cashierStatusFilter);
+      }
+    }
+
+    // Filter Fase Penagihan (Formulir vs Uang Masuk)
+    if (cashierPhaseFilter && cashierPhaseFilter !== 'all') {
+      list = list.filter((b) => b.billing_phase === cashierPhaseFilter);
+    }
+
+    // Filter Komponen Biaya
+    if (cashierFeeTypeFilter && cashierFeeTypeFilter !== 'all') {
+      list = list.filter((b) => String(b.fee_type_id) === String(cashierFeeTypeFilter));
+    }
+
+    // Pencarian
+    const query = (cashierSearch || billSearch || '').toLowerCase().trim();
+    if (query) {
+      list = list.filter((b) =>
+        (b.registrant_name_snapshot || '').toLowerCase().includes(query) ||
+        (b.registration_number_snapshot || '').toLowerCase().includes(query) ||
+        (b.fee_type_name || '').toLowerCase().includes(query) ||
+        (b.receipt_number || '').toLowerCase().includes(query) ||
+        String(b.id || '').includes(query)
+      );
+    }
+
+    return list;
+  }, [billsData.bills, cashierStatusFilter, cashierPhaseFilter, cashierFeeTypeFilter, cashierSearch, billSearch]);
+
+  const sortedAndFilteredCashierBills = useMemo(() => {
+    let list = [...filteredCashierBills];
+
+    if (cashierSortConfig.key) {
+      list.sort((a, b) => {
+        let aVal = a[cashierSortConfig.key];
+        let bVal = b[cashierSortConfig.key];
+
+        if (['amount', 'paid_amount', 'discount_amount', 'remaining_amount'].includes(cashierSortConfig.key)) {
+          let aNum = 0;
+          let bNum = 0;
+          if (cashierSortConfig.key === 'remaining_amount') {
+            aNum = Math.max(0, parseFloat(a.amount || 0) - parseFloat(a.discount_amount || 0) - parseFloat(a.paid_amount || 0));
+            bNum = Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0));
+          } else if (cashierSortConfig.key === 'paid_amount') {
+            aNum = parseFloat(a.paid_amount || 0);
+            bNum = parseFloat(b.paid_amount || 0);
+          } else if (cashierSortConfig.key === 'discount_amount') {
+            aNum = parseFloat(a.discount_amount || 0);
+            bNum = parseFloat(b.discount_amount || 0);
+          } else {
+            aNum = parseFloat(aVal || 0);
+            bNum = parseFloat(bVal || 0);
+          }
+          return cashierSortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+
+        if (['bill_date', 'due_date', 'created_at'].includes(cashierSortConfig.key)) {
+          const aTime = aVal ? new Date(aVal).getTime() : 0;
+          const bTime = bVal ? new Date(bVal).getTime() : 0;
+          return cashierSortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+        }
+
+        if (cashierSortConfig.key === 'registrant_name_snapshot') {
+          aVal = a.registrant_name_snapshot || a.student_name || '';
+          bVal = b.registrant_name_snapshot || b.student_name || '';
+        } else if (cashierSortConfig.key === 'fee_type_name') {
+          aVal = a.fee_type_name || '';
+          bVal = b.fee_type_name || '';
+        } else if (cashierSortConfig.key === 'wave_name') {
+          aVal = a.wave_name || a.billing_phase || '';
+          bVal = b.wave_name || b.billing_phase || '';
+        }
+
+        const aStr = String(aVal || '').toLowerCase();
+        const bStr = String(bVal || '').toLowerCase();
+        if (aStr < bStr) return cashierSortConfig.direction === 'asc' ? -1 : 1;
+        if (aStr > bStr) return cashierSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [filteredCashierBills, cashierSortConfig]);
+
+  const filteredPaymentsHistory = useMemo(() => {
+    let list = paymentsHistory || [];
+    if (historySearch && historySearch.trim()) {
+      const term = historySearch.toLowerCase().trim();
+      list = list.filter((p) =>
+        (p.receipt_number || '').toLowerCase().includes(term) ||
+        (p.registrant_name_snapshot || '').toLowerCase().includes(term) ||
+        (p.registration_number_snapshot || '').toLowerCase().includes(term) ||
+        (p.fee_type_name || '').toLowerCase().includes(term) ||
+        (p.notes || '').toLowerCase().includes(term) ||
+        String(p.id || '').includes(term)
+      );
+    }
+    if (historyCashAccountFilter) {
+      list = list.filter((p) => String(p.cash_account_id) === String(historyCashAccountFilter));
+    }
+    if (historyMethodFilter && historyMethodFilter !== 'all') {
+      list = list.filter((p) => p.payment_method === historyMethodFilter);
+    }
+    if (historyStatusFilter && historyStatusFilter !== 'all') {
+      list = list.filter((p) => (p.status || 'valid') === historyStatusFilter);
+    }
+    if (historyStartDate) {
+      list = list.filter((p) => String(p.payment_date).slice(0, 10) >= historyStartDate);
+    }
+    if (historyEndDate) {
+      list = list.filter((p) => String(p.payment_date).slice(0, 10) <= historyEndDate);
+    }
+    return list;
+  }, [paymentsHistory, historySearch, historyCashAccountFilter, historyMethodFilter, historyStatusFilter, historyStartDate, historyEndDate]);
+
+  // Tab 3 Handlers: Void / Pembatalan Pembayaran Kasir PPDB
+  const handleOpenVoidModal = (payment) => {
+    setSelectedPaymentForVoid(payment);
+    setVoidReason('');
+    setVoidModalOpen(true);
+  };
+
+  const handleExecuteVoid = async () => {
+    if (!selectedPaymentForVoid) return;
+    if (!voidReason || voidReason.trim().length < 5) {
+      alert('Alasan pembatalan (void) pembayaran wajib diisi (minimal 5 karakter).');
+      return;
+    }
+
+    if (!window.confirm(`Konfirmasi Pembatalan:\nApakah Anda yakin ingin membatalkan (void) pembayaran Kwitansi #${selectedPaymentForVoid.receipt_number || selectedPaymentForVoid.id} sebesar ${formatCurrency(selectedPaymentForVoid.amount_paid)}?\n\nSisa piutang tagihan calon santri akan otomatis dipulihkan.`)) {
+      return;
+    }
+
+    setSubmittingVoid(true);
+    try {
+      const res = await api.post(`/keuangan/ppdb-billing/payments/${selectedPaymentForVoid.id}/void`, {
+        void_reason: voidReason.trim()
+      });
+      alert(res.data?.message || 'Pembayaran berhasil dibatalkan (void). Status tagihan telah dipulihkan.');
+      setVoidModalOpen(false);
+      setSelectedPaymentForVoid(null);
+      setVoidReason('');
+      fetchPaymentsHistoryData();
+      fetchBillsData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal membatalkan transaksi pembayaran PPDB.');
+    } finally {
+      setSubmittingVoid(false);
+    }
+  };
 
   const filteredLedgerRecapCandidates = useMemo(() => {
     let list = ledgerRecapData.candidates || [];
@@ -1783,40 +2534,421 @@ export default function RegistrationBilling() {
   // ============================================================
   // TAB 3 ACTIONS: KASIR PEMBAYARAN & PROOFS
   // ============================================================
-  const handleOpenPayModal = (bill) => {
-    setSelectedBillForPay(bill);
-    setPayForm({
-      cash_account_id: cashAccounts[0]?.id ? String(cashAccounts[0].id) : '',
-      amount_paid: Math.max(0, parseFloat(bill.amount || 0) - parseFloat(bill.paid_amount || 0)),
-      payment_date: new Date().toISOString().slice(0, 10),
-      payment_method: 'transfer',
-      notes: ''
+  // Live Fetch Mutasi Rekening Koran untuk Multipayment Kasir PPDB
+  const fetchMultiPayBankStatements = async (accId, pDate) => {
+    setLoadingMultiPayBankStatements(true);
+    try {
+      const params = {
+        dc_type: 'credit',
+        no_pagination: true,
+        sort_by: 'transaction_date',
+        sort_dir: 'desc'
+      };
+      if (accId) params.cash_account_id = accId;
+      const res = await api.get('/keuangan/bank-statements', { params });
+      let rows = res.data?.data?.statements || (Array.isArray(res.data?.data) ? res.data.data : []);
+      if (rows.length === 0 && accId) {
+        try {
+          const allRes = await api.get('/keuangan/bank-statements', {
+            params: {
+              dc_type: 'credit',
+              no_pagination: true,
+              sort_by: 'transaction_date',
+              sort_dir: 'desc'
+            }
+          });
+          const allRows = allRes.data?.data?.statements || (Array.isArray(allRes.data?.data) ? allRes.data.data : []);
+          if (allRows.length > 0) rows = allRows;
+        } catch (_) {}
+      }
+      const opts = rows.map((r) => mapBankStatementOption(r, pDate));
+      opts.sort((a, b) => {
+        if (!a.disabled && b.disabled) return -1;
+        if (a.disabled && !b.disabled) return 1;
+        if (a.isExactDate && !b.isExactDate) return -1;
+        if (!a.isExactDate && b.isExactDate) return 1;
+        return (b.rawDate || '').localeCompare(a.rawDate || '');
+      });
+      setMultiPayBankStatementsOptions(opts);
+    } catch (err) {
+      console.error('Error fetching bank statements for PPDB multiPay:', err);
+      setMultiPayBankStatementsOptions([]);
+    } finally {
+      setLoadingMultiPayBankStatements(false);
+    }
+  };
+
+  useEffect(() => {
+    if (multiPayMethod === 'transfer' && payModalOpen) {
+      fetchMultiPayBankStatements(multiPayCashAccountId, multiPayDate);
+    } else {
+      setMultiPayBankStatementsOptions([]);
+      setMultiPayBankStatementId('');
+    }
+  }, [multiPayMethod, multiPayCashAccountId, multiPayDate, payModalOpen]);
+
+  const multiPayCashAccountOptions = useMemo(() => {
+    return cashAccounts
+      .filter((a) => {
+        if (multiPayMethod === 'cash') {
+          return a.account_kind === 'cash' || (!a.account_kind && (a.name?.toLowerCase().includes('tunai') || a.name?.toLowerCase().includes('kas')));
+        }
+        return a.account_kind === 'bank' || (!a.account_kind && !a.name?.toLowerCase().includes('tunai'));
+      })
+      .map((a) => ({
+        value: String(a.id),
+        label: a.name,
+        sublabel: `${a.account_kind === 'bank' ? (a.bank_name || 'Bank') : 'Kas Tunai'} | No: ${a.bank_account_number || a.account_number || '-'}`,
+        badge: a.account_kind === 'bank' ? 'BANK' : 'TUNAI',
+        badgeClass: a.account_kind === 'bank' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      }));
+  }, [cashAccounts, multiPayMethod]);
+
+  const candidateSelectOptions = useMemo(() => {
+    const map = new Map();
+    (billsData.bills || []).forEach((b) => {
+      const cId = String(b.candidate_id || b.psb_registrant_id || b.id);
+      if (!map.has(cId)) {
+        map.set(cId, {
+          value: cId,
+          label: b.registrant_name_snapshot || `Calon Santri #${cId}`,
+          sublabel: `No. Reg: ${b.registration_number_snapshot || '-'} | Fase: ${b.billing_phase === 'registration_fee' ? 'Biaya Pendaftaran' : 'Uang Pangkal / Daftar Ulang'}`,
+          name: b.registrant_name_snapshot,
+          reg_number: b.registration_number_snapshot,
+          candidate_id: cId
+        });
+      }
     });
+    return Array.from(map.values());
+  }, [billsData.bills]);
+
+  const getMultiPayBillDiscountInfo = (bill) => {
+    if (!bill) {
+      return { enabled: false, type: 'percent', percent: '', amount: '', reason: '', discountAmount: 0, netBill: 0, effectiveRem: 0 };
+    }
+    const disc = multiPayDiscounts[bill.id] || { enabled: false, type: 'percent', percent: '', amount: '', reason: '' };
+    const billTotal = parseFloat(bill.amount || 0);
+    const billPaid = parseFloat(bill.paid_amount || 0);
+    const prevDiscount = parseFloat(bill.discount_amount || 0);
+
+    let discountAmount = 0;
+    if (disc.enabled) {
+      if (disc.type === 'percent') {
+        const pct = parseFloat(disc.percent || 0);
+        if (pct > 0) {
+          discountAmount = Math.min(billTotal, (billTotal * pct) / 100);
+        }
+      } else {
+        const amt = parseFloat(disc.amount || 0);
+        if (amt > 0) {
+          discountAmount = Math.min(billTotal, amt);
+        }
+      }
+    }
+
+    const netBill = Math.max(0, billTotal - prevDiscount - discountAmount);
+    const effectiveRem = Math.max(0, netBill - billPaid);
+
+    return {
+      enabled: Boolean(disc.enabled),
+      type: disc.type || 'percent',
+      percent: disc.percent !== undefined ? disc.percent : '',
+      amount: disc.amount !== undefined ? disc.amount : '',
+      reason: disc.reason || '',
+      discountAmount,
+      netBill,
+      effectiveRem
+    };
+  };
+
+  const multiPayBills = useMemo(() => {
+    if (multiPaySelectedCandidateIds.length === 0) return [];
+    return (billsData.bills || []).filter((b) => {
+      const cId = String(b.candidate_id || b.psb_registrant_id || b.id);
+      return multiPaySelectedCandidateIds.includes(cId);
+    });
+  }, [billsData.bills, multiPaySelectedCandidateIds]);
+
+  const filteredMultiPayBills = useMemo(() => {
+    if (!multiPayBillsSearch.trim()) return multiPayBills;
+    const q = multiPayBillsSearch.toLowerCase().trim();
+    return multiPayBills.filter((b) =>
+      b.fee_type_name?.toLowerCase().includes(q) ||
+      b.registrant_name_snapshot?.toLowerCase().includes(q) ||
+      b.registration_number_snapshot?.toLowerCase().includes(q) ||
+      b.billing_phase?.toLowerCase().includes(q)
+    );
+  }, [multiPayBills, multiPayBillsSearch]);
+
+  const multiPayTotalAllocated = useMemo(() => {
+    return Object.values(multiPayAllocations).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+  }, [multiPayAllocations]);
+
+  const multiPayUnallocated = useMemo(() => {
+    const total = parseFloat(multiPayTotalAmount) || 0;
+    return Math.round((total - multiPayTotalAllocated) * 100) / 100;
+  }, [multiPayTotalAmount, multiPayTotalAllocated]);
+
+  const handleMultiPayAutoAllocateFifo = () => {
+    const total = parseFloat(multiPayTotalAmount) || 0;
+    if (total <= 0) {
+      alert('Masukkan Total Nominal Pembayaran terlebih dahulu sebelum mengalokasikan otomatis.');
+      return;
+    }
+    let remainingToAllocate = total;
+    const newAllocations = {};
+    multiPayBills.forEach((bill) => {
+      if (remainingToAllocate <= 0) return;
+      const discInfo = getMultiPayBillDiscountInfo(bill);
+      const billRemaining = discInfo.effectiveRem;
+      if (billRemaining <= 0) return;
+      const take = Math.min(billRemaining, remainingToAllocate);
+      newAllocations[bill.id] = take;
+      remainingToAllocate -= take;
+    });
+    setMultiPayAllocations(newAllocations);
+  };
+
+  const handleMultiPayPayFullRow = (bill) => {
+    const discInfo = getMultiPayBillDiscountInfo(bill);
+    setMultiPayAllocations((prev) => ({
+      ...prev,
+      [bill.id]: discInfo.effectiveRem
+    }));
+  };
+
+  const handleMultiPayAllocationChange = (billId, value) => {
+    const num = parseFloat(value) || 0;
+    setMultiPayAllocations((prev) => ({
+      ...prev,
+      [billId]: num
+    }));
+  };
+
+  const handleMultiPayToggleDiscount = (billId) => {
+    setMultiPayDiscounts((prev) => {
+      const current = prev[billId] || { enabled: false, type: 'percent', percent: '', amount: '', reason: '' };
+      return {
+        ...prev,
+        [billId]: {
+          ...current,
+          enabled: !current.enabled
+        }
+      };
+    });
+  };
+
+  const handleMultiPayDiscountTypeChange = (billId, newType) => {
+    setMultiPayDiscounts((prev) => {
+      const current = prev[billId] || { enabled: true, type: 'percent', percent: '', amount: '', reason: '' };
+      const bill = multiPayBills.find((b) => String(b.id) === String(billId));
+      const billTotal = parseFloat(bill?.amount || 0);
+      let nextPercent = current.percent;
+      let nextAmount = current.amount;
+      if (newType === 'percent' && parseFloat(current.amount || 0) > 0 && billTotal > 0) {
+        nextPercent = Math.min(100, Math.round((parseFloat(current.amount) / billTotal) * 100 * 100) / 100);
+      } else if (newType === 'nominal' && parseFloat(current.percent || 0) > 0 && billTotal > 0) {
+        nextAmount = Math.min(billTotal, Math.round((billTotal * parseFloat(current.percent)) / 100));
+      }
+      return {
+        ...prev,
+        [billId]: {
+          ...current,
+          type: newType,
+          percent: nextPercent,
+          amount: nextAmount
+        }
+      };
+    });
+  };
+
+  const handleMultiPayDiscountValueChange = (billId, value) => {
+    setMultiPayDiscounts((prev) => {
+      const current = prev[billId] || { enabled: true, type: 'percent', percent: '', amount: '', reason: '' };
+      const bill = multiPayBills.find((b) => String(b.id) === String(billId));
+      const billTotal = parseFloat(bill?.amount || 0);
+      if (current.type === 'percent') {
+        const numVal = Math.min(100, Math.max(0, parseFloat(value) || 0));
+        const calcNominal = billTotal > 0 ? (billTotal * numVal) / 100 : 0;
+        return {
+          ...prev,
+          [billId]: {
+            ...current,
+            percent: value,
+            amount: calcNominal > 0 ? calcNominal : ''
+          }
+        };
+      } else {
+        const numVal = Math.min(billTotal, Math.max(0, parseFloat(value) || 0));
+        const calcPct = billTotal > 0 ? (numVal / billTotal) * 100 : 0;
+        return {
+          ...prev,
+          [billId]: {
+            ...current,
+            amount: value,
+            percent: calcPct > 0 ? Math.round(calcPct * 100) / 100 : ''
+          }
+        };
+      }
+    });
+  };
+
+  const handleMultiPayDiscountReasonChange = (billId, reason) => {
+    setMultiPayDiscounts((prev) => ({
+      ...prev,
+      [billId]: {
+        ...(prev[billId] || { enabled: true, type: 'percent', percent: '', amount: '' }),
+        reason
+      }
+    }));
+  };
+
+  const handleAddCandidateToMultiPay = (candId) => {
+    if (!candId) return;
+    setMultiPaySelectedCandidateIds((prev) => {
+      if (prev.includes(String(candId))) return prev;
+      return [...prev, String(candId)];
+    });
+  };
+
+  const handleRemoveCandidateFromMultiPay = (candId) => {
+    setMultiPaySelectedCandidateIds((prev) => prev.filter((id) => id !== String(candId)));
+  };
+
+  const handleOpenMultiPayModal = (bills = []) => {
+    const targetBills = bills.length > 0 ? bills : (billsData.bills || []).filter((b) => selectedCashierBillIds.includes(b.id));
+    if (targetBills.length === 0) {
+      alert('Pilih minimal satu tagihan untuk dibayar');
+      return;
+    }
+
+    const uniqueCandidateIds = Array.from(new Set(targetBills.map((b) => String(b.candidate_id || b.psb_registrant_id || b.id))));
+    setMultiPaySelectedCandidateIds(uniqueCandidateIds);
+
+    let sumTotal = 0;
+    const initialAlloc = {};
+    const initialDisc = {};
+
+    targetBills.forEach((b) => {
+      const rem = Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0));
+      if (rem > 0) {
+        initialAlloc[b.id] = rem;
+        sumTotal += rem;
+      }
+    });
+
+    setMultiPayAllocations(initialAlloc);
+    setMultiPayDiscounts(initialDisc);
+    setMultiPayTotalAmount(String(sumTotal));
+    setMultiPayDate(new Date().toISOString().slice(0, 10));
+    setIsMultiPayHistoricalOnly(false);
+    setMultiPayMethod('transfer');
+    setMultiPayBankStatementId('');
+    setMultiPayNotes('');
+    setMultiPayBillsSearch('');
+
+    const defaultBank = cashAccounts.find((a) => a.account_kind === 'bank' && a.is_active) ||
+                        cashAccounts.find((a) => a.account_kind === 'bank') ||
+                        cashAccounts[0];
+    setMultiPayCashAccountId(defaultBank ? String(defaultBank.id) : '');
+
+    setSelectedBillForPay(targetBills[0]);
     setPayModalOpen(true);
   };
 
-  const handleExecutePayment = async (e) => {
-    e.preventDefault();
-    if (!selectedBillForPay || !payForm.cash_account_id) {
-      alert('Pilih akun kas penampung pembayaran');
+  const handleOpenPayModal = (bill) => {
+    handleOpenMultiPayModal([bill]);
+  };
+
+  const handleExecuteMultiPay = async (printImmediately = false) => {
+    if (multiPaySelectedCandidateIds.length === 0) {
+      alert('Silakan pilih minimal satu calon santri.');
       return;
     }
-    setSubmittingPay(true);
-    try {
-      const res = await api.post(`/keuangan/ppdb-billing/registration-bills/${selectedBillForPay.id}/pay`, {
-        cash_account_id: Number(payForm.cash_account_id),
-        amount_paid: parseFloat(payForm.amount_paid || 0),
-        payment_date: payForm.payment_date,
-        payment_method: payForm.payment_method,
-        notes: payForm.notes
+
+    const total = parseFloat(multiPayTotalAmount) || 0;
+
+    const allocationsArray = multiPayBills
+      .filter((b) => {
+        const allocAmt = parseFloat(multiPayAllocations[b.id] || 0);
+        const discInfo = getMultiPayBillDiscountInfo(b);
+        return allocAmt > 0 || (discInfo.enabled && discInfo.discountAmount > 0);
+      })
+      .map((bill) => {
+        const allocAmt = parseFloat(multiPayAllocations[bill.id] || 0);
+        const discInfo = getMultiPayBillDiscountInfo(bill);
+        return {
+          ppdb_registration_bill_id: Number(bill.id),
+          bill_id: Number(bill.id),
+          amount: allocAmt,
+          has_discount: discInfo.enabled && discInfo.discountAmount > 0,
+          discount_amount: discInfo.enabled ? discInfo.discountAmount : 0,
+          discount_type: discInfo.type === 'percent' ? 'percentage' : 'fixed_amount',
+          discount_percentage: discInfo.type === 'percent' ? parseFloat(discInfo.percent || 0) : undefined,
+          discount_reason: discInfo.reason || undefined
+        };
       });
-      alert(res.data?.message || 'Pembayaran berhasil dicatat.');
+
+    if (allocationsArray.length === 0) {
+      alert('Silakan alokasikan nominal pembayaran atau tetapkan diskon pada setidaknya satu pos tagihan.');
+      return;
+    }
+
+    const totalDiscounts = allocationsArray.reduce((sum, a) => sum + (a.discount_amount || 0), 0);
+    if (total <= 0 && multiPayTotalAllocated <= 0 && totalDiscounts <= 0) {
+      alert('Masukkan nominal pembayaran atau diskon yang valid.');
+      return;
+    }
+
+    if (multiPayTotalAllocated > 0 && Math.abs(multiPayUnallocated) > 0.01) {
+      if (!window.confirm(`Perhatian: Total teralokasi (${formatCurrency(multiPayTotalAllocated)}) tidak sama dengan Total Pembayaran (${formatCurrency(total)}). Ada selisih ${formatCurrency(multiPayUnallocated)}. Tetap lanjutkan penyimpanan?`)) {
+        return;
+      }
+    }
+
+    if (!isMultiPayHistoricalOnly && !multiPayCashAccountId) {
+      alert('Pilih akun kas / bank penampung pembayaran.');
+      return;
+    }
+
+    setSubmittingMultiPay(true);
+    try {
+      const payload = {
+        candidate_id: Number(multiPaySelectedCandidateIds[0]),
+        allocations: allocationsArray,
+        amount: multiPayTotalAllocated,
+        payment_date: multiPayDate,
+        cash_account_id: isMultiPayHistoricalOnly ? undefined : (multiPayCashAccountId ? Number(multiPayCashAccountId) : undefined),
+        payment_method: isMultiPayHistoricalOnly ? 'historical' : (multiPayMethod === 'cash' ? 'cash' : 'transfer'),
+        is_historical_only: isMultiPayHistoricalOnly,
+        notes: multiPayNotes || undefined,
+        bank_statement_id: (!isMultiPayHistoricalOnly && multiPayBankStatementId) ? Number(multiPayBankStatementId) : undefined
+      };
+
+      const res = await api.post('/keuangan/ppdb-billing/payments/record', payload);
+      const resData = res.data?.data || {};
+
+      if (isMultiPayHistoricalOnly) {
+        alert('Pencatatan riwayat pembayaran berhasil disimpan! Tagihan telah diperbarui tanpa memengaruhi saldo buku kas.');
+      } else {
+        alert(`Pembayaran berhasil dicatat! Kwitansi resmi #${resData.receipt_number || ''} telah diterbitkan.`);
+      }
+
       setPayModalOpen(false);
+      setSelectedCashierBillIds([]);
       fetchBillsHistory();
+      fetchPaymentsHistoryData();
+
+      const createdPaymentId = resData.payment_ids?.[0];
+      if (printImmediately && createdPaymentId) {
+        handleViewReceipt(createdPaymentId, true);
+      } else if (createdPaymentId) {
+        handleViewReceipt(createdPaymentId, false);
+      }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal mencatat pembayaran');
+      alert(err.response?.data?.message || 'Gagal mencatat pembayaran PPDB');
     } finally {
-      setSubmittingPay(false);
+      setSubmittingMultiPay(false);
     }
   };
 
@@ -2095,36 +3227,121 @@ export default function RegistrationBilling() {
               </div>
             </div>
 
-            {/* 4 Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-slate-100">
-              <StatRibbonCard
-                label="Total Calon Santri T.A. Ini"
-                value={totalCandidatesCount}
-                subvalue="Kandidat terdaftar"
-                status="neutral"
-                icon={UserCheck}
-              />
-              <StatRibbonCard
-                label="Skema Standar"
-                value={assignedStandardCount}
-                subvalue="Tarif paket reguler"
-                status="success"
-                icon={BadgeCheck}
-              />
-              <StatRibbonCard
-                label="Khusus / Custom"
-                value={assignedCustomCount}
-                subvalue="Penyesuaian khusus"
-                status="info"
-                icon={Sparkles}
-              />
-              <StatRibbonCard
-                label="Belum Ditetapkan"
-                value={unassignedCandidatesCount}
-                subvalue="Menunggu skema"
-                status="warning"
-                icon={Clock}
-              />
+            {/* 4 Vibrant Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-6 pt-4 border-t border-slate-100">
+              {/* Card 1: Total Calon Santri */}
+              <button
+                type="button"
+                onClick={() => setAssignmentStatusFilter('all')}
+                className={`text-left p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white border transition-all duration-200 shadow-md relative overflow-hidden group cursor-pointer hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ${
+                  assignmentStatusFilter === 'all' ? 'ring-2 ring-indigo-400 border-indigo-400' : 'border-slate-700/80 hover:border-slate-600'
+                }`}
+              >
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between gap-2 relative z-10">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                    Total Calon Santri T.A. Ini
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-indigo-300 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+                  <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {formatNumber(totalCandidatesCount)}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/25 border border-indigo-400/30 text-indigo-200">
+                    100% Total
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-1 relative z-10">Siswa baru kls 7/10 &amp; pindahan</p>
+              </button>
+
+              {/* Card 2: Skema Standar */}
+              <button
+                type="button"
+                onClick={() => setAssignmentStatusFilter('assigned')}
+                className={`text-left p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-emerald-50 to-teal-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                  assignmentStatusFilter === 'assigned' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-emerald-500/10' : 'border-emerald-300/80 hover:border-emerald-400'
+                }`}
+              >
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/15 rounded-full blur-xl group-hover:bg-emerald-500/25 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between gap-2 relative z-10">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                    Skema Standar
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                    <BadgeCheck className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-950 tracking-tight">
+                    {formatNumber(assignedStandardCount)}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600/15 border border-emerald-400 text-emerald-800">
+                    {totalCandidatesCount > 0 ? ((assignedStandardCount / totalCandidatesCount) * 100).toFixed(0) : 0}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-700 mt-1 relative z-10 font-medium">Tarif baku paket reguler</p>
+              </button>
+
+              {/* Card 3: Khusus / Custom */}
+              <button
+                type="button"
+                onClick={() => setAssignmentStatusFilter('custom')}
+                className={`text-left p-4 rounded-2xl bg-gradient-to-br from-purple-500/15 via-purple-50 to-indigo-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                  assignmentStatusFilter === 'custom' ? 'ring-2 ring-purple-500 border-purple-500 shadow-purple-500/10' : 'border-purple-300/80 hover:border-purple-400'
+                }`}
+              >
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/15 rounded-full blur-xl group-hover:bg-purple-500/25 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between gap-2 relative z-10">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-purple-800">
+                    Khusus / Custom
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+                  <div className="text-2xl sm:text-3xl font-black text-purple-950 tracking-tight">
+                    {formatNumber(assignedCustomCount)}
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-600/15 border border-purple-400 text-purple-800">
+                    {totalCandidatesCount > 0 ? ((assignedCustomCount / totalCandidatesCount) * 100).toFixed(0) : 0}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-purple-700 mt-1 relative z-10 font-medium">Beasiswa &amp; penyesuaian khusus</p>
+              </button>
+
+              {/* Card 4: Belum Ditetapkan */}
+              <button
+                type="button"
+                onClick={() => setAssignmentStatusFilter('unassigned')}
+                className={`text-left p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-orange-100/70 border transition-all duration-200 shadow-sm relative overflow-hidden group cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                  assignmentStatusFilter === 'unassigned' ? 'ring-2 ring-amber-500 border-amber-500 shadow-amber-500/10' : 'border-amber-300/90 hover:border-amber-400'
+                }`}
+              >
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/15 rounded-full blur-xl group-hover:bg-amber-500/25 transition-all pointer-events-none" />
+                <div className="flex items-center justify-between gap-2 relative z-10">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
+                    Belum Ditetapkan
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-2 relative z-10">
+                  <div className="text-2xl sm:text-3xl font-black text-amber-950 tracking-tight">
+                    {formatNumber(unassignedCandidatesCount)}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    unassignedCandidatesCount > 0 ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  }`}>
+                    {unassignedCandidatesCount > 0 ? 'Perlu Aksi' : 'Selesai'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-800 mt-1 relative z-10 font-medium">Menunggu penetapan skema</p>
+              </button>
             </div>
 
             {/* Notice if scheme is empty for target academic year */}
@@ -2176,6 +3393,19 @@ export default function RegistrationBilling() {
               </div>
 
               <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+                {/* Filter Tipe Kandidat / Keberadaan Rombel */}
+                <select
+                  value={candidateTypeFilter}
+                  onChange={(e) => setCandidateTypeFilter(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                  title="Filter Status Rombel / Pendaftar"
+                >
+                  <option value="all">Semua Calon &amp; Siswa</option>
+                  <option value="unplaced">Pendaftar (Belum Masuk Rombel)</option>
+                  <option value="placed_new">Siswa Baru (Aktif Rombel)</option>
+                  <option value="transfer">Siswa Pindahan</option>
+                </select>
+
                 {/* Filter Jalur / Proses PSB */}
                 <select
                   value={selectedProcessFilter}
@@ -2335,8 +3565,9 @@ export default function RegistrationBilling() {
                   </thead>
 
                   <tbody className="divide-y divide-slate-100">
-                    {sortedAndFilteredCandidates.map((cand) => {
+                    {sortedAndFilteredCandidates.map((cand, idx) => {
                       const candId = cand.student_id || cand.candidate_id;
+                      const uniqueRowKey = `cand-row-${cand.candidate_id || ''}-${cand.student_id || ''}-${cand.registration_number || idx}`;
                       const isSelected = selectedCandidateIds.includes(candId);
                       const asg = cand.assignment;
                       const isAssigned = Boolean(asg?.id || cand.fee_scheme_id);
@@ -2363,7 +3594,7 @@ export default function RegistrationBilling() {
 
                       return (
                         <tr
-                          key={candId}
+                          key={uniqueRowKey}
                           className={`hover:bg-slate-50 transition ${isSelected ? 'bg-emerald-50' : ''}`}
                         >
                           {/* Checkbox Column (Solid BG) */}
@@ -2381,13 +3612,31 @@ export default function RegistrationBilling() {
                             </button>
                           </td>
 
-                          {/* Candidate Info with "Siswa Baru" / "Siswa Pindahan" (Solid BG) */}
+                          {/* Candidate Info with "Pendaftar (Belum Rombel)" / "Siswa Baru (Aktif Rombel)" / "Siswa Pindahan" (Solid BG) */}
                           <td className={`px-4 py-2.5 sticky left-10 z-10 shadow-[1px_0_0_0_#e2e8f0] ${isSelected ? 'bg-emerald-100' : 'bg-white'}`}>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-semibold text-slate-800">{cand.student_name || cand.full_name}</span>
-                              <StatusPill variant={isTransfer ? "warning" : "success"}>
-                                {isTransfer ? 'Siswa Pindahan' : 'Siswa Baru'}
-                              </StatusPill>
+                              
+                              {isTransfer ? (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  cand.is_placed
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  Siswa Pindahan {cand.is_placed ? '(Aktif Rombel)' : '(Belum Rombel)'}
+                                </span>
+                              ) : cand.is_placed ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1">
+                                  <BadgeCheck className="w-3 h-3 text-emerald-700" />
+                                  Siswa Baru (Aktif Rombel)
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200 flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-sky-600" />
+                                  Pendaftar (Belum Rombel)
+                                </span>
+                              )}
+
                               {isAllUnitsContext && (
                                 <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
                                   Number(cand.satuan_pendidikan_id) === 2
@@ -2398,8 +3647,13 @@ export default function RegistrationBilling() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] font-mono text-slate-400">
-                              No. Reg / NIS: {cand.registration_number || cand.nis || '-'}
+                            <div className="text-[11px] font-mono text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>No. Reg / NIS: {cand.registration_number || cand.nis || '-'}</span>
+                              {cand.psb_status && (
+                                <span className="capitalize text-[10px] text-slate-500 font-sans bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
+                                  Status: {cand.psb_status}
+                                </span>
+                              )}
                             </div>
                           </td>
 
@@ -2884,6 +4138,13 @@ export default function RegistrationBilling() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                                      row.is_placed
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-sky-50 text-sky-700 border-sky-200'
+                                    }`}>
+                                      {row.is_placed ? 'Aktif Rombel' : 'Belum Rombel'}
+                                    </span>
                                     <span className="font-mono text-[10px] text-slate-600 font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60">
                                       Reg: {row.registration_number || row.nis || '-'}
                                     </span>
@@ -2898,9 +4159,14 @@ export default function RegistrationBilling() {
 
                               {/* Sticky Cell 3: Jalur Masuk */}
                               <td className={`p-3 w-[110px] min-w-[110px] max-w-[110px] text-slate-600 sticky left-[304px] z-10 ${stickyBg} border-r border-slate-200 text-[11px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)]`}>
-                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[10px]">
-                                  {row.process_name || 'Reguler'}
-                                </span>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[10px] truncate" title={row.process_name || 'Reguler'}>
+                                    {row.process_name || 'Reguler'}
+                                  </span>
+                                  {row.entry_type === 'pindahan' && (
+                                    <span className="text-[9px] text-amber-700 font-bold">Pindahan</span>
+                                  )}
+                                </div>
                               </td>
 
                               {/* Dynamic Matrix Cells */}
@@ -3312,103 +4578,619 @@ export default function RegistrationBilling() {
       {/* ============================================================ */}
       {/* TAB 3: PENERIMAAN PEMBAYARAN PPDB */}
       {/* ============================================================ */}
+      {/* ============================================================ */}
+      {/* TAB 3: PENERIMAAN PEMBAYARAN PPDB */}
+      {/* ============================================================ */}
       {activeMainTab === 'payments' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+          {/* Sub-tab Switcher Tab 3 */}
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setPaymentsSubTab('cashier')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                paymentsSubTab === 'cashier' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+              onClick={() => setPaymentsSubTab('bills')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                paymentsSubTab === 'bills' || paymentsSubTab === 'cashier'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              <Wallet className="w-4 h-4" />
-              <span>Kasir Pembayaran PPDB</span>
+              <FileText className="w-4 h-4" />
+              <span>Tagihan PPDB (Siap Bayar)</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                paymentsSubTab === 'bills' || paymentsSubTab === 'cashier'
+                  ? 'bg-indigo-800 text-indigo-100'
+                  : 'bg-indigo-50 text-indigo-700'
+              }`}>
+                {cashierBillsSummary.unpaidCount}
+              </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setPaymentsSubTab('history')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                paymentsSubTab === 'history'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <History className="w-4 h-4 text-emerald-400" />
+              <span>Riwayat Pembayaran PPDB</span>
+              {paymentsHistorySummary.total_count > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                  paymentsSubTab === 'history'
+                    ? 'bg-indigo-800 text-indigo-100'
+                    : 'bg-emerald-50 text-emerald-700'
+                }`}>
+                  {paymentsHistorySummary.total_count}
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => setPaymentsSubTab('proofs')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                paymentsSubTab === 'proofs' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                paymentsSubTab === 'proofs'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-4 h-4 text-amber-400" />
               <span>Verifikasi Bukti Transfer (FIFO)</span>
+              {(proofsData.proofs?.filter((p) => p.status === 'pending')?.length || 0) > 0 && (
+                <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded-full text-[10px] font-black">
+                  {proofsData.proofs?.filter((p) => p.status === 'pending')?.length}
+                </span>
+              )}
             </button>
           </div>
 
-          {paymentsSubTab === 'cashier' && (
+          {/* Sub-tab 3.1: Tagihan Siap Bayar di Loket Kasir */}
+          {(paymentsSubTab === 'bills' || paymentsSubTab === 'cashier') && (
             <div className="space-y-4">
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">Daftar Tagihan Siap Bayar</h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Pilih tagihan calon santri untuk mencatat kas masuk dan mencetak kuitansi resmi</p>
+              {/* Macro Summary Cards (7 Cards Bergradien Elegan: Tagihan Terbit, Kas Diterima, Riwayat Non-Kas, Diskon/Potongan, Sisa Piutang, Jatuh Tempo, Total Kewajiban) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
+                {/* Card 1: Tagihan Terbit PPDB */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-800/60 text-white shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl group-hover:bg-indigo-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Tagihan Terbit</div>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-white tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalBills)}>
+                    {formatCurrency(cashierBillsSummary.totalBills)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-indigo-200/80 font-medium">
+                    <span>{formatNumber(cashierBillsSummary.totalCount)} pos tagihan</span>
+                    {currentTargetAy?.name && (
+                      <span className="text-[10px] font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-1.5 py-0.5 rounded">
+                        {currentTargetAy.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Cari santri / tagihan di kasir..."
-                    value={billSearch}
-                    onChange={(e) => setBillSearch(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                  />
-                  {billSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setBillSearch('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md"
-                      title="Hapus pencarian"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                {/* Card 2: Kas Diterima (Hanya Pembayaran Riil Kasir/Bank) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-teal-100/70 border border-emerald-300 text-emerald-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-900">Kas Diterima</div>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-emerald-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalPaidCash)}>
+                    {formatCurrency(cashierBillsSummary.totalPaidCash)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                    <span>Masuk kas &amp; bank</span>
+                    <span className="text-[10px] font-bold text-emerald-700">{formatNumber(cashierBillsSummary.paidCount)} lunas</span>
+                  </div>
+                </div>
+
+                {/* Card 3: Riwayat (Non-Kas / Catatan Tanpa Mutasi Saldo) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-yellow-100/70 border border-amber-300 text-amber-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/20 rounded-full blur-xl group-hover:bg-amber-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900">Riwayat (Non-Kas)</div>
+                    <div className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <History className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-amber-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalPaidHistorical)}>
+                    {formatCurrency(cashierBillsSummary.totalPaidHistorical)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-amber-800 font-medium">
+                    <span>{formatNumber(cashierBillsSummary.historicalCount)} pos riwayat</span>
+                  </div>
+                </div>
+
+                {/* Card 4: Pemotongan / Diskon (Keringanan / Beasiswa PPDB) */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/20 via-purple-50 to-pink-100/70 border border-purple-300 text-purple-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-purple-500/20 rounded-full blur-xl group-hover:bg-purple-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-purple-900">Diskon &amp; Beasiswa</div>
+                    <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <Percent className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-purple-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalDiscount)}>
+                    {formatCurrency(cashierBillsSummary.totalDiscount)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-purple-800 font-medium">
+                    <span>{formatNumber(cashierBillsSummary.discountCount)} tagihan dipotong</span>
+                  </div>
+                </div>
+
+                {/* Card 5: Sisa Piutang Berjalan */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-50 to-red-100/70 border border-rose-300 text-rose-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-rose-500/20 rounded-full blur-xl group-hover:bg-rose-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-rose-900">Sisa Piutang</div>
+                    <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-rose-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalRemaining)}>
+                    {formatCurrency(cashierBillsSummary.totalRemaining)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-rose-800 font-medium">
+                    <span>{formatNumber(cashierBillsSummary.unpaidCount)} belum lunas</span>
+                    <span className="text-[10px] font-bold text-rose-700">{formatNumber(cashierBillsSummary.partialCount)} cicilan</span>
+                  </div>
+                </div>
+
+                {/* Card 6: Jatuh Tempo PPDB */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-orange-500/20 via-orange-50 to-amber-100/70 border border-orange-300 text-orange-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-orange-500/20 rounded-full blur-xl group-hover:bg-orange-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-orange-900">Jatuh Tempo</div>
+                    <div className="w-7 h-7 rounded-lg bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-orange-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalOverdue)}>
+                    {formatCurrency(cashierBillsSummary.totalOverdue)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-orange-800 font-medium">
+                    <span>{formatNumber(cashierBillsSummary.overdueCount)} pos lewat tempo</span>
+                  </div>
+                </div>
+
+                {/* Card 7: Total Kewajiban PPDB */}
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-500/20 via-blue-50 to-indigo-100/70 border border-blue-300 text-blue-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                  <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all pointer-events-none" />
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-blue-900">Total Kewajiban</div>
+                    <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                      <Receipt className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-lg lg:text-xl font-black text-blue-950 tracking-tight relative z-10 truncate" title={formatCurrency(cashierBillsSummary.totalObligation)}>
+                    {formatCurrency(cashierBillsSummary.totalObligation)}
+                  </div>
+                  <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-blue-800 font-medium">
+                    <span>Total piutang PPDB</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Filter & Search Bar */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Wallet className="w-4 h-4 text-indigo-600" />
+                    <span>Daftar Tagihan Siap Bayar di Loket Kasir</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Pilih tagihan calon santri untuk mencatat pembayaran kas masuk dan mencetak kuitansi resmi
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap">
+                  <select
+                    value={cashierStatusFilter}
+                    onChange={(e) => setCashierStatusFilter(e.target.value)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="all">Semua Status ({billsData.bills?.length || 0})</option>
+                    <option value="unpaid">Belum Dibayar Sama Sekali ({cashierBillsSummary.unpaidCount - cashierBillsSummary.partialCount})</option>
+                    <option value="partial">Cicilan / Bayar Sebagian ({cashierBillsSummary.partialCount})</option>
+                    <option value="paid">Sudah Lunas ({cashierBillsSummary.paidCount})</option>
+                  </select>
+
+                  <select
+                    value={cashierPhaseFilter}
+                    onChange={(e) => setCashierPhaseFilter(e.target.value)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="all">Semua Fase Biaya</option>
+                    <option value="registration_fee">Biaya Pendaftaran / Formulir</option>
+                    <option value="enrollment_fee">Uang Pangkal / Daftar Ulang</option>
+                  </select>
+
+                  <div className="relative w-full sm:w-60">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Cari santri, no. reg, kwitansi..."
+                      value={cashierSearch || billSearch}
+                      onChange={(e) => {
+                        setCashierSearch(e.target.value);
+                        setBillSearch(e.target.value);
+                      }}
+                      className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {(cashierSearch || billSearch) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCashierSearch('');
+                          setBillSearch('');
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md"
+                        title="Hapus pencarian"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={fetchBillsHistory}
+                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl cursor-pointer transition-colors"
+                    title="Refresh Tagihan"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Bar untuk Tagihan Terpilih */}
+              {selectedCashierBillIds.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50 border border-indigo-200 p-3 rounded-xl shadow-2xs animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-2xs">
+                      {selectedCashierBillIds.length}
+                    </span>
+                    <div>
+                      <div className="text-xs font-bold text-indigo-950">
+                        {selectedCashierBillIds.length} Tagihan Calon Santri Dipilih
+                      </div>
+                      <div className="text-[11px] text-indigo-800 font-medium">
+                        Total Kewajiban Terpilih: <strong className="tnum text-indigo-900 font-extrabold">{formatCurrency(
+                          (billsData.bills || [])
+                            .filter((b) => selectedCashierBillIds.includes(b.id))
+                            .reduce((acc, b) => {
+                              const sisa = Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0));
+                              return acc + sisa;
+                            }, 0)
+                        )}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCashierBillIds([])}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/80 rounded-lg transition cursor-pointer"
+                    >
+                      Batal Pilih
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selectedObjs = (billsData.bills || []).filter((b) => selectedCashierBillIds.includes(b.id));
+                        handleOpenMultiPayModal(selectedObjs);
+                      }}
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition active:scale-95"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Bayar {selectedCashierBillIds.length} Tagihan Terpilih (Multipayment)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Table of Unpaid / Partially Paid Bills */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                  <thead className="sticky top-0 bg-slate-50 z-10 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] select-none">
                     <tr>
-                      <th className="p-4">Calon Santri</th>
-                      <th className="p-4">Komponen Tagihan</th>
-                      <th className="p-4 text-right">Total Tagihan</th>
-                      <th className="p-4 text-right">Sudah Dibayar</th>
-                      <th className="p-4 text-right">Sisa Piutang</th>
-                      <th className="p-4 text-center">Aksi Bayar</th>
+                      <th className="w-10 px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            sortedAndFilteredCashierBills.filter((b) => b.status !== 'paid' && Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0)) > 0).length > 0 &&
+                            sortedAndFilteredCashierBills.filter((b) => b.status !== 'paid' && Math.max(0, parseFloat(b.amount || 0) - parseFloat(b.discount_amount || 0) - parseFloat(b.paid_amount || 0)) > 0).every((b) => selectedCashierBillIds.includes(b.id))
+                          }
+                          onChange={handleToggleSelectAllCashierBills}
+                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                          title="Pilih Semua Tagihan Belum Lunas"
+                        />
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('registrant_name_snapshot')}
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Calon Santri</span>
+                          {cashierSortConfig.key === 'registrant_name_snapshot' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('wave_name')}
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Rombel / Jalur</span>
+                          {cashierSortConfig.key === 'wave_name' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('fee_type_name')}
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Komponen Tagihan</span>
+                          {cashierSortConfig.key === 'fee_type_name' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('bill_date')}
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Tgl Penagihan</span>
+                          {cashierSortConfig.key === 'bill_date' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('due_date')}
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Jatuh Tempo</span>
+                          {cashierSortConfig.key === 'due_date' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('amount')}
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Total Tagihan</span>
+                          {cashierSortConfig.key === 'amount' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('paid_amount')}
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Sudah Bayar</span>
+                          {cashierSortConfig.key === 'paid_amount' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('remaining_amount')}
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span>Sisa Piutang</span>
+                          {cashierSortConfig.key === 'remaining_amount' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortCashier('status')}
+                        className="px-3 py-2.5 text-center cursor-pointer hover:bg-slate-100 transition group"
+                      >
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span>Status</span>
+                          {cashierSortConfig.key === 'status' ? (
+                            cashierSortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-3 py-2.5 text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredBills.filter((b) => b.status !== 'paid').length === 0 ? (
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {loadingBills ? (
                       <tr>
-                        <td colSpan="6" className="p-12 text-center text-slate-400">
-                          {billSearch ? 'Tidak ada tagihan yang cocok dengan pencarian kasir.' : 'Tidak ada tagihan belum lunas saat ini.'}
+                        <td colSpan="11" className="p-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600 mb-2" />
+                          <span>Memuat daftar tagihan siap bayar...</span>
+                        </td>
+                      </tr>
+                    ) : sortedAndFilteredCashierBills.length === 0 ? (
+                      <tr>
+                        <td colSpan="11" className="p-12 text-center text-slate-400">
+                          {(cashierSearch || billSearch) ? 'Tidak ada tagihan yang cocok dengan pencarian kasir.' : 'Tidak ada tagihan yang sesuai dengan filter.'}
                         </td>
                       </tr>
                     ) : (
-                      filteredBills.filter((b) => b.status !== 'paid').map((bill) => {
-                        const sisa = Math.max(0, parseFloat(bill.amount || 0) - parseFloat(bill.paid_amount || 0));
+                      sortedAndFilteredCashierBills.map((bill, bIdx) => {
+                        const amount = parseFloat(bill.amount || 0);
+                        const paid = parseFloat(bill.paid_amount || 0);
+                        const discount = parseFloat(bill.discount_amount || 0);
+                        const sisa = Math.max(0, amount - paid - discount);
+                        const isPaid = bill.status === 'paid' || sisa <= 0;
+                        const isPartial = bill.status === 'partially_paid' || (paid > 0 && !isPaid);
+                        const isSelected = selectedCashierBillIds.includes(bill.id);
+                        const isPayable = !isPaid && (sisa > 0 || amount > 0);
+
                         return (
-                          <tr key={bill.id} className="hover:bg-slate-50/80 transition">
-                            <td className="p-4">
-                              <div className="font-bold text-slate-800">{bill.registrant_name_snapshot}</div>
-                              <div className="text-[10px] text-slate-400 font-mono">Reg: {bill.registration_number_snapshot || '-'}</div>
+                          <tr
+                            key={`cashier-bill-${bill.id}-${bIdx}`}
+                            className={`transition-colors ${
+                              isSelected ? 'bg-indigo-50/70 hover:bg-indigo-50' : 'hover:bg-slate-50/80'
+                            }`}
+                          >
+                            <td className="w-10 px-3 py-2.5 text-center">
+                              {isPayable ? (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleSelectCashierBill(bill.id)}
+                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                />
+                              ) : (
+                                <span className="text-slate-300 text-xs">-</span>
+                              )}
                             </td>
-                            <td className="p-4 font-semibold text-slate-700">{bill.fee_type_name || 'Uang Pangkal PPDB'}</td>
-                            <td className="p-4 text-right font-mono font-bold text-slate-800">{formatCurrency(bill.amount)}</td>
-                            <td className="p-4 text-right font-mono font-bold text-emerald-700">{formatCurrency(bill.paid_amount || 0)}</td>
-                            <td className="p-4 text-right font-mono font-bold text-rose-600">{formatCurrency(sisa)}</td>
-                            <td className="p-4 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenPayModal(bill)}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 mx-auto shadow-2xs transition"
-                              >
-                                <Wallet className="w-3.5 h-3.5" />
-                                <span>Catat Kas Masuk</span>
-                              </button>
+                            <td className="px-3 py-2.5">
+                              <div className="font-bold text-slate-800 text-xs">{bill.registrant_name_snapshot}</div>
+                              <div className="text-[10px] text-slate-400 mt-0.5 font-mono">No. Reg: {bill.registration_number_snapshot || '-'}</div>
+                            </td>
+                            <td className="px-3 py-2.5 text-slate-600 font-semibold whitespace-nowrap">
+                              {bill.wave_name || (bill.billing_phase === 'registration_fee' ? 'Formulir PPDB' : 'Uang Masuk')}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <FeeTypeBadge
+                                  item={bill}
+                                  name={bill.fee_type_name || (bill.billing_phase === 'registration_fee' ? 'Biaya Pendaftaran / Formulir' : 'Uang Pangkal PPDB')}
+                                  code={bill.fee_type_code}
+                                />
+                                {bill.billing_phase === 'registration_fee' && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                    Formulir
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-slate-600 whitespace-nowrap tnum">
+                              {formatDateToDMY(bill.bill_date || bill.created_at)}
+                            </td>
+                            <td className="px-3 py-2.5 whitespace-nowrap tnum">
+                              {bill.due_date ? (
+                                <span className={
+                                  !isPaid && new Date(bill.due_date) < new Date()
+                                    ? 'text-rose-600 font-bold'
+                                    : 'text-slate-600'
+                                }>
+                                  {formatDateToDMY(bill.due_date)}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-bold text-slate-800 num-cell">
+                              <div>{formatCurrency(bill.amount)}</div>
+                              {discount > 0 && (
+                                <div className="text-[10px] text-purple-700 font-semibold mt-0.5" title={`Diskon / Potongan: ${formatCurrency(discount)}`}>
+                                  Potongan: -{formatCurrency(discount)}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-bold text-emerald-700 num-cell">
+                              {formatCurrency(bill.paid_amount || 0)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-black text-rose-600 num-cell">
+                              {formatCurrency(sisa)}
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <StatusPill
+                                variant={isPaid ? 'success' : isPartial ? 'warning' : 'danger'}
+                                label={isPaid ? 'Lunas' : isPartial ? 'Sebagian' : 'Belum Lunas'}
+                              />
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {isPaid ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewReceipt(bill.payment_id || bill.id, true)}
+                                  className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md font-semibold text-xs shadow-2xs transition cursor-pointer flex items-center gap-1 ml-auto"
+                                >
+                                  <Printer className="w-3 h-3" />
+                                  <span>Kwitansi</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPayModal(bill)}
+                                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-semibold text-xs shadow-2xs transition cursor-pointer flex items-center gap-1 ml-auto"
+                                >
+                                  <CreditCard className="w-3 h-3" />
+                                  <span>Bayar</span>
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -3420,6 +5202,281 @@ export default function RegistrationBilling() {
             </div>
           )}
 
+          {/* Sub-tab 3.2: Riwayat Pembayaran PPDB */}
+          {paymentsSubTab === 'history' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-3.5 sm:p-5 space-y-4">
+              {/* Header & Mini Summary */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <History className="w-4 h-4 text-emerald-600" />
+                    <span>Riwayat Seluruh Pembayaran Tagihan PPDB</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Daftar seluruh transaksi penerimaan kas masuk calon santri PPDB dengan dukungan cetak kwitansi resmi berstandar Enterprise Aldepos.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-200/80 px-3 py-1.5 rounded-xl">
+                    <Wallet className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <div className="text-[10px] text-emerald-700 font-semibold">Total Kas PPDB Masuk</div>
+                      <div className="text-xs font-bold text-emerald-800 font-mono">
+                        {formatCurrency(paymentsHistorySummary.total_amount)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-indigo-50/70 border border-indigo-200/80 px-3 py-1.5 rounded-xl">
+                    <Receipt className="w-4 h-4 text-indigo-600" />
+                    <div>
+                      <div className="text-[10px] text-indigo-700 font-semibold">Kwitansi Terbit</div>
+                      <div className="text-xs font-bold text-indigo-800 font-mono">
+                        {paymentsHistorySummary.total_count || paymentsHistory.length} Transaksi
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={fetchPaymentsHistoryData}
+                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl cursor-pointer transition"
+                    title="Refresh Riwayat Pembayaran"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Controls Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Pencarian</label>
+                  <input
+                    type="text"
+                    placeholder="No. kwitansi, nama, reg..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Status Transaksi</label>
+                  <select
+                    value={historyStatusFilter}
+                    onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">Semua Status</option>
+                    <option value="valid">Valid Saja</option>
+                    <option value="voided">Dibatalkan (Void) Saja</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Akun Kas / Bank</label>
+                  <select
+                    value={historyCashAccountFilter}
+                    onChange={(e) => setHistoryCashAccountFilter(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Semua Akun Kas/Bank</option>
+                    {cashAccounts.map((ca) => (
+                      <option key={ca.id} value={ca.id}>
+                        {ca.name} ({ca.account_number || ca.type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Metode Bayar</label>
+                  <select
+                    value={historyMethodFilter}
+                    onChange={(e) => setHistoryMethodFilter(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">Semua Metode</option>
+                    <option value="transfer">Transfer Bank</option>
+                    <option value="cash">Tunai (Kasir Loket)</option>
+                    <option value="va">Virtual Account</option>
+                  </select>
+                </div>
+                <div>
+                  <DatePickerField
+                    label="Tanggal Mulai"
+                    value={historyStartDate}
+                    onChange={(iso) => setHistoryStartDate(iso)}
+                    placeholder="DD/MM/YYYY"
+                    inputClassName="bg-white"
+                  />
+                </div>
+                <div>
+                  <DatePickerField
+                    label="Tanggal Selesai"
+                    value={historyEndDate}
+                    onChange={(iso) => setHistoryEndDate(iso)}
+                    placeholder="DD/MM/YYYY"
+                    inputClassName="bg-white"
+                  />
+                </div>
+              </div>
+
+              {(historySearch || historyStatusFilter !== 'all' || historyCashAccountFilter || historyMethodFilter !== 'all' || historyStartDate || historyEndDate) && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHistorySearch('');
+                      setHistoryStatusFilter('all');
+                      setHistoryCashAccountFilter('');
+                      setHistoryMethodFilter('all');
+                      setHistoryStartDate('');
+                      setHistoryEndDate('');
+                    }}
+                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reset Filter Riwayat</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Table Riwayat Pembayaran PPDB */}
+              {loadingPaymentsHistory ? (
+                <div className="py-16 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                  <span>Memuat riwayat pembayaran PPDB...</span>
+                </div>
+              ) : filteredPaymentsHistory.length === 0 ? (
+                <div className="py-16 text-center text-slate-400 text-xs italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                  Belum ada riwayat pembayaran PPDB yang tercatat pada kriteria filter ini.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px] select-none">
+                      <tr>
+                        <th className="px-3.5 py-3">Tanggal</th>
+                        <th className="px-3.5 py-3">No. Kwitansi</th>
+                        <th className="px-3.5 py-3">Calon Santri</th>
+                        <th className="px-3.5 py-3">Komponen Biaya</th>
+                        <th className="px-3.5 py-3 text-right">Nominal Disetor</th>
+                        <th className="px-3.5 py-3">Metode / Akun Kas</th>
+                        <th className="px-3.5 py-3 text-center">Status</th>
+                        <th className="px-3.5 py-3">Catatan</th>
+                        <th className="px-3.5 py-3 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {filteredPaymentsHistory.map((p) => {
+                        const isRowVoid = p.status === 'voided';
+                        return (
+                          <tr key={p.id} className={`transition-colors ${isRowVoid ? 'bg-rose-50/30 hover:bg-rose-50/50' : 'hover:bg-slate-50/80'}`}>
+                            <td className="px-3.5 py-3 text-slate-600 font-mono text-[11px]">
+                              {p.payment_date ? String(p.payment_date).slice(0, 10) : '-'}
+                            </td>
+                            <td className="px-3.5 py-3">
+                              <span className={`font-mono font-bold px-2 py-0.5 rounded border text-[11px] ${
+                                isRowVoid
+                                  ? 'text-rose-700 bg-rose-50 border-rose-200 line-through'
+                                  : 'text-indigo-700 bg-indigo-50 border-indigo-200/60'
+                              }`}>
+                                {p.receipt_number || `KW-PPDB-${p.id}`}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-3">
+                              <div className={`font-bold ${isRowVoid ? 'text-slate-500' : 'text-slate-800'}`}>
+                                {p.registrant_name_snapshot}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">Reg: {p.registration_number_snapshot || '-'}</div>
+                            </td>
+                            <td className="px-3.5 py-3 font-semibold text-slate-700">
+                              {p.fee_type_name || 'Uang Pangkal PPDB'}
+                            </td>
+                            <td className={`px-3.5 py-3 text-right font-bold font-mono text-sm ${
+                              isRowVoid ? 'text-slate-400 line-through' : 'text-emerald-700'
+                            }`}>
+                              {formatCurrency(p.amount_paid)}
+                            </td>
+                            <td className="px-3.5 py-3">
+                              <div className="font-bold text-slate-700 capitalize">
+                                {p.payment_method === 'cash' ? 'Tunai Loket' : (p.payment_method === 'transfer' ? 'Transfer Bank' : p.payment_method)}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                {p.cash_account_name || 'Kasir PPDB'}
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-3 text-center">
+                              {isRowVoid ? (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"
+                                    title={`Dibatalkan (Void): ${p.void_reason || '-'}`}
+                                  >
+                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                    <span>Void</span>
+                                  </span>
+                                  {p.void_reason && (
+                                    <span className="text-[9.5px] text-rose-500 italic max-w-[130px] truncate" title={p.void_reason}>
+                                      {p.void_reason}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>Valid</span>
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3.5 py-3 text-slate-500 max-w-xs truncate" title={p.notes || '-'}>
+                              {p.notes || '-'}
+                            </td>
+                            <td className="px-3.5 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewReceipt(p.id, true)}
+                                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                                  title="Buka dan Cetak Kwitansi Resmi di Tab Baru"
+                                >
+                                  <Printer className="w-3.5 h-3.5 text-slate-600" />
+                                  <span>Cetak</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewReceipt(p.id, false)}
+                                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition"
+                                  title="Lihat Preview Kwitansi"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+
+                                {!isRowVoid && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenVoidModal(p)}
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                                    title="Batalkan Pembayaran Ini (Void) & Pulihkan Saldo Tagihan"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Void</span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sub-tab 3.3: Verifikasi Bukti Transfer */}
           {paymentsSubTab === 'proofs' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-8 text-center text-slate-400 text-xs">
               Antrean verifikasi bukti transfer calon wali santri (FIFO) dari portal publik.
@@ -3740,7 +5797,7 @@ export default function RegistrationBilling() {
                         </tr>
                       ) : (
                         filteredLedgerRecapCandidates.map((cand, idx) => (
-                          <tr key={cand.candidate_id} className="hover:bg-slate-50/80 transition">
+                          <tr key={`recap-${cand.candidate_id || cand.student_id || idx}-${cand.registration_number || idx}`} className="hover:bg-slate-50/80 transition">
                             <td className="p-4 text-center text-slate-400 font-mono">{idx + 1}</td>
                             <td className="p-4">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -3842,8 +5899,8 @@ export default function RegistrationBilling() {
                       className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">-- Pilih Calon Santri ({filteredCandidatesForIndividualLedger.length}) --</option>
-                      {filteredCandidatesForIndividualLedger.map((c) => (
-                        <option key={c.candidate_id} value={c.student_id || c.candidate_id}>
+                      {filteredCandidatesForIndividualLedger.map((c, idx) => (
+                        <option key={`opt-ledger-${c.candidate_id || c.student_id || idx}-${c.registration_number || idx}`} value={c.student_id || c.candidate_id}>
                           {c.full_name} ({c.registration_number}) - {c.payment_status_label}
                         </option>
                       ))}
@@ -4464,114 +6521,708 @@ export default function RegistrationBilling() {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL 4: PAY BILL (KASIR PPDB) */}
+      {/* MODAL 4: CATAT PEMBAYARAN MULTIPAYMENT PPDB (TAHAP 4)         */}
       {/* ============================================================ */}
-      {payModalOpen && selectedBillForPay && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5 text-emerald-700">
-                  <Wallet className="w-4 h-4" />
-                  <span>Kasir Pembayaran PPDB</span>
-                </h3>
-                <p className="text-[11px] text-slate-400">Tagihan #{selectedBillForPay.id}</p>
+      {payModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl max-w-6xl xl:max-w-7xl w-full my-auto shadow-xl border border-slate-200 p-5 sm:p-6 space-y-4 max-h-[92vh] flex flex-col justify-between">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5 shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg">
+                  <CreditCard className="w-5 h-5" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-slate-800 text-base">Pencatatan Pembayaran Tagihan Calon Santri (Multipayment)</h3>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                      T.A. PPDB: {academicYears.find((y) => y.id === Number(selectedTargetAyId))?.name || 'Semua'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Mendukung multi-pos tagihan sekaligus, diskon kasuistik per-baris tagihan, mutasi kas/bank, dan auto-sinkronisasi rekening koran.
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setPayModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setPayModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleExecutePayment} className="space-y-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <div className="font-bold text-slate-800">{selectedBillForPay.registrant_name_snapshot}</div>
-                <div className="text-[11px] text-slate-500">Komponen: {selectedBillForPay.fee_type_name || 'Uang Pangkal'}</div>
-                <div className="text-sm font-mono font-bold text-indigo-700 mt-1">
-                  Tagihan: {formatCurrency(selectedBillForPay.amount)}
+            {/* Modal Form Content */}
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-xs">
+              {/* Baris 1: Pilihan Calon Santri (Mendukung Multi-Santri / Saudara Kandung dalam 1 Kwitansi) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Calon Santri <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    💡 1 Rekening Koran / Transfer untuk &gt;1 Calon Santri tetap diterbitkan <strong>1 Kwitansi Resmi PPDB</strong>
+                  </span>
+                </div>
+
+                {/* Chips Calon Santri yang Dipilih */}
+                {multiPaySelectedCandidateIds.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap p-2 bg-slate-50 rounded-xl border border-slate-200">
+                    {multiPaySelectedCandidateIds.map((cid, idx) => {
+                      const cObj = candidateSelectOptions.find((c) => String(c.value) === String(cid));
+                      const cName = cObj?.name || `Calon Santri #${cid}`;
+                      const cReg = cObj?.reg_number || '-';
+                      return (
+                        <span
+                          key={`cand-chip-${cid}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-emerald-200 text-emerald-950 rounded-lg text-xs font-semibold shadow-2xs"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                            {idx + 1}
+                          </span>
+                          <span>{cName}</span>
+                          {cReg !== '-' && <span className="text-[10px] text-slate-400">({cReg})</span>}
+                          {multiPaySelectedCandidateIds.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCandidateFromMultiPay(cid)}
+                              className="ml-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                              title="Hapus calon santri dari transaksi ini"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown Tambah Calon Santri */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                  <div className="md:col-span-8">
+                    <SearchableSelect
+                      options={candidateSelectOptions.filter((opt) => !multiPaySelectedCandidateIds.includes(opt.value))}
+                      value=""
+                      onChange={(val) => {
+                        if (val) handleAddCandidateToMultiPay(val);
+                      }}
+                      placeholder="+ Tambah Calon Santri Lain / Saudara Kandung (1 Kwitansi Gabungan) --"
+                      searchPlaceholder="Ketik nama calon santri atau nomor registrasi..."
+                      accentColor="emerald"
+                      allowClear={false}
+                    />
+                  </div>
+                  <div className="md:col-span-4 text-[11px] text-slate-500 italic">
+                    {multiPaySelectedCandidateIds.length === 0
+                      ? 'Pilih calon santri terlebih dahulu.'
+                      : multiPaySelectedCandidateIds.length === 1
+                      ? '1 Calon Santri Terpilih. Tambah saudara jika ada.'
+                      : `${multiPaySelectedCandidateIds.length} Calon Santri Terpilih (Kwitansi Gabungan).`}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-600 mb-1">Tanggal Pembayaran *</label>
-                <input
-                  type="date"
-                  value={payForm.payment_date}
-                  onChange={(e) => setPayForm({ ...payForm, payment_date: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
-                  required
-                />
+              {/* Baris 2: Tanggal & Total Nominal Bayar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <div>
+                  <DatePickerField
+                    label="Tanggal Pembayaran *"
+                    value={multiPayDate}
+                    onChange={(iso) => {
+                      setMultiPayDate(iso);
+                      if (multiPayMethod === 'transfer' && multiPayCashAccountId) {
+                        fetchMultiPayBankStatements(multiPayCashAccountId, iso);
+                      }
+                    }}
+                    placeholder="DD/MM/YYYY"
+                    required={true}
+                    inputClassName="bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Total Nominal Diterima (Rp) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={multiPayTotalAmount}
+                    onChange={(e) => setMultiPayTotalAmount(e.target.value)}
+                    placeholder="Contoh: 15000000"
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg tnum font-bold text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  {parseFloat(multiPayTotalAmount) > 0 && (
+                    <div className="text-[10.5px] text-emerald-800 font-medium bg-emerald-50/90 px-2.5 py-1 rounded-lg border border-emerald-200/80 italic leading-snug">
+                      # {terbilang(parseFloat(multiPayTotalAmount))} Rupiah #
+                    </div>
+                  )}
+                  {multiPayMethod === 'transfer' && multiPayBankStatementId && (
+                    <StatementMatchIndicator
+                      inputAmount={multiPayTotalAmount}
+                      statement={multiPayBankStatementsOptions.find((o) => String(o.value) === String(multiPayBankStatementId))}
+                      onSyncAmount={(amt) => setMultiPayTotalAmount(String(amt))}
+                      isCompact={true}
+                    />
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-600 mb-1">Akun Kas / Bank Penampung *</label>
-                <select
-                  value={payForm.cash_account_id}
-                  onChange={(e) => setPayForm({ ...payForm, cash_account_id: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
-                  required
-                >
-                  <option value="">-- Pilih Akun Kas/Bank --</option>
-                  {cashAccounts.map((ca) => (
-                    <option key={ca.id} value={ca.id}>
-                      {ca.name} ({ca.account_number || ca.type})
-                    </option>
-                  ))}
-                </select>
+              {/* Opsi Pencatatan Riwayat Saja (Non-Kas) */}
+              <div className={`p-3.5 rounded-xl border transition-all ${
+                isMultiPayHistoricalOnly
+                  ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-400/25 shadow-xs'
+                  : 'bg-slate-50 border-slate-200/80 hover:border-slate-300'
+              }`}>
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isMultiPayHistoricalOnly}
+                    onChange={(e) => setIsMultiPayHistoricalOnly(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                        <History className={`w-3.5 h-3.5 ${isMultiPayHistoricalOnly ? 'text-amber-600' : 'text-slate-500'}`} />
+                        Catat Sebagai Riwayat Saja (Non-Kas / Tanpa Mutasi Saldo)
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isMultiPayHistoricalOnly
+                          ? 'bg-amber-200 text-amber-900 border border-amber-300'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {isMultiPayHistoricalOnly ? '⚡ Mode Riwayat Saja Aktif' : 'Normal (Mutasi Kas Aktif)'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Centang opsi ini jika pembayaran telah diselesaikan di masa lalu (misal migrasi data lama) dan transaksi ini hanya untuk <strong>mencatat riwayat pelunasan tagihan calon santri</strong> tanpa memengaruhi saldo akun kas/bank dan tanpa membukukan jurnal baru.
+                    </p>
+                  </div>
+                </label>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-600 mb-1">Nominal yang Dibayarkan (Rp) *</label>
-                <input
-                  type="number"
-                  value={payForm.amount_paid}
-                  onChange={(e) => setPayForm({ ...payForm, amount_paid: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-sm text-emerald-700"
-                  required
-                />
+              {/* Baris 3: Metode Bayar & Akun Kas */}
+              <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                {isMultiPayHistoricalOnly ? (
+                  <div className="p-2.5 bg-amber-100/70 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-medium flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Mode Riwayat Saja: Pembayaran ini akan melunasi tagihan calon santri tanpa memengaruhi saldo buku kas/bank dan tanpa mutasi jurnal berjalan.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <label className="text-xs font-bold text-slate-700">Metode Pembayaran:</label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-slate-800">
+                        <input
+                          type="radio"
+                          name="ppdbMultiPayMethod"
+                          checked={multiPayMethod === 'cash'}
+                          onChange={() => {
+                            setMultiPayMethod('cash');
+                            const currentAcc = cashAccounts.find((a) => String(a.id) === String(multiPayCashAccountId));
+                            if (!currentAcc || currentAcc.account_kind !== 'cash') {
+                              const defaultCash = cashAccounts.find((a) => a.account_kind === 'cash' && a.is_active) ||
+                                                  cashAccounts.find((a) => a.account_kind === 'cash') ||
+                                                  cashAccounts.find((a) => a.name?.toLowerCase().includes('tunai') || a.name?.toLowerCase().includes('kas'));
+                              if (defaultCash) setMultiPayCashAccountId(String(defaultCash.id));
+                            }
+                          }}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Tunai (Kasir Loket)</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs text-slate-800">
+                        <input
+                          type="radio"
+                          name="ppdbMultiPayMethod"
+                          checked={multiPayMethod === 'transfer'}
+                          onChange={() => {
+                            setMultiPayMethod('transfer');
+                            const currentAcc = cashAccounts.find((a) => String(a.id) === String(multiPayCashAccountId));
+                            if (!currentAcc || currentAcc.account_kind !== 'bank') {
+                              const defaultBank = cashAccounts.find((a) => a.account_kind === 'bank' && a.is_active) ||
+                                                  cashAccounts.find((a) => a.account_kind === 'bank');
+                              if (defaultBank) setMultiPayCashAccountId(String(defaultBank.id));
+                            }
+                          }}
+                          className="text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Non-Tunai (Transfer Bank)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dropdowns jika Non-Tunai / Tunai */}
+                {!isMultiPayHistoricalOnly && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Akun Kas / Bank Tujuan <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSelect
+                        options={multiPayCashAccountOptions}
+                        value={multiPayCashAccountId}
+                        onChange={(val) => setMultiPayCashAccountId(val)}
+                        placeholder="-- Pilih Akun Kas / Bank --"
+                        searchPlaceholder="Cari nama akun kas / bank..."
+                        accentColor="emerald"
+                        allowClear={false}
+                      />
+                    </div>
+
+                    {/* Referensi Rekening Koran */}
+                    {multiPayMethod === 'transfer' && (
+                      <div className="space-y-1.5">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center justify-between">
+                          <span>Referensi Mutasi Rekening Koran</span>
+                          <span className="text-[10px] text-slate-400 font-normal">(Multi-Transaksi / Parsial OK)</span>
+                        </label>
+                        <SearchableSelect
+                          options={multiPayBankStatementsOptions}
+                          value={multiPayBankStatementId}
+                          onChange={(val) => {
+                            setMultiPayBankStatementId(val || '');
+                            if (val) {
+                              const selectedOpt = multiPayBankStatementsOptions.find((o) => String(o.value) === String(val));
+                              if (selectedOpt) {
+                                const curTotal = parseFloat(multiPayTotalAmount) || 0;
+                                const fillAmount = selectedOpt.remaining_amount !== undefined ? selectedOpt.remaining_amount : selectedOpt.amount;
+                                if (curTotal <= 0 && fillAmount > 0) {
+                                  setMultiPayTotalAmount(String(fillAmount));
+                                }
+                                if (selectedOpt.rawDate) {
+                                  setMultiPayDate(selectedOpt.rawDate);
+                                }
+                              }
+                            }
+                          }}
+                          placeholder="-- Pilih Rekening Koran Terkait --"
+                          searchPlaceholder="Ketik nominal, no. ref, atau uraian transaksi RK..."
+                          accentColor="emerald"
+                          allowClear={true}
+                          isLoading={loadingMultiPayBankStatements}
+                          emptyText="Tidak ada mutasi kredit rekening koran untuk akun bank ini"
+                        />
+                        {(() => {
+                          const selectedOpt = multiPayBankStatementsOptions.find((o) => String(o.value) === String(multiPayBankStatementId));
+                          if (!selectedOpt) return null;
+                          return (
+                            <div className="p-2.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-[10.5px] space-y-2 text-slate-700 animate-in fade-in duration-150">
+                              <div className="flex items-center justify-between font-semibold gap-2">
+                                <span className="text-emerald-900 font-bold flex items-center gap-1 min-w-0">
+                                  <span>🔗 RK Terpilih:</span>
+                                  <span className="truncate">{selectedOpt.desc}</span>
+                                </span>
+                                <span className="tnum text-emerald-800 font-bold shrink-0">
+                                  Plafon: {formatCurrency(selectedOpt.amount)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-500 text-[10px] gap-2">
+                                <span>Tgl Mutasi Bank: <b className="text-slate-800 tnum">{selectedOpt.rawDate || '-'}</b> {selectedOpt.refNo ? `• Ref: ${selectedOpt.refNo}` : ''} • Teralokasi: <b>{formatCurrency(selectedOpt.allocated_amount || 0)}</b></span>
+                                <span className="text-emerald-700 font-bold tnum shrink-0">
+                                  Sisa Plafon: {formatCurrency(selectedOpt.remaining_amount || selectedOpt.amount)}
+                                </span>
+                              </div>
+                              <StatementMatchIndicator
+                                inputAmount={multiPayTotalAmount}
+                                statement={selectedOpt}
+                                onSyncAmount={(amt) => setMultiPayTotalAmount(String(amt))}
+                                isCompact={false}
+                              />
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-600 mb-1">Metode Pembayaran</label>
-                <select
-                  value={payForm.payment_method}
-                  onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="transfer">Transfer Bank</option>
-                  <option value="cash">Tunai (Cash di Loket)</option>
-                  <option value="va">Virtual Account</option>
-                </select>
+              {/* Baris 4: Tabel Rincian Alokasi Tagihan & Diskon Kasuistik */}
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-emerald-600" />
+                      Rincian Alokasi Tagihan Calon Santri:
+                    </label>
+                    {multiPayBills.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {multiPayBillsSearch.trim()
+                          ? `${filteredMultiPayBills.length} dari ${multiPayBills.length} Tagihan`
+                          : `${multiPayBills.length} Tagihan`}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {multiPayBills.length > 0 && (
+                      <div className="relative flex-1 sm:w-64">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={multiPayBillsSearch}
+                          onChange={(e) => setMultiPayBillsSearch(e.target.value)}
+                          placeholder="Cari pos, nama, no reg, fase..."
+                          className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-700 placeholder:text-slate-400"
+                        />
+                        {multiPayBillsSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setMultiPayBillsSearch('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 cursor-pointer"
+                            title="Bersihkan pencarian"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {multiPayBills.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMultiPayAutoAllocateFifo}
+                        className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs whitespace-nowrap"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-600" />
+                        <span>⚡ Alokasikan Otomatis (FIFO)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {multiPaySelectedCandidateIds.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    Silakan pilih calon santri di atas untuk melihat daftar tagihan aktif.
+                  </div>
+                ) : multiPayBills.length === 0 ? (
+                  <div className="p-8 text-center text-emerald-700 text-xs font-semibold bg-emerald-50 rounded-xl border border-emerald-200">
+                    Calon santri ini tidak memiliki tagihan aktif.
+                  </div>
+                ) : filteredMultiPayBills.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center gap-2">
+                    <Search className="w-7 h-7 text-slate-300" />
+                    <p className="text-xs text-slate-500 font-medium">
+                      Tidak ada tagihan yang cocok dengan kata kunci <span className="font-bold text-slate-700">"{multiPayBillsSearch}"</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setMultiPayBillsSearch('')}
+                      className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-emerald-600 shadow-2xs cursor-pointer transition"
+                    >
+                      Reset Filter Pencarian
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                    <table className="w-full text-left text-xs min-w-[960px]">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                        <tr>
+                          <th className="px-3 py-2.5" style={{ minWidth: '180px' }}>Komponen Tagihan</th>
+                          <th className="px-3 py-2.5" style={{ minWidth: '160px' }}>Jalur & No. Reg</th>
+                          <th className="px-2.5 py-2.5 text-center" style={{ width: '70px' }}>Diskon</th>
+                          <th className="px-3 py-2.5 text-right" style={{ minWidth: '120px' }}>Tagihan</th>
+                          <th className="px-3 py-2.5 text-right">Sudah Bayar</th>
+                          <th className="px-3 py-2.5 text-right">Sisa Piutang</th>
+                          <th className="px-3 py-2.5 text-right" style={{ width: '200px', minWidth: '190px' }}>Bayar Sekarang (Rp)</th>
+                          <th className="px-3 py-2.5 text-right">Sisa Setelah Bayar</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredMultiPayBills.map((bill) => {
+                          const billTotal = parseFloat(bill.amount || 0);
+                          const billPaid = parseFloat(bill.paid_amount || 0);
+                          const discInfo = getMultiPayBillDiscountInfo(bill);
+                          const allocated = parseFloat(multiPayAllocations[bill.id] || 0);
+                          const remAfter = Math.max(0, discInfo.effectiveRem - allocated);
+
+                          return (
+                            <tr key={`rec-bill-row-${bill.id}`} className={`hover:bg-slate-50 transition ${discInfo.enabled ? 'bg-emerald-50/20' : ''}`}>
+                              {/* 1. Komponen Tagihan */}
+                              <td className="px-3 py-2.5 align-top">
+                                <div className="flex flex-col gap-1">
+                                  {multiPaySelectedCandidateIds.length > 1 && (
+                                    <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                      👤 {bill.registrant_name_snapshot || `Santri #${bill.candidate_id}`}
+                                    </span>
+                                  )}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <FeeTypeBadge item={bill} />
+                                    <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold ${
+                                      bill.billing_phase === 'registration_fee'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    }`}>
+                                      {bill.billing_phase === 'registration_fee' ? 'Biaya Pendaftaran' : 'Uang Pangkal / Daftar Ulang'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    Jatuh Tempo: {bill.due_date ? formatDate(bill.due_date) : '-'}
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* 2. Jalur & No. Reg */}
+                              <td className="px-3 py-2.5 align-top">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-semibold text-slate-800 text-[11px]">
+                                    {bill.registration_number_snapshot || '-'}
+                                  </span>
+                                  <span className="text-[10.5px] text-slate-500">
+                                    {bill.registrant_name_snapshot}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* 3. Diskon Checkbox */}
+                              <td className="px-2.5 py-2.5 align-top text-center">
+                                <div className="pt-2">
+                                  <label className="inline-flex flex-col items-center justify-center cursor-pointer p-1.5 rounded-xl hover:bg-emerald-100/60 transition group">
+                                    <input
+                                      type="checkbox"
+                                      checked={discInfo.enabled}
+                                      onChange={() => handleMultiPayToggleDiscount(bill.id)}
+                                      className="w-4 h-4 text-emerald-600 bg-white border-slate-300 rounded focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                    <span className={`text-[9px] font-bold mt-1 transition ${discInfo.enabled ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                      {discInfo.enabled ? 'Aktif' : 'Diskon'}
+                                    </span>
+                                  </label>
+                                </div>
+                              </td>
+
+                              {/* 4. Tagihan (Total) & Tagihan Setelah Diskon */}
+                              <td className="px-3 py-2.5 align-top text-right num-cell">
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={`font-bold ${discInfo.enabled && discInfo.discountAmount > 0 ? 'line-through text-slate-400 text-[11px]' : 'text-slate-800'}`}>
+                                    {formatCurrency(billTotal)}
+                                  </span>
+                                  {discInfo.enabled && discInfo.discountAmount > 0 && (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                        Potongan: -{formatCurrency(discInfo.discountAmount)}
+                                      </span>
+                                      <div className="text-[11px] font-black text-emerald-950 bg-emerald-50/70 px-1.5 py-0.5 rounded border border-emerald-200">
+                                        <span className="text-[9.5px] text-emerald-700 font-sans block font-semibold">Tagihan Bersih:</span>
+                                        {formatCurrency(discInfo.netBill)}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* 5. Sudah Bayar */}
+                              <td className="px-3 py-2.5 align-top text-right num-cell text-emerald-700 font-semibold">
+                                {formatCurrency(billPaid)}
+                              </td>
+
+                              {/* 6. Sisa Piutang (Setelah Diskon) */}
+                              <td className="px-3 py-2.5 align-top text-right num-cell font-bold text-rose-600">
+                                <div className="flex flex-col items-end">
+                                  <span>{formatCurrency(discInfo.effectiveRem)}</span>
+                                  {discInfo.enabled && discInfo.discountAmount > 0 && (
+                                    <span className="text-[9px] text-slate-400 font-sans font-normal">
+                                      (setelah diskon)
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* 7. Bayar Sekarang (Rp) & Tombol Penuh di Bawah Input */}
+                              <td className="px-3 py-2.5 align-top text-right" style={{ width: '200px', minWidth: '190px' }}>
+                                <div className="space-y-1.5">
+                                  <input
+                                    type="number"
+                                    value={multiPayAllocations[bill.id] || ''}
+                                    onChange={(e) => handleMultiPayAllocationChange(bill.id, e.target.value)}
+                                    placeholder="0"
+                                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-right tnum font-bold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-xs shadow-2xs"
+                                  />
+
+                                  {/* Tombol Penuh tepat di bawah isian nominal */}
+                                  <div className="flex items-center justify-between gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMultiPayPayFullRow(bill)}
+                                      className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 rounded text-[9.5px] font-bold cursor-pointer transition shadow-2xs active:scale-95 flex items-center gap-1"
+                                      title="Bayar Penuh Sisa Piutang Pos Ini (Setelah Diskon)"
+                                    >
+                                      <span>⚡ Penuh</span>
+                                    </button>
+                                    {allocated > 0 && (
+                                      <span className="text-[9.5px] font-semibold text-emerald-600">
+                                        {allocated >= discInfo.effectiveRem ? 'Lunas' : 'Sebagian'}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Input Diskon jika Checkbox Diskon aktif */}
+                                  {discInfo.enabled && (
+                                    <div className="p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl space-y-1.5 text-left text-[11px] shadow-xs animate-in fade-in slide-in-from-top-1 duration-150">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-bold text-emerald-950 text-[10px] flex items-center gap-1">
+                                          <span>🏷️ Mode:</span>
+                                        </span>
+                                        <div className="inline-flex rounded-lg bg-emerald-100/80 p-0.5 text-[9.5px] font-bold">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleMultiPayDiscountTypeChange(bill.id, 'percent')}
+                                            className={`px-1.5 py-0.5 rounded-md transition cursor-pointer ${
+                                              discInfo.type === 'percent'
+                                                ? 'bg-emerald-700 text-white shadow-2xs'
+                                                : 'text-emerald-800 hover:bg-emerald-200'
+                                            }`}
+                                          >
+                                            % Persen
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleMultiPayDiscountTypeChange(bill.id, 'nominal')}
+                                            className={`px-1.5 py-0.5 rounded-md transition cursor-pointer ${
+                                              discInfo.type === 'nominal'
+                                                ? 'bg-emerald-700 text-white shadow-2xs'
+                                                : 'text-emerald-800 hover:bg-emerald-200'
+                                            }`}
+                                          >
+                                            Rp Nominal
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {/* Input Nilai Diskon */}
+                                      <div>
+                                        {discInfo.type === 'percent' ? (
+                                          <div className="relative">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="100"
+                                              step="any"
+                                              value={discInfo.percent}
+                                              onChange={(e) => handleMultiPayDiscountValueChange(bill.id, e.target.value)}
+                                              placeholder="0"
+                                              className="w-full pl-2 pr-6 py-1 bg-white border border-emerald-300 rounded-lg text-right tnum font-bold text-emerald-900 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none shadow-2xs"
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700 pointer-events-none">%</span>
+                                          </div>
+                                        ) : (
+                                          <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 pointer-events-none">Rp</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max={billTotal}
+                                              value={discInfo.amount}
+                                              onChange={(e) => handleMultiPayDiscountValueChange(bill.id, e.target.value)}
+                                              placeholder="0"
+                                              className="w-full pl-7 pr-2 py-1 bg-white border border-emerald-300 rounded-lg text-right tnum font-bold text-emerald-900 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:outline-none shadow-2xs"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Alasan Diskon */}
+                                      <input
+                                        type="text"
+                                        value={discInfo.reason}
+                                        onChange={(e) => handleMultiPayDiscountReasonChange(bill.id, e.target.value)}
+                                        placeholder="Alasan diskon kasuistik..."
+                                        className="w-full px-2 py-0.5 bg-white border border-emerald-200 rounded-lg text-[10px] text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* 8. Sisa Setelah Bayar */}
+                              <td className="px-3 py-2.5 align-top text-right num-cell font-bold text-slate-800">
+                                {formatCurrency(remAfter)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
+              {/* Baris 5: Live Allocation Indicator */}
+              <div className="p-3.5 bg-slate-100/80 rounded-xl border border-slate-200 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Total Diterima:</span>
+                    <div className="tnum font-black text-slate-800 text-sm">
+                      {formatCurrency(multiPayTotalAmount || 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Teralokasi:</span>
+                    <div className="tnum font-black text-emerald-700 text-sm">
+                      {formatCurrency(multiPayTotalAllocated)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Sisa Belum Teralokasi:</span>
+                  <div className={`tnum font-black text-sm ${Math.abs(multiPayUnallocated) < 0.01 ? 'text-emerald-700' : multiPayUnallocated > 0 ? 'text-amber-700' : 'text-rose-700'}`}>
+                    {formatCurrency(multiPayUnallocated)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Baris 6: Keterangan / Catatan */}
               <div>
-                <label className="block font-semibold text-slate-600 mb-1">Catatan Transaksi:</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Keterangan Transaksi</label>
                 <input
                   type="text"
-                  value={payForm.notes}
-                  onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
-                  placeholder="Contoh: Cicilan Termin 1 Uang Pangkal"
+                  placeholder="Contoh: Pembayaran Uang Pangkal dan Formulir PPDB..."
+                  value={multiPayNotes}
+                  onChange={(e) => setMultiPayNotes(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            {/* Modal Actions Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0 gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setPayModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold text-xs cursor-pointer transition"
+              >
+                Batal
+              </button>
+
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setPayModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl"
+                  disabled={submittingMultiPay}
+                  onClick={() => handleExecuteMultiPay(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition flex items-center gap-1.5"
                 >
-                  Batal
+                  {submittingMultiPay && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{submittingMultiPay ? 'Menyimpan...' : 'Simpan Pembayaran Saja'}</span>
                 </button>
+
                 <button
-                  type="submit"
-                  disabled={submittingPay}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-2xs"
+                  type="button"
+                  disabled={submittingMultiPay}
+                  onClick={() => handleExecuteMultiPay(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-md shadow-emerald-600/20 cursor-pointer transition flex items-center gap-1.5"
                 >
-                  {submittingPay && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Simpan Pembayaran & Kuitansi</span>
+                  {submittingMultiPay ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                  <span>{submittingMultiPay ? 'Memproses...' : 'Simpan & Cetak Kwitansi'}</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -5764,6 +8415,237 @@ export default function RegistrationBilling() {
                   <span>Kirim Broadcast Sekarang</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL KWITANSI RESMI PPDB */}
+      {/* ============================================================ */}
+      {receiptModalOpen && receiptData && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">Kwitansi Resmi Penerimaan Kas PPDB</h3>
+                  <p className="text-[11px] font-mono text-indigo-600 font-bold">
+                    {receiptData.payment?.receipt_number || receiptData.bill?.receipt_number || 'KWT-PPDB-OFFICIAL'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {Boolean(receiptData.payment?.is_void || receiptData.payment?.status === 'voided') && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-rose-700">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  <span>PERHATIAN: KWITANSI TELAH DIBATALKAN (VOID)</span>
+                </div>
+                <p className="text-[11px] text-rose-600">
+                  Pembayaran ini telah dibatalkan pada <strong>{receiptData.payment?.voided_at || '-'}</strong>.<br />
+                  {receiptData.payment?.void_reason && (
+                    <span>Alasan: <em>"{receiptData.payment.void_reason}"</em></span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2.5 text-xs bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="flex justify-between text-slate-600">
+                <span className="font-medium">Satuan Pendidikan:</span>
+                <span className="font-bold text-slate-800 text-right">{receiptData.school_unit?.name || activeSchoolUnit?.name || 'Satuan Pendidikan Aldepos'}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span className="font-medium">Calon Santri:</span>
+                <span className="font-bold text-slate-800 text-right">{receiptData.bill?.registrant_name_snapshot || '-'}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span className="font-medium">Nomor Registrasi:</span>
+                <span className="font-mono font-bold text-slate-700">{receiptData.bill?.registration_number_snapshot || '-'}</span>
+              </div>
+              {receiptData.payment?.items && receiptData.payment.items.length > 1 ? (
+                <div className="border border-slate-200 rounded-lg overflow-hidden my-2">
+                  <div className="bg-slate-100 px-3 py-1.5 font-bold text-[11px] text-slate-700">Rincian Pos Pembayaran Gabungan</div>
+                  <table className="w-full text-left text-[11px]">
+                    <tbody className="divide-y divide-slate-100">
+                      {receiptData.payment.items.map((it, idx) => (
+                        <tr key={idx} className="bg-white">
+                          <td className="px-3 py-1.5 font-semibold text-slate-800">{it.fee_type_name}</td>
+                          <td className="px-3 py-1.5 text-right font-mono text-emerald-700 font-bold">{formatCurrency(it.amount_paid)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-medium">Komponen Biaya:</span>
+                  <span className="font-semibold text-slate-800">{receiptData.bill?.fee_type_name || 'Uang Pangkal PPDB'}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-slate-600">
+                <span className="font-medium">Tanggal Setor:</span>
+                <span className="font-mono">{receiptData.payment?.payment_date ? String(receiptData.payment.payment_date).slice(0, 10) : new Date().toISOString().slice(0, 10)}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span className="font-medium">Metode / Akun Kas:</span>
+                <span className="font-semibold text-slate-800">
+                  {receiptData.payment?.payment_method === 'cash' ? 'Tunai Loket' : 'Transfer'} ({receiptData.payment?.cash_account_name || 'Kasir PPDB'})
+                </span>
+              </div>
+              {receiptData.payment?.notes && (
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-medium">Catatan Transaksi:</span>
+                  <span className="italic text-slate-700">{receiptData.payment.notes}</span>
+                </div>
+              )}
+              <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900 text-sm">
+                <span>Nominal Diterima:</span>
+                <span className="text-emerald-700 font-mono">
+                  {formatCurrency(receiptData.payment?.total_amount || receiptData.payment?.amount_paid || receiptData.bill?.paid_amount || 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Terbilang */}
+            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl text-xs font-semibold italic border border-emerald-200">
+              Terbilang: # {terbilang(receiptData.payment?.total_amount || receiptData.payment?.amount_paid || receiptData.bill?.paid_amount || 0)} Rupiah #
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => openPpdbReceiptInNewTab(receiptData, receiptData.school_unit?.name || activeSchoolUnit?.name)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Buka & Cetak Kwitansi Resmi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL KONFIRMASI VOID / BATALKAN PEMBAYARAN KASIR PPDB */}
+      {/* ============================================================ */}
+      {voidModalOpen && selectedPaymentForVoid && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-rose-50 text-rose-700 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">Batalkan Pembayaran (Void) Kasir PPDB</h3>
+                  <p className="text-[11px] font-mono text-rose-600 font-bold">
+                    Kwitansi: {selectedPaymentForVoid.receipt_number || `KW-PPDB-${selectedPaymentForVoid.id}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoidModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Peringatan Kepatuhan Finansial Core Aldepos */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-bold">Konsekuensi Pembatalan Transaksi:</div>
+                <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-0.5">
+                  <li>Sisa piutang tagihan calon santri akan otomatis <strong>dipulihkan</strong>.</li>
+                  <li>Kwitansi resmi ini akan ditandai sebagai <strong>VOID / TIDAK BERLAKU</strong>.</li>
+                  <li>Alasan pembatalan dan identitas kasir dicatat permanen di <strong>Audit Log Keuangan</strong>.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Rincian Transaksi */}
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>Calon Santri:</span>
+                <span className="font-bold text-slate-800">{selectedPaymentForVoid.registrant_name_snapshot}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Komponen Biaya:</span>
+                <span className="font-semibold text-slate-800">{selectedPaymentForVoid.fee_type_name || 'Uang Pangkal PPDB'}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Tanggal Pembayaran:</span>
+                <span className="font-mono">{selectedPaymentForVoid.payment_date ? String(selectedPaymentForVoid.payment_date).slice(0, 10) : '-'}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Metode / Kas:</span>
+                <span className="font-semibold text-slate-800">
+                  {selectedPaymentForVoid.payment_method === 'cash' ? 'Tunai' : 'Transfer'} ({selectedPaymentForVoid.cash_account_name || 'Kasir PPDB'})
+                </span>
+              </div>
+              <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900 text-sm">
+                <span>Nominal Dibatalkan:</span>
+                <span className="text-rose-600 font-mono">{formatCurrency(selectedPaymentForVoid.amount_paid)}</span>
+              </div>
+            </div>
+
+            {/* Form Input Alasan Pembatalan (Wajib Diisi) */}
+            <div className="space-y-1.5 text-xs">
+              <label className="block font-bold text-slate-700">
+                Alasan Pembatalan Transaksi (Wajib Diisi) <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="Contoh: Salah input akun transfer kasir, salah nominal, atau wali santri membatalkan pendaftaran..."
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition"
+              />
+              <p className="text-[10.5px] text-slate-400 italic">
+                * Minimal 5 karakter. Wajib menjelaskan dasar pembatalan transaksi secara akurat untuk keperluan audit internal yayasan.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setVoidModalOpen(false)}
+                disabled={submittingVoid}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteVoid}
+                disabled={submittingVoid || !voidReason || voidReason.trim().length < 5}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/20 transition cursor-pointer disabled:opacity-50"
+              >
+                {submittingVoid ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                <span>{submittingVoid ? 'Memproses Void...' : 'Konfirmasi Batalkan (Void)'}</span>
+              </button>
             </div>
           </div>
         </div>

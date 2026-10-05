@@ -6,7 +6,11 @@ const db = require('../../../config/db/kantin');
 
 class DailySpendingLimitsService {
   async listLimits(schoolUnitId, query = {}) {
-    let q = db('daily_spending_limits').where('school_unit_id', schoolUnitId);
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('daily_spending_limits');
+    if (!isAll) {
+      q = q.where('school_unit_id', schoolUnitId);
+    }
 
     if (query.status) {
       q = q.where('status', query.status);
@@ -19,25 +23,36 @@ class DailySpendingLimitsService {
   }
 
   async getLimitById(schoolUnitId, id) {
-    return db('daily_spending_limits').where({ id, school_unit_id: schoolUnitId }).first();
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('daily_spending_limits').where({ id });
+    if (!isAll) {
+      q = q.where({ school_unit_id: schoolUnitId });
+    }
+    return q.first();
   }
 
   async getActiveLimit(schoolUnitId) {
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
     const today = new Date().toISOString().slice(0, 10);
-    return db('daily_spending_limits')
-      .where({ school_unit_id: schoolUnitId, status: 'active' })
+    let q = db('daily_spending_limits')
+      .where({ status: 'active' })
       .where('valid_from', '<=', today)
       .where(function() {
         this.whereNull('valid_until').orWhere('valid_until', '>=', today);
       })
-      .orderBy('id', 'desc')
-      .first();
+      .orderBy('id', 'desc');
+
+    if (!isAll) {
+      q = q.where({ school_unit_id: schoolUnitId });
+    }
+    return q.first();
   }
 
   async createLimit(schoolUnitId, payload) {
+    const effectiveUnitId = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? schoolUnitId : 1;
     const { limit_name, limit_amount, valid_from, valid_until = null, note = null } = payload;
     const [id] = await db('daily_spending_limits').insert({
-      school_unit_id: schoolUnitId,
+      school_unit_id: effectiveUnitId,
       limit_name,
       limit_amount: parseFloat(limit_amount),
       valid_from: valid_from || new Date().toISOString().slice(0, 10),
@@ -45,7 +60,7 @@ class DailySpendingLimitsService {
       note,
       status: 'active'
     });
-    return this.getLimitById(schoolUnitId, id);
+    return this.getLimitById(effectiveUnitId, id);
   }
 
   async updateLimit(schoolUnitId, id, payload) {
@@ -54,7 +69,7 @@ class DailySpendingLimitsService {
 
     const { limit_name, limit_amount, valid_from, valid_until, note } = payload;
     await db('daily_spending_limits')
-      .where({ id, school_unit_id: schoolUnitId })
+      .where({ id: limit.id, school_unit_id: limit.school_unit_id })
       .update({
         limit_name: limit_name !== undefined ? limit_name : limit.limit_name,
         limit_amount: limit_amount !== undefined ? parseFloat(limit_amount) : limit.limit_amount,
@@ -73,7 +88,7 @@ class DailySpendingLimitsService {
 
     const { status, status_note = null } = payload;
     await db('daily_spending_limits')
-      .where({ id, school_unit_id: schoolUnitId })
+      .where({ id: limit.id, school_unit_id: limit.school_unit_id })
       .update({
         status,
         status_note,

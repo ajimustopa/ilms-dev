@@ -1,9 +1,10 @@
 const vendorsService = require('./service');
+const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class VendorsController {
   async listVendors(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await vendorsService.listVendors(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -13,7 +14,7 @@ class VendorsController {
 
   async getVendorById(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await vendorsService.getVendorById(schoolUnitId, req.params.id);
       if (!data) {
         return res.status(404).json({ success: false, data: null, message: 'Vendor tidak ditemukan', errors: null });
@@ -26,7 +27,7 @@ class VendorsController {
 
   async createVendor(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const { vendor_name } = req.body;
       if (!vendor_name) {
         return res.status(422).json({ success: false, data: null, message: 'vendor_name wajib diisi', errors: null });
@@ -40,7 +41,7 @@ class VendorsController {
 
   async updateVendor(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await vendorsService.updateVendor(schoolUnitId, req.params.id, req.body);
       if (!data) {
         return res.status(404).json({ success: false, data: null, message: 'Vendor tidak ditemukan', errors: null });
@@ -53,16 +54,29 @@ class VendorsController {
 
   async updateStatus(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
-      const { status } = req.body;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const { status, reason, status_note } = req.body;
       if (!status || !['active', 'inactive'].includes(status)) {
         return res.status(422).json({ success: false, data: null, message: 'status harus active atau inactive', errors: null });
       }
-      const data = await vendorsService.updateStatus(schoolUnitId, req.params.id, req.body);
+      const data = await vendorsService.updateStatus(schoolUnitId, req.params.id, {
+        status,
+        status_note: status_note || reason || null
+      }, req.user || {});
       if (!data) {
         return res.status(404).json({ success: false, data: null, message: 'Vendor tidak ditemukan', errors: null });
       }
-      res.json({ success: true, data, message: 'Status vendor berhasil diperbarui', errors: null });
+      res.json({ success: true, data, message: `Status vendor berhasil diubah menjadi ${status === 'active' ? 'Aktif' : 'Non-Aktif'}`, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listStatusHistories(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await vendorsService.listStatusHistories(schoolUnitId, req.params.id);
+      res.json({ success: true, data, message: 'Riwayat status vendor berhasil diambil', errors: null });
     } catch (err) {
       next(err);
     }

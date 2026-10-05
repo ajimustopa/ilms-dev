@@ -65,6 +65,7 @@ exports.seed = async function(knex) {
     vendor_name: 'Vendor Snack Sehat Barokah',
     contact: '0812-0000-0001',
     address: 'Jl. Raya Bogor KM 30 No. 12',
+    canteen_share_pct: 15.00,
     status: 'active'
   });
 
@@ -85,6 +86,8 @@ exports.seed = async function(knex) {
       product_category_id: 1,
       vendor_id: 1,
       unit: 'botol',
+      cost_price: 2500.00,
+      sale_price: 3500.00,
       min_stock: 10,
       current_stock: 50,
       status: 'active'
@@ -97,6 +100,8 @@ exports.seed = async function(knex) {
       product_category_id: 2,
       vendor_id: 1,
       unit: 'bungkus',
+      cost_price: 4000.00,
+      sale_price: 5000.00,
       min_stock: 5,
       current_stock: 30,
       status: 'active'

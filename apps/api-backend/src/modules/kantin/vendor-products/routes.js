@@ -5,6 +5,7 @@ const verifyJwt = require('../../../middlewares/verifyJwt');
 const requireRole = require('../middlewares/requireRole');
 
 router.get('/vendor-products', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.listProducts);
+router.get('/vendor-products/:id/history', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.getProductHistory);
 router.get('/vendor-products/:id', verifyJwt, requireRole('admin', 'kepala_kantin', 'kasir'), controller.getProductById);
 router.post('/vendor-products', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.createProduct);
 router.put('/vendor-products/:id', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.updateProduct);

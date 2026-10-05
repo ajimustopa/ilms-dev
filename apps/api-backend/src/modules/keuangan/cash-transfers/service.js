@@ -51,16 +51,20 @@ class CashTransfersService {
     let builder = db('cash_transfers')
       .leftJoin('cash_accounts as from_acc', 'cash_transfers.from_cash_account_id', 'from_acc.id')
       .leftJoin('cash_accounts as to_acc', 'cash_transfers.to_cash_account_id', 'to_acc.id')
+      .leftJoin('bank_statements as from_bs', 'cash_transfers.from_bank_statement_id', 'from_bs.id')
+      .leftJoin('bank_statements as to_bs', 'cash_transfers.to_bank_statement_id', 'to_bs.id')
       .select(
         'cash_transfers.*',
         'from_acc.name as from_cash_account_name',
         'from_acc.account_kind as from_account_kind',
         'from_acc.bank_name as from_bank_name',
         'from_acc.bank_account_number as from_bank_account_number',
+        'from_bs.description as from_bank_statement_desc',
         'to_acc.name as to_cash_account_name',
         'to_acc.account_kind as to_account_kind',
         'to_acc.bank_name as to_bank_name',
-        'to_acc.bank_account_number as to_bank_account_number'
+        'to_acc.bank_account_number as to_bank_account_number',
+        'to_bs.description as to_bank_statement_desc'
       );
 
     if (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation') {
@@ -125,11 +129,15 @@ class CashTransfersService {
         from_account_kind: t.from_account_kind,
         from_bank_name: t.from_bank_name,
         from_bank_account_number: t.from_bank_account_number,
+        from_bank_statement_id: t.from_bank_statement_id,
+        from_bank_statement_desc: t.from_bank_statement_desc,
         to_cash_account_id: t.to_cash_account_id,
         to_cash_account_name: t.to_cash_account_name,
         to_account_kind: t.to_account_kind,
         to_bank_name: t.to_bank_name,
         to_bank_account_number: t.to_bank_account_number,
+        to_bank_statement_id: t.to_bank_statement_id,
+        to_bank_statement_desc: t.to_bank_statement_desc,
         reference_number: t.reference_number,
         reason: t.reason,
         journal_id: j?.id || null,
@@ -155,7 +163,9 @@ class CashTransfersService {
   async createTransfer(schoolUnitId, data, userId = null) {
     const {
       from_cash_account_id,
+      from_bank_statement_id = null,
       to_cash_account_id,
+      to_bank_statement_id = null,
       amount,
       transfer_date = new Date(),
       reference_number = null,
@@ -208,15 +218,48 @@ class CashTransfersService {
         transfer_number: transferNumber,
         transfer_date: typeof transfer_date === 'string' ? transfer_date.slice(0, 10) : transfer_date.toISOString().slice(0, 10),
         from_cash_account_id,
+        from_bank_statement_id: from_bank_statement_id ? parseInt(from_bank_statement_id, 10) : null,
         to_cash_account_id,
+        to_bank_statement_id: to_bank_statement_id ? parseInt(to_bank_statement_id, 10) : null,
         amount: numericAmount,
         reference_number: reference_number || null,
         reason: transferReason,
         created_by: userId || null
       });
 
+      // Update rekonsiliasi mutasi rekening koran kas asal jika ada
+      if (from_bank_statement_id) {
+        await trx('bank_statements')
+          .where({ id: from_bank_statement_id })
+          .update({
+            is_reconciled: 1,
+            reconciled_reference_type: 'cash_transfer',
+            reconciled_reference_id: transferId,
+            reconciled_at: new Date(),
+            reconciled_by: userId || null,
+            reconciliation_notes: `Pemindahan Kas Keluar ke ${toAccount.name} (${transferNumber})`
+          });
+      }
+
+      // Update rekonsiliasi mutasi rekening koran kas tujuan jika ada
+      if (to_bank_statement_id) {
+        await trx('bank_statements')
+          .where({ id: to_bank_statement_id })
+          .update({
+            is_reconciled: 1,
+            reconciled_reference_type: 'cash_transfer',
+            reconciled_reference_id: transferId,
+            reconciled_at: new Date(),
+            reconciled_by: userId || null,
+            reconciliation_notes: `Pemindahan Kas Masuk dari ${fromAccount.name} (${transferNumber})`
+          });
+      }
+
       // Catat Auto Jurnal: Debit Kas Tujuan, Kredit Kas Asal
       // Note: sourceType = 'internal_cash_transfer', sourceId = transferId
+      const debitAccountId = toAccount.account_id || null;
+      const creditAccountId = fromAccount.account_id || null;
+
       const journalResult = await recordJournal({
         schoolUnitId: effectiveUnitId,
         transactionCode: 'internal_cash_transfer',
@@ -224,8 +267,8 @@ class CashTransfersService {
         sourceType: 'internal_cash_transfer',
         sourceId: transferId,
         journalDate: transfer_date,
-        overrideDebitAccountId: null,
-        overrideCreditAccountId: null,
+        overrideDebitAccountId: debitAccountId,
+        overrideCreditAccountId: creditAccountId,
         overrideCashAccountId: from_cash_account_id,
         description: `Transfer Kas: ${fromAccount.name} -> ${toAccount.name} (${transferReason}) [${transferNumber}]`,
         userId,
@@ -242,8 +285,10 @@ class CashTransfersService {
           transfer_number: transferNumber,
           from_cash_account_id,
           from_cash_account_name: fromAccount.name,
+          from_bank_statement_id: from_bank_statement_id || null,
           to_cash_account_id,
           to_cash_account_name: toAccount.name,
+          to_bank_statement_id: to_bank_statement_id || null,
           amount: numericAmount,
           reason: transferReason,
           reference_number: reference_number || null,

@@ -32,6 +32,19 @@ function formatTimeOnly(d) {
   return `${hh}:${mm}:${ss}`;
 }
 
+function formatDateTime(d) {
+  if (!d) return '-';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dt.getTime())) return String(d);
+  const day = String(dt.getDate()).padStart(2, '0');
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const y = dt.getFullYear();
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mm = String(dt.getMinutes()).padStart(2, '0');
+  const ss = String(dt.getSeconds()).padStart(2, '0');
+  return `${day}/${m}/${y} ${hh}:${mm}:${ss}`;
+}
+
 function parseMoney(val) {
   if (val === null || val === undefined || val === '') return 0;
   if (typeof val === 'number') return Math.abs(val);
@@ -777,12 +790,16 @@ class BankStatementsService {
       throw err;
     }
 
-    const numAmount = Math.abs(parseFloat(amount));
+    const numAmount = typeof amount === 'number' ? Math.abs(amount) : parseMoney(amount);
     if (numAmount <= 0) {
       const err = new Error('Nominal mutasi harus lebih besar dari 0');
       err.statusCode = 422;
       throw err;
     }
+
+    const numRunningBalance = running_balance !== undefined && running_balance !== '' && running_balance !== null
+      ? (typeof running_balance === 'number' ? running_balance : parseMoney(running_balance))
+      : null;
 
     // Verify cash_account belongs to unit/foundation and is of type 'bank'
     let accQuery = db('cash_accounts').where('id', cash_account_id);
@@ -814,7 +831,7 @@ class BankStatementsService {
       description: String(description).trim(),
       amount: numAmount,
       dc_type,
-      running_balance: running_balance !== undefined && running_balance !== '' ? parseFloat(running_balance) : null,
+      running_balance: numRunningBalance,
       is_reconciled: false
     });
 
@@ -881,9 +898,21 @@ class BankStatementsService {
     if (data.transaction_date) updates.transaction_date = new Date(data.transaction_date);
     if (data.journal_number !== undefined) updates.journal_number = data.journal_number || null;
     if (data.description !== undefined) updates.description = String(data.description).trim();
-    if (data.amount !== undefined) updates.amount = Math.abs(parseFloat(data.amount));
+    if (data.amount !== undefined) {
+      const parsedAmt = typeof data.amount === 'number' ? Math.abs(data.amount) : parseMoney(data.amount);
+      if (parsedAmt <= 0) {
+        const err = new Error('Nominal mutasi harus lebih besar dari 0');
+        err.statusCode = 422;
+        throw err;
+      }
+      updates.amount = parsedAmt;
+    }
     if (data.dc_type && ['debit', 'credit'].includes(data.dc_type)) updates.dc_type = data.dc_type;
-    if (data.running_balance !== undefined) updates.running_balance = (data.running_balance !== '' && data.running_balance !== null) ? parseFloat(data.running_balance) : null;
+    if (data.running_balance !== undefined) {
+      updates.running_balance = (data.running_balance !== '' && data.running_balance !== null)
+        ? (typeof data.running_balance === 'number' ? data.running_balance : parseMoney(data.running_balance))
+        : null;
+    }
     updates.updated_at = db.fn.now();
 
     await db('bank_statements')
@@ -904,7 +933,7 @@ class BankStatementsService {
   }
 
   /**
-   * 5. Delete Bank Statement Row
+   * 5. Delete Single Bank Statement
    */
   async deleteBankStatement(schoolUnitId, id, userId = null) {
     const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
@@ -920,16 +949,11 @@ class BankStatementsService {
       throw err;
     }
 
-    const refCount = await db('bank_statement_references').where({ bank_statement_id: id }).count('id as cnt').first();
-    if (existing.is_reconciled || (refCount?.cnt && refCount.cnt > 0)) {
-      const err = new Error('Baris rekening koran yang telah memiliki rujukan transaksi tidak dapat dihapus langsung. Silakan lepas rujukan terlebih dahulu.');
-      err.statusCode = 422;
-      throw err;
-    }
+    // Delete associated references
+    await db('bank_statement_references').where({ bank_statement_id: id }).delete();
 
-    await db('bank_statements')
-      .where({ id })
-      .delete();
+    // Delete statement
+    await db('bank_statements').where({ id }).delete();
 
     await logFinanceAudit({
       schoolUnitId: existing.school_unit_id,
@@ -946,27 +970,19 @@ class BankStatementsService {
   /**
    * 5b. Bulk Delete Bank Statements
    */
-  async bulkDeleteBankStatements(schoolUnitId, ids = [], userId = null) {
+  async bulkDeleteBankStatements(schoolUnitId, ids, userId = null) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      const err = new Error('Daftar ID mutasi rekening koran yang akan dihapus tidak boleh kosong');
-      err.statusCode = 422;
-      throw err;
-    }
-
-    const numIds = ids.map(id => Number(id)).filter(id => !isNaN(id) && id > 0);
-    if (numIds.length === 0) {
-      const err = new Error('Tidak ada ID valid yang dipilih');
+      const err = new Error('Pilih setidaknya 1 baris rekening koran untuk dihapus');
       err.statusCode = 422;
       throw err;
     }
 
     const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
-    let query = db('bank_statements').whereIn('id', numIds);
+    let query = db('bank_statements').whereIn('id', ids);
     if (targetUnit) {
       query = query.where('school_unit_id', targetUnit);
     }
-
-    const existingRows = await query.select('id', 'is_reconciled', 'amount', 'dc_type', 'description', 'school_unit_id');
+    const existingRows = await query.select('id', 'is_reconciled');
 
     if (existingRows.length === 0) {
       return { deleted_count: 0, reconciled_count: 0, unreconciled_count: 0 };
@@ -975,6 +991,9 @@ class BankStatementsService {
     const reconciledCount = existingRows.filter(r => r.is_reconciled).length;
     const unreconciledCount = existingRows.length - reconciledCount;
     const idsToDelete = existingRows.map(r => r.id);
+
+    // Delete references first
+    await db('bank_statement_references').whereIn('bank_statement_id', idsToDelete).delete();
 
     await db('bank_statements')
       .whereIn('id', idsToDelete)
@@ -1048,9 +1067,10 @@ class BankStatementsService {
       throw err;
     }
 
-    const allocAmount = amount !== undefined && amount !== null && amount !== ''
-      ? Math.min(Math.abs(parseFloat(amount)), remainingPlafon)
+    const parsedAllocInput = amount !== undefined && amount !== null && amount !== ''
+      ? (typeof amount === 'number' ? Math.abs(amount) : parseMoney(amount))
       : remainingPlafon;
+    const allocAmount = Math.min(parsedAllocInput, remainingPlafon);
 
     if (allocAmount <= 0) {
       const err = new Error('Nominal alokasi rujukan harus lebih besar dari 0');
@@ -1565,7 +1585,7 @@ class BankStatementsService {
 
     const headers = [
       'No',
-      'Tanggal Transaksi',
+      'Tanggal & Waktu',
       'No. Referensi / Mutasi',
       'Uraian Mutasi Bank',
       'Tipe (D/C)',
@@ -1589,7 +1609,7 @@ class BankStatementsService {
     statements.forEach((s, idx) => {
       rows.push([
         idx + 1,
-        s.transaction_date_formatted,
+        formatDateTime(s.transaction_date),
         s.journal_number || '-',
         s.description,
         s.dc_type === 'credit' ? 'CR (Masuk)' : 'DB (Keluar)',
@@ -1606,7 +1626,7 @@ class BankStatementsService {
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [
       { wch: 5 },  // No
-      { wch: 18 }, // Tanggal
+      { wch: 22 }, // Tanggal & Waktu
       { wch: 20 }, // No Ref
       { wch: 35 }, // Uraian
       { wch: 12 }, // D/C

@@ -26,7 +26,7 @@ module.exports = {
       password: config.password,
       database: config.database,
       charset: 'utf8mb4',
-      ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
+      ssl: (Number(config.port) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {
       directory: config.migrationsDir,
@@ -51,7 +51,7 @@ module.exports = {
       password: config.password,
       database: config.database,
       charset: 'utf8mb4',
-      ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
+      ssl: (Number(config.port) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
     },
     migrations: {
       directory: config.migrationsDir,

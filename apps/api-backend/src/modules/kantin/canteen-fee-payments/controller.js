@@ -1,10 +1,51 @@
 const canteenFeePaymentsService = require('./service');
+const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class CanteenFeePaymentsController {
   async listPayments(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await canteenFeePaymentsService.listPayments(schoolUnitId, req.query);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCashAccounts(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.getCashAccounts(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCoaAccounts(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.getCoaAccounts(schoolUnitId);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBankStatements(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.getBankStatements(schoolUnitId, req.query);
+      res.json({ success: true, data, message: null, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getUndisbursedSales(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenFeePaymentsService.getUndisbursedSales(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
       next(err);
@@ -13,18 +54,18 @@ class CanteenFeePaymentsController {
 
   async createPayment(req, res, next) {
     try {
-      const schoolUnitId = req.body.school_unit_id || req.user?.school_units?.[0]?.id || 1;
-      const { period_start, period_end, amount } = req.body;
-      if (!period_start || !period_end || amount === undefined) {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const { amount } = req.body;
+      if (amount === undefined || amount === null || parseFloat(amount) <= 0) {
         return res.status(422).json({
           success: false,
           data: null,
-          message: 'period_start, period_end, dan amount wajib diisi',
+          message: 'Nominal penyetoran (amount) wajib diisi dan lebih dari 0',
           errors: null
         });
       }
-      const data = await canteenFeePaymentsService.createPayment(schoolUnitId, req.body, req.user?.id || 1);
-      res.status(201).json({ success: true, data, message: 'Pembayaran hak kantin berhasil dicatat', errors: null });
+      const data = await canteenFeePaymentsService.createPayment(schoolUnitId, req.body, req.user?.id || null);
+      res.status(201).json({ success: true, data, message: 'Penyetoran hak kantin ke kas keuangan berhasil dicatat', errors: null });
     } catch (err) {
       next(err);
     }

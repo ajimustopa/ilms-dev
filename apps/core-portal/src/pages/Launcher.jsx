@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../shared/store/AuthContext';
+import { isCashierOnlyUser } from '../shared/utils/authHelper';
 import {
   ShieldCheck,
   Globe,
@@ -98,12 +99,18 @@ export default function Launcher() {
     return () => clearInterval(timer);
   }, []);
 
-  // Redirect if not logged in
+  // Redirect if not logged in or if user is cashier only
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { replace: true });
+    } else if (isCashierOnlyUser(user)) {
+      navigate('/kantin/pos', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
+
+  if (isAuthenticated && isCashierOnlyUser(user)) {
+    return <Navigate to="/kantin/pos" replace />;
+  }
 
   // Master Ecosystem Apps Definition
   const allApps = useMemo(

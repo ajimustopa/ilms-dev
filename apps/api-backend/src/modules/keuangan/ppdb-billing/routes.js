@@ -106,9 +106,16 @@ router.patch(
 
 // 1.6 Pembayaran Kasir & Pembatalan
 router.post(
+  '/ppdb-billing/payments/record',
+  verifyJwt,
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
+  controller.recordPpdbMultiPayment
+);
+
+router.post(
   '/ppdb-billing/registration-bills/:id/pay',
   verifyJwt,
-  requirePermission('keuangan.ppdb_billing.manage'),
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
   controller.recordRegistrationPayment
 );
 
@@ -120,10 +127,31 @@ router.post(
 );
 
 router.get(
+  '/ppdb-billing/payments',
+  verifyJwt,
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
+  controller.listRegistrationPayments
+);
+
+router.post(
+  '/ppdb-billing/payments/:payment_id/void',
+  verifyJwt,
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
+  controller.voidRegistrationPayment
+);
+
+router.get(
   '/ppdb-billing/payments/:payment_id/receipt',
   verifyJwt,
-  requirePermission('keuangan.ppdb_billing.manage'),
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
   controller.getReceiptPdf
+);
+
+router.get(
+  '/ppdb-billing/receipts/:receipt_number',
+  verifyJwt,
+  requirePermission('keuangan.ppdb_billing.manage', 'keuangan.payments.record'),
+  controller.getReceiptByNumber
 );
 
 // 2. Master Data Kebijakan Refund PPDB (ppdb_refund_policy_rules)

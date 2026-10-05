@@ -130,6 +130,12 @@ class FundBalanceEngine {
     const normalizedRefId = fundType === 'opening_pool' ? 0 : Number(fundRefId || 0);
     const dbClient = trx || db;
 
+    if (fundType === 'opening_pool') {
+      const listData = await this.listFundBalances(schoolUnitId, academicYearId);
+      const opFund = listData.funds?.find(f => f.fund_type === 'opening_pool');
+      return parseFloat(opFund?.balance || 0);
+    }
+
     if (!academicYearId) {
       // If no AY specified, return total lifetime balance
       const row = await dbClient('fund_balances')
@@ -232,6 +238,19 @@ class FundBalanceEngine {
       : [];
     const priorAyIds = priorAys.map(a => a.id);
 
+    // Helper resolusi Tahun Ajaran dari tanggal saldo awal
+    const resolveOpeningAyId = (dateStr, fallbackAyId) => {
+      if (!dateStr || !Array.isArray(ays) || ays.length === 0) return fallbackAyId || 1;
+      const dt = new Date(dateStr);
+      if (isNaN(dt.getTime())) return fallbackAyId || 1;
+      for (const ay of ays) {
+        const s = new Date(ay.start_date);
+        const e = new Date(ay.end_date || '2099-12-31 23:59:59');
+        if (dt >= s && dt <= e) return ay.id;
+      }
+      return fallbackAyId || ays[0]?.id || 1;
+    };
+
     // 2. Ambil master Fee Types (Pos Tagihan Siswa)
     let ftQuery = db('fee_types');
     if (!isAllUnits) {
@@ -258,24 +277,7 @@ class FundBalanceEngine {
       'budget_plans.academic_year_id'
     );
 
-    // 4. Ambil seluruh mutasi dana
-    let mutQuery = db('fund_balance_mutations')
-      .join('fund_balances', 'fund_balance_mutations.fund_balance_id', 'fund_balances.id');
-    if (!isAllUnits) {
-      mutQuery = mutQuery.where('fund_balances.school_unit_id', unitId);
-    }
-    const allMutations = await mutQuery.select(
-      'fund_balances.id as fund_balance_id',
-      'fund_balances.fund_type',
-      'fund_balances.fund_ref_id',
-      'fund_balances.academic_year_id as fund_ay_id',
-      'fund_balance_mutations.academic_year_id as mutation_ay_id',
-      'fund_balance_mutations.direction',
-      'fund_balance_mutations.amount',
-      'fund_balance_mutations.created_at'
-    );
-
-    // 5. Build Aggregation Per Fund Key
+    // 4. Inisialisasi peta agregasi
     const aggMap = {};
     const getOrInitAgg = (fundType, fundRefId) => {
       const key = `${fundType}_${fundRefId}`;
@@ -293,7 +295,60 @@ class FundBalanceEngine {
       return aggMap[key];
     };
 
+    // 5. Masukkan seluruh Saldo Awal Kas dari Jenis Kas/Bank (cash_account_opening_balances) ke Saldo Awal Kas (Opening Pool)
+    let caOpeningsQuery = db('cash_account_opening_balances')
+      .join('cash_accounts', 'cash_account_opening_balances.cash_account_id', 'cash_accounts.id');
+    if (!isAllUnits) {
+      caOpeningsQuery = caOpeningsQuery.where(b => b.where('cash_accounts.school_unit_id', unitId).orWhere('cash_accounts.school_unit_id', 0));
+    }
+    const caOpenings = await caOpeningsQuery.select(
+      'cash_account_opening_balances.*',
+      'cash_accounts.name as cash_account_name',
+      'cash_accounts.school_unit_id'
+    );
+
+    const opAgg = getOrInitAgg('opening_pool', 0);
+    let totalOpeningAcrossAccounts = 0;
+    caOpenings.forEach(ob => {
+      const amt = parseFloat(ob.opening_balance || 0);
+      if (amt <= 0) return;
+      totalOpeningAcrossAccounts += amt;
+      const resolvedAyId = resolveOpeningAyId(ob.opening_date, ob.academic_year_id || ays[0]?.id);
+      if (!opAgg.by_academic_year[resolvedAyId]) {
+        opAgg.by_academic_year[resolvedAyId] = { in: 0, out: 0 };
+      }
+      opAgg.by_academic_year[resolvedAyId].in += amt;
+      if (priorAyIds.includes(resolvedAyId)) {
+        opAgg.prior_in += amt;
+      } else if (resolvedAyId === targetAyId) {
+        opAgg.current_in += amt;
+      }
+    });
+
+    // 6. Ambil seluruh mutasi dana (selain mutasi duplikat dari cash_account_opening_balances)
+    let mutQuery = db('fund_balance_mutations')
+      .join('fund_balances', 'fund_balance_mutations.fund_balance_id', 'fund_balances.id');
+    if (!isAllUnits) {
+      mutQuery = mutQuery.where('fund_balances.school_unit_id', unitId);
+    }
+    const allMutations = await mutQuery.select(
+      'fund_balances.id as fund_balance_id',
+      'fund_balances.fund_type',
+      'fund_balances.fund_ref_id',
+      'fund_balances.academic_year_id as fund_ay_id',
+      'fund_balance_mutations.academic_year_id as mutation_ay_id',
+      'fund_balance_mutations.direction',
+      'fund_balance_mutations.amount',
+      'fund_balance_mutations.source_table',
+      'fund_balance_mutations.created_at'
+    );
+
     allMutations.forEach(m => {
+      // Hindari double-counting saldo awal kas yang sudah dihitung langsung dari cash_account_opening_balances
+      if (m.fund_type === 'opening_pool' && m.source_table === 'cash_account_opening_balances') {
+        return;
+      }
+
       const itemAgg = getOrInitAgg(m.fund_type, m.fund_ref_id);
       const mutAyId = m.mutation_ay_id || m.fund_ay_id;
       const amt = parseFloat(m.amount || 0);
@@ -313,7 +368,7 @@ class FundBalanceEngine {
       }
     });
 
-    // 6. Ambil fund_balances records untuk mendapatkan ID fund_balance jika ada
+    // 7. Ambil fund_balances records untuk mendapatkan ID fund_balance jika ada
     let fbQuery = db('fund_balances');
     if (!isAllUnits) {
       fbQuery = fbQuery.where('school_unit_id', unitId);
@@ -351,7 +406,6 @@ class FundBalanceEngine {
     };
 
     // --- A. Saldo Awal Kas / Opening Pool ---
-    const opAgg = getOrInitAgg('opening_pool', 0);
     const opPriorCarry = opAgg.prior_in - opAgg.prior_out;
     const opCurNet = opAgg.current_in - opAgg.current_out;
     const opTotalBalance = opPriorCarry + opCurNet;
@@ -367,8 +421,8 @@ class FundBalanceEngine {
       name: 'Saldo Awal Kas (Opening Pool)',
       code: 'OPENING_POOL',
       category: 'Saldo Awal & Kas Utama',
-      description: 'Pool dana saldo awal kas pra-pencatatan sistem yang dapat digunakan untuk belanja sampai habis',
-      planned_amount: 0,
+      description: 'Pool dana saldo awal kas dari seluruh jenis kas / rekening bank yang diinput pada Master Data (dapat digunakan untuk belanja operasional)',
+      planned_amount: totalOpeningAcrossAccounts,
       prior_years_carry_over: opPriorCarry,
       prior_years_in: opAgg.prior_in,
       prior_years_out: opAgg.prior_out,
@@ -546,6 +600,7 @@ class FundBalanceEngine {
       if (f.fund_type === 'opening_pool') {
         openingPoolOptions.push({
           key: 'opening_pool_0_current',
+          value: 'opening_pool:0',
           fund_type: 'opening_pool',
           fund_ref_id: 0,
           scope: 'current',
@@ -560,6 +615,7 @@ class FundBalanceEngine {
       // Current Year Option
       currentYearOptions.push({
         key: `${f.fund_type}_${f.fund_ref_id}_current`,
+        value: `${f.fund_type}:${f.fund_ref_id}`,
         fund_type: f.fund_type,
         fund_ref_id: f.fund_ref_id,
         scope: 'current',
@@ -576,6 +632,7 @@ class FundBalanceEngine {
       if (f.prior_years_carry_over > 0 || (f.balance > 0 && f.prior_years_in > 0)) {
         priorYearOptions.push({
           key: `${f.fund_type}_${f.fund_ref_id}_prior`,
+          value: `${f.fund_type}:${f.fund_ref_id}`,
           fund_type: f.fund_type,
           fund_ref_id: f.fund_ref_id,
           scope: 'prior',
@@ -589,23 +646,29 @@ class FundBalanceEngine {
       }
     });
 
+    const allOptions = [...currentYearOptions, ...priorYearOptions, ...openingPoolOptions];
+
     return {
       academic_year_id: listData.academic_year_id,
       academic_year_name: ayName,
       groups: [
         {
           group_title: `Pos Alokasi Dana (Tahun Berjalan ${ayName})`,
+          name: `Pos Alokasi Dana (Tahun Berjalan ${ayName})`,
           options: currentYearOptions
         },
         {
           group_title: `Saldo Bawaan Tahun Sebelumnya (${priorAyNames})`,
+          name: `Saldo Bawaan Tahun Sebelumnya (${priorAyNames})`,
           options: priorYearOptions
         },
         {
           group_title: `Kas Utama & Saldo Awal`,
+          name: `Kas Utama & Saldo Awal`,
           options: openingPoolOptions
         }
       ],
+      options: allOptions,
       all_funds: listData.funds
     };
   }
@@ -635,31 +698,192 @@ class FundBalanceEngine {
    * List mutations for a specific fund balance
    */
   async listFundMutations(schoolUnitId, fundBalanceId, filters = {}) {
-    const fund = await db('fund_balances')
-      .where({ id: fundBalanceId, school_unit_id: schoolUnitId })
-      .first();
+    const isAllUnits = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation' || Number(schoolUnitId) === 0;
+    const unitId = isAllUnits ? null : Number(schoolUnitId);
 
-    if (!fund) {
-      const err = new Error('Kantong dana tidak ditemukan');
-      err.statusCode = 404;
-      throw err;
+    // 1. Ambil daftar tahun ajaran in-process
+    const ays = await this.getChronologicalAcademicYears(unitId || 1);
+    const ayMap = {};
+    if (Array.isArray(ays)) {
+      ays.forEach(a => { ayMap[a.id] = a.name; });
     }
 
-    let query = db('fund_balance_mutations')
-      .where({ fund_balance_id: fundBalanceId });
+    // 2. Resolve fund_type and fund_ref_id
+    let fundType = filters.fund_type || null;
+    let fundRefId = filters.fund_ref_id !== undefined ? Number(filters.fund_ref_id) : 0;
+    let fundRecord = null;
 
-    if (filters.direction) {
-      query = query.where('direction', filters.direction);
-    }
-    if (filters.academic_year_id) {
-      query = query.where('academic_year_id', Number(filters.academic_year_id));
+    if (String(fundBalanceId).includes(':')) {
+      const [ft, fr] = String(fundBalanceId).split(':');
+      fundType = ft;
+      fundRefId = Number(fr || 0);
+    } else if (!isNaN(Number(fundBalanceId)) && Number(fundBalanceId) > 0) {
+      fundRecord = await db('fund_balances').where('id', Number(fundBalanceId)).first();
+      if (fundRecord) {
+        fundType = fundRecord.fund_type;
+        fundRefId = Number(fundRecord.fund_ref_id || 0);
+      }
+    } else if (fundBalanceId === 'opening_pool') {
+      fundType = 'opening_pool';
+      fundRefId = 0;
     }
 
-    const mutations = await query.orderBy('created_at', 'desc');
+    if (!fundType && filters.fund_type) {
+      fundType = filters.fund_type;
+      fundRefId = Number(filters.fund_ref_id || 0);
+    }
+
+    if (!fundType) {
+      fundType = 'opening_pool';
+      fundRefId = 0;
+    }
+
+    // 3. Find all matching fund_balances IDs
+    let fbQuery = db('fund_balances').where('fund_type', fundType);
+    if (fundType !== 'opening_pool') {
+      fbQuery = fbQuery.where('fund_ref_id', fundRefId);
+    }
+    if (unitId) {
+      fbQuery = fbQuery.where(b => b.where('school_unit_id', unitId).orWhere('school_unit_id', 0));
+    }
+    const matchingFbRows = await fbQuery;
+    const fundBalanceIds = matchingFbRows.map(r => r.id);
+
+    // 4. Query fund_balance_mutations
+    let mutationRows = [];
+    if (fundBalanceIds.length > 0) {
+      let mutQuery = db('fund_balance_mutations')
+        .whereIn('fund_balance_id', fundBalanceIds);
+
+      if (filters.direction) {
+        mutQuery = mutQuery.where('direction', filters.direction);
+      }
+      if (filters.academic_year_id) {
+        mutQuery = mutQuery.where('academic_year_id', Number(filters.academic_year_id));
+      }
+
+      const rawMuts = await mutQuery;
+      mutationRows = rawMuts.map(m => ({
+        ...m,
+        academic_year_name: ayMap[m.academic_year_id] || (m.academic_year_id ? `T.A. ${m.academic_year_id}` : 'T.A. Berjalan')
+      }));
+    }
+
+    // 5. If opening_pool, also retrieve cash_account_opening_balances
+    if (fundType === 'opening_pool') {
+      let caOpeningsQuery = db('cash_account_opening_balances')
+        .join('cash_accounts', 'cash_account_opening_balances.cash_account_id', 'cash_accounts.id');
+
+      if (unitId) {
+        caOpeningsQuery = caOpeningsQuery.where(b => b.where('cash_accounts.school_unit_id', unitId).orWhere('cash_accounts.school_unit_id', 0));
+      }
+      if (filters.academic_year_id) {
+        caOpeningsQuery = caOpeningsQuery.where('cash_account_opening_balances.academic_year_id', Number(filters.academic_year_id));
+      }
+
+      const caOpenings = await caOpeningsQuery.select(
+        'cash_account_opening_balances.*',
+        'cash_accounts.name as cash_account_name',
+        'cash_accounts.account_kind as cash_account_kind'
+      );
+
+      const existingCaIds = new Set(
+        mutationRows
+          .filter(m => m.source_table === 'cash_account_opening_balances')
+          .map(m => Number(m.source_id))
+      );
+
+      const caMutations = caOpenings
+        .filter(ob => parseFloat(ob.opening_balance || 0) > 0 && !existingCaIds.has(Number(ob.id)))
+        .map(ob => ({
+          id: `ca_${ob.id}`,
+          fund_balance_id: fundBalanceIds[0] || null,
+          academic_year_id: ob.academic_year_id,
+          academic_year_name: ayMap[ob.academic_year_id] || 'T.A. Awal',
+          direction: 'in',
+          amount: parseFloat(ob.opening_balance || 0),
+          source_table: 'cash_account_opening_balances',
+          source_id: ob.id,
+          notes: `Saldo Awal Kas/Bank: ${ob.cash_account_name} (${ob.opening_date ? String(ob.opening_date).slice(0, 10) : ''})`,
+          created_at: ob.created_at || (ob.opening_date ? new Date(ob.opening_date).toISOString() : new Date().toISOString())
+        }));
+
+      mutationRows = [...mutationRows, ...caMutations];
+    }
+
+    // 5. Calculate running balances chronologically
+    mutationRows.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+    let runningBalance = 0;
+    const enrichedMutations = mutationRows.map(m => {
+      const amt = parseFloat(m.amount || 0);
+      if (m.direction === 'in') {
+        runningBalance += amt;
+      } else {
+        runningBalance -= amt;
+      }
+      return {
+        ...m,
+        amount: amt,
+        balance_after: runningBalance
+      };
+    });
+
+    // Sort newest first for UI presentation
+    enrichedMutations.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    // 6. Build fund meta info
+    let fundInfo = fundRecord ? { ...fundRecord } : null;
+    if (!fundInfo) {
+      if (fundType === 'opening_pool') {
+        fundInfo = {
+          name: 'Saldo Awal Kas (Opening Pool)',
+          code: 'OPENING_POOL',
+          fund_type: 'opening_pool',
+          fund_ref_id: 0,
+          balance: runningBalance
+        };
+      } else if (fundType === 'fee_type') {
+        const ft = await db('fee_types').where('id', fundRefId).first();
+        fundInfo = {
+          name: ft?.name || `Tagihan Siswa #${fundRefId}`,
+          code: ft?.code || `FEE_${fundRefId}`,
+          fund_type: 'fee_type',
+          fund_ref_id: fundRefId,
+          balance: runningBalance
+        };
+      } else if (fundType === 'budget_income_item') {
+        const bpi = await db('budget_plan_income_items').where('id', fundRefId).first();
+        fundInfo = {
+          name: bpi?.name || `Pemasukan RAPBS #${fundRefId}`,
+          code: `RAPBS_${fundRefId}`,
+          fund_type: 'budget_income_item',
+          fund_ref_id: fundRefId,
+          balance: runningBalance
+        };
+      } else if (fundType === 'transaction_category') {
+        const tc = await db('transaction_categories').where('id', fundRefId).first();
+        fundInfo = {
+          name: tc?.name || `Kategori #${fundRefId}`,
+          code: tc?.code || `CAT_${fundRefId}`,
+          fund_type: 'transaction_category',
+          fund_ref_id: fundRefId,
+          balance: runningBalance
+        };
+      } else {
+        fundInfo = {
+          name: `Pos Dana ${fundType} #${fundRefId}`,
+          code: `${fundType.toUpperCase()}_${fundRefId}`,
+          fund_type: fundType,
+          fund_ref_id: fundRefId,
+          balance: runningBalance
+        };
+      }
+    }
 
     return {
-      fund,
-      mutations
+      fund: fundInfo,
+      mutations: enrichedMutations
     };
   }
 

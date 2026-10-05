@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatPercentage, formatDate } from '../../../shared/utils/formatters';
 import {
   FileSpreadsheet,
   Plus,
@@ -38,8 +42,31 @@ import {
   FolderOpen,
   Trash2,
   Sparkles,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  BarChart3,
+  Filter,
+  CalendarRange,
+  CalendarDays,
+  GraduationCap,
+  HandHeart,
+  HeartHandshake,
+  Store,
+  MoreHorizontal,
+  Receipt,
+  Check
 } from 'lucide-react';
+
+const INCOME_SOURCE_CATEGORIES = [
+  { id: 'tagihan_santri', label: 'Tagihan Santri / SPP', desc: 'Tagihan rutin SPP, DSP, Gedung, Seragam, dll', icon: 'GraduationCap' },
+  { id: 'bos_pemerintah', label: 'BOS / Bantuan Pemerintah', desc: 'BOS Reguler, BOP, Hibah Pemerintah', icon: 'Building2' },
+  { id: 'hibah_yayasan', label: 'Dana Hibah / Yayasan / CSR', desc: 'Subsidi Yayasan, Hibah CSR, Donatur Tetap', icon: 'HandHeart' },
+  { id: 'donasi_wakaf_infaq', label: 'Donasi / Infaq / Wakaf', desc: 'Infaq Santri/Wali, Kotak Amal, Sedekah, Wakaf', icon: 'HeartHandshake' },
+  { id: 'unit_usaha', label: 'Unit Usaha / Koperasi', desc: 'Kantin, Laundri, Percetakan, Usaha Mandiri', icon: 'Store' },
+  { id: 'lainnya', label: 'Penerimaan Lain-Lain', desc: 'Jasa Giro, Bunga Bank, Pendapatan Aset', icon: 'MoreHorizontal' },
+];
 
 const MONTHS = [
   { key: 'm1', label: 'Juli', short: 'Jul', q: 'Q1' },
@@ -110,15 +137,22 @@ export default function BudgetPlans() {
   const [editingTitle, setEditingTitle] = useState('');
   const [submittingTitle, setSubmittingTitle] = useState(false);
 
-  // Modal 1: Pemetaan Rencana Pendapatan per Bulan
+  // Modal 1: Pemetaan Rencana Pendapatan per Bulan (Income)
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [editingIncomeItem, setEditingIncomeItem] = useState(null);
+  const [incomeFormSourceCategory, setIncomeFormSourceCategory] = useState('tagihan_santri');
   const [incomeFormName, setIncomeFormName] = useState('');
+  const [incomeFormFeeTypeId, setIncomeFormFeeTypeId] = useState('');
   const [incomeFormMaxCap, setIncomeFormMaxCap] = useState(0);
+  const [incomeFormPeriodType, setIncomeFormPeriodType] = useState('monthly'); // 'monthly' | 'non_monthly'
+  const [incomeFormSelectedMonth, setIncomeFormSelectedMonth] = useState('m1');
+  const [incomeFormSingleAmount, setIncomeFormSingleAmount] = useState(0);
+  const [incomeFormCreditAccountId, setIncomeFormCreditAccountId] = useState('');
+  const [incomeFormCashAccountId, setIncomeFormCashAccountId] = useState('');
+  const [incomeFormNotes, setIncomeFormNotes] = useState('');
   const [incomeMonthlyDist, setIncomeMonthlyDist] = useState({
     m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0
   });
-  const [incomeFormFeeTypeId, setIncomeFormFeeTypeId] = useState('');
 
   // Proyeksi Arus Kas per Jenis Tagihan: Sub-tab, Filter, dan Baris Rincian
   const [cashFlowSubTab, setCashFlowSubTab] = useState('all'); // 'all' | 'consolidated' | 'by_fee_type'
@@ -133,6 +167,10 @@ export default function BudgetPlans() {
     }));
   };
 
+  // Master Chart of Accounts (COA) & Cash Accounts
+  const [chartOfAccounts, setChartOfAccounts] = useState([]);
+  const [cashAccounts, setCashAccounts] = useState([]);
+
   // Modal 2: Input / Edit Rencana Pengeluaran (Belanja Program)
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingExpenseItem, setEditingExpenseItem] = useState(null);
@@ -145,6 +183,9 @@ export default function BudgetPlans() {
     fund_source_fee_type_id: '',
     fund_source_income_item_id: '',
     fund_sources: [{ income_item_id: '', amount: 0 }],
+    debit_account_id: '',
+    credit_account_id: '',
+    cash_account_id: '',
     unit: 'Unit',
     unit_price: 0,
     planned_amount: 0,
@@ -160,7 +201,11 @@ export default function BudgetPlans() {
     name: '',
     unit: 'Unit',
     reference_price: 50000,
-    expense_category_id: ''
+    expense_category_id: '',
+    debit_account_id: '',
+    credit_account_id: '',
+    cash_account_id: '',
+    fund_source_income_item_id: ''
   });
   const [submittingQuickCatalog, setSubmittingQuickCatalog] = useState(false);
 
@@ -185,6 +230,10 @@ export default function BudgetPlans() {
     reference_price: 0,
     expense_category_id: '',
     academic_year_id: 1,
+    debit_account_id: '',
+    credit_account_id: '',
+    cash_account_id: '',
+    fund_source_income_item_id: '',
     reason: ''
   });
 
@@ -752,19 +801,23 @@ export default function BudgetPlans() {
         planParams.academic_year_id = selectedYearId;
       }
 
-      const [plansRes, programsRes, feesRes, catRes, catalogRes, loansRes] = await Promise.all([
+      const [plansRes, programsRes, feesRes, catRes, catalogRes, loansRes, coaRes, cashRes] = await Promise.all([
         api.get('/keuangan/budget-plans', { params: planParams }),
         api.get('/keuangan/budget-programs', { params: planParams }),
         api.get('/keuangan/fee-types'),
         api.get('/keuangan/transaction-categories', { params: { category_kind: 'expense' } }),
-        api.get('/keuangan/catalog-items'),
-        api.get('/keuangan/fund-balances/academic-year-loans-summary', { params: planParams }).catch(() => null)
+        api.get('/keuangan/catalog-items', { params: planParams }),
+        api.get('/keuangan/fund-balances/academic-year-loans-summary', { params: planParams }).catch(() => null),
+        api.get('/keuangan/chart-of-accounts').catch(() => ({ data: { data: [] } })),
+        api.get('/keuangan/cash-accounts').catch(() => ({ data: { data: [] } }))
       ]);
 
       const planList = plansRes.data?.data || [];
       setPlans(planList);
       setBudgetPrograms(programsRes.data?.data || []);
       setFeeTypes(feesRes.data?.data || []);
+      setChartOfAccounts(coaRes?.data?.data || []);
+      setCashAccounts(cashRes?.data?.data || []);
 
       const rawCats = catRes.data?.data || [];
       const seenCatNames = new Set();
@@ -797,9 +850,12 @@ export default function BudgetPlans() {
     }
   };
 
-  const fetchCatalogItems = async () => {
+  const fetchCatalogItems = async (ayId = null) => {
     try {
-      const res = await api.get('/keuangan/catalog-items');
+      const targetAy = ayId || selectedYearId || undefined;
+      const res = await api.get('/keuangan/catalog-items', {
+        params: targetAy ? { academic_year_id: targetAy } : {}
+      });
       setCatalogItems(res.data?.data || []);
     } catch (err) {
       console.error('Error fetching catalog items:', err);
@@ -847,7 +903,7 @@ export default function BudgetPlans() {
       return;
     }
 
-    if (!window.confirm(`Konfirmasi: Generate otomatis seluruh pos penerimaan RAPBS dari penetapan biaya santri pada tahun ajaran ini? Pos bulanan (seperti SPP) akan dikalikan 12 bulan.`)) {
+    if (!window.confirm(`Konfirmasi: Sinkronkan / generate pos penerimaan RAPBS dari penetapan biaya santri tahun ajaran ini? Pos bulanan (seperti SPP) dikalikan 12 bulan dan seluruh pos penerimaan manual yang telah diinput (seperti BOS, Hibah, Donasi, dll) akan TETAP AMAN dan tidak terhapus.`)) {
       return;
     }
 
@@ -947,9 +1003,16 @@ export default function BudgetPlans() {
   // ==========================================
   const handleOpenAddIncome = () => {
     setEditingIncomeItem(null);
+    setIncomeFormSourceCategory('tagihan_santri');
     setIncomeFormName('');
     setIncomeFormFeeTypeId('');
     setIncomeFormMaxCap(0);
+    setIncomeFormPeriodType('monthly');
+    setIncomeFormSelectedMonth('m1');
+    setIncomeFormSingleAmount(0);
+    setIncomeFormCreditAccountId('');
+    setIncomeFormCashAccountId('');
+    setIncomeFormNotes('');
     setIncomeMonthlyDist({
       m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0
     });
@@ -958,36 +1021,73 @@ export default function BudgetPlans() {
 
   const handleOpenEditIncome = (item) => {
     setEditingIncomeItem(item);
+    const cat = item.source_category || (item.fee_type_id ? 'tagihan_santri' : 'lainnya');
+    setIncomeFormSourceCategory(cat);
     setIncomeFormName(item.name || '');
     setIncomeFormFeeTypeId(item.fee_type_id || '');
-    const cap = parseFloat(item.max_cap_amount || item.planned_amount || 0);
+    setIncomeFormCreditAccountId(item.credit_account_id || '');
+    setIncomeFormCashAccountId(item.cash_account_id || '');
+    setIncomeFormNotes(item.notes || '');
+
+    const cap = parseFloat(item.max_cap_amount || 0);
     setIncomeFormMaxCap(cap);
 
     // Parse existing monthly distribution
     let dist = { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0 };
+    let nonZeroCount = 0;
+    let singleMonthKey = 'm1';
+    let singleVal = 0;
+
     if (item.monthly_distribution && typeof item.monthly_distribution === 'object') {
       MONTHS.forEach(m => {
-        dist[m.key] = parseFloat(item.monthly_distribution[m.key] || 0);
+        const val = parseFloat(item.monthly_distribution[m.key] || 0);
+        dist[m.key] = val;
+        if (val > 0) {
+          nonZeroCount++;
+          singleMonthKey = m.key;
+          singleVal = val;
+        }
       });
     } else {
       // Default bagi rata
-      const perMonth = Math.round(cap / 12);
+      const planned = parseFloat(item.planned_amount || cap || 0);
+      const perMonth = Math.round(planned / 12);
       MONTHS.forEach((m, idx) => {
-        dist[m.key] = idx === 11 ? (cap - perMonth * 11) : perMonth;
+        dist[m.key] = idx === 11 ? (planned - perMonth * 11) : perMonth;
       });
+      nonZeroCount = 12;
     }
+
+    if (nonZeroCount === 1) {
+      setIncomeFormPeriodType('non_monthly');
+      setIncomeFormSelectedMonth(singleMonthKey);
+      setIncomeFormSingleAmount(singleVal);
+    } else {
+      setIncomeFormPeriodType('monthly');
+      setIncomeFormSelectedMonth('m1');
+      setIncomeFormSingleAmount(0);
+    }
+
     setIncomeMonthlyDist(dist);
     setIncomeModalOpen(true);
   };
 
   const handleDistributeEvenlyIncome = () => {
-    const totalToDistribute = incomeFormMaxCap > 0 ? incomeFormMaxCap : Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+    const sumCurrent = Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+    const totalToDistribute = incomeFormMaxCap > 0 ? incomeFormMaxCap : (sumCurrent > 0 ? sumCurrent : 0);
     if (totalToDistribute <= 0) return;
     const perMonth = Math.round(totalToDistribute / 12);
     const newDist = {};
     MONTHS.forEach((m, idx) => {
       newDist[m.key] = idx === 11 ? (totalToDistribute - perMonth * 11) : perMonth;
     });
+    setIncomeMonthlyDist(newDist);
+  };
+
+  const handleApplySameIncomeMonths = (val) => {
+    const num = parseFloat(val || 0);
+    const newDist = {};
+    MONTHS.forEach(m => { newDist[m.key] = num; });
     setIncomeMonthlyDist(newDist);
   };
 
@@ -1001,20 +1101,43 @@ export default function BudgetPlans() {
     e.preventDefault();
     if (!selectedPlan) return;
 
-    const sumMonths = Object.values(incomeMonthlyDist).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-    if (incomeFormMaxCap > 0 && sumMonths > incomeFormMaxCap) {
-      alert(`Total pemetaan bulanan (Rp ${sumMonths.toLocaleString('id-ID')}) tidak boleh melebihi batas penetapan setahun (Rp ${incomeFormMaxCap.toLocaleString('id-ID')}).`);
+    let finalDist = {};
+    let totalPlanned = 0;
+
+    if (incomeFormPeriodType === 'non_monthly') {
+      const val = parseFloat(incomeFormSingleAmount || 0);
+      MONTHS.forEach(m => {
+        finalDist[m.key] = m.key === incomeFormSelectedMonth ? val : 0;
+      });
+      totalPlanned = val;
+    } else {
+      finalDist = { ...incomeMonthlyDist };
+      totalPlanned = Object.values(incomeMonthlyDist).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+    }
+
+    if (totalPlanned <= 0) {
+      alert('Total nominal rencana penerimaan harus lebih dari 0.');
+      return;
+    }
+
+    if (!incomeFormName.trim()) {
+      alert('Nama sumber penerimaan wajib diisi.');
       return;
     }
 
     setSubmitting(true);
     try {
+      const isTagihan = incomeFormSourceCategory === 'tagihan_santri';
       const payload = {
-        name: incomeFormName,
-        fee_type_id: incomeFormFeeTypeId ? Number(incomeFormFeeTypeId) : null,
-        planned_amount: sumMonths,
-        max_cap_amount: incomeFormMaxCap > 0 ? incomeFormMaxCap : sumMonths,
-        monthly_distribution: incomeMonthlyDist
+        name: incomeFormName.trim(),
+        fee_type_id: (isTagihan && incomeFormFeeTypeId) ? Number(incomeFormFeeTypeId) : null,
+        source_category: incomeFormSourceCategory,
+        credit_account_id: incomeFormCreditAccountId ? Number(incomeFormCreditAccountId) : null,
+        cash_account_id: incomeFormCashAccountId ? Number(incomeFormCashAccountId) : null,
+        notes: incomeFormNotes ? incomeFormNotes.trim() : null,
+        planned_amount: totalPlanned,
+        max_cap_amount: (isTagihan && incomeFormMaxCap > 0) ? incomeFormMaxCap : null,
+        monthly_distribution: finalDist
       };
 
       if (editingIncomeItem) {
@@ -1049,6 +1172,9 @@ export default function BudgetPlans() {
 
     setExpenseForm({
       entry_mode: 'itemized',
+      period_type: 'monthly', // 'monthly' | 'non_monthly'
+      selected_month: 'm1',
+      single_quantity: 1,
       name: '',
       lump_sum_description: '',
       budget_program_id: chosenProgId,
@@ -1056,6 +1182,9 @@ export default function BudgetPlans() {
       fund_source_income_item_id: defaultIncomeItemId,
       fund_source_fee_type_id: defaultFeeTypeId,
       fund_sources: defaultIncomeItemId ? [{ income_item_id: defaultIncomeItemId, amount: 0 }] : [],
+      debit_account_id: '',
+      credit_account_id: '',
+      cash_account_id: '',
       unit: 'Unit',
       unit_price: 0,
       planned_amount: 0,
@@ -1095,13 +1224,21 @@ export default function BudgetPlans() {
     setQuickCatalogOpen(false);
 
     let dist = { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0 };
+    const nonZeroMonths = [];
     if (item.monthly_distribution && typeof item.monthly_distribution === 'object') {
       MONTHS.forEach(m => {
-        dist[m.key] = parseFloat(item.monthly_distribution[m.key] || 0);
+        const val = parseFloat(item.monthly_distribution[m.key] || 0);
+        dist[m.key] = val;
+        if (val > 0) nonZeroMonths.push(m.key);
       });
     } else {
       dist.m1 = item.entry_mode === 'lump_sum' ? parseFloat(item.planned_amount || 0) : parseFloat(item.quantity || 1);
+      nonZeroMonths.push('m1');
     }
+
+    const periodType = nonZeroMonths.length === 1 ? 'non_monthly' : 'monthly';
+    const selectedMonth = nonZeroMonths.length === 1 ? nonZeroMonths[0] : 'm1';
+    const singleQty = nonZeroMonths.length === 1 ? dist[selectedMonth] : parseFloat(item.quantity || 1);
 
     let refPrice = null;
     if (item.catalog_item_id) {
@@ -1134,6 +1271,9 @@ export default function BudgetPlans() {
 
     setExpenseForm({
       entry_mode: item.entry_mode || 'itemized',
+      period_type: periodType,
+      selected_month: selectedMonth,
+      single_quantity: singleQty,
       name: item.name || '',
       lump_sum_description: item.lump_sum_description || '',
       budget_program_id: item.budget_program_id || budgetPrograms[0]?.id || '',
@@ -1141,6 +1281,9 @@ export default function BudgetPlans() {
       fund_source_income_item_id: item.fund_source_income_item_id || (initialFundSources[0]?.income_item_id || ''),
       fund_source_fee_type_id: item.fund_source_fee_type_id || '',
       fund_sources: initialFundSources,
+      debit_account_id: item.debit_account_id || '',
+      credit_account_id: item.credit_account_id || '',
+      cash_account_id: item.cash_account_id || '',
       unit: item.unit || 'Unit',
       unit_price: parseFloat(item.unit_price || 0),
       planned_amount: parseFloat(item.planned_amount || 0),
@@ -1169,6 +1312,7 @@ export default function BudgetPlans() {
       setExpenseForm(prev => ({
         ...prev,
         catalog_item_id: '',
+        name: '',
         catalog_reference_price: null
       }));
       return;
@@ -1181,9 +1325,13 @@ export default function BudgetPlans() {
         ...prev,
         catalog_item_id: cat.id,
         name: cat.name,
-        unit: cat.unit || prev.unit,
+        unit: cat.unit || prev.unit || 'Unit',
         catalog_reference_price: refPrice,
-        unit_price: (prev.unit_price <= 0 || prev.unit_price > refPrice) ? refPrice : prev.unit_price
+        unit_price: (prev.unit_price <= 0 || prev.unit_price > refPrice) ? refPrice : prev.unit_price,
+        debit_account_id: cat.debit_account_id || prev.debit_account_id || '',
+        credit_account_id: cat.credit_account_id || prev.credit_account_id || '',
+        cash_account_id: cat.cash_account_id || prev.cash_account_id || '',
+        fund_source_income_item_id: cat.fund_source_income_item_id || prev.fund_source_income_item_id || ''
       }));
     }
   };
@@ -1199,7 +1347,11 @@ export default function BudgetPlans() {
         unit: quickCatalogForm.unit || 'Unit',
         reference_price: parseFloat(quickCatalogForm.reference_price || 0),
         expense_category_id: quickCatalogForm.expense_category_id ? Number(quickCatalogForm.expense_category_id) : (expenseCategories[0]?.id || null),
-        academic_year_id: selectedPlan?.academic_year_id || selectedYearId || 1
+        academic_year_id: selectedPlan?.academic_year_id || selectedYearId || 1,
+        debit_account_id: quickCatalogForm.debit_account_id ? Number(quickCatalogForm.debit_account_id) : null,
+        credit_account_id: quickCatalogForm.credit_account_id ? Number(quickCatalogForm.credit_account_id) : null,
+        cash_account_id: quickCatalogForm.cash_account_id ? Number(quickCatalogForm.cash_account_id) : null,
+        fund_source_income_item_id: quickCatalogForm.fund_source_income_item_id ? Number(quickCatalogForm.fund_source_income_item_id) : null
       });
 
       const newItem = res.data?.data;
@@ -1212,7 +1364,11 @@ export default function BudgetPlans() {
           name: newItem.name,
           unit: newItem.unit,
           catalog_reference_price: parseFloat(newItem.reference_price),
-          unit_price: parseFloat(newItem.reference_price)
+          unit_price: parseFloat(newItem.reference_price),
+          debit_account_id: newItem.debit_account_id || '',
+          credit_account_id: newItem.credit_account_id || '',
+          cash_account_id: newItem.cash_account_id || '',
+          fund_source_income_item_id: newItem.fund_source_income_item_id || prev.fund_source_income_item_id || ''
         }));
       }
 
@@ -1221,7 +1377,11 @@ export default function BudgetPlans() {
         name: '',
         unit: 'Unit',
         reference_price: 50000,
-        expense_category_id: ''
+        expense_category_id: '',
+        debit_account_id: '',
+        credit_account_id: '',
+        cash_account_id: '',
+        fund_source_income_item_id: ''
       });
       alert('Item baru berhasil ditambahkan ke Standar Biaya & Katalog!');
     } catch (err) {
@@ -1236,10 +1396,6 @@ export default function BudgetPlans() {
     if (!selectedPlan) return;
 
     if (expenseForm.entry_mode === 'lump_sum') {
-      if (!expenseForm.lump_sum_description.trim()) {
-        alert('Uraian kegiatan / keperluan (lump sum) wajib diisi.');
-        return;
-      }
       if (!expenseForm.fund_sources || expenseForm.fund_sources.length === 0) {
         alert('Minimal satu Pos Sumber Dana dari Rencana Pendapatan RAPBS wajib dipilih.');
         return;
@@ -1250,18 +1406,33 @@ export default function BudgetPlans() {
         return;
       }
 
-      const sumMonths = Object.values(expenseForm.monthly_distribution).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
       const plannedAmount = parseFloat(expenseForm.planned_amount || 0);
       if (plannedAmount <= 0) {
         alert('Total pagu anggaran belanja lump sum harus lebih dari Rp 0.');
         return;
       }
-      if (sumMonths !== plannedAmount) {
-        alert(`Total sebaran 12 bulan (Rp ${sumMonths.toLocaleString('id-ID')}) harus sama dengan Total Pagu Anggaran (Rp ${plannedAmount.toLocaleString('id-ID')}). Silakan sesuaikan atau klik tombol "Bagi Rata 12 Bulan".`);
-        return;
+
+      let finalMonthlyDist = {};
+      if (expenseForm.period_type === 'non_monthly') {
+        MONTHS.forEach(m => {
+          finalMonthlyDist[m.key] = (m.key === expenseForm.selected_month) ? plannedAmount : 0;
+        });
+      } else {
+        const sumMonths = Object.values(expenseForm.monthly_distribution).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+        if (sumMonths !== plannedAmount) {
+          alert(`Total sebaran 12 bulan (Rp ${sumMonths.toLocaleString('id-ID')}) harus sama dengan Total Pagu Anggaran (Rp ${plannedAmount.toLocaleString('id-ID')}). Silakan sesuaikan atau klik tombol "Bagi Rata 12 Bulan".`);
+          return;
+        }
+        finalMonthlyDist = expenseForm.monthly_distribution;
       }
 
-      const totalAllocated = expenseForm.fund_sources.reduce((acc, s) => acc + (parseFloat(s.amount) || 0), 0);
+      // Pastikan fund sources sesuai plannedAmount
+      let finalSources = [...expenseForm.fund_sources];
+      if (finalSources.length === 1 && (!finalSources[0].amount || finalSources[0].amount <= 0)) {
+        finalSources[0] = { ...finalSources[0], amount: plannedAmount };
+      }
+
+      const totalAllocated = finalSources.reduce((acc, s) => acc + (parseFloat(s.amount) || 0), 0);
       if (Math.abs(totalAllocated - plannedAmount) > 1) {
         alert(`Total alokasi sumber dana (Rp ${totalAllocated.toLocaleString('id-ID')}) harus sama dengan Total Pagu Anggaran Belanja (Rp ${plannedAmount.toLocaleString('id-ID')}).`);
         return;
@@ -1271,7 +1442,7 @@ export default function BudgetPlans() {
       try {
         const selectedProg = budgetPrograms.find(p => p.id === Number(expenseForm.budget_program_id));
         const finalName = expenseForm.name.trim() || selectedProg?.name || 'Kegiatan Lump Sum';
-        const formattedSources = expenseForm.fund_sources.map(s => {
+        const formattedSources = finalSources.map(s => {
           const incObj = selectedPlan.income_items.find(i => i.id === Number(s.income_item_id));
           return {
             income_item_id: Number(s.income_item_id),
@@ -1289,8 +1460,11 @@ export default function BudgetPlans() {
           fund_source_income_item_id: formattedSources[0]?.income_item_id || null,
           fund_source_fee_type_id: formattedSources[0]?.fee_type_id || null,
           fund_sources: formattedSources,
+          debit_account_id: expenseForm.debit_account_id ? Number(expenseForm.debit_account_id) : null,
+          credit_account_id: expenseForm.credit_account_id ? Number(expenseForm.credit_account_id) : null,
+          cash_account_id: expenseForm.cash_account_id ? Number(expenseForm.cash_account_id) : null,
           planned_amount: plannedAmount,
-          monthly_distribution: expenseForm.monthly_distribution
+          monthly_distribution: finalMonthlyDist
         };
 
         if (editingExpenseItem) {
@@ -1307,6 +1481,12 @@ export default function BudgetPlans() {
         setSubmitting(false);
       }
     } else {
+      // 2. Mode Rincian Item Katalog
+      if (!expenseForm.catalog_item_id) {
+        alert('Silakan pilih item dari Standar Biaya & Katalog terlebih dahulu.');
+        return;
+      }
+
       // Validasi harga acuan katalog
       if (expenseForm.catalog_item_id && expenseForm.catalog_reference_price !== null) {
         if (parseFloat(expenseForm.unit_price) > parseFloat(expenseForm.catalog_reference_price)) {
@@ -1320,21 +1500,39 @@ export default function BudgetPlans() {
         return;
       }
 
-      const sumQty = Object.values(expenseForm.monthly_distribution).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-      if (sumQty <= 0) {
-        alert('Total kuantitas / volume belanja pada 12 bulan tidak boleh 0. Silakan isi kuantitas pada bulan yang diinginkan.');
-        return;
+      let quantity = 0;
+      let finalMonthlyDist = {};
+
+      if (expenseForm.period_type === 'non_monthly') {
+        quantity = parseFloat(expenseForm.single_quantity || 1);
+        if (quantity <= 0) {
+          alert('Kuantitas / volume belanja harus lebih dari 0.');
+          return;
+        }
+        MONTHS.forEach(m => {
+          finalMonthlyDist[m.key] = (m.key === expenseForm.selected_month) ? quantity : 0;
+        });
+      } else {
+        const sumQty = Object.values(expenseForm.monthly_distribution).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+        if (sumQty <= 0) {
+          alert('Total kuantitas / volume belanja pada 12 bulan tidak boleh 0. Silakan isi kuantitas pada bulan yang diinginkan.');
+          return;
+        }
+        quantity = sumQty;
+        finalMonthlyDist = expenseForm.monthly_distribution;
       }
 
       const unitPrice = parseFloat(expenseForm.unit_price || 0);
-      const plannedAmount = sumQty * unitPrice;
+      const plannedAmount = quantity * unitPrice;
+      const selectedCat = catalogItems.find(c => c.id === Number(expenseForm.catalog_item_id));
+      const finalItemName = expenseForm.name.trim() || selectedCat?.name || 'Item Belanja';
 
       setSubmitting(true);
       try {
         const incObj = selectedPlan.income_items.find(i => i.id === Number(expenseForm.fund_source_income_item_id));
         const payload = {
           entry_mode: 'itemized',
-          name: expenseForm.name,
+          name: finalItemName,
           budget_program_id: Number(expenseForm.budget_program_id),
           catalog_item_id: expenseForm.catalog_item_id ? Number(expenseForm.catalog_item_id) : null,
           fund_source_income_item_id: Number(expenseForm.fund_source_income_item_id),
@@ -1345,11 +1543,14 @@ export default function BudgetPlans() {
             fee_type_id: incObj?.fee_type_id || null,
             amount: plannedAmount
           }],
-          unit: expenseForm.unit || 'Unit',
-          quantity: sumQty,
+          debit_account_id: expenseForm.debit_account_id ? Number(expenseForm.debit_account_id) : null,
+          credit_account_id: expenseForm.credit_account_id ? Number(expenseForm.credit_account_id) : null,
+          cash_account_id: expenseForm.cash_account_id ? Number(expenseForm.cash_account_id) : null,
+          unit: expenseForm.unit || selectedCat?.unit || 'Unit',
+          quantity: quantity,
           unit_price: unitPrice,
           planned_amount: plannedAmount,
-          monthly_distribution: expenseForm.monthly_distribution
+          monthly_distribution: finalMonthlyDist
         };
 
         if (editingExpenseItem) {
@@ -1405,7 +1606,11 @@ export default function BudgetPlans() {
       unit: 'Unit',
       reference_price: 50000,
       expense_category_id: expenseCategories[0]?.id || '',
-      academic_year_id: 1,
+      academic_year_id: Number(selectedYearId) || 1,
+      debit_account_id: '',
+      credit_account_id: '',
+      cash_account_id: '',
+      fund_source_income_item_id: '',
       reason: ''
     });
     setCatalogModalOpen(true);
@@ -1419,7 +1624,11 @@ export default function BudgetPlans() {
       unit: item.unit,
       reference_price: item.reference_price,
       expense_category_id: item.expense_category_id || '',
-      academic_year_id: item.academic_year_id || 1,
+      academic_year_id: item.academic_year_id || Number(selectedYearId) || 1,
+      debit_account_id: item.debit_account_id || '',
+      credit_account_id: item.credit_account_id || '',
+      cash_account_id: item.cash_account_id || '',
+      fund_source_income_item_id: item.fund_source_income_item_id || '',
       reason: ''
     });
     setCatalogModalOpen(true);
@@ -1440,6 +1649,10 @@ export default function BudgetPlans() {
         reference_price: parseFloat(catalogFormData.reference_price),
         expense_category_id: catalogFormData.expense_category_id ? Number(catalogFormData.expense_category_id) : null,
         academic_year_id: Number(catalogFormData.academic_year_id || selectedYearId || 1),
+        debit_account_id: catalogFormData.debit_account_id ? Number(catalogFormData.debit_account_id) : null,
+        credit_account_id: catalogFormData.credit_account_id ? Number(catalogFormData.credit_account_id) : null,
+        cash_account_id: catalogFormData.cash_account_id ? Number(catalogFormData.cash_account_id) : null,
+        fund_source_income_item_id: catalogFormData.fund_source_income_item_id ? Number(catalogFormData.fund_source_income_item_id) : null,
         reason: catalogFormData.reason
       };
 
@@ -1449,7 +1662,7 @@ export default function BudgetPlans() {
         await api.put(`/keuangan/catalog-items/${selectedCatalogItem.id}`, payload);
       }
       setCatalogModalOpen(false);
-      fetchCatalogItems();
+      fetchCatalogItems(selectedYearId);
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal menyimpan item katalog standar biaya');
     } finally {
@@ -1464,7 +1677,7 @@ export default function BudgetPlans() {
 
     try {
       await api.patch(`/keuangan/catalog-items/${item.id}/status`, { is_active: nextStatus });
-      fetchCatalogItems();
+      fetchCatalogItems(selectedYearId);
     } catch (err) {
       alert(err.response?.data?.message || `Gagal ${actionText} item katalog`);
     }
@@ -1484,35 +1697,113 @@ export default function BudgetPlans() {
     }
   };
 
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+  // formatCurrency imported from shared/utils/formatters
+
+  const formatDateTime = (d) => formatDate(d);
+
+  const [catalogSortField, setCatalogSortField] = useState('name');
+  const [catalogSortDirection, setCatalogSortDirection] = useState('asc');
+  const [catalogStatusFilter, setCatalogStatusFilter] = useState('all');
+
+  const catalogStats = useMemo(() => {
+    const currentYearItems = catalogItems.filter(item => 
+      !selectedYearId || !item.academic_year_id || String(item.academic_year_id) === String(selectedYearId)
+    );
+    
+    const total = currentYearItems.length;
+    const activeCount = currentYearItems.filter(i => Boolean(i.is_active)).length;
+    const inactiveCount = total - activeCount;
+    
+    const uniqueCatIds = new Set(currentYearItems.map(i => i.expense_category_id).filter(Boolean));
+    const categoriesCount = uniqueCatIds.size;
+    
+    const withPriceCount = currentYearItems.filter(i => Number(i.reference_price) > 0).length;
+    const openPriceCount = total - withPriceCount;
+    
+    const withCoaCount = currentYearItems.filter(i => Boolean(i.account_code)).length;
+
+    const maxPrice = currentYearItems.reduce((max, i) => Math.max(max, Number(i.reference_price) || 0), 0);
+
+    return {
+      total,
+      activeCount,
+      inactiveCount,
+      categoriesCount,
+      withPriceCount,
+      openPriceCount,
+      withCoaCount,
+      maxPrice
+    };
+  }, [catalogItems, selectedYearId]);
+
+  const handleSortCatalog = (field) => {
+    if (catalogSortField === field) {
+      setCatalogSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setCatalogSortField(field);
+      setCatalogSortDirection('asc');
+    }
   };
 
-  const formatDateTime = (dateVal) => {
-    if (!dateVal) return '-';
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return String(dateVal);
-    return d.toLocaleString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const filteredCatalog = useMemo(() => {
+    return catalogItems
+      .filter(item => {
+        const matchesSearch = !catalogSearch.trim() ||
+          item.name?.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          item.unit?.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          item.account_code?.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          item.account_name?.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+          (item.expense_category_name && item.expense_category_name.toLowerCase().includes(catalogSearch.toLowerCase()));
+        
+        const matchesCat = !selectedExpenseCatFilter || String(item.expense_category_id) === String(selectedExpenseCatFilter);
+        const matchesYear = !selectedYearId || !item.academic_year_id || String(item.academic_year_id) === String(selectedYearId);
+        
+        let matchesStatus = true;
+        if (catalogStatusFilter === 'active') matchesStatus = Boolean(item.is_active);
+        if (catalogStatusFilter === 'inactive') matchesStatus = !item.is_active;
 
-  const filteredCatalog = catalogItems.filter(item => {
-    const matchesSearch = !catalogSearch.trim() ||
-      item.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      (item.expense_category_name && item.expense_category_name.toLowerCase().includes(catalogSearch.toLowerCase()));
-    const matchesCat = !selectedExpenseCatFilter || item.expense_category_id === Number(selectedExpenseCatFilter);
-    return matchesSearch && matchesCat;
-  });
+        return matchesSearch && matchesCat && matchesYear && matchesStatus;
+      })
+      .sort((a, b) => {
+        let valA, valB;
+        if (catalogSortField === 'name') {
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          return catalogSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (catalogSortField === 'unit') {
+          valA = (a.unit || '').toLowerCase();
+          valB = (b.unit || '').toLowerCase();
+          return catalogSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (catalogSortField === 'expense_category_name') {
+          valA = (a.expense_category_name || '').toLowerCase();
+          valB = (b.expense_category_name || '').toLowerCase();
+          return catalogSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (catalogSortField === 'account_code') {
+          valA = (a.account_code || '').toLowerCase();
+          valB = (b.account_code || '').toLowerCase();
+          return catalogSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (catalogSortField === 'reference_price') {
+          valA = Number(a.reference_price) || 0;
+          valB = Number(b.reference_price) || 0;
+          return catalogSortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+        if (catalogSortField === 'is_active') {
+          valA = a.is_active ? 1 : 0;
+          valB = b.is_active ? 1 : 0;
+          return catalogSortDirection === 'asc' ? valB - valA : valA - valB;
+        }
+        return 0;
+      });
+  }, [catalogItems, catalogSearch, selectedExpenseCatFilter, selectedYearId, catalogStatusFilter, catalogSortField, catalogSortDirection]);
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman RAPBS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+      {/* Header Halaman RAPBS - z-40 memastikan dropdown tidak terhalang tabel/kolom sticky di bawahnya */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-40">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-bold text-slate-800 tracking-tight">Rencana Anggaran Pendapatan &amp; Belanja (RAPBS)</h1>
@@ -1531,9 +1822,9 @@ export default function BudgetPlans() {
             Penyusunan anggaran rencana kerja sekolah, katalog standar biaya acuan, pengesahan dokumen resmi &amp; pelacakan serapan real-time
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 relative z-20">
+        <div className="flex flex-wrap items-center gap-2 relative z-50">
           {/* Dropdown Pilihan Tahun Ajaran dengan Live Search */}
-          <div className="w-56">
+          <div className="w-56 relative z-50">
             <SearchableSelect
               options={academicYears.map((ay) => ({
                 value: String(ay.id),
@@ -1544,6 +1835,7 @@ export default function BudgetPlans() {
               onChange={(val) => {
                 setSelectedYearId(val);
                 setAcademicYearId(Number(val));
+                fetchCatalogItems(val);
               }}
               placeholder="Pilih Tahun Ajaran..."
               searchPlaceholder="Cari tahun ajaran..."
@@ -1640,29 +1932,25 @@ export default function BudgetPlans() {
         <div className="space-y-6">
           {/* Banner Validasi Silang: Pinjaman Antar Tahun Ajaran */}
           {ayLoansSummary?.lent_out?.has_active_loans && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
-              <div className="flex items-start gap-2.5">
-                <ArrowRightLeft className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold">Perhatian Realokasi Kas Antar Tahun Ajaran:</span> Tahun ajaran ini memiliki pinjaman dana keluar sebesar <strong>Rp {Number(ayLoansSummary.lent_out.total_outstanding || 0).toLocaleString('id-ID')}</strong> yang sedang dipakai untuk menutup kebutuhan operasional tahun lain.
-                  <p className="text-[11px] text-amber-700 mt-0.5">
-                    Saldo kantong kas riil saat ini lebih tipis dari akumulasi penetapan anggaran sampai dana tersebut dikembalikan ke pos sumber.
-                  </p>
-                </div>
-              </div>
-              <Link
-                to="/keuangan/fund-balances"
-                className="self-start sm:self-center px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-bold rounded-xl text-xs shrink-0 transition"
-              >
-                Lihat Saldo Dana &rarr;
-              </Link>
-            </div>
+            <FlatAlertBanner
+                variant="warning"
+                title="Perhatian Realokasi Kas Antar Tahun Ajaran"
+                description={`Tahun ajaran ini memiliki pinjaman dana keluar sebesar Rp ${Number(ayLoansSummary.lent_out.total_outstanding || 0).toLocaleString('id-ID')} yang sedang dipakai untuk menutup kebutuhan operasional tahun lain. Saldo kantong kas riil saat ini lebih tipis dari akumulasi penetapan anggaran sampai dana tersebut dikembalikan.`}
+                action={
+                  <Link
+                    to="/keuangan/fund-balances"
+                    className="px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold rounded-lg text-xs shrink-0 transition"
+                  >
+                    Lihat Saldo Dana &rarr;
+                  </Link>
+                }
+              />
           )}
 
           {/* Rincian Anggaran RAPBS Terpilih (Full Width) */}
           <div className="space-y-6">
             {selectedPlan ? (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
+              <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs space-y-6">
                 {/* Detail Header & Action Buttons */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                   <div>
@@ -1681,15 +1969,13 @@ export default function BudgetPlans() {
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
 
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
-                        selectedPlan.status === 'published' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                      }`}>
+                      <StatusPill variant={selectedPlan.status === 'published' ? 'success' : 'warning'}>
                         {selectedPlan.status === 'published' ? (
                           <><FileCheck className="w-3 h-3" /> Disahkan Resmi (Published)</>
                         ) : (
                           <><Edit2 className="w-3 h-3" /> Draft Penyusunan</>
                         )}
-                      </span>
+                      </StatusPill>
 
                       {/* Tombol Ganti / Kelola Versi Dokumen */}
                       <button
@@ -1716,7 +2002,7 @@ export default function BudgetPlans() {
                     <button
                       type="button"
                       onClick={() => handleViewRealization(selectedPlan.id)}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold rounded-xl transition"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition"
                     >
                       <TrendingUp className="w-3.5 h-3.5" />
                       <span>Realisasi Serapan</span>
@@ -1753,7 +2039,7 @@ export default function BudgetPlans() {
                         Dokumen RAPBS ini telah <strong>Disahkan Secara Resmi</strong>. Struktur anggaran terkunci untuk menjaga konsistensi audit penyerapan.
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold uppercase bg-emerald-200/60 px-2 py-0.5 rounded text-emerald-800">
+                    <span className="text-[10px] font-bold uppercase bg-emerald-200/60 px-2 py-0.5 rounded text-emerald-800">
                       Terkunci
                     </span>
                   </div>
@@ -1769,31 +2055,32 @@ export default function BudgetPlans() {
                 )}
 
                 {/* Ringkasan Anggaran (Income vs Expense vs Balance) */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4">
-                    <div className="text-[11px] text-emerald-700 font-semibold uppercase tracking-wider">Total Rencana Penerimaan</div>
-                    <div className="text-lg font-bold text-emerald-900 mt-1">
-                      {formatCurrency(selectedPlan.total_planned_income || 0)}
-                    </div>
-                  </div>
-                  <div className="bg-rose-50/60 border border-rose-200/80 rounded-2xl p-4">
-                    <div className="text-[11px] text-rose-700 font-semibold uppercase tracking-wider">Total Rencana Belanja</div>
-                    <div className="text-lg font-bold text-rose-900 mt-1">
-                      {formatCurrency(selectedPlan.total_planned_expense || 0)}
-                    </div>
-                  </div>
-                  <div className="bg-indigo-50/60 border border-indigo-200/80 rounded-2xl p-4">
-                    <div className="text-[11px] text-indigo-700 font-semibold uppercase tracking-wider">Surplus / (Defisit) Anggaran</div>
-                    <div className={`text-lg font-bold mt-1 ${
-                      (selectedPlan.total_planned_income - selectedPlan.total_planned_expense) >= 0 ? 'text-indigo-900' : 'text-amber-700'
-                    }`}>
-                      {formatCurrency((selectedPlan.total_planned_income || 0) - (selectedPlan.total_planned_expense || 0))}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <StatRibbonCard
+                    label="Total Rencana Pendapatan"
+                    value={formatCurrency(selectedPlan.total_planned_income || 0)}
+                    context="Target penerimaan kas seluruh pos"
+                    status="success"
+                    icon={TrendingUp}
+                  />
+                  <StatRibbonCard
+                    label="Total Rencana Belanja"
+                    value={formatCurrency(selectedPlan.total_planned_expense || 0)}
+                    context="Pagu belanja program & kegiatan"
+                    status="danger"
+                    icon={Wallet}
+                  />
+                  <StatRibbonCard
+                    label="Surplus / (Defisit) Anggaran"
+                    value={formatCurrency((selectedPlan.total_planned_income || 0) - (selectedPlan.total_planned_expense || 0))}
+                    context={((selectedPlan.total_planned_income || 0) - (selectedPlan.total_planned_expense || 0)) >= 0 ? "Anggaran rencana berimbang / surplus" : "Defisit rencana - perlu penyesuaian belanja"}
+                    status={((selectedPlan.total_planned_income || 0) - (selectedPlan.total_planned_expense || 0)) >= 0 ? "success" : "danger"}
+                    icon={Coins}
+                  />
                 </div>
 
                 {/* View Mode Switcher: Ringkas Tahunan vs Matriks Bulanan */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-emerald-600" />
                     <div>
@@ -1849,10 +2136,10 @@ export default function BudgetPlans() {
                           type="button"
                           onClick={handleGenerateIncomeFromFees}
                           disabled={generatingIncome}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 rounded-xl text-xs font-bold transition shadow-2xs disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-bold transition shadow-2xs disabled:opacity-50"
                           title="Generate otomatis seluruh rencana penerimaan dari penetapan biaya santri tahun ajaran ini"
                         >
-                          <Sparkles className={`w-3.5 h-3.5 ${generatingIncome ? 'animate-spin text-purple-600' : 'text-purple-600'}`} />
+                          <Sparkles className={`w-3.5 h-3.5 ${generatingIncome ? 'animate-spin text-indigo-600' : 'text-indigo-600'}`} />
                           <span>{generatingIncome ? 'Menghitung...' : 'Generate dari Penetapan Biaya'}</span>
                         </button>
 
@@ -1867,13 +2154,13 @@ export default function BudgetPlans() {
                     )}
                   </div>
 
-                  <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                  <div className="border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs bg-white">
                     <div className="overflow-auto max-h-[75vh] max-w-full relative">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
                           <tr>
-                            <th className="px-3.5 py-3 whitespace-nowrap sticky top-0 left-0 bg-slate-50 z-30">
-                              Nama Sumber Pendapatan
+                            <th className="px-3 py-2.5 w-64 min-w-[220px] max-w-[260px] sticky top-0 left-0 bg-slate-50 z-30 border-r border-slate-200/60 shadow-2xs">
+                              <span className="text-slate-700 font-bold text-xs">Nama Sumber Pendapatan</span>
                             </th>
                             {budgetViewMode === 'monthly' ? (
                               <>
@@ -1900,16 +2187,46 @@ export default function BudgetPlans() {
                               const itemTotal = parseFloat(item.planned_amount || 0);
                               return (
                                 <tr key={idx} className="hover:bg-slate-50/80 transition group">
-                                  <td className="px-3.5 py-2.5 font-semibold text-slate-800 whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 transition z-10">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-slate-800 font-semibold text-xs">{item.name}</span>
+                                  <td className="px-3 py-2 w-64 min-w-[220px] max-w-[260px] sticky left-0 bg-white group-hover:bg-slate-50 transition z-10 border-r border-slate-100 shadow-2xs">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-slate-800 font-bold text-xs truncate max-w-[170px] block" title={item.name}>
+                                            {item.name}
+                                          </span>
+                                          {item.source_category && (
+                                            <span className={`text-[8.5px] px-1 py-0.2 rounded font-bold uppercase tracking-wider shrink-0 ${
+                                              item.source_category === 'bos_pemerintah' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                                              item.source_category === 'hibah_yayasan' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                              item.source_category === 'donasi_wakaf_infaq' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                              item.source_category === 'unit_usaha' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                              item.source_category === 'tagihan_santri' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                              'bg-slate-100 text-slate-600 border border-slate-200'
+                                            }`}>
+                                              {item.source_category.replace(/_/g, ' ')}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-0.5 text-[9.5px] text-slate-400 flex-wrap">
+                                          {item.credit_account_code && (
+                                            <span className="text-indigo-600 bg-indigo-50/80 px-1 py-0.2 rounded font-semibold truncate max-w-[130px]" title={`Cr: ${item.credit_account_code} - ${item.credit_account_name}`}>
+                                              Cr: {item.credit_account_code}
+                                            </span>
+                                          )}
+                                          {item.cash_account_name && (
+                                            <span className="font-medium text-slate-600 bg-slate-100 px-1 py-0.2 rounded truncate max-w-[110px]" title={`Kas: ${item.cash_account_name}`}>
+                                              Kas: {item.cash_account_name}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
                                       {selectedPlan.status !== 'published' && (
-                                        <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover:opacity-100 transition ml-1">
+                                        <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover:opacity-100 transition">
                                           <button
                                             type="button"
                                             onClick={() => handleOpenEditIncome(item)}
                                             className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition cursor-pointer"
-                                            title="Petakan Sebaran Bulanan"
+                                            title="Ubah & Petakan Pos Penerimaan"
                                           >
                                             <Edit2 className="w-3.5 h-3.5" />
                                           </button>
@@ -1931,7 +2248,7 @@ export default function BudgetPlans() {
                                       {MONTHS.map(m => {
                                         const val = item.monthly_distribution?.[m.key] || 0;
                                         return (
-                                          <td key={m.key} className="px-2.5 py-2.5 text-right font-mono text-[11px] whitespace-nowrap text-slate-700">
+                                          <td key={m.key} className="px-2.5 py-2.5 text-right text-[11px] whitespace-nowrap text-slate-700">
                                             {val > 0 ? (
                                               <span className="text-emerald-700 font-medium">{formatCurrency(val)}</span>
                                             ) : (
@@ -1940,12 +2257,12 @@ export default function BudgetPlans() {
                                           </td>
                                         );
                                       })}
-                                      <td className="px-3 py-2.5 text-right font-bold font-mono text-emerald-700 bg-emerald-50/90 group-hover:bg-emerald-100/90 whitespace-nowrap sticky right-0 z-10">
+                                      <td className="px-3 py-2.5 text-right font-bold text-emerald-700 bg-emerald-50/90 group-hover:bg-emerald-100/90 whitespace-nowrap sticky right-0 z-10">
                                         {formatCurrency(itemTotal)}
                                       </td>
                                     </>
                                   ) : (
-                                    <td className="px-4 py-2.5 text-right font-bold font-mono text-emerald-700 bg-emerald-50/90 group-hover:bg-emerald-100/90 whitespace-nowrap sticky right-0 z-10">
+                                    <td className="px-4 py-2.5 text-right font-bold text-emerald-700 bg-emerald-50/90 group-hover:bg-emerald-100/90 whitespace-nowrap sticky right-0 z-10">
                                       {formatCurrency(itemTotal)}
                                     </td>
                                   )}
@@ -1975,17 +2292,17 @@ export default function BudgetPlans() {
                                       return acc + parseFloat(item.monthly_distribution?.[m.key] || 0);
                                     }, 0);
                                     return (
-                                      <td key={m.key} className="px-2.5 py-3 text-right font-mono text-[11px] whitespace-nowrap text-emerald-900 font-bold">
+                                      <td key={m.key} className="px-2.5 py-3 text-right text-[11px] whitespace-nowrap text-emerald-900 font-bold">
                                         {formatCurrency(sumMonth)}
                                       </td>
                                     );
                                   })}
-                                  <td className="px-3 py-3 text-right font-mono font-black text-emerald-950 bg-emerald-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
+                                  <td className="px-3 py-3 text-right font-black text-emerald-950 bg-emerald-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
                                     {formatCurrency(selectedPlan.total_planned_income || 0)}
                                   </td>
                                 </>
                               ) : (
-                                <td className="px-4 py-3 text-right font-mono font-black text-emerald-950 bg-emerald-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
+                                <td className="px-4 py-3 text-right font-black text-emerald-950 bg-emerald-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
                                   {formatCurrency(selectedPlan.total_planned_income || 0)}
                                 </td>
                               )}
@@ -2022,7 +2339,7 @@ export default function BudgetPlans() {
                   </div>
 
                   {/* Filter Toolbar: Bidang, Sub-Bidang, Search */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs relative z-10">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs relative z-10">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Filter Bidang */}
                       <SearchableSelect
@@ -2139,7 +2456,7 @@ export default function BudgetPlans() {
                     </div>
                   </div>
 
-                  <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white">
+                  <div className="border border-slate-200/80 rounded-xl overflow-hidden shadow-2xs bg-white">
                     <div className="overflow-auto max-h-[75vh] max-w-full relative">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
@@ -2209,7 +2526,7 @@ export default function BudgetPlans() {
                                           )}
                                         </span>
                                         {domain.code && (
-                                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
                                             {domain.code}
                                           </span>
                                         )}
@@ -2219,7 +2536,7 @@ export default function BudgetPlans() {
                                       </button>
                                     </td>
                                     {/* Harga Satuan */}
-                                    <td className="px-3 py-2 text-right font-mono text-[10px] text-slate-400 italic whitespace-nowrap bg-[#E2E8F0]">
+                                    <td className="px-3 py-2 text-right text-[10px] text-slate-400 italic whitespace-nowrap bg-[#E2E8F0]">
                                       -
                                     </td>
 
@@ -2230,7 +2547,7 @@ export default function BudgetPlans() {
                                           return (
                                             <td
                                               key={m.key}
-                                              className="px-2 py-2 text-center font-mono text-[11px] font-extrabold whitespace-nowrap text-slate-900 bg-[#E2E8F0]"
+                                              className="px-2 py-2 text-center text-[11px] font-extrabold whitespace-nowrap text-slate-900 bg-[#E2E8F0]"
                                             >
                                               {mTotal > 0 ? (
                                                 <span className="px-1.5 py-0.5 rounded font-extrabold text-[10px] bg-slate-300 text-slate-900">
@@ -2242,16 +2559,16 @@ export default function BudgetPlans() {
                                             </td>
                                           );
                                         })}
-                                        <td className="px-3 py-2 text-right font-extrabold font-mono text-rose-900 bg-rose-200/80 whitespace-nowrap sticky right-0 z-10">
+                                        <td className="px-3 py-2 text-right font-extrabold text-rose-900 bg-rose-200/80 whitespace-nowrap sticky right-0 z-10">
                                           {formatCurrency(domain.totalPlafon)}
                                         </td>
                                       </>
                                     ) : (
                                       <>
-                                        <td className="px-3 py-2 text-right text-slate-400 font-mono text-[10px] whitespace-nowrap bg-[#E2E8F0]">
+                                        <td className="px-3 py-2 text-right text-slate-400 text-[10px] whitespace-nowrap bg-[#E2E8F0]">
                                           -
                                         </td>
-                                        <td className="px-4 py-2 text-right font-extrabold font-mono text-rose-900 bg-rose-200/80 whitespace-nowrap sticky right-0 z-10">
+                                        <td className="px-4 py-2 text-right font-extrabold text-rose-900 bg-rose-200/80 whitespace-nowrap sticky right-0 z-10">
                                           {formatCurrency(domain.totalPlafon)}
                                         </td>
                                       </>
@@ -2280,7 +2597,7 @@ export default function BudgetPlans() {
                                                   )}
                                                 </span>
                                                 {sub.code && (
-                                                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
                                                     {sub.code}
                                                   </span>
                                                 )}
@@ -2291,7 +2608,7 @@ export default function BudgetPlans() {
                                             </td>
 
                                             {/* Harga Satuan */}
-                                            <td className="px-3 py-2 text-right font-mono text-[10px] text-amber-400 italic whitespace-nowrap bg-[#FEF3C7]">
+                                            <td className="px-3 py-2 text-right text-[10px] text-amber-400 italic whitespace-nowrap bg-[#FEF3C7]">
                                               -
                                             </td>
 
@@ -2302,7 +2619,7 @@ export default function BudgetPlans() {
                                                   return (
                                                     <td
                                                       key={m.key}
-                                                      className="px-2 py-2 text-center font-mono text-[11px] font-bold whitespace-nowrap text-amber-950 bg-[#FEF3C7]"
+                                                      className="px-2 py-2 text-center text-[11px] font-bold whitespace-nowrap text-amber-950 bg-[#FEF3C7]"
                                                     >
                                                       {mTotal > 0 ? (
                                                         <span className="px-1.5 py-0.5 rounded font-bold text-[10px] bg-amber-200 text-amber-950">
@@ -2314,16 +2631,16 @@ export default function BudgetPlans() {
                                                     </td>
                                                   );
                                                 })}
-                                                <td className="px-3 py-2 text-right font-bold font-mono text-amber-950 bg-amber-200/80 whitespace-nowrap sticky right-0 z-10">
+                                                <td className="px-3 py-2 text-right font-bold text-amber-950 bg-amber-200/80 whitespace-nowrap sticky right-0 z-10">
                                                   {formatCurrency(sub.totalPlafon)}
                                                 </td>
                                               </>
                                             ) : (
                                               <>
-                                                <td className="px-3 py-2 text-right text-amber-400 font-mono text-[10px] whitespace-nowrap bg-[#FEF3C7]">
+                                                <td className="px-3 py-2 text-right text-amber-400 text-[10px] whitespace-nowrap bg-[#FEF3C7]">
                                                   -
                                                 </td>
-                                                <td className="px-4 py-2 text-right font-bold font-mono text-amber-950 bg-amber-200/80 whitespace-nowrap sticky right-0 z-10">
+                                                <td className="px-4 py-2 text-right font-bold text-amber-950 bg-amber-200/80 whitespace-nowrap sticky right-0 z-10">
                                                   {formatCurrency(sub.totalPlafon)}
                                                 </td>
                                               </>
@@ -2342,7 +2659,7 @@ export default function BudgetPlans() {
                                                     <td className="px-3.5 py-2 whitespace-nowrap sticky left-0 bg-slate-100/95 hover:bg-slate-200/90 transition z-10 min-w-[240px] pl-8 sm:pl-9">
                                                       <div className="flex items-center gap-2">
                                                         {prog.code && (
-                                                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
+                                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
                                                             {prog.code}
                                                           </span>
                                                         )}
@@ -2350,7 +2667,7 @@ export default function BudgetPlans() {
                                                           {prog.name}
                                                         </span>
                                                         {prog.isAllNonItemized && (
-                                                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                                                          <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
                                                             Lump Sum
                                                           </span>
                                                         )}
@@ -2371,7 +2688,7 @@ export default function BudgetPlans() {
                                                           <button
                                                             type="button"
                                                             onClick={() => toggleProgram(prog.key)}
-                                                            className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-white hover:bg-emerald-600 hover:text-white text-slate-600 hover:border-emerald-600 border border-slate-300 shadow-2xs text-[11px] font-bold font-mono transition cursor-pointer shrink-0"
+                                                            className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-white hover:bg-emerald-600 hover:text-white text-slate-600 hover:border-emerald-600 border border-slate-300 shadow-2xs text-[11px] font-bold transition cursor-pointer shrink-0"
                                                             title={isExpanded ? `Tutup ${prog.items.length} rincian belanja` : `Buka ${prog.items.length} rincian belanja`}
                                                           >
                                                             {isExpanded ? 'v' : '>'}
@@ -2381,7 +2698,7 @@ export default function BudgetPlans() {
                                                     </td>
 
                                                     {/* Harga Satuan Header Program */}
-                                                    <td className="px-3 py-2.5 text-right font-mono text-[10px] text-slate-400 italic whitespace-nowrap">
+                                                    <td className="px-3 py-2.5 text-right text-[10px] text-slate-400 italic whitespace-nowrap">
                                                       -
                                                     </td>
 
@@ -2392,7 +2709,7 @@ export default function BudgetPlans() {
                                                           return (
                                                             <td
                                                               key={m.key}
-                                                              className="px-2 py-2.5 text-center font-mono text-[11px] font-bold whitespace-nowrap text-slate-800"
+                                                              className="px-2 py-2.5 text-center text-[11px] font-bold whitespace-nowrap text-slate-800"
                                                             >
                                                               {mTotal > 0 ? (
                                                                 <span className="px-1.5 py-0.5 rounded font-bold text-[10px] bg-slate-200/80 text-slate-800">
@@ -2404,7 +2721,7 @@ export default function BudgetPlans() {
                                                             </td>
                                                           );
                                                         })}
-                                                        <td className="px-3 py-2.5 text-right font-bold font-mono text-rose-800 bg-rose-100/90 whitespace-nowrap sticky right-0 z-10">
+                                                        <td className="px-3 py-2.5 text-right font-bold text-rose-800 bg-rose-100/90 whitespace-nowrap sticky right-0 z-10">
                                                           {formatCurrency(prog.totalPlafon)}
                                                         </td>
                                                       </>
@@ -2432,16 +2749,16 @@ export default function BudgetPlans() {
                                                         <tr key={itemIdx} className="hover:bg-emerald-50/40 bg-white border-b border-slate-100 transition group">
                                                           <td className="px-3.5 py-2 pl-12 sm:pl-14 font-medium text-slate-800 whitespace-nowrap sticky left-0 bg-white group-hover:bg-emerald-50/40 transition z-10 min-w-[240px]">
                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                              <span className="text-slate-300 font-mono text-xs select-none">↳</span>
+                                                              <span className="text-slate-300 text-xs select-none">↳</span>
                                                               <span className="font-semibold text-slate-800 text-xs">{item.name}</span>
                                                               {isLumpSum && (
-                                                                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                                                                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
                                                                   Lump Sum
                                                                 </span>
                                                               )}
                                                               {item.fund_sources && item.fund_sources.length > 1 ? (
                                                                 <span
-                                                                  className="text-[9.5px] bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded font-semibold border border-purple-200/60 shrink-0 cursor-help"
+                                                                  className="text-[9.5px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-semibold border border-indigo-200/60 shrink-0 cursor-help"
                                                                   title={item.fund_sources.map(s => `${s.name}: ${formatCurrency(s.amount)}`).join('\n')}
                                                                 >
                                                                   {item.fund_sources.length} Sumber Dana
@@ -2476,7 +2793,7 @@ export default function BudgetPlans() {
                                                             </div>
                                                           </td>
 
-                                                          <td className="px-3 py-2 text-right font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                                                          <td className="px-3 py-2 text-right text-[11px] text-slate-700 whitespace-nowrap">
                                                             {isLumpSum ? <span className="text-slate-400 font-normal">-</span> : formatCurrency(unitPrice)}
                                                           </td>
 
@@ -2489,13 +2806,13 @@ export default function BudgetPlans() {
                                                                 return (
                                                                   <td
                                                                     key={m.key}
-                                                                    className="px-2 py-2.5 text-center font-mono text-[11px] whitespace-nowrap text-slate-700"
+                                                                    className="px-2 py-2.5 text-center text-[11px] whitespace-nowrap text-slate-700"
                                                                   >
                                                                     {monthVal > 0 ? (
                                                                       <span
                                                                         className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${
                                                                           isLumpSum
-                                                                            ? 'bg-purple-50 text-purple-800 border border-purple-200/60'
+                                                                            ? 'bg-indigo-50 text-indigo-800 border border-indigo-200/60'
                                                                             : 'bg-rose-50 text-rose-700 border border-rose-200/60'
                                                                         }`}
                                                                       >
@@ -2507,7 +2824,7 @@ export default function BudgetPlans() {
                                                                   </td>
                                                                 );
                                                               })}
-                                                              <td className="px-3 py-2.5 text-right font-semibold font-mono text-rose-700 bg-rose-50/90 group-hover:bg-rose-100/90 whitespace-nowrap sticky right-0 z-10">
+                                                              <td className="px-3 py-2.5 text-right font-semibold text-rose-700 bg-rose-50/90 group-hover:bg-rose-100/90 whitespace-nowrap sticky right-0 z-10">
                                                                 {formatCurrency(totalPlafon)}
                                                               </td>
                                                             </>
@@ -2556,7 +2873,7 @@ export default function BudgetPlans() {
                                       return acc + (q * p);
                                     }, 0);
                                     return (
-                                      <td key={m.key} className="px-2 py-3 text-center font-mono text-[11px] whitespace-nowrap text-rose-900 font-bold">
+                                      <td key={m.key} className="px-2 py-3 text-center text-[11px] whitespace-nowrap text-rose-900 font-bold">
                                         {sumExpenseMonth > 0 ? (
                                           <span className="text-[10px]">{formatCurrency(sumExpenseMonth)}</span>
                                         ) : (
@@ -2565,7 +2882,7 @@ export default function BudgetPlans() {
                                       </td>
                                     );
                                   })}
-                                  <td className="px-3 py-3 text-right font-mono font-black text-rose-950 bg-rose-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
+                                  <td className="px-3 py-3 text-right font-black text-rose-950 bg-rose-100 whitespace-nowrap text-xs sticky bottom-0 right-0 z-30">
                                     {formatCurrency(filteredExpenseItems.reduce((acc, it) => acc + parseFloat(it.planned_amount || (it.quantity * it.unit_price) || 0), 0))}
                                   </td>
                                 </>
@@ -2587,7 +2904,7 @@ export default function BudgetPlans() {
 
                 {/* 3. Ringkasan Cash Flow Bulanan (Surplus / Defisit Kas per Bulan) */}
                 {budgetViewMode === 'monthly' && selectedPlan.income_items && selectedPlan.expense_items && (
-                  <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm space-y-4">
+                  <div className="bg-slate-900 text-white rounded-xl p-5 shadow-sm space-y-4">
                     {/* Header Bagian Arus Kas */}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                       <div className="flex items-center gap-2.5">
@@ -2650,19 +2967,19 @@ export default function BudgetPlans() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-800 text-xs">
                       <div>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Total Pemasukan (1 Thn)</div>
-                        <div className="text-xs sm:text-sm font-black font-mono text-emerald-400 mt-0.5">
+                        <div className="text-xs sm:text-sm font-black text-emerald-400 mt-0.5">
                           {formatCurrency(selectedPlan.total_planned_income || 0)}
                         </div>
                       </div>
                       <div>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Total Pengeluaran (1 Thn)</div>
-                        <div className="text-xs sm:text-sm font-black font-mono text-rose-400 mt-0.5">
+                        <div className="text-xs sm:text-sm font-black text-rose-400 mt-0.5">
                           {formatCurrency(selectedPlan.total_planned_expense || 0)}
                         </div>
                       </div>
                       <div>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Net Surplus / (Defisit)</div>
-                        <div className={`text-xs sm:text-sm font-black font-mono mt-0.5 ${
+                        <div className={`text-xs sm:text-sm font-black  mt-0.5 ${
                           (selectedPlan.total_planned_income - selectedPlan.total_planned_expense) >= 0
                             ? 'text-emerald-400'
                             : 'text-amber-400'
@@ -2693,7 +3010,7 @@ export default function BudgetPlans() {
                               <Layers className="w-3.5 h-3.5 text-emerald-400" />
                               Ringkasan Konsolidasi Arus Kas Keseluruhan
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-[10px] text-slate-400">
                               Arus Saldo Awal, Pemasukan, Pengeluaran, dan Saldo Akhir Kumulatif (12 Bulan)
                             </span>
                           </div>
@@ -2702,14 +3019,14 @@ export default function BudgetPlans() {
                               Saldo Kas Awal Tahun:
                             </label>
                             <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono">Rp</span>
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">Rp</span>
                               <input
                                 type="number"
                                 min="0"
                                 value={initialCashBalance === 0 ? '' : initialCashBalance}
                                 onChange={(e) => setInitialCashBalance(parseFloat(e.target.value || 0))}
                                 placeholder="0"
-                                className="w-36 pl-7 pr-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono font-bold text-sky-300 focus:outline-none focus:ring-1 focus:ring-sky-500 text-right"
+                                className="w-36 pl-7 pr-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-right"
                                 title="Saldo kas awal tahun ajaran (sisa SiLPA / kas periode sebelumnya)"
                               />
                             </div>
@@ -2760,19 +3077,19 @@ export default function BudgetPlans() {
                               const finalEnd = flowMonths.length > 0 ? flowMonths[flowMonths.length - 1].endBal : initialStart;
 
                               return (
-                                <tbody className="divide-y divide-slate-800 font-mono text-[11px]">
+                                <tbody className="divide-y divide-slate-800 text-[11px]">
                                   {/* Row 1: Saldo Awal Kas */}
                                   <tr className="bg-slate-900/40">
-                                    <td className="py-2.5 px-3 text-sky-400 font-bold whitespace-nowrap flex items-center gap-1.5">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                                    <td className="py-2.5 px-3 text-indigo-400 font-bold whitespace-nowrap flex items-center gap-1.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
                                       <span>Saldo Awal Kas</span>
                                     </td>
                                     {flowMonths.map(m => (
-                                      <td key={m.key} className="py-2.5 px-2 text-right text-sky-300 font-semibold">
+                                      <td key={m.key} className="py-2.5 px-2 text-right text-indigo-300 font-semibold">
                                         {formatCurrency(m.startBal)}
                                       </td>
                                     ))}
-                                    <td className="py-2.5 px-3 text-right font-bold text-sky-400 bg-slate-800/60">
+                                    <td className="py-2.5 px-3 text-right font-bold text-indigo-400 bg-slate-800/60">
                                       {formatCurrency(initialStart)}
                                     </td>
                                   </tr>
@@ -2938,7 +3255,7 @@ export default function BudgetPlans() {
 
                                     <div className="flex items-center gap-2">
                                       {/* Status Badge */}
-                                      <div className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 ${
+                                      <div className={`px-2.5 py-1 rounded-lg text-xs font-bold  flex items-center gap-1.5 ${
                                         hasNoExpense
                                           ? 'bg-slate-800 text-slate-400 border border-slate-700'
                                           : isSurplus
@@ -3000,19 +3317,19 @@ export default function BudgetPlans() {
                                          const finalPosEnd = flowPosMonths.length > 0 ? flowPosMonths[flowPosMonths.length - 1].endBal : 0;
 
                                          return (
-                                           <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                                           <tbody className="divide-y divide-slate-800/60 text-[11px]">
                                              {/* Row 1: Saldo Awal Pos */}
                                              <tr className="bg-slate-900/40">
-                                               <td className="py-2 px-3 text-sky-400 font-bold whitespace-nowrap flex items-center gap-1">
-                                                 <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                                               <td className="py-2 px-3 text-indigo-400 font-bold whitespace-nowrap flex items-center gap-1">
+                                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
                                                  <span>Saldo Awal Kas Pos</span>
                                                </td>
                                                {flowPosMonths.map(m => (
-                                                 <td key={m.key} className="py-2 px-2 text-right text-sky-300/90 font-medium">
+                                                 <td key={m.key} className="py-2 px-2 text-right text-indigo-200 font-medium">
                                                    {formatCurrency(m.startBal)}
                                                  </td>
                                                ))}
-                                               <td className="py-2 px-3 text-right font-bold text-sky-400 bg-slate-900/60">
+                                               <td className="py-2 px-3 text-right font-bold text-indigo-400 bg-slate-900/60">
                                                  Rp 0
                                                </td>
                                              </tr>
@@ -3108,7 +3425,7 @@ export default function BudgetPlans() {
                                               <TrendingUp className="w-3.5 h-3.5" />
                                               Sumber Pendapatan ({grp.income_items.length})
                                             </span>
-                                            <span className="text-[11px] font-mono text-emerald-300 font-bold">
+                                            <span className="text-[11px] text-emerald-300 font-bold">
                                               {formatCurrency(grp.total_income)}
                                             </span>
                                           </div>
@@ -3120,7 +3437,7 @@ export default function BudgetPlans() {
                                                   className="p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center justify-between gap-2 text-[11px]"
                                                 >
                                                   <span className="font-medium text-slate-200">{inc.name}</span>
-                                                  <span className="font-mono text-emerald-300 font-bold shrink-0">
+                                                  <span className="text-emerald-300 font-bold shrink-0">
                                                     {formatCurrency(inc.planned_amount)}
                                                   </span>
                                                 </div>
@@ -3140,7 +3457,7 @@ export default function BudgetPlans() {
                                               <Wallet className="w-3.5 h-3.5" />
                                               Kegiatan Belanja Program ({grp.expense_items.length})
                                             </span>
-                                            <span className="text-[11px] font-mono text-rose-300 font-bold">
+                                            <span className="text-[11px] text-rose-300 font-bold">
                                               {formatCurrency(grp.total_expense)}
                                             </span>
                                           </div>
@@ -3159,7 +3476,7 @@ export default function BudgetPlans() {
                                                         Program: {exp.budget_program_name || 'Program Umum'}
                                                       </div>
                                                     </div>
-                                                    <span className="font-mono text-rose-300 font-bold shrink-0">
+                                                    <span className="text-rose-300 font-bold shrink-0">
                                                       {formatCurrency(amount)}
                                                     </span>
                                                   </div>
@@ -3190,7 +3507,7 @@ export default function BudgetPlans() {
                 )}
               </div>
             ) : (
-              <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400 italic">
+              <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-slate-400 italic">
                 Pilih dokumen RAPBS dari daftar untuk melihat detail anggaran
               </div>
             )}
@@ -3204,31 +3521,66 @@ export default function BudgetPlans() {
       {activeMainTab === 'catalog' && (
         <div className="space-y-4">
           {/* Explanation Banner */}
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-indigo-950">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>
-                <strong>Standar Biaya &amp; Plafon Harga:</strong> Daftar acuan harga tertinggi pengadaan barang/jasa per tahun ajaran. Item belanja RAPBS divalidasi tidak boleh melebihi harga acuan ini.
-              </span>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded">
-              Standard Cost Catalog
-            </span>
+          <FlatAlertBanner
+            variant="info"
+            title="Standar Biaya & Plafon Harga Acuan"
+            description="Daftar acuan harga tertinggi pengadaan barang/jasa per tahun ajaran. Item belanja RAPBS divalidasi tidak boleh melebihi harga acuan ini."
+          />
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatRibbonCard
+              label="Total Item Standar Biaya"
+              value={`${catalogStats.total} Item`}
+              context={`${catalogStats.activeCount} Aktif • ${catalogStats.inactiveCount} Nonaktif`}
+              status="neutral"
+              icon={Tag}
+            />
+            <StatRibbonCard
+              label="Kategori Belanja"
+              value={`${catalogStats.categoriesCount} Kategori`}
+              context="Mencakup seluruh alokasi belanja"
+              status="info"
+              icon={Layers}
+            />
+            <StatRibbonCard
+              label="Pemetaan Akun COA"
+              value={`${catalogStats.withCoaCount} Item`}
+              context={`${catalogStats.total > 0 ? Math.round((catalogStats.withCoaCount / catalogStats.total) * 100) : 0}% terhubung jurnal otomatis`}
+              status="info"
+              icon={BookOpen}
+            />
+            <StatRibbonCard
+              label="Status Plafon Harga"
+              value={`${catalogStats.openPriceCount} Fleksibel`}
+              context={`${catalogStats.withPriceCount} item ada batas nominal`}
+              status="warning"
+              icon={Coins}
+            />
           </div>
 
-          {/* Search & Filters */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
+          {/* Search, Filter & Sort Controls */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Cari nama barang / jasa..."
-                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  placeholder="Cari nama barang, kode akun, kategori..."
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 />
+                {catalogSearch && (
+                  <button
+                    onClick={() => setCatalogSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
               <select
                 value={selectedExpenseCatFilter}
                 onChange={(e) => setSelectedExpenseCatFilter(e.target.value)}
@@ -3239,24 +3591,125 @@ export default function BudgetPlans() {
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+
+              <select
+                value={catalogStatusFilter}
+                onChange={(e) => setCatalogStatusFilter(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700"
+              >
+                <option value="all">Semua Status</option>
+                <option value="active">Hanya Aktif</option>
+                <option value="inactive">Hanya Non-aktif</option>
+              </select>
+
+              {/* Quick Sort Dropdown */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs text-slate-700">
+                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[11px] text-slate-500 hidden sm:inline">Urut:</span>
+                <select
+                  value={`${catalogSortField}-${catalogSortDirection}`}
+                  onChange={(e) => {
+                    const [field, dir] = e.target.value.split('-');
+                    setCatalogSortField(field);
+                    setCatalogSortDirection(dir);
+                  }}
+                  className="bg-transparent border-0 text-xs text-slate-800 font-medium focus:outline-none cursor-pointer"
+                >
+                  <option value="name-asc">Nama (A → Z)</option>
+                  <option value="name-desc">Nama (Z → A)</option>
+                  <option value="reference_price-asc">Plafon (Terendah → Tertinggi)</option>
+                  <option value="reference_price-desc">Plafon (Tertinggi → Terendah)</option>
+                  <option value="unit-asc">Satuan (A → Z)</option>
+                  <option value="expense_category_name-asc">Kategori Belanja (A → Z)</option>
+                  <option value="is_active-asc">Status (Aktif Dahulu)</option>
+                </select>
+              </div>
             </div>
-            <div className="text-xs text-slate-500">
-              Menampilkan <strong className="text-slate-800 font-bold">{filteredCatalog.length}</strong> item katalog
+
+            <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 shrink-0">
+              <span>
+                Menampilkan <strong className="text-slate-800 font-bold">{filteredCatalog.length}</strong> dari {catalogStats.total} item
+              </span>
             </div>
           </div>
 
           {/* Table Katalog */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-auto max-h-[75vh] max-w-full relative">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-20 shadow-2xs">
                   <tr>
-                    <th className="px-5 py-3 sticky top-0 left-0 bg-slate-50 z-30">Nama Barang / Jasa</th>
-                    <th className="px-5 py-3 bg-slate-50">Satuan</th>
-                    <th className="px-5 py-3 bg-slate-50">Kategori Pengeluaran</th>
-                    <th className="px-5 py-3 text-right bg-slate-50">Harga Acuan Plafon (Rp)</th>
-                    <th className="px-5 py-3 bg-slate-50">Status</th>
-                    <th className="px-5 py-3 text-right sticky top-0 right-0 bg-slate-50 z-30">Aksi &amp; Riwayat</th>
+                    <th
+                      onClick={() => handleSortCatalog('name')}
+                      className="px-5 py-3.5 sticky top-0 left-0 bg-slate-50 z-30 cursor-pointer select-none hover:bg-slate-100 transition group"
+                      title="Klik untuk mengubah urutan nama barang / jasa"
+                    >
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-700 group-hover:text-indigo-600">
+                        <span>Nama Barang / Jasa</span>
+                        {catalogSortField === 'name' ? (
+                          catalogSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 transition" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSortCatalog('unit')}
+                      className="px-5 py-3.5 bg-slate-50 cursor-pointer select-none hover:bg-slate-100 transition group"
+                      title="Klik untuk mengubah urutan satuan"
+                    >
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-700 group-hover:text-indigo-600">
+                        <span>Satuan</span>
+                        {catalogSortField === 'unit' ? (
+                          catalogSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 transition" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSortCatalog('expense_category_name')}
+                      className="px-5 py-3.5 bg-slate-50 cursor-pointer select-none hover:bg-slate-100 transition group"
+                      title="Klik untuk mengubah urutan kategori & akun"
+                    >
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-700 group-hover:text-indigo-600">
+                        <span>Kategori Pengeluaran &amp; COA</span>
+                        {catalogSortField === 'expense_category_name' ? (
+                          catalogSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 transition" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSortCatalog('reference_price')}
+                      className="px-5 py-3.5 text-right bg-slate-50 cursor-pointer select-none hover:bg-slate-100 transition group"
+                      title="Klik untuk mengubah urutan harga acuan plafon"
+                    >
+                      <div className="flex items-center justify-end gap-1.5 font-semibold text-slate-700 group-hover:text-indigo-600">
+                        <span>Harga Acuan Plafon (Rp)</span>
+                        {catalogSortField === 'reference_price' ? (
+                          catalogSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 transition" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSortCatalog('is_active')}
+                      className="px-5 py-3.5 bg-slate-50 cursor-pointer select-none hover:bg-slate-100 transition group"
+                      title="Klik untuk mengubah urutan status aktif/non-aktif"
+                    >
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-700 group-hover:text-indigo-600">
+                        <span>Status</span>
+                        {catalogSortField === 'is_active' ? (
+                          catalogSortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600 font-bold" /> : <ArrowDown className="w-3.5 h-3.5 text-indigo-600 font-bold" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-slate-300 opacity-60 group-hover:opacity-100 transition" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-5 py-3.5 text-right sticky top-0 right-0 bg-slate-50 z-30">Aksi &amp; Riwayat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -3276,25 +3729,37 @@ export default function BudgetPlans() {
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-slate-600">
-                          <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-[11px] font-semibold">{item.unit}</span>
+                          <span className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-semibold">{item.unit}</span>
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
-                            {item.expense_category_name || 'Beban Operasional'}
-                          </span>
+                          <div className="space-y-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-block">
+                              {item.expense_category_name || 'Beban Operasional'}
+                            </span>
+                            {item.account_code ? (
+                              <div className="text-[10.5px] text-slate-600 flex items-center gap-1">
+                                <span className="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1 py-0.2 rounded text-[9.5px]">
+                                  {item.account_code}
+                                </span>
+                                <span className="truncate max-w-[150px]" title={item.account_name}>{item.account_name}</span>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-400 italic">Belum terhubung ke COA</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 text-right font-bold text-slate-800">
                           {formatCurrency(item.reference_price)}
                         </td>
                         <td className="px-5 py-3.5">
                           {item.is_active ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                            <StatusPill variant="success">
                               <CheckCircle2 className="w-3 h-3" /> Aktif
-                            </span>
+                            </StatusPill>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                            <StatusPill variant="neutral">
                               <XCircle className="w-3 h-3" /> Non-aktif
-                            </span>
+                            </StatusPill>
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right">
@@ -3323,7 +3788,7 @@ export default function BudgetPlans() {
                               type="button"
                               onClick={() => handleOpenPriceHistory(item)}
                               title="Lihat Riwayat Perubahan Harga Acuan"
-                              className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                             >
                               <History className="w-3.5 h-3.5" />
                             </button>
@@ -3346,7 +3811,7 @@ export default function BudgetPlans() {
       {/* Modal Realisasi Anggaran Real-Time (Fitur #12) */}
       {realizationModalOpen && realizationData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Realisasi Anggaran RAPBS (Real-Time)</h2>
@@ -3408,7 +3873,7 @@ export default function BudgetPlans() {
       {/* Modal Buat Draft RAPBS Baru */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h2 className="text-sm font-bold text-slate-800">Buat Draft Dokumen RAPBS Baru</h2>
               <button type="button" onClick={() => setCreateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
@@ -3441,7 +3906,7 @@ export default function BudgetPlans() {
       {/* Modal Buat Revisi (Versi Baru) */}
       {revisionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Buat Revisi RAPBS (Versi Baru)</h2>
@@ -3479,104 +3944,415 @@ export default function BudgetPlans() {
       {/* ========================================================================= */}
       {incomeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Coins className="w-5 h-5 text-emerald-600" />
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 border border-slate-100 max-h-[92vh] overflow-y-auto space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-600 rounded-xl text-white shadow-sm">
+                  <Coins className="w-5 h-5" />
+                </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-800">
-                    {editingIncomeItem ? 'Pemetaan Alokasi Bulanan' : 'Tambah Pos Penerimaan'}
+                  <h2 className="text-base font-bold text-slate-800">
+                    {editingIncomeItem ? 'Ubah Pos Rencana Penerimaan RAPBS' : 'Tambah Pos Rencana Penerimaan RAPBS'}
                   </h2>
-                  <p className="text-[11px] text-slate-400">Petakan target rencana penerimaan kas per bulan (Juli s.d. Juni)</p>
+                  <p className="text-xs text-slate-400">
+                    Petakan target pendapatan, akun akuntansi (COA), rekening kas penampung, dan alokasi periode penerimaan
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIncomeModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSaveIncomeMonthly} className="space-y-4">
+              {/* 1. Kategori Sumber Penerimaan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pos Jenis Tagihan Biaya Pendidikan <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Kategori Sumber Dana / Penerimaan *
                 </label>
-                <SearchableSelect
-                  value={incomeFormFeeTypeId}
-                  onChange={(val) => {
-                    setIncomeFormFeeTypeId(val ? Number(val) : '');
-                    if (val && !incomeFormName.trim()) {
-                      const selectedFt = feeTypes.find(f => f.id === Number(val));
-                      if (selectedFt) {
-                        setIncomeFormName(`Penerimaan ${selectedFt.name}`);
-                      }
-                    }
-                  }}
-                  placeholder="-- Pilih Jenis Tagihan (SPP, DSP, BOS, dll) --"
-                  searchPlaceholder="Cari jenis tagihan..."
-                  options={[
-                    { value: '', label: '-- Tanpa Jenis Tagihan / Sumber Dana Lainnya --' },
-                    ...feeTypes.map(f => ({
-                      value: f.id,
-                      label: f.name,
-                      sublabel: f.billing_pattern ? `Pola: ${f.billing_pattern === 'monthly' ? 'Bulanan' : 'Non-Bulanan'}` : undefined
-                    }))
-                  ]}
-                />
-                <span className="text-[10.5px] text-slate-400 font-medium block mt-1">
-                  * Menghubungkan penerimaan ini dengan pos tagihan santri &amp; proyeksi arus kas sumber dana belanja
-                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {INCOME_SOURCE_CATEGORIES.map((cat) => {
+                    const isSelected = incomeFormSourceCategory === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setIncomeFormSourceCategory(cat.id);
+                          if (cat.id !== 'tagihan_santri') {
+                            setIncomeFormFeeTypeId('');
+                            setIncomeFormMaxCap(0);
+                          }
+                          if (!incomeFormName.trim() || incomeFormName.startsWith('Penerimaan ') || incomeFormName.startsWith('Dana ')) {
+                            if (cat.id === 'bos_pemerintah') setIncomeFormName('Penerimaan Dana BOS / Bantuan Pemerintah');
+                            else if (cat.id === 'hibah_yayasan') setIncomeFormName('Dana Hibah Yayasan / Mitra');
+                            else if (cat.id === 'donasi_wakaf_infaq') setIncomeFormName('Infaq & Donasi Santri');
+                            else if (cat.id === 'unit_usaha') setIncomeFormName('Pendapatan Unit Usaha Pesantren');
+                            else if (cat.id === 'lainnya') setIncomeFormName('Pendapatan Lain-Lain & Jasa Bank');
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
+                            : 'bg-white border-slate-200 hover:bg-slate-50/80 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-slate-800">{cat.label}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 font-black shrink-0" />}
+                        </div>
+                        <p className="text-[10px] text-slate-500 line-clamp-1">{cat.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* 2. Jenis Tagihan Santri (Jika Kategori = tagihan_santri) */}
+              {incomeFormSourceCategory === 'tagihan_santri' && (
+                <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Pos Jenis Tagihan Biaya Pendidikan <span className="text-[10px] text-slate-400 font-normal">(Terhubung dengan master tagihan)</span>
+                  </label>
+                  <SearchableSelect
+                    value={incomeFormFeeTypeId}
+                    onChange={(val) => {
+                      const numVal = val ? Number(val) : '';
+                      setIncomeFormFeeTypeId(numVal);
+                      if (val) {
+                        const selectedFt = feeTypes.find(f => f.id === Number(val));
+                        if (selectedFt) {
+                          if (!incomeFormName.trim() || incomeFormName.startsWith('Penerimaan ') || incomeFormName.startsWith('Dana ')) {
+                            setIncomeFormName(`Penerimaan ${selectedFt.name}`);
+                          }
+                          // Otomatis petakan Akun Pendapatan (Kredit) & Rekening Kas Penampung (Debet) dari Aturan Pembayaran (Kas Masuk)
+                          const resolvedRevAccId = selectedFt.related_revenue_account_id || selectedFt.billing_credit_account_id || selectedFt.payment_credit_account_id;
+                          if (resolvedRevAccId) {
+                            setIncomeFormCreditAccountId(resolvedRevAccId);
+                          }
+                          let resolvedCashAccId = selectedFt.payment_default_cash_account_id;
+                          if (!resolvedCashAccId && selectedFt.payment_debit_account_id) {
+                            const matchedCash = cashAccounts.find(c => c.account_id === selectedFt.payment_debit_account_id);
+                            if (matchedCash) resolvedCashAccId = matchedCash.id;
+                          }
+                          if (resolvedCashAccId) {
+                            setIncomeFormCashAccountId(resolvedCashAccId);
+                          }
+                          if (!incomeFormNotes.trim() && selectedFt.payment_mapping_label) {
+                            setIncomeFormNotes(`Rujukan Aturan: ${selectedFt.payment_mapping_label}`);
+                          }
+                        }
+                      }
+                    }}
+                    placeholder="-- Pilih Jenis Tagihan Santri (SPP, DSP, Gedung, dll) --"
+                    searchPlaceholder="Cari jenis tagihan..."
+                    options={[
+                      { value: '', label: '-- Tanpa Jenis Tagihan Spesifik --' },
+                      ...feeTypes.map(f => ({
+                        value: f.id,
+                        label: f.name,
+                        sublabel: `${f.billing_pattern === 'monthly' ? 'Bulanan' : 'Non-Bulanan'}${f.payment_mapping_label ? ` • Aturan Kas: ${f.payment_mapping_label}` : (f.revenue_account_name ? ` • Akun: ${f.revenue_account_name}` : '')}`
+                      }))
+                    ]}
+                  />
+                  {(() => {
+                    const selectedFt = feeTypes.find(f => f.id === Number(incomeFormFeeTypeId));
+                    if (selectedFt?.payment_mapping_label || selectedFt?.revenue_account_name) {
+                      return (
+                        <div className="p-2 bg-indigo-50/80 border border-indigo-200/80 rounded-lg text-[11px] text-indigo-900 flex items-center gap-1.5 mt-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <span>
+                            Aturan Kas Masuk Terhubung: <strong>{selectedFt.payment_mapping_label || selectedFt.payment_mapping_code || 'Standar Loket'}</strong>
+                            {selectedFt.revenue_account_code && ` (Akun Pendapatan: ${selectedFt.revenue_account_code} - ${selectedFt.revenue_account_name})`}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <div className="text-[10.5px] text-slate-500 flex items-center gap-1.5 pt-0.5">
+                    <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>
+                      Menghubungkan pos penerimaan ini dengan tagihan santri untuk sinkronisasi proyeksi arus kas dan plafon anggaran belanja.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Nama Sumber Penerimaan */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Sumber Penerimaan *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Sumber / Uraian Rencana Penerimaan *
+                </label>
                 <input
                   type="text"
                   required
                   value={incomeFormName}
                   onChange={(e) => setIncomeFormName(e.target.value)}
-                  placeholder="Contoh: Penerimaan SPP Santri Reguler"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="Contoh: Penerimaan BOS Reguler 2024/2025 atau SPP Santri Reguler"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
                 />
               </div>
 
-              {/* Summary Indicator: Plafon vs Terpetakan vs Sisa */}
+              {/* 4. Pola Alokasi / Frekuensi Penerimaan */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">Pola Alokasi Waktu Penerimaan *</label>
+                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setIncomeFormPeriodType('monthly')}
+                      className={`px-3 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        incomeFormPeriodType === 'monthly'
+                          ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" /> Penerimaan Rutin Bulanan (12 Bln)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIncomeFormPeriodType('non_monthly');
+                        if (incomeFormSingleAmount === 0) {
+                          const sumMonths = Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+                          if (sumMonths > 0) setIncomeFormSingleAmount(sumMonths);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        incomeFormPeriodType === 'non_monthly'
+                          ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Calendar className="w-3.5 h-3.5" /> Insidental / Satu Waktu (Non-Bulanan)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-form A: Non-Bulanan (Insidental / 1 Bulan Tertentu) */}
+                {incomeFormPeriodType === 'non_monthly' ? (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Nominal Rencana Penerimaan (Rp) *
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={incomeFormSingleAmount === 0 ? '' : incomeFormSingleAmount}
+                          onChange={(e) => setIncomeFormSingleAmount(parseFloat(e.target.value || 0))}
+                          placeholder="0"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                        {incomeFormSingleAmount > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-700 block mt-1">
+                            {formatCurrency(incomeFormSingleAmount)}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Bulan Target Realisasi / Pencairan *
+                        </label>
+                        <select
+                          value={incomeFormSelectedMonth}
+                          onChange={(e) => setIncomeFormSelectedMonth(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        >
+                          {MONTHS.map(m => (
+                            <option key={m.key} value={m.key}>
+                              {m.label} ({m.q})
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-slate-400 block mt-1">
+                          Penerimaan akan ditempatkan di bulan {MONTHS.find(m => m.key === incomeFormSelectedMonth)?.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Sub-form B: Bulanan (12 Bulan Grid) */
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-slate-600">Alokasi Rencana Nominal per Bulan (Tahun Ajaran):</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={handleDistributeEvenlyIncome}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10.5px] font-bold transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <Sparkles className="w-3 h-3" /> Bagi Rata 12 Bulan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplySameIncomeMonths(incomeMonthlyDist.m1 || 0)}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-[10.5px] font-semibold transition cursor-pointer"
+                          title="Terapkan nominal bulan Juli ke semua bulan"
+                        >
+                          Samakan Bulan 1
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResetIncomeMonths}
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-[10.5px] font-medium transition cursor-pointer"
+                        >
+                          Kosongkan
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                      {MONTHS.map((m) => {
+                        const val = incomeMonthlyDist[m.key] || 0;
+                        return (
+                          <div key={m.key} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/80 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
+                              <span className="text-[9px] text-slate-400 font-medium">{m.q}</span>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={val === 0 ? '' : val}
+                              onChange={(e) => {
+                                const num = parseFloat(e.target.value || 0);
+                                setIncomeMonthlyDist(prev => ({ ...prev, [m.key]: num }));
+                              }}
+                              placeholder="0"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                            {val > 0 && (
+                              <div className="text-[10px] font-bold text-emerald-700 truncate" title={formatCurrency(val)}>
+                                {formatCurrency(val)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Akun Akuntansi (COA) & Rekening Kas/Bank */}
+              <div className="p-3.5 bg-gradient-to-br from-slate-50 to-emerald-50/30 border border-slate-200/90 rounded-xl space-y-3">
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-800">Pemetaan Akun Akuntansi</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(Opsional / Otomasi Jurnal)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                      Akun Pendapatan (Kredit)
+                    </label>
+                    <SearchableSelect
+                      value={incomeFormCreditAccountId}
+                      onChange={(val) => setIncomeFormCreditAccountId(val ? Number(val) : '')}
+                      placeholder="-- Pilih Akun Pendapatan (Grup 4) --"
+                      searchPlaceholder="Cari kode / nama akun..."
+                      options={[
+                        { value: '', label: '-- Tanpa Akun Pendapatan Spesifik --' },
+                        ...chartOfAccounts.map(c => ({
+                          value: c.id,
+                          label: `${c.account_code} - ${c.account_name}`,
+                          sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'CREDIT'})`
+                        }))
+                      ]}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-slate-700 mb-1">
+                      Rekening Kas / Bank Penampung (Debet)
+                    </label>
+                    <SearchableSelect
+                      value={incomeFormCashAccountId}
+                      onChange={(val) => setIncomeFormCashAccountId(val ? Number(val) : '')}
+                      placeholder="-- Pilih Rekening Kas / Bank --"
+                      searchPlaceholder="Cari kas / bank..."
+                      options={[
+                        { value: '', label: '-- Tanpa Rekening Kas Spesifik --' },
+                        ...cashAccounts.map(c => ({
+                          value: c.id,
+                          label: c.name,
+                          sublabel: c.account_kind === 'bank' ? `Bank: ${c.bank_name || ''} - ${c.bank_account_number || ''}` : 'Kas Tunai'
+                        }))
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Catatan / Keterangan Tambahan */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Catatan / Keterangan Penerimaan <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={incomeFormNotes}
+                  onChange={(e) => setIncomeFormNotes(e.target.value)}
+                  placeholder="Keterangan tambahan mengenai sumber dana atau jadwal pencairan..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              {/* 7. Summary Target Indicator */}
               {(() => {
-                const sumMonths = Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0);
-                const isOver = incomeFormMaxCap > 0 && sumMonths > incomeFormMaxCap;
-                const diff = (incomeFormMaxCap || sumMonths) - sumMonths;
+                const totalTarget = incomeFormPeriodType === 'non_monthly'
+                  ? parseFloat(incomeFormSingleAmount || 0)
+                  : Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+
+                const isTagihan = incomeFormSourceCategory === 'tagihan_santri' && incomeFormFeeTypeId;
+                const diff = (incomeFormMaxCap || totalTarget) - totalTarget;
+                const isOver = isTagihan && incomeFormMaxCap > 0 && totalTarget > incomeFormMaxCap;
 
                 return (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <div>
                         <div className="text-[10px] uppercase font-bold text-slate-500">Plafon / Penetapan Setahun</div>
                         <div className="text-xs font-black text-slate-800 mt-0.5">
-                          {incomeFormMaxCap > 0 ? formatCurrency(incomeFormMaxCap) : 'Manual / Fleksibel'}
+                          {isTagihan && incomeFormMaxCap > 0 ? formatCurrency(incomeFormMaxCap) : 'Fleksibel / Tanpa Plafon'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase font-bold text-slate-500">Total Terpetakan (12 Bln)</div>
-                        <div className={`text-xs font-black mt-0.5 ${isOver ? 'text-rose-600' : 'text-emerald-700'}`}>
-                          {formatCurrency(sumMonths)}
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Total Rencana Penerimaan</div>
+                        <div className="text-xs font-black text-emerald-700 mt-0.5">
+                          {formatCurrency(totalTarget)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] uppercase font-bold text-slate-500">Sisa Belum Dipetakan</div>
-                        <div className={`text-xs font-black mt-0.5 ${isOver ? 'text-rose-600 font-extrabold' : 'text-indigo-700'}`}>
-                          {incomeFormMaxCap > 0 ? formatCurrency(diff) : '0'}
+                        <div className="text-[10px] uppercase font-bold text-slate-500">Status Target</div>
+                        <div className="text-xs font-bold mt-0.5">
+                          {!isTagihan ? (
+                            <span className="text-slate-600">🟢 Bebas / Non-Tagihan</span>
+                          ) : isOver ? (
+                            <span className="text-amber-600">⚡ Melebihi Penetapan (+{formatCurrency(Math.abs(diff))})</span>
+                          ) : (
+                            <span className="text-emerald-700">✓ Sesuai Penetapan (Sisa {formatCurrency(diff)})</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {isOver && (
-                      <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 font-medium flex items-center gap-2">
+                        <Info className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>
-                          Total alokasi bulanan (Rp {sumMonths.toLocaleString('id-ID')}) melebihi batas penetapan setahun (Rp {incomeFormMaxCap.toLocaleString('id-ID')}) sebesar Rp {Math.abs(diff).toLocaleString('id-ID')}.
+                          Target penerimaan melebihi penetapan tarif awal sebesar Rp {Math.abs(diff).toLocaleString('id-ID')}. Perbedaan ini diperbolehkan untuk proyeksi pendapatan fleksibel.
                         </span>
                       </div>
                     )}
@@ -3584,73 +4360,27 @@ export default function BudgetPlans() {
                 );
               })()}
 
-              {/* Quick Action Toolbar */}
-              <div className="flex items-center justify-between gap-2 pt-1">
-                <span className="text-xs font-bold text-slate-700">Rincian Nominal per Bulan (Tahun Ajaran):</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleDistributeEvenlyIncome}
-                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
-                  >
-                    <Sparkles className="w-3 h-3" /> Bagi Rata 12 Bulan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetIncomeMonths}
-                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold transition"
-                  >
-                    Kosongkan
-                  </button>
-                </div>
-              </div>
-
-              {/* 12 Bulan Input Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {MONTHS.map((m) => {
-                  const val = incomeMonthlyDist[m.key] || 0;
-                  return (
-                    <div key={m.key} className="bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
-                        <span className="text-[9px] text-slate-400 font-mono">{m.q}</span>
-                      </div>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        value={val === 0 ? '' : val}
-                        onChange={(e) => {
-                          const num = parseFloat(e.target.value || 0);
-                          setIncomeMonthlyDist(prev => ({ ...prev, [m.key]: num }));
-                        }}
-                        placeholder="0"
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                      {val > 0 && (
-                        <div className="text-[10px] font-bold text-purple-700 truncate" title={formatCurrency(val)}>
-                          {Number(val).toLocaleString('id-ID')}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIncomeModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || (incomeFormMaxCap > 0 && Object.values(incomeMonthlyDist).reduce((a, b) => a + (parseFloat(b) || 0), 0) > incomeFormMaxCap)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-50"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan Pemetaan Bulanan'}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Pos Penerimaan'
+                  )}
                 </button>
               </div>
             </form>
@@ -3663,7 +4393,7 @@ export default function BudgetPlans() {
       {/* ========================================================================= */}
       {expenseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-rose-600" />
@@ -3671,7 +4401,7 @@ export default function BudgetPlans() {
                   <h2 className="text-sm font-bold text-slate-800">
                     {editingExpenseItem ? 'Ubah Pos Belanja RAPBS' : 'Tambah Pos Belanja RAPBS'}
                   </h2>
-                  <p className="text-[11px] text-slate-400">Pilih mode penganggaran: Rincian per Item Katalog atau Lump Sum per Kegiatan</p>
+                  <p className="text-[11px] text-slate-400">Pilih mode penganggaran &amp; frekuensi alokasi kegiatan bulanan / non-bulanan</p>
                 </div>
               </div>
               <button
@@ -3684,7 +4414,7 @@ export default function BudgetPlans() {
             </div>
 
             <form onSubmit={handleSaveExpense} className="space-y-4">
-              {/* Toggle Mode Penganggaran: Itemized vs Lump Sum */}
+              {/* Toggle 1: Mode Penganggaran (Rincian per Item vs Lump Sum) */}
               <div className="p-1 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80">
                 <button
                   type="button"
@@ -3712,13 +4442,65 @@ export default function BudgetPlans() {
                   }}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     expenseForm.entry_mode === 'lump_sum'
-                      ? 'bg-purple-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Anggaran Lump Sum per Kegiatan</span>
                 </button>
+              </div>
+
+              {/* Toggle 2: Opsi Jenis Penginputan Frekuensi (Bulanan vs Non-Bulanan) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Jenis Frekuensi Pelaksanaan Kegiatan *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpenseForm(prev => ({ ...prev, period_type: 'monthly' }))}
+                    className={`p-2.5 rounded-xl border text-left transition flex items-start gap-2.5 ${
+                      expenseForm.period_type === 'monthly'
+                        ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 shadow-2xs ring-1 ring-emerald-500'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                      expenseForm.period_type === 'monthly' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      <CalendarRange className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold leading-tight">Kegiatan Bulanan (Rutin)</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Dipetakan kuantiti/nominal alokasinya pada masing-masing bulan (12 Bulan)
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseForm(prev => ({ ...prev, period_type: 'non_monthly' }))}
+                    className={`p-2.5 rounded-xl border text-left transition flex items-start gap-2.5 ${
+                      expenseForm.period_type === 'non_monthly'
+                        ? 'border-indigo-500 bg-indigo-50/70 text-indigo-950 shadow-2xs ring-1 ring-indigo-500'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                      expenseForm.period_type === 'non_monthly' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      <CalendarDays className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold leading-tight">Kegiatan Non-Bulanan (Insidental)</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Cukup input item/lumpsum &amp; langsung pilih 1 bulan pelaksanaan
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {/* Program Kerja & Sumber Dana (Wajib untuk kedua mode) */}
@@ -3742,45 +4524,45 @@ export default function BudgetPlans() {
                       </span>
                     </div>
                   </div>
-                    <SearchableSelect
-                      value={expenseForm.budget_program_id}
-                      onChange={(val) => {
-                        const pId = val ? Number(val) : '';
-                        const prog = budgetPrograms.find(p => p.id === pId);
-                        setExpenseForm(prev => ({
-                          ...prev,
-                          budget_program_id: pId,
-                          name: (prev.entry_mode === 'lump_sum' && (!prev.name.trim() || budgetPrograms.some(p => p.name === prev.name.trim()))) ? (prog?.name || '') : prev.name
+                  <SearchableSelect
+                    value={expenseForm.budget_program_id}
+                    onChange={(val) => {
+                      const pId = val ? Number(val) : '';
+                      const prog = budgetPrograms.find(p => p.id === pId);
+                      setExpenseForm(prev => ({
+                        ...prev,
+                        budget_program_id: pId,
+                        name: (prev.entry_mode === 'lump_sum' && (!prev.name.trim() || budgetPrograms.some(p => p.name === prev.name.trim()))) ? (prog?.name || '') : prev.name
+                      }));
+                    }}
+                    placeholder="-- Pilih Program Kerja RKT / RAPBS --"
+                    searchPlaceholder="Cari program, bidang, sub-bidang, atau kode..."
+                    options={(() => {
+                      const seen = new Set();
+                      return budgetPrograms
+                        .filter(p => {
+                          const key = `${p.id}_${p.name}`;
+                          if (seen.has(key)) return false;
+                          seen.add(key);
+                          return true;
+                        })
+                        .sort((a, b) => {
+                          if (a.domain_order_index !== b.domain_order_index) return (a.domain_order_index ?? 999) - (b.domain_order_index ?? 999);
+                          if (a.subdomain_order_index !== b.subdomain_order_index) return (a.subdomain_order_index ?? 999) - (b.subdomain_order_index ?? 999);
+                          if (a.order_index !== b.order_index) return (a.order_index ?? 999) - (b.order_index ?? 999);
+                          if (a.code && b.code) return a.code.localeCompare(b.code, undefined, { numeric: true });
+                          return a.name.localeCompare(b.name);
+                        })
+                        .map(p => ({
+                          value: p.id,
+                          label: p.name,
+                          sublabel: p.domain_name
+                            ? `Bidang: ${p.domain_name}${p.subdomain_name ? ` > ${p.subdomain_name}` : ''}`
+                            : (p.category_name ? `Kategori: ${p.category_name}` : 'Program RKT'),
+                          badge: p.domain_code || p.code || undefined
                         }));
-                      }}
-                      placeholder="-- Pilih Program Kerja RKT / RAPBS --"
-                      searchPlaceholder="Cari program, bidang, sub-bidang, atau kode..."
-                      options={(() => {
-                        const seen = new Set();
-                        return budgetPrograms
-                          .filter(p => {
-                            const key = `${p.id}_${p.name}`;
-                            if (seen.has(key)) return false;
-                            seen.add(key);
-                            return true;
-                          })
-                          .sort((a, b) => {
-                            if (a.domain_order_index !== b.domain_order_index) return (a.domain_order_index ?? 999) - (b.domain_order_index ?? 999);
-                            if (a.subdomain_order_index !== b.subdomain_order_index) return (a.subdomain_order_index ?? 999) - (b.subdomain_order_index ?? 999);
-                            if (a.order_index !== b.order_index) return (a.order_index ?? 999) - (b.order_index ?? 999);
-                            if (a.code && b.code) return a.code.localeCompare(b.code, undefined, { numeric: true });
-                            return a.name.localeCompare(b.name);
-                          })
-                          .map(p => ({
-                            value: p.id,
-                            label: p.name,
-                            sublabel: p.domain_name
-                              ? `Bidang: ${p.domain_name}${p.subdomain_name ? ` > ${p.subdomain_name}` : ''}`
-                              : (p.category_name ? `Kategori: ${p.category_name}` : 'Program RKT'),
-                            badge: p.domain_code || p.code || undefined
-                          }));
-                      })()}
-                    />
+                    })()}
+                  />
                   {!expenseForm.budget_program_id && (
                     <span className="text-[10.5px] text-amber-600 font-medium block mt-1">
                       * Pilih program kerja untuk mengelompokkan pos belanja ini
@@ -3822,17 +4604,17 @@ export default function BudgetPlans() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Pos Sumber Dana Belanja
                     </label>
-                    <div className="p-2.5 bg-purple-50/80 border border-purple-200 rounded-xl flex items-center justify-between text-xs">
+                    <div className="p-2.5 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <Coins className="w-4 h-4 text-purple-600 shrink-0" />
+                        <Coins className="w-4 h-4 text-indigo-600 shrink-0" />
                         <div>
-                          <span className="font-bold text-purple-950 block">Multi-Sumber Dana</span>
-                          <span className="text-[10.5px] text-purple-700">
+                          <span className="font-bold text-indigo-950 block">Multi-Sumber Dana</span>
+                          <span className="text-[10.5px] text-indigo-700">
                             {expenseForm.fund_sources?.length || 0} sumber dana ditentukan pada rincian alokasi di bawah
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-200/80 text-purple-900">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-200/80 text-indigo-900">
                         Lump Sum
                       </span>
                     </div>
@@ -3845,10 +4627,10 @@ export default function BudgetPlans() {
               {/* ============================================================== */}
               {expenseForm.entry_mode === 'lump_sum' ? (
                 <div className="space-y-4 animate-in fade-in duration-100">
-                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                  <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold">Mode Belanja Lump Sum:</span> Digunakan untuk paket kegiatan atau pengeluaran gabungan tanpa rincian item &amp; harga satuan. Uraian keperluan wajib diisi sebagai penjelasan ke auditor &amp; yayasan.
+                      <span className="font-bold">Mode Belanja Lump Sum:</span> Digunakan untuk paket kegiatan atau pengeluaran gabungan tanpa rincian item &amp; harga satuan.
                     </div>
                   </div>
 
@@ -3857,7 +4639,7 @@ export default function BudgetPlans() {
                       <label className="block text-xs font-bold text-slate-700">
                         Nama Pos / Sub-Kegiatan <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
                       </label>
-                      <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-2 py-0.2 rounded-full border border-purple-200">
+                      <span className="text-[10px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.2 rounded-full border border-indigo-200">
                         Default: Nama Program Kerja
                       </span>
                     </div>
@@ -3868,54 +4650,73 @@ export default function BudgetPlans() {
                       placeholder={
                         budgetPrograms.find(p => p.id === Number(expenseForm.budget_program_id))?.name || "Otomatis menggunakan Nama Program Kerja"
                       }
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      * Dikosongkan jika anggaran mewakili program kerja secara langsung. Isi jika ingin menentukan nama sub-kegiatan tertentu.
-                    </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Uraian Keperluan / Penjelasan Kegiatan *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Uraian Keperluan / Penjelasan Kegiatan <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                    </label>
                     <textarea
-                      required
-                      rows={3}
+                      rows={2}
                       value={expenseForm.lump_sum_description}
                       onChange={(e) => setExpenseForm({ ...expenseForm, lump_sum_description: e.target.value })}
-                      placeholder="Jelaskan ruang lingkup anggaran, peruntukan dana, dan alasan penganggaran secara gelondongan (contoh: Termasuk hadiah piala, konsumsi 150 santri, sewa panggung, dan operasional dewan juri)."
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                      placeholder="Jelaskan ruang lingkup anggaran, peruntukan dana, dan alasan penganggaran secara gelondongan."
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Total Pagu Anggaran (Rp) *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="any"
-                      required
-                      value={expenseForm.planned_amount === 0 ? '' : expenseForm.planned_amount}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, planned_amount: parseFloat(e.target.value || 0) })}
-                      placeholder="Contoh: 5000000"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-purple-900 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                    />
-                    {expenseForm.planned_amount > 0 && (
-                      <span className="text-[11px] font-bold text-purple-700 block mt-1">
-                        {Number(expenseForm.planned_amount).toLocaleString('id-ID')}
-                      </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Total Pagu Anggaran (Rp) *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="any"
+                        required
+                        value={expenseForm.planned_amount === 0 ? '' : expenseForm.planned_amount}
+                        onChange={(e) => setExpenseForm({ ...expenseForm, planned_amount: parseFloat(e.target.value || 0) })}
+                        placeholder="Contoh: 5000000"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                      {expenseForm.planned_amount > 0 && (
+                        <span className="text-[11px] font-bold text-indigo-700 block mt-1">
+                          {Number(expenseForm.planned_amount).toLocaleString('id-ID')}
+                        </span>
+                      )}
+                    </div>
+
+                    {expenseForm.period_type === 'non_monthly' && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Bulan Pelaksanaan Kegiatan *
+                        </label>
+                        <select
+                          value={expenseForm.selected_month}
+                          onChange={(e) => setExpenseForm({ ...expenseForm, selected_month: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        >
+                          {MONTHS.map(m => (
+                            <option key={m.key} value={m.key}>
+                              {m.label} ({m.q})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     )}
                   </div>
 
                   {/* Multi-Source Funding Allocator for Lump Sum */}
-                  <div className="bg-purple-900/5 border border-purple-200 rounded-xl p-3.5 space-y-3">
+                  <div className="bg-indigo-900/5 border border-indigo-200 rounded-xl p-3.5 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
-                          <Coins className="w-4 h-4 text-purple-600" />
+                        <div className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                          <Coins className="w-4 h-4 text-indigo-600" />
                           <span>Alokasi Pos Sumber Dana (Bisa Multi-Sumber Dana) *</span>
                         </div>
-                        <p className="text-[11px] text-purple-700 mt-0.5">
-                          Tentukan satu atau beberapa Sumber Pendapatan RAPBS untuk mendanai kegiatan lump sum ini beserta nominal alokasinya.
+                        <p className="text-[11px] text-indigo-700 mt-0.5">
+                          Tentukan satu atau beberapa Sumber Pendapatan RAPBS untuk mendanai kegiatan ini.
                         </p>
                       </div>
                       <button
@@ -3929,7 +4730,7 @@ export default function BudgetPlans() {
                             ]
                           }));
                         }}
-                        className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 self-start sm:self-auto transition shrink-0"
+                        className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 self-start sm:self-auto transition shrink-0"
                       >
                         <Plus className="w-3.5 h-3.5" /> Tambah Sumber Dana
                       </button>
@@ -3938,7 +4739,7 @@ export default function BudgetPlans() {
                     <div className="space-y-2">
                       {expenseForm.fund_sources.map((fs, fIdx) => {
                         return (
-                          <div key={fIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 bg-white border border-purple-100 rounded-xl shadow-2xs">
+                          <div key={fIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 bg-white border border-indigo-100 rounded-xl shadow-2xs">
                             <div className="flex-1 min-w-[200px]">
                               <SearchableSelect
                                 value={fs.income_item_id}
@@ -3969,7 +4770,7 @@ export default function BudgetPlans() {
                                   setExpenseForm(prev => ({ ...prev, fund_sources: updated }));
                                 }}
                                 placeholder="Nominal Alokasi"
-                                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-right"
+                                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-right"
                               />
                             </div>
                             {expenseForm.fund_sources.length > 1 && (
@@ -3998,15 +4799,15 @@ export default function BudgetPlans() {
                       const isMatched = Math.abs(diff) <= 1 && pagu > 0;
 
                       return (
-                        <div className="p-2.5 rounded-xl bg-purple-100/70 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-indigo-100/70 border border-indigo-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                           <div className="flex items-center gap-3">
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-purple-700 block">Total Pagu Kegiatan:</span>
-                              <span className="font-mono font-bold text-slate-800">{formatCurrency(pagu)}</span>
+                              <span className="text-[10px] uppercase font-bold text-indigo-700 block">Total Pagu Kegiatan:</span>
+                              <span className="font-bold text-slate-800">{formatCurrency(pagu)}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-purple-700 block">Total Alokasi Sumber:</span>
-                              <span className="font-mono font-bold text-purple-900">{formatCurrency(totalAllocated)}</span>
+                              <span className="text-[10px] uppercase font-bold text-indigo-700 block">Total Alokasi Sumber:</span>
+                              <span className="font-bold text-indigo-900">{formatCurrency(totalAllocated)}</span>
                             </div>
                           </div>
 
@@ -4028,7 +4829,7 @@ export default function BudgetPlans() {
                                     updated[lastIdx].amount = (parseFloat(updated[lastIdx].amount) || 0) + diff;
                                     setExpenseForm(prev => ({ ...prev, fund_sources: updated }));
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[10.5px] font-semibold transition"
+                                  className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] font-semibold transition"
                                 >
                                   Penuhi Sisa Alokasi
                                 </button>
@@ -4044,110 +4845,172 @@ export default function BudgetPlans() {
                     })()}
                   </div>
 
-                  {/* Summary Sebaran Bulanan Lump Sum */}
-                  {(() => {
-                    const sumMonths = Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0);
-                    const planned = parseFloat(expenseForm.planned_amount || 0);
-                    const diff = planned - sumMonths;
-                    const isMismatched = planned > 0 && sumMonths !== planned;
-
-                    return (
-                      <div className="space-y-2 pt-2 border-t border-slate-100">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-slate-500">Pagu Total Kegiatan</div>
-                            <div className="text-xs font-black text-slate-800 mt-0.5">
-                              {planned > 0 ? formatCurrency(planned) : 'Rp 0'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-slate-500">Total Terpetakan (12 Bln)</div>
-                            <div className={`text-xs font-black mt-0.5 ${isMismatched ? 'text-rose-600' : 'text-purple-700'}`}>
-                              {formatCurrency(sumMonths)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-slate-500">Selisih</div>
-                            <div className={`text-xs font-black mt-0.5 ${diff !== 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
-                              {formatCurrency(diff)}
-                            </div>
-                          </div>
-                        </div>
-
-                        {isMismatched && (
-                          <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                            <span>
-                              Total alokasi 12 bulan ({formatCurrency(sumMonths)}) harus sama persis dengan Total Pagu Anggaran ({formatCurrency(planned)}).
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                          <span className="text-xs font-bold text-slate-700">Rincian Alokasi Kas per Bulan:</span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={handleDistributeEvenlyLumpSum}
-                              disabled={!expenseForm.planned_amount || expenseForm.planned_amount <= 0}
-                              className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 disabled:opacity-50"
-                            >
-                              <Sparkles className="w-3 h-3" /> Bagi Rata 12 Bulan
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const dist = {};
-                                MONTHS.forEach(m => { dist[m.key] = 0; });
-                                setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
-                              }}
-                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold transition"
-                            >
-                              Kosongkan
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* 12 Bulan Input Nominal Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                          {MONTHS.map((m) => {
-                            const val = expenseForm.monthly_distribution[m.key] || 0;
-                            return (
-                              <div key={m.key} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200 space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
-                                  <span className="text-[9px] text-slate-400 font-mono">{m.q}</span>
-                                </div>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="any"
-                                  value={val === 0 ? '' : val}
-                                  onChange={(e) => {
-                                    const num = parseFloat(e.target.value || 0);
-                                    setExpenseForm(prev => ({
-                                      ...prev,
-                                      monthly_distribution: {
-                                        ...prev.monthly_distribution,
-                                        [m.key]: num
-                                      }
-                                    }));
-                                  }}
-                                  placeholder="0"
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono font-medium text-center focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                                />
-                                {val > 0 && (
-                                  <div className="text-[9px] font-bold text-purple-700 truncate text-center" title={formatCurrency(val)}>
-                                    {Number(val).toLocaleString('id-ID')}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                  {/* Akun Akuntansi untuk Mode Lump Sum */}
+                  <div className="bg-indigo-50/60 border border-indigo-200/80 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs font-bold text-slate-800">Akun Akuntansi Terkait (Opsional / Otomatisasi)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Akun Debet (Beban)</label>
+                        <SearchableSelect
+                          value={expenseForm.debit_account_id}
+                          onChange={(val) => setExpenseForm(prev => ({ ...prev, debit_account_id: val ? Number(val) : '' }))}
+                          placeholder="-- Pilih Akun Debet (Beban) --"
+                          searchPlaceholder="Cari kode / nama akun..."
+                          options={[
+                            { value: '', label: '-- Tanpa Akun Debet Spesifik --' },
+                            ...chartOfAccounts.map(c => ({
+                              value: c.id,
+                              label: `${c.account_code} - ${c.account_name}`,
+                              sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'DEBIT'})`
+                            }))
+                          ]}
+                        />
                       </div>
-                    );
-                  })()}
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-slate-700 mb-1">Akun Kredit (Kas/Utang)</label>
+                        <SearchableSelect
+                          value={expenseForm.credit_account_id}
+                          onChange={(val) => setExpenseForm(prev => ({ ...prev, credit_account_id: val ? Number(val) : '' }))}
+                          placeholder="-- Pilih Akun Kredit --"
+                          searchPlaceholder="Cari kode / nama akun..."
+                          options={[
+                            { value: '', label: '-- Tanpa Akun Kredit Spesifik --' },
+                            ...chartOfAccounts.map(c => ({
+                              value: c.id,
+                              label: `${c.account_code} - ${c.account_name}`,
+                              sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'CREDIT'})`
+                            }))
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Jika Mode Bulanan: 12 Bulan Grid */}
+                  {expenseForm.period_type === 'monthly' ? (
+                    (() => {
+                      const sumMonths = Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+                      const planned = parseFloat(expenseForm.planned_amount || 0);
+                      const diff = planned - sumMonths;
+                      const isMismatched = planned > 0 && sumMonths !== planned;
+
+                      return (
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-500">Pagu Total Kegiatan</div>
+                              <div className="text-xs font-black text-slate-800 mt-0.5">
+                                {planned > 0 ? formatCurrency(planned) : 'Rp 0'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-500">Total Terpetakan (12 Bln)</div>
+                              <div className={`text-xs font-black mt-0.5 ${isMismatched ? 'text-rose-600' : 'text-indigo-700'}`}>
+                                {formatCurrency(sumMonths)}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-500">Selisih</div>
+                              <div className={`text-xs font-black mt-0.5 ${diff !== 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                {formatCurrency(diff)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isMismatched && (
+                            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                              <span>
+                                Total alokasi 12 bulan ({formatCurrency(sumMonths)}) harus sama persis dengan Total Pagu Anggaran ({formatCurrency(planned)}).
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <span className="text-xs font-bold text-slate-700">Rincian Alokasi Kas per Bulan:</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={handleDistributeEvenlyLumpSum}
+                                disabled={!expenseForm.planned_amount || expenseForm.planned_amount <= 0}
+                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 disabled:opacity-50"
+                              >
+                                <Sparkles className="w-3 h-3" /> Bagi Rata 12 Bulan
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const dist = {};
+                                  MONTHS.forEach(m => { dist[m.key] = 0; });
+                                  setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
+                                }}
+                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold transition"
+                              >
+                                Kosongkan
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 12 Bulan Input Nominal Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                            {MONTHS.map((m) => {
+                              const val = expenseForm.monthly_distribution[m.key] || 0;
+                              return (
+                                <div key={m.key} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
+                                    <span className="text-[9px] text-slate-400">{m.q}</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={val === 0 ? '' : val}
+                                    onChange={(e) => {
+                                      const num = parseFloat(e.target.value || 0);
+                                      setExpenseForm(prev => ({
+                                        ...prev,
+                                        monthly_distribution: {
+                                          ...prev.monthly_distribution,
+                                          [m.key]: num
+                                        }
+                                      }));
+                                    }}
+                                    placeholder="0"
+                                    className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                  />
+                                  {val > 0 && (
+                                    <div className="text-[9px] font-bold text-indigo-700 truncate text-center" title={formatCurrency(val)}>
+                                      {Number(val).toLocaleString('id-ID')}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    /* Summary Non-Bulanan Lump Sum */
+                    <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-600">Bulan Pelaksanaan: </span>
+                        <strong className="text-indigo-900 font-bold">
+                          {MONTHS.find(m => m.key === expenseForm.selected_month)?.label}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-600">Total Pagu Kegiatan: </span>
+                        <strong className="text-sm font-black text-indigo-800">
+                          {formatCurrency(expenseForm.planned_amount || 0)}
+                        </strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* ============================================================== */
@@ -4155,16 +5018,16 @@ export default function BudgetPlans() {
                 /* ============================================================== */
                 <div className="space-y-4 animate-in fade-in duration-100">
                   {/* Standar Biaya & Katalog dengan tombol Tambah Cepat */}
-                  <div className="bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100 space-y-2.5">
+                  <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                         <Tag className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Pilih dari Standar Biaya &amp; Katalog Plafon</span>
+                        <span>Pilih dari Standar Biaya &amp; Katalog Plafon *</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => setQuickCatalogOpen(!quickCatalogOpen)}
-                        className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg transition shadow-2xs flex items-center gap-1"
+                        className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-white hover:bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                         <span>{quickCatalogOpen ? 'Tutup Form Katalog' : '+ Tambah Item Baru ke Katalog'}</span>
@@ -4223,20 +5086,71 @@ export default function BudgetPlans() {
                               required
                               value={quickCatalogForm.reference_price}
                               onChange={(e) => setQuickCatalogForm({ ...quickCatalogForm, reference_price: parseFloat(e.target.value || 0) })}
-                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-medium"
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium"
                             />
                             {quickCatalogForm.reference_price > 0 && (
-                              <span className="text-[10px] font-bold text-purple-700 block mt-0.5">
+                              <span className="text-[10px] font-bold text-indigo-700 block mt-0.5">
                                 {Number(quickCatalogForm.reference_price).toLocaleString('id-ID')}
                               </span>
                             )}
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Akun Debet (Beban)</label>
+                            <SearchableSelect
+                              value={quickCatalogForm.debit_account_id}
+                              onChange={(val) => setQuickCatalogForm({ ...quickCatalogForm, debit_account_id: val ? Number(val) : '' })}
+                              placeholder="-- Pilih Akun Debet --"
+                              searchPlaceholder="Cari kode / nama akun..."
+                              options={[
+                                { value: '', label: '-- Tanpa Akun Debet --' },
+                                ...chartOfAccounts.map(c => ({
+                                  value: c.id,
+                                  label: `${c.account_code} - ${c.account_name}`,
+                                  sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'DEBIT'})`
+                                }))
+                              ]}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Akun Kredit (Kas/Utang)</label>
+                            <SearchableSelect
+                              value={quickCatalogForm.credit_account_id}
+                              onChange={(val) => setQuickCatalogForm({ ...quickCatalogForm, credit_account_id: val ? Number(val) : '' })}
+                              placeholder="-- Pilih Akun Kredit --"
+                              searchPlaceholder="Cari kode / nama akun..."
+                              options={[
+                                { value: '', label: '-- Tanpa Akun Kredit --' },
+                                ...chartOfAccounts.map(c => ({
+                                  value: c.id,
+                                  label: `${c.account_code} - ${c.account_name}`,
+                                  sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'CREDIT'})`
+                                }))
+                              ]}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Pos Sumber Dana RAPBS Terkait</label>
+                            <SearchableSelect
+                              value={quickCatalogForm.fund_source_income_item_id}
+                              onChange={(val) => setQuickCatalogForm({ ...quickCatalogForm, fund_source_income_item_id: val ? Number(val) : '' })}
+                              placeholder="-- Pilih Sumber Dana RAPBS --"
+                              searchPlaceholder="Cari pos sumber dana..."
+                              options={[
+                                { value: '', label: '-- Tanpa Pos Sumber Dana Tetap --' },
+                                ...(selectedPlan?.income_items || []).map(inc => ({
+                                  value: inc.id,
+                                  label: inc.name,
+                                  sublabel: `Target: ${formatCurrency(inc.planned_amount || 0)}`
+                                }))
+                              ]}
+                            />
                           </div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                           <button
                             type="button"
                             onClick={() => setQuickCatalogOpen(false)}
-                            className="px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 rounded-lg"
+                            className="px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                           >
                             Batal
                           </button>
@@ -4244,7 +5158,7 @@ export default function BudgetPlans() {
                             type="button"
                             onClick={handleQuickAddCatalogSubmit}
                             disabled={submittingQuickCatalog || !quickCatalogForm.name.trim()}
-                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold shadow-2xs disabled:opacity-50"
+                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold shadow-2xs disabled:opacity-50 cursor-pointer"
                           >
                             {submittingQuickCatalog ? 'Menyimpan...' : 'Simpan & Pilih Item'}
                           </button>
@@ -4264,185 +5178,270 @@ export default function BudgetPlans() {
                       }))}
                     />
 
-                    {expenseForm.catalog_reference_price !== null && (
-                      <div className="text-[11px] text-indigo-800 flex items-center justify-between">
-                        <span className="flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                          Harga Acuan Tertinggi: <strong>{formatCurrency(expenseForm.catalog_reference_price)} / {expenseForm.unit}</strong>
-                        </span>
-                        <span className="text-[10px] text-slate-500">Harga satuan tidak boleh melebihi batas ini</span>
+                    {expenseForm.catalog_item_id && (
+                      <div className="space-y-1.5 pt-1">
+                        <div className="p-2.5 bg-white border border-indigo-200 rounded-xl flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-indigo-600 shrink-0" />
+                            <div>
+                              <span className="font-bold text-slate-800 block">
+                                {catalogItems.find(c => c.id === Number(expenseForm.catalog_item_id))?.name || expenseForm.name}
+                              </span>
+                              <span className="text-[10.5px] text-slate-500">
+                                Plafon Acuan: {formatCurrency(expenseForm.catalog_reference_price || 0)} / {expenseForm.unit}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            Dari Katalog
+                          </span>
+                        </div>
+
+                        {(() => {
+                          const selectedCatItem = catalogItems.find(c => c.id === Number(expenseForm.catalog_item_id));
+                          if (selectedCatItem?.debit_account_code || selectedCatItem?.account_code) {
+                            return (
+                              <div className="p-2 bg-emerald-50/90 border border-emerald-200 rounded-lg text-emerald-900 text-[11px] flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>
+                                  Akun Debet Terkait: <strong>{selectedCatItem.debit_account_code || selectedCatItem.account_code} - {selectedCatItem.debit_account_name || selectedCatItem.account_name}</strong>
+                                  {selectedCatItem.credit_account_code && ` | Kredit: ${selectedCatItem.credit_account_code} - ${selectedCatItem.credit_account_name}`}
+                                  {selectedCatItem.cash_account_name && ` | Kas: ${selectedCatItem.cash_account_name}`}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     )}
                   </div>
 
-                  {/* Nama Item & Satuan */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Nama Item Belanja *</label>
-                      <input
-                        type="text"
-                        required
-                        value={expenseForm.name}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, name: e.target.value })}
-                        placeholder="Contoh: Pengadaan Kertas HVS A4"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-                      />
-                    </div>
+                  {/* Edit Satuan & Harga Satuan */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Satuan *</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Satuan Belanja * <span className="text-[10px] text-slate-400 font-normal">(Bisa diedit)</span>
+                      </label>
                       <input
                         type="text"
                         required
                         value={expenseForm.unit}
                         onChange={(e) => setExpenseForm({ ...expenseForm, unit: e.target.value })}
-                        placeholder="Contoh: Rim, Box, Paket"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+                        placeholder="Contoh: Rim, Box, Unit, Paket"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
-                  </div>
 
-                  {/* Harga Satuan dengan Validasi Plafon */}
-                  {(() => {
-                    const isPriceExceeded = expenseForm.catalog_reference_price !== null && parseFloat(expenseForm.unit_price) > parseFloat(expenseForm.catalog_reference_price);
-                    return (
-                      <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700">
-                          Harga Satuan (Rp) *
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          required
-                          value={expenseForm.unit_price === 0 ? '' : expenseForm.unit_price}
-                          onChange={(e) => setExpenseForm({ ...expenseForm, unit_price: parseFloat(e.target.value || 0) })}
-                          placeholder="0"
-                          className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-xs font-mono font-bold focus:outline-none transition ${
-                            isPriceExceeded
-                              ? 'border-rose-500 bg-rose-50/50 text-rose-800 focus:ring-2 focus:ring-rose-500'
-                              : 'border-slate-200 text-slate-800 focus:ring-2 focus:ring-emerald-500'
-                          }`}
-                        />
-                        <div className="flex items-center justify-between">
-                          {expenseForm.unit_price > 0 ? (
-                            <span className="text-[11px] font-bold text-purple-700">
-                              {Number(expenseForm.unit_price).toLocaleString('id-ID')}
-                            </span>
-                          ) : <span></span>}
-
-                          {isPriceExceeded ? (
-                            <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              Melebihi batas tertinggi katalog ({formatCurrency(expenseForm.catalog_reference_price)})!
-                            </span>
-                          ) : expenseForm.catalog_reference_price !== null ? (
-                            <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Sesuai plafon acuan (Maks. {formatCurrency(expenseForm.catalog_reference_price)})
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Penetapan Quantity / Volume pada Masing-masing Bulan (12 Bulan) */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <span className="text-xs font-bold text-slate-800">Sebaran Quantity / Volume per Bulan:</span>
-                        <p className="text-[10px] text-slate-400">Isi 0 jika tidak ada penganggaran pada bulan tertentu</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const firstQty = expenseForm.monthly_distribution.m1 || 1;
-                            const dist = {};
-                            MONTHS.forEach(m => { dist[m.key] = firstQty; });
-                            setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
-                          }}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition"
-                        >
-                          Samakan Semua Bulan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const dist = {};
-                            MONTHS.forEach(m => { dist[m.key] = 0; });
-                            setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
-                          }}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold transition"
-                        >
-                          Kosongkan
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 12 Bulan Quantity Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                      {MONTHS.map((m) => {
-                        const q = expenseForm.monthly_distribution[m.key] || 0;
-                        const subtotal = q * (parseFloat(expenseForm.unit_price) || 0);
-
-                        return (
-                          <div key={m.key} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
-                              <span className="text-[9px] text-slate-400 font-mono">{m.q}</span>
-                            </div>
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={q === 0 ? '' : q}
-                              onChange={(e) => {
-                                const num = parseFloat(e.target.value || 0);
-                                setExpenseForm(prev => ({
-                                  ...prev,
-                                  monthly_distribution: {
-                                    ...prev.monthly_distribution,
-                                    [m.key]: num
-                                  }
-                                }));
-                              }}
-                              placeholder="0"
-                              className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-center focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                            />
-                            <div className="text-[9px] text-slate-500 truncate text-center">
-                              {q > 0 ? (
-                                <span className="font-semibold text-rose-700">{formatCurrency(subtotal)}</span>
-                              ) : (
-                                <span className="text-slate-300">-</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Live Plafon & Volume Total Summary */}
+                    {/* Harga Satuan dengan Validasi Plafon */}
                     {(() => {
-                      const totalQty = Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0);
-                      const totalPlafon = totalQty * (parseFloat(expenseForm.unit_price) || 0);
-
+                      const isPriceExceeded = expenseForm.catalog_reference_price !== null && parseFloat(expenseForm.unit_price) > parseFloat(expenseForm.catalog_reference_price);
                       return (
-                        <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200 flex items-center justify-between text-xs">
-                          <div>
-                            <span className="text-slate-600">Total Akumulasi Volume: </span>
-                            <strong className="text-rose-900 font-black">{totalQty} {expenseForm.unit}</strong>
-                          </div>
-                          <div>
-                            <span className="text-slate-600">Total Anggaran Belanja: </span>
-                            <strong className="text-sm font-black text-rose-800">
-                              {formatCurrency(totalPlafon)}
-                            </strong>
+                        <div className="space-y-1">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Harga Satuan (Rp) * <span className="text-[10px] text-slate-400 font-normal">(Bisa diedit)</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            required
+                            value={expenseForm.unit_price === 0 ? '' : expenseForm.unit_price}
+                            onChange={(e) => setExpenseForm({ ...expenseForm, unit_price: parseFloat(e.target.value || 0) })}
+                            placeholder="0"
+                            className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-xs  font-bold focus:outline-none transition ${
+                              isPriceExceeded
+                                ? 'border-rose-500 bg-rose-50/50 text-rose-800 focus:ring-2 focus:ring-rose-500'
+                                : 'border-slate-200 text-slate-800 focus:ring-2 focus:ring-emerald-500'
+                            }`}
+                          />
+                          <div className="flex items-center justify-between">
+                            {expenseForm.unit_price > 0 ? (
+                              <span className="text-[11px] font-bold text-indigo-700">
+                                {Number(expenseForm.unit_price).toLocaleString('id-ID')}
+                              </span>
+                            ) : <span></span>}
+
+                            {isPriceExceeded ? (
+                              <span className="text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Melebihi plafon ({formatCurrency(expenseForm.catalog_reference_price)})!
+                              </span>
+                            ) : expenseForm.catalog_reference_price !== null ? (
+                              <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Plafon: {formatCurrency(expenseForm.catalog_reference_price)}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       );
                     })()}
                   </div>
+
+                  {/* KONDISI A: NON-BULANAN (Cukup Kuantiti & Pilih Bulan) */}
+                  {expenseForm.period_type === 'non_monthly' ? (
+                    <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-xl space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Kuantitas / Volume Belanja *
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            step="any"
+                            required
+                            value={expenseForm.single_quantity === 0 ? '' : expenseForm.single_quantity}
+                            onChange={(e) => setExpenseForm({ ...expenseForm, single_quantity: parseFloat(e.target.value || 0) })}
+                            placeholder="Contoh: 5"
+                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Bulan Pelaksanaan Kegiatan *
+                          </label>
+                          <select
+                            value={expenseForm.selected_month}
+                            onChange={(e) => setExpenseForm({ ...expenseForm, selected_month: e.target.value })}
+                            className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                          >
+                            {MONTHS.map(m => (
+                              <option key={m.key} value={m.key}>
+                                {m.label} ({m.q})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Live Subtotal Card */}
+                      {(() => {
+                        const q = parseFloat(expenseForm.single_quantity || 0);
+                        const price = parseFloat(expenseForm.unit_price || 0);
+                        const total = q * price;
+                        const monthObj = MONTHS.find(m => m.key === expenseForm.selected_month);
+
+                        return (
+                          <div className="bg-rose-50/80 p-3 rounded-xl border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div>
+                              <span className="text-slate-600">Pelaksanaan: </span>
+                              <strong className="text-indigo-900 font-bold">{monthObj?.label}</strong>
+                              <span className="text-slate-400 mx-1.5">•</span>
+                              <span className="text-slate-600">Volume: </span>
+                              <strong className="text-rose-900 font-bold">{q} {expenseForm.unit}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-600">Total Anggaran: </span>
+                              <strong className="text-sm font-black text-rose-800">
+                                {formatCurrency(total)}
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* KONDISI B: BULANAN (12 Bulan Quantity Grid) */
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800">Sebaran Quantity / Volume per Bulan:</span>
+                          <p className="text-[10px] text-slate-400">Isi volume kuantiti barang/jasa yang dibutuhkan per bulan</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const firstQty = expenseForm.monthly_distribution.m1 || 1;
+                              const dist = {};
+                              MONTHS.forEach(m => { dist[m.key] = firstQty; });
+                              setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
+                            }}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                          >
+                            Samakan Semua Bulan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const dist = {};
+                              MONTHS.forEach(m => { dist[m.key] = 0; });
+                              setExpenseForm(prev => ({ ...prev, monthly_distribution: dist }));
+                            }}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                          >
+                            Kosongkan
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 12 Bulan Quantity Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                        {MONTHS.map((m) => {
+                          const q = expenseForm.monthly_distribution[m.key] || 0;
+                          const subtotal = q * (parseFloat(expenseForm.unit_price) || 0);
+
+                          return (
+                            <div key={m.key} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold text-slate-700">{m.label}</label>
+                                <span className="text-[9px] text-slate-400">{m.q}</span>
+                              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={q === 0 ? '' : q}
+                                onChange={(e) => {
+                                  const num = parseFloat(e.target.value || 0);
+                                  setExpenseForm(prev => ({
+                                    ...prev,
+                                    monthly_distribution: {
+                                      ...prev.monthly_distribution,
+                                      [m.key]: num
+                                    }
+                                  }));
+                                }}
+                                placeholder="0"
+                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                              />
+                              <div className="text-[9px] text-slate-500 truncate text-center">
+                                {q > 0 ? (
+                                  <span className="font-semibold text-rose-700">{formatCurrency(subtotal)}</span>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Live Plafon & Volume Total Summary */}
+                      {(() => {
+                        const totalQty = Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+                        const totalPlafon = totalQty * (parseFloat(expenseForm.unit_price) || 0);
+
+                        return (
+                          <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="text-slate-600">Total Akumulasi Volume: </span>
+                              <strong className="text-rose-900 font-black">{totalQty} {expenseForm.unit}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-600">Total Anggaran Belanja: </span>
+                              <strong className="text-sm font-black text-rose-800">
+                                {formatCurrency(totalPlafon)}
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -4450,7 +5449,7 @@ export default function BudgetPlans() {
                 <button
                   type="button"
                   onClick={() => setExpenseModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Batal
                 </button>
@@ -4461,26 +5460,24 @@ export default function BudgetPlans() {
                     (expenseForm.entry_mode === 'lump_sum'
                       ? (
                           parseFloat(expenseForm.planned_amount || 0) <= 0 ||
-                          !expenseForm.lump_sum_description.trim() ||
                           !expenseForm.budget_program_id ||
                           !expenseForm.fund_sources ||
                           expenseForm.fund_sources.length === 0 ||
-                          expenseForm.fund_sources.some(s => !s.income_item_id || parseFloat(s.amount || 0) <= 0) ||
-                          Math.abs(expenseForm.fund_sources.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0) - parseFloat(expenseForm.planned_amount || 0)) > 1 ||
-                          Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0) !== parseFloat(expenseForm.planned_amount || 0)
+                          (expenseForm.period_type === 'monthly' && Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0) !== parseFloat(expenseForm.planned_amount || 0))
                         )
                       : (
-                          !expenseForm.name.trim() ||
+                          !expenseForm.catalog_item_id ||
                           !expenseForm.fund_source_income_item_id ||
                           !expenseForm.budget_program_id ||
                           (expenseForm.catalog_reference_price !== null && parseFloat(expenseForm.unit_price) > parseFloat(expenseForm.catalog_reference_price)) ||
-                          Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0) <= 0
+                          (expenseForm.period_type === 'monthly' && Object.values(expenseForm.monthly_distribution).reduce((a, b) => a + (parseFloat(b) || 0), 0) <= 0) ||
+                          (expenseForm.period_type === 'non_monthly' && parseFloat(expenseForm.single_quantity || 0) <= 0)
                         )
                     )
                   }
-                  className={`px-4 py-2 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-50 ${
+                  className={`px-4 py-2 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-50 cursor-pointer ${
                     expenseForm.entry_mode === 'lump_sum'
-                      ? 'bg-purple-600 hover:bg-purple-700'
+                      ? 'bg-indigo-600 hover:bg-indigo-700'
                       : 'bg-emerald-600 hover:bg-emerald-700'
                   }`}
                 >
@@ -4495,7 +5492,7 @@ export default function BudgetPlans() {
       {/* Modal Tambah / Edit Standar Biaya Katalog */}
       {catalogModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-100">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h2 className="text-sm font-bold text-slate-800">
                 {catalogModalMode === 'create' ? 'Tambah Item Standar Biaya Baru' : 'Ubah Item Standar Biaya'}
@@ -4542,19 +5539,82 @@ export default function BudgetPlans() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Jenis Kategori Pengeluaran *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Jenis Kategori Pengeluaran</label>
                 <select
-                  required
                   value={catalogFormData.expense_category_id}
                   onChange={(e) => setCatalogFormData({ ...catalogFormData, expense_category_id: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                 >
-                  <option value="">-- Pilih Kategori Pengeluaran --</option>
+                  <option value="">-- Pilih Kategori Pengeluaran (Opsional) --</option>
                   {expenseCategories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} {cat.related_account_code ? `(Akun: ${cat.related_account_code} - ${cat.related_account_name})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
+
+              {/* Akun Akuntansi & Sumber Dana */}
+              <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl space-y-2.5">
+                <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                  Pengikatan Akun Akuntansi &amp; Sumber Dana
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Akun Debet (Beban)</label>
+                    <SearchableSelect
+                      value={catalogFormData.debit_account_id}
+                      onChange={(val) => setCatalogFormData({ ...catalogFormData, debit_account_id: val ? Number(val) : '' })}
+                      placeholder="-- Pilih Akun Debet --"
+                      searchPlaceholder="Cari kode / nama akun..."
+                      options={[
+                        { value: '', label: '-- Tanpa Akun Debet Tetap --' },
+                        ...chartOfAccounts.map(c => ({
+                          value: c.id,
+                          label: `${c.account_code} - ${c.account_name}`,
+                          sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'DEBIT'})`
+                        }))
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Akun Kredit (Kas/Utang)</label>
+                    <SearchableSelect
+                      value={catalogFormData.credit_account_id}
+                      onChange={(val) => setCatalogFormData({ ...catalogFormData, credit_account_id: val ? Number(val) : '' })}
+                      placeholder="-- Pilih Akun Kredit --"
+                      searchPlaceholder="Cari kode / nama akun..."
+                      options={[
+                        { value: '', label: '-- Tanpa Akun Kredit Tetap --' },
+                        ...chartOfAccounts.map(c => ({
+                          value: c.id,
+                          label: `${c.account_code} - ${c.account_name}`,
+                          sublabel: `Grup: ${c.account_group || c.account_type || '-'} (${c.normal_balance || 'CREDIT'})`
+                        }))
+                      ]}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Pos Sumber Dana RAPBS Terkait</label>
+                    <SearchableSelect
+                      value={catalogFormData.fund_source_income_item_id}
+                      onChange={(val) => setCatalogFormData({ ...catalogFormData, fund_source_income_item_id: val ? Number(val) : '' })}
+                      placeholder="-- Pilih Sumber Dana RAPBS --"
+                      searchPlaceholder="Cari pos sumber dana..."
+                      options={[
+                        { value: '', label: '-- Tanpa Pos Sumber Dana Tetap --' },
+                        ...(selectedPlan?.income_items || []).map(inc => ({
+                          value: inc.id,
+                          label: inc.name,
+                          sublabel: `Target: ${formatCurrency(inc.planned_amount || 0)}`
+                        }))
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {catalogModalMode === 'edit' && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Alasan Perubahan Harga *</label>
@@ -4582,7 +5642,7 @@ export default function BudgetPlans() {
       {/* Modal Riwayat Perubahan Harga Acuan */}
       {priceHistoryModalOpen && selectedItemHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-100 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 border border-slate-100 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Riwayat Perubahan Harga Acuan</h2>
@@ -4631,7 +5691,7 @@ export default function BudgetPlans() {
       {/* Modal Kelola / Daftar Dokumen RAPBS */}
       {planDocListModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 max-h-[85vh] overflow-y-auto space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 max-h-[85vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-emerald-600" />
@@ -4668,7 +5728,7 @@ export default function BudgetPlans() {
 
             <div className="space-y-2.5">
               {plans.length === 0 ? (
-                <div className="text-center py-10 text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl">
+                <div className="text-center py-10 text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                   Belum ada dokumen RAPBS yang dibuat.
                 </div>
               ) : (
@@ -4688,19 +5748,13 @@ export default function BudgetPlans() {
                           <span className="text-xs font-bold text-slate-800">
                             {p.title || `RAPBS TA #${p.academic_year_id}`}
                           </span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              p.status === 'published'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
-                            }`}
-                          >
+                          <StatusPill variant={p.status === 'published' ? 'success' : 'warning'}>
                             {p.status === 'published' ? 'Disahkan (Published)' : 'Draft'}
-                          </span>
+                          </StatusPill>
                           {isSelected && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                            <StatusPill variant="info">
                               Sedang Aktif
-                            </span>
+                            </StatusPill>
                           )}
                         </div>
                         <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-3">
@@ -4752,7 +5806,7 @@ export default function BudgetPlans() {
       {/* Modal Ubah Nama Dokumen RAPBS */}
       {editTitleModalOpen && editPlanTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-100 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-emerald-600" />

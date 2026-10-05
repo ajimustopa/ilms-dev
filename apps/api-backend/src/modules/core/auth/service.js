@@ -79,8 +79,12 @@ class AuthService {
       throw error;
     }
 
+    const cleanUsername = String(username || '').trim().toLowerCase();
+
     // 1. Cari user di database
-    const user = await db('users').where({ username }).first();
+    const user = await db('users')
+      .whereRaw('LOWER(username) = ?', [cleanUsername])
+      .first();
 
     // 2. Validasi keberadaan user dan status aktif
     if (!user) {
@@ -96,7 +100,17 @@ class AuthService {
     }
 
     // 3. Verifikasi hash password (bcrypt)
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    let isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid && typeof password === 'string') {
+      const trimmed = password.trim();
+      if (trimmed !== password) {
+        isPasswordValid = await bcrypt.compare(trimmed, user.password_hash);
+      }
+      if (!isPasswordValid) {
+        isPasswordValid = await bcrypt.compare(trimmed.toLowerCase(), user.password_hash);
+      }
+    }
+
     if (!isPasswordValid) {
       // Catat log percobaan gagal
       await db('activity_logs').insert({

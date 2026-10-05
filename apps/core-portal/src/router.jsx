@@ -24,26 +24,33 @@ const lazyLoad = (importFn) => {
 import Launcher from './pages/Launcher';
 import Login from './apps/core/pages/Login';
 import { useAuth } from './shared/store/AuthContext';
+import { isCashierOnlyUser } from './shared/utils/authHelper';
 
-// Gate for root path: If authenticated -> Launcher; If unauthenticated -> Login
+// Gate for root path: If authenticated -> Launcher (or /kantin/pos if cashier); If unauthenticated -> Login
 function RootGate() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   if (isLoading) {
     return <PageLoader />;
   }
   if (!isAuthenticated) {
     return <Login />;
   }
+  if (isCashierOnlyUser(user)) {
+    return <Navigate to="/kantin/pos" replace />;
+  }
   return <Launcher />;
 }
 
-// Gate for login path: If authenticated -> redirect to root; If unauthenticated -> Login
+// Gate for login path: If authenticated -> redirect to root or /kantin/pos; If unauthenticated -> Login
 function LoginGate() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   if (isLoading) {
     return <PageLoader />;
   }
   if (isAuthenticated) {
+    if (isCashierOnlyUser(user)) {
+      return <Navigate to="/kantin/pos" replace />;
+    }
     return <Navigate to="/" replace />;
   }
   return <Login />;
@@ -467,6 +474,14 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/keuangan/pages/MasterData')),
           },
           {
+            path: 'unit-consolidation',
+            element: lazyLoad(() => import('./apps/keuangan/pages/UnitConsolidation')),
+          },
+          {
+            path: 'pengelolaan-gabungan',
+            element: lazyLoad(() => import('./apps/keuangan/pages/UnitConsolidation')),
+          },
+          {
             path: 'fee-schemes',
             element: lazyLoad(() => import('./apps/keuangan/pages/FeeSchemes')),
           },
@@ -513,6 +528,14 @@ export const router = createBrowserRouter([
           {
             path: 'student-payment-card',
             element: lazyLoad(() => import('./apps/keuangan/pages/StudentPaymentCard')),
+          },
+          {
+            path: 'canteen',
+            element: lazyLoad(() => import('./apps/keuangan/pages/CanteenIntegration')),
+          },
+          {
+            path: 'kantin',
+            element: lazyLoad(() => import('./apps/keuangan/pages/CanteenIntegration')),
           },
           {
             path: 'legacy-migration',
@@ -671,6 +694,14 @@ export const router = createBrowserRouter([
           {
             path: 'pos',
             element: lazyLoad(() => import('./apps/kantin/pages/TransaksiPenjualan')),
+          },
+          {
+            path: 'cashiers',
+            element: lazyLoad(() => import('./apps/kantin/pages/PengelolaanKasir')),
+          },
+          {
+            path: 'kasir',
+            element: lazyLoad(() => import('./apps/kantin/pages/PengelolaanKasir')),
           },
           {
             path: 'wallet',
@@ -1222,7 +1253,48 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 17. Fallback Not Found
+  // 17. Portal PSB / PPDB Online (Admin & Panitia)
+  {
+    path: '/ppdb',
+    element: <ProtectedRoute redirectTo="/login" />,
+    children: [
+      {
+        element: lazyLoad(() => import('./apps/ppdb/components/PpdbLayout')),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/ppdb/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Dashboard')),
+          },
+          {
+            path: 'programs',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Programs')),
+          },
+          {
+            path: 'registrants',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Registrants')),
+          },
+          {
+            path: 'selection',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Selection')),
+          },
+          {
+            path: 'enrollment',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Enrollment')),
+          },
+          {
+            path: 'withdrawals',
+            element: lazyLoad(() => import('./apps/ppdb/pages/Withdrawals')),
+          },
+        ],
+      },
+    ],
+  },
+
+  // 18. Fallback Not Found
   {
     path: '*',
     element: <Navigate to="/" replace />,

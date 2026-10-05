@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency } from '../../../shared/utils/formatters';
 import {
   History,
   Calendar,
@@ -230,14 +234,7 @@ export default function LegacyMigration() {
            (s.nis || '').toLowerCase().includes(term);
   }).slice(0, 8);
 
-  const formatCurrency = (val) => {
-    const num = parseFloat(val || 0);
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(num);
-  };
+  // Menggunakan formatCurrency dari shared/utils/formatters
 
   return (
     <div className="space-y-6">
@@ -259,22 +256,24 @@ export default function LegacyMigration() {
 
       {/* Alert Notifikasi */}
       {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-          <span>{errorMsg}</span>
-        </div>
+        <FlatAlertBanner
+          variant="danger"
+          message={errorMsg}
+          onClose={() => setErrorMsg('')}
+        />
       )}
       {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-          <span>{successMsg}</span>
-        </div>
+        <FlatAlertBanner
+          variant="success"
+          message={successMsg}
+          onClose={() => setSuccessMsg('')}
+        />
       )}
 
       {/* LANGKAH 1: PENGATURAN TANGGAL CUTOVER */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-amber-100 flex items-start gap-3.5">
-          <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-xs">
+          <div className="p-2 bg-amber-500 text-white rounded-lg shadow-xs">
             <Calendar className="w-5 h-5" />
           </div>
           <div className="flex-1">
@@ -297,14 +296,14 @@ export default function LegacyMigration() {
               <span>Memeriksa status cutover date...</span>
             </div>
           ) : cutoverData?.cutover_date && !isEditingCutover ? (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-lg">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-slate-500">Tanggal Cutover Aktif</div>
-                  <div className="text-lg font-extrabold text-slate-800 tracking-tight font-mono">
+                  <div className="text-lg font-extrabold text-slate-800 tracking-tight tnum">
                     {cutoverData.cutover_date}
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
@@ -315,7 +314,7 @@ export default function LegacyMigration() {
               <button
                 type="button"
                 onClick={() => setIsEditingCutover(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition shadow-2xs self-start sm:self-center"
+                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition shadow-2xs self-start sm:self-center"
               >
                 <Edit3 className="w-3.5 h-3.5 text-slate-500" />
                 <span>Ubah Tanggal Cutover</span>
@@ -324,7 +323,7 @@ export default function LegacyMigration() {
           ) : (
             <form onSubmit={handleSaveCutover} className="space-y-4">
               {isEditingCutover && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs flex items-start gap-2.5">
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-lg text-xs flex items-start gap-2.5">
                   <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
                   <div>
                     <strong>PERINGATAN RISIKO:</strong> Mengubah tanggal cutover saat sistem sudah memiliki tagihan & pembayaran aktif dapat memengaruhi validasi tanggal transaksi. Wajib sertakan alasan pengubahan resmi.
@@ -342,7 +341,7 @@ export default function LegacyMigration() {
                     required
                     value={cutoverForm.cutover_date}
                     onChange={(e) => setCutoverForm({ ...cutoverForm, cutover_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block">Contoh: 2026-07-01 (Awal Tahun Ajaran 2026/2027)</span>
                 </div>
@@ -356,7 +355,7 @@ export default function LegacyMigration() {
                     placeholder="Contoh: Cutover Go-Live Tahun Ajaran Baru"
                     value={cutoverForm.notes}
                     onChange={(e) => setCutoverForm({ ...cutoverForm, notes: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -372,7 +371,7 @@ export default function LegacyMigration() {
                     placeholder="Jelaskan alasan pengubahan cutover date..."
                     value={cutoverForm.reason}
                     onChange={(e) => setCutoverForm({ ...cutoverForm, reason: e.target.value })}
-                    className="w-full px-3 py-2 bg-rose-50/40 border border-rose-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-rose-50/40 border border-rose-200 rounded-lg text-xs focus:ring-2 focus:ring-rose-500 focus:bg-white transition"
                   />
                 </div>
               )}
@@ -380,7 +379,7 @@ export default function LegacyMigration() {
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-xs transition"
                 >
                   {isEditingCutover ? 'Simpan Perubahan Cutover' : 'Tetapkan Tanggal Cutover'}
                 </button>
@@ -388,7 +387,7 @@ export default function LegacyMigration() {
                   <button
                     type="button"
                     onClick={() => setIsEditingCutover(false)}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
                   >
                     Batal
                   </button>
@@ -399,12 +398,34 @@ export default function LegacyMigration() {
         </div>
       </div>
 
+      {/* 3 Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatRibbonCard
+          label="Total Piutang Migrasi"
+          value={formatCurrency(summary.total_billed)}
+          status="neutral"
+          subtext="Akumulasi tagihan lampau yang dicatat"
+        />
+        <StatRibbonCard
+          label="Terbayar Lampau"
+          value={formatCurrency(summary.total_paid)}
+          status="success"
+          subtext="Sudah dilunasi sebelum cutover"
+        />
+        <StatRibbonCard
+          label="Sisa Piutang Berjalan"
+          value={formatCurrency(summary.total_remaining)}
+          status="danger"
+          subtext="Menjadi saldo awal piutang aktif"
+        />
+      </div>
+
       {/* LANGKAH 2: FORM & DAFTAR TAGIHAN HISTORIS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Form Input Tagihan Historis */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
               <Plus className="w-4 h-4" />
             </div>
             <div>
@@ -414,7 +435,7 @@ export default function LegacyMigration() {
           </div>
 
           {!cutoverData?.cutover_date ? (
-            <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
               <Clock className="w-8 h-8 mx-auto text-slate-400 mb-2" />
               <span>Silakan atur <strong>Tanggal Cutover</strong> pada Langkah 1 terlebih dahulu sebelum menginput data tagihan historis.</span>
             </div>
@@ -426,7 +447,7 @@ export default function LegacyMigration() {
                   Pilih Santri <span className="text-red-500">*</span>
                 </label>
                 {selectedStudent ? (
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-emerald-900">{selectedStudent.full_name || selectedStudent.name}</div>
                       <div className="text-[10px] text-emerald-700">NIS: {selectedStudent.nis || '-'} &bull; Kelas: {selectedStudent.class_name || '-'}</div>
@@ -448,11 +469,11 @@ export default function LegacyMigration() {
                         placeholder="Ketik Nama atau NIS santri..."
                         value={searchStudentTerm}
                         onChange={(e) => setSearchStudentTerm(e.target.value)}
-                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                       />
                     </div>
                     {searchStudentTerm && (
-                      <div className="absolute z-10 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
+                      <div className="absolute z-10 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
                         {filteredStudents.length === 0 ? (
                           <div className="p-3 text-xs text-slate-400 text-center">Santri tidak ditemukan</div>
                         ) : (
@@ -483,7 +504,7 @@ export default function LegacyMigration() {
                   required
                   value={billForm.fee_type_id}
                   onChange={(e) => setBillForm({ ...billForm, fee_type_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                 >
                   {feeTypes.map(f => (
                     <option key={f.id} value={f.id}>{f.name} ({f.billing_pattern})</option>
@@ -498,7 +519,7 @@ export default function LegacyMigration() {
                   <select
                     value={billForm.period_month}
                     onChange={(e) => setBillForm({ ...billForm, period_month: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   >
                     <option value="">-- Tahunan / Bebas --</option>
                     {[...Array(12)].map((_, idx) => (
@@ -513,7 +534,7 @@ export default function LegacyMigration() {
                     required
                     value={billForm.period_year}
                     onChange={(e) => setBillForm({ ...billForm, period_year: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -528,7 +549,7 @@ export default function LegacyMigration() {
                     placeholder="Contoh: 500000"
                     value={billForm.amount}
                     onChange={(e) => setBillForm({ ...billForm, amount: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   />
                 </div>
                 <div>
@@ -538,7 +559,7 @@ export default function LegacyMigration() {
                     placeholder="Contoh: 200000"
                     value={billForm.paid_amount}
                     onChange={(e) => setBillForm({ ...billForm, paid_amount: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -554,7 +575,7 @@ export default function LegacyMigration() {
                   max={cutoverData.cutover_date}
                   value={billForm.due_date}
                   onChange={(e) => setBillForm({ ...billForm, due_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                 />
               </div>
 
@@ -565,14 +586,14 @@ export default function LegacyMigration() {
                   placeholder="Contoh: Buku Kas Tunai Bendahara 2025"
                   value={billForm.historical_cash_note}
                   onChange={(e) => setBillForm({ ...billForm, historical_cash_note: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={savingBill || !selectedStudent}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition disabled:opacity-60 flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs transition disabled:opacity-60 flex items-center justify-center gap-1.5"
               >
                 {savingBill && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>Simpan Tagihan Historis</span>
@@ -582,31 +603,28 @@ export default function LegacyMigration() {
         </div>
 
         {/* Tabel Rekapitulasi Tagihan Historis */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col">
+        <div className="lg:col-span-2 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
             <div>
               <h2 className="text-sm font-bold text-slate-800">Daftar Tagihan Historis Terdaftar</h2>
               <p className="text-[11px] text-slate-400">Total {legacyBills.length} pos tagihan migrasi</p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="px-3 py-1 bg-rose-50 border border-rose-100 rounded-lg text-right">
-                <span className="text-[10px] text-slate-500 block">Sisa Piutang Berjalan</span>
-                <span className="text-xs font-bold text-rose-700 font-mono">{formatCurrency(summary.total_remaining)}</span>
-              </div>
+            <div className="text-xs text-slate-500">
+              <span className="font-semibold text-slate-700">{legacyBills.length}</span> tagihan terdata
             </div>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          <div className="table-container flex-1">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
                 <tr>
-                  <th className="px-3 py-2.5 rounded-l-lg">Santri</th>
+                  <th className="px-3 py-2.5">Santri</th>
                   <th className="px-3 py-2.5">Jenis Biaya</th>
                   <th className="px-3 py-2.5 text-right">Nominal</th>
                   <th className="px-3 py-2.5 text-right">Terbayar Lampau</th>
                   <th className="px-3 py-2.5 text-right">Sisa Tagihan</th>
                   <th className="px-3 py-2.5 text-center">Status</th>
-                  <th className="px-3 py-2.5 text-center rounded-r-lg">Aksi</th>
+                  <th className="px-3 py-2.5 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -628,33 +646,28 @@ export default function LegacyMigration() {
                     <tr key={b.id} className="hover:bg-slate-50/80 transition">
                       <td className="px-3 py-2.5">
                         <div className="font-bold text-slate-800">{b.student_name}</div>
-                        <div className="text-[10px] text-slate-400">NIS: {b.student_nis}</div>
+                        <div className="text-[10px] text-slate-500 tnum">NIS: {b.student_nis}</div>
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="font-semibold text-slate-700">{b.fee_type_name}</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-500 tnum">
                           {b.period_month ? `Bln ${b.period_month} / ` : ''}{b.period_year}
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-semibold text-slate-800">
+                      <td className="px-3 py-2.5 num-cell font-semibold text-slate-800">
                         {formatCurrency(b.amount)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-emerald-600 font-semibold">
+                      <td className="px-3 py-2.5 num-cell text-emerald-700 font-semibold">
                         {formatCurrency(b.paid_amount)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-rose-600 font-bold">
+                      <td className="px-3 py-2.5 num-cell text-rose-700 font-bold">
                         {formatCurrency(b.remaining_amount)}
                       </td>
                       <td className="px-3 py-2.5 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          b.status === 'paid'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : b.status === 'partially_paid'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {b.status === 'paid' ? 'Lunas' : b.status === 'partially_paid' ? 'Sebagian' : 'Belum Lunas'}
-                        </span>
+                        <StatusPill
+                          variant={b.status === 'paid' ? 'success' : b.status === 'partially_paid' ? 'warning' : 'danger'}
+                          label={b.status === 'paid' ? 'Lunas' : b.status === 'partially_paid' ? 'Sebagian' : 'Belum Lunas'}
+                        />
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         {b.status !== 'paid' ? (
@@ -682,7 +695,7 @@ export default function LegacyMigration() {
       {/* Modal Tambah Pembayaran Lampau */}
       {selectedBillForPayment && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-md w-full p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Catat Pembayaran Lampau</h3>
@@ -695,14 +708,14 @@ export default function LegacyMigration() {
               </span>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs space-y-1">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between text-slate-600">
                 <span>Total Tagihan:</span>
-                <strong className="font-mono">{formatCurrency(selectedBillForPayment.amount)}</strong>
+                <strong className="tnum font-semibold text-slate-800">{formatCurrency(selectedBillForPayment.amount)}</strong>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Sisa Tunggakan:</span>
-                <strong className="font-mono text-rose-600">{formatCurrency(selectedBillForPayment.remaining_amount)}</strong>
+                <strong className="tnum font-bold text-rose-700">{formatCurrency(selectedBillForPayment.remaining_amount)}</strong>
               </div>
             </div>
 
@@ -718,7 +731,7 @@ export default function LegacyMigration() {
                   placeholder={`Maks ${selectedBillForPayment.remaining_amount}`}
                   value={paymentForm.amount}
                   onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
                 />
               </div>
 
@@ -732,7 +745,7 @@ export default function LegacyMigration() {
                   max={cutoverData.cutover_date}
                   value={paymentForm.payment_date}
                   onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
                 />
               </div>
 
@@ -745,7 +758,7 @@ export default function LegacyMigration() {
                   placeholder="Contoh: Titipan bendahara lama"
                   value={paymentForm.historical_cash_note}
                   onChange={(e) => setPaymentForm({ ...paymentForm, historical_cash_note: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
                 />
               </div>
 
@@ -753,14 +766,14 @@ export default function LegacyMigration() {
                 <button
                   type="button"
                   onClick={() => setSelectedBillForPayment(null)}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingPayment}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5"
                 >
                   {savingPayment && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>Simpan Pembayaran</span>

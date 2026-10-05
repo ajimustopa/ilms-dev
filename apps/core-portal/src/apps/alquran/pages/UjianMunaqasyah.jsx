@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
 import {
   Award,
   Plus,
-  Search,
-  Filter,
-  Loader2,
-  AlertCircle,
-  X,
-  CheckCircle2,
   Calendar,
-  UserCheck
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  Edit2
 } from 'lucide-react';
+import DataTable from '../../../shared/components/DataTable';
+import FilterBar from '../../../shared/components/FilterBar';
+import Modal from '../../../shared/components/Modal';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import StatusPill from '../../../shared/components/StatusPill';
 
 export default function UjianMunaqasyah() {
   const [exams, setExams] = useState([]);
@@ -19,34 +22,35 @@ export default function UjianMunaqasyah() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form Jadwalkan
+  // Form Jadwal Ujian
   const [scheduleData, setScheduleData] = useState({
     student_ref_id: '1',
-    juz_examined: 1,
+    juz_tested: 30,
     exam_date: new Date().toISOString().slice(0, 10),
-    examiner_teacher_ref_id: '2',
-    notes: ''
+    examiner_ref_id: '1'
   });
 
-  // Form Input Hasil
-  const [resultData, setResultData] = useState({
+  // Form Input Nilai Hasil
+  const [scoreData, setScoreData] = useState({
     score: 90,
-    status: 'completed',
+    status: 'passed',
+    certificate_number: '',
     notes: ''
   });
 
   const fetchExams = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/alquran/exams');
       setExams(res.data?.data || []);
     } catch (err) {
-      console.error('Error fetching exams:', err);
+      setError(err.response?.data?.message || err.message || 'Gagal memuat jadwal munaqasyah');
     } finally {
       setLoading(false);
     }
@@ -59,10 +63,9 @@ export default function UjianMunaqasyah() {
   const openScheduleModal = () => {
     setScheduleData({
       student_ref_id: '1',
-      juz_examined: 1,
+      juz_tested: 30,
       exam_date: new Date().toISOString().slice(0, 10),
-      examiner_teacher_ref_id: '2',
-      notes: ''
+      examiner_ref_id: '1'
     });
     setError(null);
     setShowScheduleModal(true);
@@ -75,390 +78,428 @@ export default function UjianMunaqasyah() {
 
     try {
       const payload = {
-        ...scheduleData,
         student_ref_id: Number(scheduleData.student_ref_id),
-        juz_examined: Number(scheduleData.juz_examined),
-        examiner_teacher_ref_id: Number(scheduleData.examiner_teacher_ref_id)
+        juz_tested: Number(scheduleData.juz_tested),
+        exam_date: scheduleData.exam_date,
+        examiner_ref_id: Number(scheduleData.examiner_ref_id)
       };
 
       await api.post('/alquran/exams', payload);
       setShowScheduleModal(false);
       fetchExams();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Gagal menjadwalkan ujian');
+      setError(err.response?.data?.message || err.message || 'Gagal menjadwalkan munaqasyah');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const openResultModal = (exam) => {
+  const openScoreModal = (exam) => {
     setSelectedExam(exam);
-    setResultData({
+    setScoreData({
       score: exam.score || 90,
-      status: 'completed',
+      status: exam.status === 'scheduled' ? 'passed' : exam.status,
+      certificate_number: exam.certificate_number || `CERT-MNQ-${Date.now().toString().slice(-5)}`,
       notes: exam.notes || ''
     });
     setError(null);
-    setShowResultModal(true);
+    setShowScoreModal(true);
   };
 
-  const handleResultSubmit = async (e) => {
+  const handleScoreSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedExam) return;
     setError(null);
     setSubmitting(true);
 
     try {
-      await api.patch(`/alquran/exams/${selectedExam.id}/result`, {
-        score: parseFloat(resultData.score),
-        status: resultData.status,
-        notes: resultData.notes
-      });
+      const payload = {
+        score: parseFloat(scoreData.score),
+        status: scoreData.status,
+        certificate_number: scoreData.status === 'passed' ? scoreData.certificate_number : null,
+        notes: scoreData.notes
+      };
 
-      setShowResultModal(false);
+      await api.patch(`/alquran/exams/${selectedExam.id}/score`, payload);
+      setShowScoreModal(false);
       fetchExams();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Gagal mencatat hasil ujian');
+      setError(err.response?.data?.message || err.message || 'Gagal menyimpan nilai munaqasyah');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredExams = exams.filter(e => {
-    const matchesSearch = String(e.student_ref_id).includes(search) ||
-                          String(e.juz_examined).includes(search) ||
-                          (e.notes && e.notes.toLowerCase().includes(search.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredExams = useMemo(() => {
+    return exams.filter((e) => {
+      const matchesSearch =
+        search === '' ||
+        String(e.student_ref_id).toLowerCase().includes(search.toLowerCase()) ||
+        String(e.juz_tested).includes(search) ||
+        (e.certificate_number && e.certificate_number.toLowerCase().includes(search.toLowerCase()));
+
+      const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [exams, search, statusFilter]);
+
+  const columns = [
+    {
+      key: 'student_ref_id',
+      label: 'Santri / Siswa',
+      render: (val) => (
+        <div>
+          <div className="font-semibold text-slate-800">Santri ID #{val}</div>
+          <div className="text-[11px] font-mono text-slate-400">Peserta Munaqasyah</div>
+        </div>
+      )
+    },
+    {
+      key: 'juz_tested',
+      label: 'Juz Diujikan',
+      render: (val) => <span className="font-bold text-slate-800">Juz {val}</span>
+    },
+    {
+      key: 'exam_date',
+      label: 'Tgl Ujian',
+      type: 'date',
+      render: (val) => (
+        <span className="text-xs text-slate-600 font-mono">
+          {val ? new Date(val).toLocaleDateString('id-ID') : '-'}
+        </span>
+      )
+    },
+    {
+      key: 'examiner_ref_id',
+      label: 'Penguji (Musyrif)',
+      render: (val) => <span className="text-slate-700">Ustadz ID #{val}</span>
+    },
+    {
+      key: 'score',
+      label: 'Nilai Akhir',
+      type: 'number',
+      render: (val, row) => (
+        <div>
+          <span className="font-bold font-mono text-slate-800 tnum">
+            {val != null ? val : '-'}
+          </span>
+          {row.certificate_number && (
+            <div className="text-[10px] font-mono text-emerald-700">{row.certificate_number}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'status',
+      width: '120px'
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      width: '120px',
+      render: (_, exam) => (
+        <div className="flex items-center justify-end">
+          {exam.status === 'scheduled' ? (
+            <button
+              type="button"
+              onClick={() => openScoreModal(exam)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer border border-emerald-200"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Input Nilai</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openScoreModal(exam)}
+              className="px-2 py-1 text-xs text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer"
+            >
+              Edit Nilai
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">Ujian Hafalan (Munaqasyah)</h1>
+          <h1 className="text-lg font-bold text-slate-800 leading-snug">
+            Ujian Munaqasyah & Sertifikasi Tahfidz
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Penjadwalan ujian berkala per juz hafalan Al-Quran, penunjukan penguji & input nilai kelulusan
+            Penjadwalan sidang munaqasyah juz, penilaian kelancaran, dan penerbitan nomor syahadah.
           </p>
         </div>
+
         <button
           type="button"
           onClick={openScheduleModal}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          <span>Jadwalkan Ujian Baru</span>
+          <Plus className="w-3.5 h-3.5" />
+          <span>Jadwalkan Munaqasyah</span>
         </button>
       </div>
 
-      {/* Control Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari ID santri, juz..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-hidden focus:border-emerald-500"
-            />
-          </div>
+      {/* FilterBar Standar */}
+      <FilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari ID santri, juz, atau nomor sertifikat..."
+        onReset={() => {
+          setSearch('');
+          setStatusFilter('all');
+        }}
+        hasActiveFilters={Boolean(statusFilter !== 'all' || search)}
+        filters={
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+          >
+            <option value="all">Semua Status Ujian</option>
+            <option value="scheduled">Terjadwal (Scheduled)</option>
+            <option value="passed">Lulus (Passed / Syahadah)</option>
+            <option value="failed">Belum Lulus (Remedial)</option>
+          </select>
+        }
+        actions={
+          <span className="text-xs text-slate-500">
+            Total: <span className="font-bold text-slate-800 tnum">{filteredExams.length}</span> sesi
+          </span>
+        }
+      />
 
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+      {/* Generic DataTable */}
+      <DataTable
+        columns={columns}
+        data={filteredExams}
+        loading={loading}
+        density="compact"
+        emptyTitle="Belum Ada Jadwal Munaqasyah"
+        emptyDescription="Tidak ada sesi ujian munaqasyah yang aktif atau sesuai dengan filter."
+        emptyAction={
+          <button
+            type="button"
+            onClick={openScheduleModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Jadwalkan Munaqasyah Baru</span>
+          </button>
+        }
+      />
+
+      {/* Modal Jadwalkan Munaqasyah */}
+      <Modal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        title="Jadwalkan Sidang Munaqasyah Baru"
+        subtitle="Tetapkan santri peserta, juz yang diuji, dan musyrif penguji."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowScheduleModal(false)}
+              className="px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
             >
-              <option value="all">Semua Status</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        </div>
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleScheduleSubmit}
+              disabled={submitting}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Jadwal Ujian</span>
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3.5">
+          {error && (
+            <FlatAlertBanner
+              variant="danger"
+              title="Gagal Menjadwalkan Ujian"
+              description={error}
+            />
+          )}
 
-        <div className="text-xs text-slate-400 font-medium">
-          Total: <span className="font-bold text-slate-700">{filteredExams.length}</span> ujian
-        </div>
-      </div>
-
-      {/* Table List */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-            <p className="text-xs text-slate-400">Memuat jadwal ujian...</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200/80">
-                <tr>
-                  <th className="px-4 py-3">Tanggal Ujian</th>
-                  <th className="px-4 py-3">Santri Diuji</th>
-                  <th className="px-4 py-3">Juz yang Diuji</th>
-                  <th className="px-4 py-3">Penguji (Musyrif)</th>
-                  <th className="px-4 py-3">Nilai Akhir</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredExams.map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3 font-medium text-slate-700">
-                      {e.exam_date ? e.exam_date.slice(0, 10) : '-'}
-                    </td>
-                    <td className="px-4 py-3 font-bold text-slate-800">
-                      Santri #{e.student_ref_id}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-bold text-emerald-800 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
-                        Juz {e.juz_examined}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">
-                      Pegawai #{e.examiner_teacher_ref_id}
-                    </td>
-                    <td className="px-4 py-3 font-mono font-bold text-slate-800 text-sm">
-                      {e.score !== null && e.score !== undefined ? `${e.score}` : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
-                          e.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : e.status === 'cancelled'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        {e.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {e.status === 'scheduled' ? (
-                        <button
-                          type="button"
-                          onClick={() => openResultModal(e)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-[11px] shadow-2xs transition inline-flex items-center gap-1"
-                        >
-                          <UserCheck className="w-3 h-3" />
-                          <span>Input Nilai</span>
-                        </button>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">Selesai</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {filteredExams.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400 italic">
-                      Belum ada jadwal ujian munaqasyah
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Modal Jadwalkan Ujian */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">Jadwalkan Ujian Munaqasyah</h3>
-              <button
-                type="button"
-                onClick={() => setShowScheduleModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleScheduleSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">ID Santri</label>
-                  <input
-                    type="number"
-                    required
-                    value={scheduleData.student_ref_id}
-                    onChange={(e) => setScheduleData({ ...scheduleData, student_ref_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Juz Diuji (1-30)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    required
-                    value={scheduleData.juz_examined}
-                    onChange={(e) => setScheduleData({ ...scheduleData, juz_examined: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Ujian</label>
-                  <input
-                    type="date"
-                    required
-                    value={scheduleData.exam_date}
-                    onChange={(e) => setScheduleData({ ...scheduleData, exam_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">ID Penguji (Pegawai)</label>
-                  <input
-                    type="number"
-                    required
-                    value={scheduleData.examiner_teacher_ref_id}
-                    onChange={(e) => setScheduleData({ ...scheduleData, examiner_teacher_ref_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
+          <form onSubmit={handleScheduleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Jadwal</label>
-                <textarea
-                  rows={2}
-                  value={scheduleData.notes}
-                  onChange={(e) => setScheduleData({ ...scheduleData, notes: e.target.value })}
-                  placeholder="Catatan lokasi munaqasyah..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ID Santri / Siswa
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={scheduleData.student_ref_id}
+                  onChange={(e) => setScheduleData({ ...scheduleData, student_ref_id: e.target.value })}
+                  placeholder="ID Santri"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowScheduleModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
-                >
-                  {submitting ? 'Menyimpan...' : 'Jadwalkan Ujian'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Input Nilai Ujian */}
-      {showResultModal && selectedExam && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">Input Hasil Munaqasyah</h3>
-              <button
-                type="button"
-                onClick={() => setShowResultModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1">
-              <div className="flex justify-between text-slate-600">
-                <span>Santri:</span>
-                <span className="font-bold text-slate-800">#{selectedExam.student_ref_id}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Juz Diuji:</span>
-                <span className="font-bold text-emerald-800">Juz {selectedExam.juz_examined}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Tanggal Ujian:</span>
-                <span className="font-semibold text-slate-700">{selectedExam.exam_date ? selectedExam.exam_date.slice(0, 10) : '-'}</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleResultSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nilai Akhir (0 - 100)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Juz yang Diujikan
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  required
+                  value={scheduleData.juz_tested}
+                  onChange={(e) => setScheduleData({ ...scheduleData, juz_tested: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tanggal Pelaksanaan
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={scheduleData.exam_date}
+                  onChange={(e) => setScheduleData({ ...scheduleData, exam_date: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ID Musyrif Penguji
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={scheduleData.examiner_ref_id}
+                  onChange={(e) => setScheduleData({ ...scheduleData, examiner_ref_id: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      {/* Modal Input Nilai Hasil */}
+      <Modal
+        isOpen={showScoreModal}
+        onClose={() => setShowScoreModal(false)}
+        title="Input Nilai & Keputusan Munaqasyah"
+        subtitle={selectedExam ? `Ujian Santri #${selectedExam.student_ref_id} — Juz ${selectedExam.juz_tested}` : ''}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowScoreModal(false)}
+              className="px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleScoreSubmit}
+              disabled={submitting}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Nilai & Status</span>
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3.5">
+          {error && (
+            <FlatAlertBanner
+              variant="danger"
+              title="Gagal Menyimpan Nilai"
+              description={error}
+            />
+          )}
+
+          <form onSubmit={handleScoreSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nilai Total (0 - 100)
+                </label>
                 <input
                   type="number"
                   step="0.1"
                   min="0"
                   max="100"
                   required
-                  value={resultData.score}
-                  onChange={(e) => setResultData({ ...resultData, score: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-800 text-lg"
+                  value={scoreData.score}
+                  onChange={(e) => setScoreData({ ...scoreData, score: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Status Kelulusan</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Keputusan Hasil
+                </label>
                 <select
-                  value={resultData.status}
-                  onChange={(e) => setResultData({ ...resultData, status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  value={scoreData.status}
+                  onChange={(e) => setScoreData({ ...scoreData, status: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 >
-                  <option value="completed">Lulus / Selesai (Completed)</option>
-                  <option value="cancelled">Dibatalkan (Cancelled)</option>
+                  <option value="passed">Lulus (Syahadah Diterbitkan)</option>
+                  <option value="failed">Belum Lulus (Remedial)</option>
+                  <option value="scheduled">Tetap Terjadwal</option>
                 </select>
               </div>
+            </div>
 
+            {scoreData.status === 'passed' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Evaluasi Penguji</label>
-                <textarea
-                  rows={2}
-                  value={resultData.notes}
-                  onChange={(e) => setResultData({ ...resultData, notes: e.target.value })}
-                  placeholder="Lancar, tajwid & makhraj sangat baik..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nomor Syahadah / Sertifikat
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={scoreData.certificate_number}
+                  onChange={(e) => setScoreData({ ...scoreData, certificate_number: e.target.value })}
+                  placeholder="MNQ/2026/001"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
+            )}
 
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowResultModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
-                >
-                  {submitting ? 'Menyimpan...' : 'Simpan Nilai & Selesai'}
-                </button>
-              </div>
-            </form>
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Catatan Penguji
+              </label>
+              <textarea
+                rows={2}
+                value={scoreData.notes}
+                onChange={(e) => setScoreData({ ...scoreData, notes: e.target.value })}
+                placeholder="Evaluasi kelancaran hafalan dan tajwid santri..."
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+              />
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

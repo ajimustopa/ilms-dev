@@ -337,9 +337,30 @@ class MasterDataService {
   async createOpeningBalance(schoolUnitId, data, userId = null) {
     const openingAmt = parseFloat(data.opening_balance || 0);
     const openingDate = data.opening_date || null;
+
+    let targetAyId = data.academic_year_id ? Number(data.academic_year_id) : null;
+    if (!targetAyId && openingDate) {
+      try {
+        const dbAkademik = require('../../../config/db/akademik');
+        const ays = await dbAkademik('academic_years')
+          .where(b => b.where('satuan_pendidikan_id', schoolUnitId || 1).orWhere('satuan_pendidikan_id', 0))
+          .orderBy('start_date', 'asc');
+        const dt = new Date(openingDate);
+        for (const ay of ays) {
+          const s = new Date(ay.start_date);
+          const e = new Date(ay.end_date || '2099-12-31 23:59:59');
+          if (dt >= s && dt <= e) {
+            targetAyId = ay.id;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (!targetAyId) targetAyId = 1;
+
     const [id] = await db('cash_account_opening_balances').insert({
       cash_account_id: data.cash_account_id,
-      academic_year_id: data.academic_year_id,
+      academic_year_id: targetAyId,
       opening_balance: openingAmt,
       opening_date: openingDate
     });
@@ -348,11 +369,11 @@ class MasterDataService {
     // Auto-journal dan mutasi kantong dana untuk saldo awal kas jika nominal > 0
     if (openingAmt > 0) {
       const cashAcc = await db('cash_accounts').where({ id: data.cash_account_id }).first();
-      const targetUnitId = isUnit(schoolUnitId) ? schoolUnitId : (cashAcc?.school_unit_id || 1);
+      const finalUnitId = isUnit(schoolUnitId) ? schoolUnitId : (cashAcc?.school_unit_id || 1);
 
       try {
         await recordJournal({
-          schoolUnitId: targetUnitId,
+          schoolUnitId: finalUnitId,
           transactionCode: 'opening_balance_entry',
           amount: openingAmt,
           sourceType: 'manual',
@@ -360,7 +381,7 @@ class MasterDataService {
           overrideDebitAccountId: cashAcc?.account_id || null,
           overrideCashAccountId: data.cash_account_id,
           journalDate: openingDate ? new Date(openingDate) : new Date(),
-          description: `Pencatatan Saldo Awal ${cashAcc ? cashAcc.name : 'Kas/Bank'} (Tahun Ajaran #${data.academic_year_id})`
+          description: `Pencatatan Saldo Awal ${cashAcc ? cashAcc.name : 'Kas/Bank'} (Tahun Ajaran #${targetAyId})`
         });
       } catch (journalErr) {
         console.warn('Auto journal for opening balance skipped or error:', journalErr.message);
@@ -368,15 +389,15 @@ class MasterDataService {
 
       try {
         await fundBalanceEngine.applyFundMutation({
-          schoolUnitId: targetUnitId,
+          schoolUnitId: finalUnitId,
           fundType: 'opening_pool',
           fundRefId: 0,
-          academicYearId: Number(data.academic_year_id || 2),
+          academicYearId: targetAyId,
           direction: 'in',
           amount: openingAmt,
           sourceTable: 'cash_account_opening_balances',
           sourceId: id,
-          notes: `Saldo awal kas ${cashAcc ? cashAcc.name : 'Kas/Bank'} masuk ke kantong opening pool TA #${data.academic_year_id}`,
+          notes: `Saldo awal kas ${cashAcc ? cashAcc.name : 'Kas/Bank'} masuk ke kantong opening pool TA #${targetAyId}`,
           userId
         });
       } catch (fbErr) {
@@ -480,9 +501,15 @@ class MasterDataService {
   }
 
   async getChartOfAccountById(schoolUnitId, id) {
-    return db('chart_of_accounts')
-      .where({ id, school_unit_id: schoolUnitId })
-      .first();
+    let query = db('chart_of_accounts').where('id', id);
+    if (isUnit(schoolUnitId)) {
+      query = query.where(function () {
+        this.where('school_unit_id', schoolUnitId)
+          .orWhere('school_unit_id', 0)
+          .orWhereNull('school_unit_id');
+      });
+    }
+    return query.first();
   }
 
   async createChartOfAccount(schoolUnitId, data, userId = null) {
@@ -493,29 +520,22 @@ class MasterDataService {
     }
 
     const group = data.account_group || 'harta';
-    const expectedNormal = getNormalBalance(group);
-    const normalBalance = data.normal_balance ? data.normal_balance : expectedNormal;
-
-    if (normalBalance !== expectedNormal) {
-      const err = new Error(`Kelompok akun '${group}' wajib memiliki saldo normal '${expectedNormal}' (diterima: '${normalBalance}')`);
-      err.statusCode = 422;
-      throw err;
-    }
+    const normalBalance = data.normal_balance ? data.normal_balance : getNormalBalance(group);
 
     const [id] = await db('chart_of_accounts').insert({
-      school_unit_id: schoolUnitId,
+      school_unit_id: isUnit(schoolUnitId) ? schoolUnitId : (data.school_unit_id || 0),
       account_code: data.account_code,
       account_name: data.account_name,
       account_group: group,
       normal_balance: normalBalance,
-      parent_account_id: data.parent_account_id || null,
+      parent_account_id: data.parent_account_id ? Number(data.parent_account_id) : null,
       level: level,
-      is_active: data.is_active !== undefined ? data.is_active : true
+      is_active: data.is_active !== undefined ? Boolean(data.is_active) : true
     });
 
     const created = await this.getChartOfAccountById(schoolUnitId, id);
     await logFinanceAudit({
-      schoolUnitId,
+      schoolUnitId: isUnit(schoolUnitId) ? schoolUnitId : 1,
       userId,
       action: 'CREATE_COA',
       entityType: 'chart_of_account',
@@ -540,30 +560,24 @@ class MasterDataService {
     }
 
     const targetGroup = data.account_group || before.account_group;
-    const expectedNormal = getNormalBalance(targetGroup);
-    const targetNormalBalance = data.normal_balance ? data.normal_balance : expectedNormal;
-
-    if (targetNormalBalance !== expectedNormal) {
-      const err = new Error(`Kelompok akun '${targetGroup}' wajib memiliki saldo normal '${expectedNormal}' (diterima: '${targetNormalBalance}')`);
-      err.statusCode = 422;
-      throw err;
-    }
+    const targetNormalBalance = data.normal_balance ? data.normal_balance : (before.normal_balance || getNormalBalance(targetGroup));
 
     await db('chart_of_accounts')
-      .where({ id, school_unit_id: schoolUnitId })
+      .where({ id: before.id })
       .update({
         account_code: data.account_code || before.account_code,
         account_name: data.account_name || before.account_name,
         account_group: targetGroup,
         normal_balance: targetNormalBalance,
-        parent_account_id: data.parent_account_id !== undefined ? data.parent_account_id : before.parent_account_id,
+        parent_account_id: data.parent_account_id !== undefined ? (data.parent_account_id ? Number(data.parent_account_id) : null) : before.parent_account_id,
         level: level,
-        is_active: data.is_active !== undefined ? data.is_active : before.is_active
+        is_active: data.is_active !== undefined ? Boolean(data.is_active) : before.is_active,
+        updated_at: db.fn.now()
       });
 
     const updated = await this.getChartOfAccountById(schoolUnitId, id);
     await logFinanceAudit({
-      schoolUnitId,
+      schoolUnitId: isUnit(schoolUnitId) ? schoolUnitId : (before.school_unit_id || 1),
       userId,
       action: 'UPDATE_COA',
       entityType: 'chart_of_account',
@@ -579,12 +593,15 @@ class MasterDataService {
     if (!before) return null;
 
     await db('chart_of_accounts')
-      .where({ id, school_unit_id: schoolUnitId })
-      .update({ is_active: isActive });
+      .where({ id: before.id })
+      .update({
+        is_active: Boolean(isActive),
+        updated_at: db.fn.now()
+      });
 
     const updated = await this.getChartOfAccountById(schoolUnitId, id);
     await logFinanceAudit({
-      schoolUnitId,
+      schoolUnitId: isUnit(schoolUnitId) ? schoolUnitId : (before.school_unit_id || 1),
       userId,
       action: isActive ? 'ACTIVATE_COA' : 'DEACTIVATE_COA',
       entityType: 'chart_of_account',
@@ -620,7 +637,11 @@ class MasterDataService {
       );
 
     if (isUnit(schoolUnitId)) {
-      query = query.where('transaction_account_mappings.school_unit_id', schoolUnitId);
+      query = query.where(function () {
+        this.where('transaction_account_mappings.school_unit_id', schoolUnitId)
+          .orWhere('transaction_account_mappings.school_unit_id', 0)
+          .orWhereNull('transaction_account_mappings.school_unit_id');
+      });
     }
     if (filters.transaction_type) {
       query = query.where('transaction_account_mappings.transaction_type', filters.transaction_type);
@@ -659,7 +680,11 @@ class MasterDataService {
       );
 
     if (isUnit(schoolUnitId)) {
-      query = query.where('transaction_account_mappings.school_unit_id', schoolUnitId);
+      query = query.where(function () {
+        this.where('transaction_account_mappings.school_unit_id', schoolUnitId)
+          .orWhere('transaction_account_mappings.school_unit_id', 0)
+          .orWhereNull('transaction_account_mappings.school_unit_id');
+      });
     }
 
     return query.first();
@@ -895,8 +920,12 @@ class MasterDataService {
         'rev_acc.account_name as revenue_account_name',
         'billing_tam.transaction_code as billing_mapping_code',
         'billing_tam.transaction_label as billing_mapping_label',
+        'billing_tam.credit_account_id as billing_credit_account_id',
         'payment_tam.transaction_code as payment_mapping_code',
         'payment_tam.transaction_label as payment_mapping_label',
+        'payment_tam.debit_account_id as payment_debit_account_id',
+        'payment_tam.credit_account_id as payment_credit_account_id',
+        'payment_tam.default_cash_account_id as payment_default_cash_account_id',
         'bill_disc_tam.transaction_code as billing_discount_mapping_code',
         'bill_disc_tam.transaction_label as billing_discount_mapping_label',
         'pay_disc_tam.transaction_code as payment_discount_mapping_code',
@@ -956,8 +985,12 @@ class MasterDataService {
         'rev_acc.account_name as revenue_account_name',
         'billing_tam.transaction_code as billing_mapping_code',
         'billing_tam.transaction_label as billing_mapping_label',
+        'billing_tam.credit_account_id as billing_credit_account_id',
         'payment_tam.transaction_code as payment_mapping_code',
         'payment_tam.transaction_label as payment_mapping_label',
+        'payment_tam.debit_account_id as payment_debit_account_id',
+        'payment_tam.credit_account_id as payment_credit_account_id',
+        'payment_tam.default_cash_account_id as payment_default_cash_account_id',
         'bill_disc_tam.transaction_code as billing_discount_mapping_code',
         'bill_disc_tam.transaction_label as billing_discount_mapping_label',
         'pay_disc_tam.transaction_code as payment_discount_mapping_code',
@@ -1042,8 +1075,12 @@ class MasterDataService {
         'rev_acc.account_name as revenue_account_name',
         'billing_tam.transaction_code as billing_mapping_code',
         'billing_tam.transaction_label as billing_mapping_label',
+        'billing_tam.credit_account_id as billing_credit_account_id',
         'payment_tam.transaction_code as payment_mapping_code',
         'payment_tam.transaction_label as payment_mapping_label',
+        'payment_tam.debit_account_id as payment_debit_account_id',
+        'payment_tam.credit_account_id as payment_credit_account_id',
+        'payment_tam.default_cash_account_id as payment_default_cash_account_id',
         'bill_disc_tam.transaction_code as billing_discount_mapping_code',
         'bill_disc_tam.transaction_label as billing_discount_mapping_label',
         'pay_disc_tam.transaction_code as payment_discount_mapping_code',
@@ -1553,9 +1590,23 @@ class MasterDataService {
   async listCatalogItems(schoolUnitId, filters = {}) {
     let query = db('catalog_items')
       .leftJoin('transaction_categories', 'catalog_items.expense_category_id', 'transaction_categories.id')
+      .leftJoin('chart_of_accounts as cat_related_coa', 'transaction_categories.related_account_id', 'cat_related_coa.id')
+      .leftJoin('chart_of_accounts as cat_debit_coa', 'catalog_items.debit_account_id', 'cat_debit_coa.id')
+      .leftJoin('chart_of_accounts as cat_credit_coa', 'catalog_items.credit_account_id', 'cat_credit_coa.id')
+      .leftJoin('cash_accounts as cat_cash', 'catalog_items.cash_account_id', 'cat_cash.id')
+      .leftJoin('budget_plan_income_items as cat_income_item', 'catalog_items.fund_source_income_item_id', 'cat_income_item.id')
       .select(
         'catalog_items.*',
-        'transaction_categories.name as expense_category_name'
+        'transaction_categories.name as expense_category_name',
+        'transaction_categories.related_account_id',
+        'cat_related_coa.account_code',
+        'cat_related_coa.account_name',
+        'cat_debit_coa.account_code as debit_account_code',
+        'cat_debit_coa.account_name as debit_account_name',
+        'cat_credit_coa.account_code as credit_account_code',
+        'cat_credit_coa.account_name as credit_account_name',
+        'cat_cash.name as cash_account_name',
+        'cat_income_item.name as fund_source_income_name'
       );
 
     if (isUnit(schoolUnitId)) {
@@ -1577,10 +1628,24 @@ class MasterDataService {
   async getCatalogItemById(schoolUnitId, id) {
     let query = db('catalog_items')
       .leftJoin('transaction_categories', 'catalog_items.expense_category_id', 'transaction_categories.id')
+      .leftJoin('chart_of_accounts as cat_related_coa', 'transaction_categories.related_account_id', 'cat_related_coa.id')
+      .leftJoin('chart_of_accounts as cat_debit_coa', 'catalog_items.debit_account_id', 'cat_debit_coa.id')
+      .leftJoin('chart_of_accounts as cat_credit_coa', 'catalog_items.credit_account_id', 'cat_credit_coa.id')
+      .leftJoin('cash_accounts as cat_cash', 'catalog_items.cash_account_id', 'cat_cash.id')
+      .leftJoin('budget_plan_income_items as cat_income_item', 'catalog_items.fund_source_income_item_id', 'cat_income_item.id')
       .where('catalog_items.id', id)
       .select(
         'catalog_items.*',
-        'transaction_categories.name as expense_category_name'
+        'transaction_categories.name as expense_category_name',
+        'transaction_categories.related_account_id',
+        'cat_related_coa.account_code',
+        'cat_related_coa.account_name',
+        'cat_debit_coa.account_code as debit_account_code',
+        'cat_debit_coa.account_name as debit_account_name',
+        'cat_credit_coa.account_code as credit_account_code',
+        'cat_credit_coa.account_name as credit_account_name',
+        'cat_cash.name as cash_account_name',
+        'cat_income_item.name as fund_source_income_name'
       );
 
     if (isUnit(schoolUnitId)) {
@@ -1609,6 +1674,10 @@ class MasterDataService {
       name: data.name.trim(),
       unit: data.unit.trim(),
       reference_price: refPrice,
+      debit_account_id: data.debit_account_id ? Number(data.debit_account_id) : null,
+      credit_account_id: data.credit_account_id ? Number(data.credit_account_id) : null,
+      cash_account_id: data.cash_account_id ? Number(data.cash_account_id) : null,
+      fund_source_income_item_id: data.fund_source_income_item_id ? Number(data.fund_source_income_item_id) : null,
       is_active: data.is_active !== undefined ? Boolean(data.is_active) : true
     });
 
@@ -1653,15 +1722,30 @@ class MasterDataService {
       }
     }
 
+    const updatePayload = {
+      expense_category_id: validExpenseCatId,
+      academic_year_id: acadYearId,
+      name: data.name !== undefined ? data.name.trim() : before.name,
+      unit: data.unit !== undefined ? data.unit.trim() : before.unit,
+      reference_price: newRefPrice
+    };
+
+    if (data.debit_account_id !== undefined) {
+      updatePayload.debit_account_id = data.debit_account_id ? Number(data.debit_account_id) : null;
+    }
+    if (data.credit_account_id !== undefined) {
+      updatePayload.credit_account_id = data.credit_account_id ? Number(data.credit_account_id) : null;
+    }
+    if (data.cash_account_id !== undefined) {
+      updatePayload.cash_account_id = data.cash_account_id ? Number(data.cash_account_id) : null;
+    }
+    if (data.fund_source_income_item_id !== undefined) {
+      updatePayload.fund_source_income_item_id = data.fund_source_income_item_id ? Number(data.fund_source_income_item_id) : null;
+    }
+
     await db('catalog_items')
       .where({ id })
-      .update({
-        expense_category_id: validExpenseCatId,
-        academic_year_id: acadYearId,
-        name: data.name !== undefined ? data.name.trim() : before.name,
-        unit: data.unit !== undefined ? data.unit.trim() : before.unit,
-        reference_price: newRefPrice
-      });
+      .update(updatePayload);
 
     // Jika harga berubah, catat riwayat harga
     if (Math.abs(newRefPrice - oldRefPrice) > 0.001) {

@@ -8,7 +8,7 @@ class InternalService {
   async getStudentBrief(id) {
     const student = await db('students')
       .where({ id })
-      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id')
+      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'nipd', 'full_name', 'gender', 'status', 'user_id', 'cohort_name')
       .first();
 
     if (!student) {
@@ -17,26 +17,83 @@ class InternalService {
       throw error;
     }
 
-    const enrollment = await db('student_class_enrollments')
-      .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
-      .where({ 'student_class_enrollments.student_id': id, 'student_class_enrollments.status': 'aktif' })
-      .select('class_groups.id as class_group_id', 'class_groups.name as class_group_name')
-      .first();
+    // 1. Ambil tahun ajaran aktif di modul akademik
+    const activeYear = await db('academic_years').where('is_active', true).first();
+
+    // 2. Cari enrollment siswa pada tahun ajaran aktif (HANYA ROMBEL REGULER)
+    let activeEnrollment = null;
+    if (activeYear) {
+      activeEnrollment = await db('student_class_enrollments')
+        .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+        .where({
+          'student_class_enrollments.student_id': id,
+          'student_class_enrollments.academic_year_id': activeYear.id,
+          'student_class_enrollments.status': 'aktif'
+        })
+        .where(function() {
+          this.where('class_groups.type', 'reguler')
+            .orWhere(function() {
+              this.whereNull('class_groups.type')
+                .whereNull('class_groups.extracurricular_id');
+            });
+        })
+        .whereNull('class_groups.extracurricular_id')
+        .select(
+          'class_groups.id as class_group_id',
+          'class_groups.name as class_group_name'
+        )
+        .first();
+    }
+
+    // 3. Jika tidak ada enrollment di tahun ajaran aktif, ambil kelas reguler terakhir (historis)
+    let lastEnrollment = null;
+    if (!activeEnrollment) {
+      lastEnrollment = await db('student_class_enrollments')
+        .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+        .leftJoin('academic_years', 'student_class_enrollments.academic_year_id', 'academic_years.id')
+        .where('student_class_enrollments.student_id', id)
+        .where(function() {
+          this.where('class_groups.type', 'reguler')
+            .orWhere(function() {
+              this.whereNull('class_groups.type')
+                .whereNull('class_groups.extracurricular_id');
+            });
+        })
+        .whereNull('class_groups.extracurricular_id')
+        .orderBy('student_class_enrollments.id', 'desc')
+        .select(
+          'class_groups.id as class_group_id',
+          'class_groups.name as class_group_name',
+          'student_class_enrollments.status as enrollment_status',
+          'academic_years.name as academic_year_name'
+        )
+        .first();
+    }
 
     return {
       ...student,
-      current_class: enrollment || null
+      academic_status: student.status, // 'aktif', 'lulus', 'pindah', 'keluar', 'calon'
+      is_in_active_academic_year: Boolean(activeEnrollment),
+      active_academic_year_name: activeYear?.name || null,
+      current_class: activeEnrollment || null,
+      last_class: lastEnrollment || null
     };
   }
 
   async listActiveStudents(query = {}) {
-    let baseQuery = db('students').where('status', 'aktif');
+    let baseQuery = db('students');
 
-    if (query.satuan_pendidikan_id) {
+    if (query.status) {
+      baseQuery = baseQuery.where('status', query.status);
+    } else if (query.include_all !== true) {
+      baseQuery = baseQuery.where('status', 'aktif');
+    }
+
+    if (query.satuan_pendidikan_id && query.satuan_pendidikan_id !== 'all') {
       baseQuery = baseQuery.where('satuan_pendidikan_id', query.satuan_pendidikan_id);
     }
 
-    return baseQuery.select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender');
+    return baseQuery.select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'nipd', 'full_name', 'gender', 'status', 'cohort_name');
   }
 
   async getStudentGuardians(studentId) {
@@ -189,6 +246,18 @@ class InternalService {
         'class_groups.academic_year_id',
         db.raw('COUNT(student_class_enrollments.id) as student_count')
       );
+
+    if (query.type) {
+      q = q.where('class_groups.type', query.type);
+    } else {
+      q = q.where(function() {
+        this.where('class_groups.type', 'reguler')
+          .orWhere(function() {
+            this.whereNull('class_groups.type')
+              .whereNull('class_groups.extracurricular_id');
+          });
+      }).whereNull('class_groups.extracurricular_id');
+    }
 
     if (query.satuan_pendidikan_id) {
       q = q.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);

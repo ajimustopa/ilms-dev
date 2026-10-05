@@ -192,35 +192,62 @@ export default function DatePickerField({
     }
   }, [selectedDate]);
 
-  // Hitung posisi tepat di bawah inputan tanpa menghalangi input text
+  // Hitung posisi tepat di atas atau di bawah inputan TANPA pernah menutupi/menghalangi kotak input
   const calculateCoords = useCallback(() => {
     if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
 
-    const popoverHeight = 350;
-    const popoverWidth = 290;
+    // Gunakan tinggi & lebar aktual popover bila sudah ter-render, atau default proporsional
+    const popoverH = popoverRef.current?.offsetHeight || 345;
+    const popoverW = popoverRef.current?.offsetWidth || 304;
 
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
 
-    // Prioritas utama: tepat di bawah input field (rect.bottom + 4px)
-    // Hanya buka di atas jika ruang bawah sangat sempit (< 310px) dan ruang atas cukup lega
-    const shouldOpenAbove = spaceBelow < 310 && spaceAbove > 330;
+    // Logika Auto-Flip Pintar: Utamakan sisi yang memiliki ruang paling lega jika salah satu sisi tidak cukup
+    const neededHeight = popoverH + 10;
+    let shouldOpenAbove = false;
 
-    let top = shouldOpenAbove ? (rect.top - popoverHeight - 4) : (rect.bottom + 4);
+    if (spaceBelow >= neededHeight) {
+      // Ruang bawah sangat leluasa
+      shouldOpenAbove = false;
+    } else if (spaceAbove >= neededHeight) {
+      // Ruang bawah sempit, tapi ruang atas leluasa
+      shouldOpenAbove = true;
+    } else {
+      // Kedua sisi sempit (layar kecil/laptop), pilih sisi yang lebih luas
+      shouldOpenAbove = spaceAbove > spaceBelow;
+    }
+
+    let top = 0;
+    let maxHeight = popoverH;
+
+    if (shouldOpenAbove) {
+      top = Math.max(8, rect.top - popoverH - 6);
+      const availableAbove = rect.top - 12;
+      maxHeight = Math.min(popoverH, Math.max(240, availableAbove));
+    } else {
+      top = rect.bottom + 6;
+      const availableBelow = viewportHeight - top - 12;
+      maxHeight = Math.min(popoverH, Math.max(240, availableBelow));
+    }
 
     let left = rect.left;
-    if (align === 'right' || (align !== 'left' && rect.left + popoverWidth > viewportWidth - 12)) {
-      left = rect.right - popoverWidth;
+    if (align === 'right' || (align !== 'left' && rect.left + popoverW > viewportWidth - 12)) {
+      left = rect.right - popoverW;
     }
     if (left < 12) left = 12;
-    if (left + popoverWidth > viewportWidth - 12) {
-      left = Math.max(12, viewportWidth - popoverWidth - 12);
+    if (left + popoverW > viewportWidth - 12) {
+      left = Math.max(12, viewportWidth - popoverW - 12);
     }
 
-    return { top: Math.round(top), left: Math.round(left) };
+    return {
+      top: Math.round(top),
+      left: Math.round(left),
+      maxHeight: Math.round(maxHeight)
+    };
   }, [align]);
 
   const openCalendar = useCallback(() => {
@@ -244,6 +271,16 @@ export default function DatePickerField({
       }
     }
   }, [isOpen, calculateCoords]);
+
+  // Re-adjust posisi begitu popoverRef ter-mount dengan tinggi DOM yang terukur akurat
+  useEffect(() => {
+    if (isOpen && popoverRef.current) {
+      const coords = calculateCoords();
+      if (coords) {
+        setPopoverCoords(coords);
+      }
+    }
+  }, [isOpen, calculateCoords, currentMonth]);
 
   // Handle outside click & update position on scroll/resize
   useEffect(() => {
@@ -453,12 +490,13 @@ export default function DatePickerField({
               position: 'fixed',
               top: `${popoverCoords.top}px`,
               left: `${popoverCoords.left}px`,
+              maxHeight: popoverCoords.maxHeight ? `${popoverCoords.maxHeight}px` : undefined,
               zIndex: 99999
             }}
-            className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-100 min-w-[280px] max-w-[320px] text-left select-none pointer-events-auto"
+            className="p-3 bg-white border border-slate-200 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-100 w-[304px] text-left select-none pointer-events-auto overflow-y-auto overflow-x-hidden"
           >
             {/* Header Navigasi Tahun & Bulan Cepat */}
-            <div className="flex items-center justify-between gap-1 pb-2.5 mb-2 border-b border-slate-100">
+            <div className="flex items-center justify-between gap-1 pb-2 mb-1.5 border-b border-slate-100">
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
@@ -515,22 +553,25 @@ export default function DatePickerField({
               </div>
             </div>
 
-            <DayPicker
-              mode="single"
-              locale={localeId}
-              selected={selectedDate}
-              onSelect={handleSelectDay}
-              month={currentMonth}
-              onMonthChange={setCurrentMonth}
-              captionLayout="dropdown"
-              startMonth={new Date(1950, 0)}
-              endMonth={new Date(2040, 11)}
-              className="m-0 text-slate-700 text-xs"
-              modifiersClassNames={{
-                selected: 'bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700',
-                today: 'text-emerald-700 font-bold underline'
-              }}
-            />
+            <div className="core-daypicker">
+              <DayPicker
+                mode="single"
+                locale={localeId}
+                selected={selectedDate}
+                onSelect={handleSelectDay}
+                month={currentMonth}
+                onMonthChange={setCurrentMonth}
+                hideNavigation={true}
+                captionLayout="label"
+                startMonth={new Date(1950, 0)}
+                endMonth={new Date(2040, 11)}
+                className="m-0 text-slate-700 text-xs"
+                modifiersClassNames={{
+                  selected: 'bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700',
+                  today: 'text-emerald-700 font-bold underline'
+                }}
+              />
+            </div>
 
             <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
               <button

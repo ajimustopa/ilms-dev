@@ -272,6 +272,19 @@ class PaymentsController {
       res.json({ success: true, data, message: data.message, errors: null });
     } catch (err) { next(err); }
   };
+
+  getEligibleStudents = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await paymentsService.getEligibleStudentsForPayments(schoolUnitId, req.query);
+      res.json({
+        success: true,
+        data,
+        message: 'Daftar siswa berhak bayar (aktif, baru/pindahan tahun depan, & alumni bertunggakan) berhasil diambil',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
 }
 
 module.exports = new PaymentsController();

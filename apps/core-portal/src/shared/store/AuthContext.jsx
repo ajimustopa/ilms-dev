@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
           localStorage.setItem('aldepos_active_school_unit_id', String(activeUnit.id));
         }
 
-        return { success: true };
+        return { success: true, user: userData };
       }
 
       return {

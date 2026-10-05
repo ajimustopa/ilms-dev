@@ -21,12 +21,29 @@ class ExpensesController {
     } catch (err) { next(err); }
   };
 
+  getExpenseSummary = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await expensesService.getExpenseSummary(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Ringkasan makro pengeluaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
   getExpenseById = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
       const data = await expensesService.getExpenseById(schoolUnitId, req.params.id);
       if (!data) return res.status(404).json({ success: false, data: null, message: 'Data pengeluaran tidak ditemukan', errors: null });
       res.json({ success: true, data, message: 'Detail pengeluaran berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getExpenseVoucher = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await expensesService.getExpenseVoucher(schoolUnitId, req.params.id);
+      if (!data) return res.status(404).json({ success: false, data: null, message: 'Bukti pengeluaran tidak ditemukan', errors: null });
+      res.json({ success: true, data, message: 'Bukti kas keluar berhasil diambil', errors: null });
     } catch (err) { next(err); }
   };
 

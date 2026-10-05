@@ -162,8 +162,26 @@ export default function RombelManagement() {
         api.get('/akademik/subjects', { params }).catch(() => ({ data: { data: [] } }))
       ]);
 
-      const years = yRes.data?.data || [];
-      setAcademicYears(years);
+      const rawYears = yRes.data?.data || [];
+      const seenYearNames = new Set();
+      const uniqueYears = [];
+      for (const y of rawYears) {
+        const trimmedName = (y.name || '').trim();
+        if (!seenYearNames.has(trimmedName)) {
+          seenYearNames.add(trimmedName);
+          const hasActiveSibling = rawYears.some((sy) => (sy.name || '').trim() === trimmedName && sy.is_active);
+          uniqueYears.push({
+            ...y,
+            is_active: Boolean(y.is_active || hasActiveSibling)
+          });
+        }
+      }
+      uniqueYears.sort((a, b) => {
+        const parseYear = (str) => parseInt(String(str || '').split('/')[0], 10) || 0;
+        return parseYear(b.name) - parseYear(a.name);
+      });
+
+      setAcademicYears(uniqueYears);
       setGradeLevels(gRes.data?.data || []);
       setCohorts(cRes.data?.data || []);
       const teachersList = tRes.data?.data?.items || (Array.isArray(tRes.data?.data) ? tRes.data.data : []);
@@ -174,11 +192,11 @@ export default function RombelManagement() {
       setSchoolUnitsList(Array.isArray(unitsList) ? unitsList : []);
 
       // Auto select active year
-      const activeYear = years.find((y) => y.is_active);
+      const activeYear = uniqueYears.find((y) => y.is_active);
       if (activeYear) {
         setSelectedYearId(activeYear.id);
-      } else if (years.length > 0) {
-        setSelectedYearId(years[0].id);
+      } else if (uniqueYears.length > 0) {
+        setSelectedYearId(uniqueYears[0].id);
       } else {
         setSelectedYearId('');
       }
@@ -600,34 +618,42 @@ export default function RombelManagement() {
             <span>Reload Data</span>
           </button>
 
-          <div>
-            <select
-              value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500"
-            >
-              {academicYears.map((y) => (
-                <option key={y.id} value={y.id}>
-                  Tahun Ajaran: {y.name} {y.is_active ? '(Aktif)' : ''}
-                </option>
-              ))}
-            </select>
+          <div className="w-56 sm:w-64">
+            <SearchableSelect
+              options={academicYears.map((y) => ({
+                value: String(y.id),
+                label: `T.A. ${y.name} ${y.is_active ? '(Aktif)' : ''}`,
+                sublabel: y.is_active ? 'Tahun Ajaran Aktif' : `Tahun Ajaran ${y.name}`,
+                badge: y.is_active ? 'Aktif' : undefined,
+                badgeClass: y.is_active ? 'bg-emerald-100 text-emerald-800' : undefined
+              }))}
+              value={String(selectedYearId)}
+              onChange={(val) => {
+                if (val) setSelectedYearId(val);
+              }}
+              placeholder="-- Pilih Tahun Ajaran --"
+              searchPlaceholder="Cari tahun ajaran..."
+              allowClear={false}
+            />
           </div>
 
           {rombelTab === 'reguler' && (
-            <div>
-              <select
-                value={selectedGradeId}
-                onChange={(e) => setSelectedGradeId(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">Semua Tingkat</option>
-                {gradeLevels.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+            <div className="w-44 sm:w-48">
+              <SearchableSelect
+                options={[
+                  { value: '', label: '-- Semua Tingkat --' },
+                  ...gradeLevels.map((g) => ({
+                    value: String(g.id),
+                    label: g.name,
+                    sublabel: `Tingkat ${g.order || g.name}`
+                  }))
+                ]}
+                value={String(selectedGradeId || '')}
+                onChange={(val) => setSelectedGradeId(val)}
+                placeholder="Semua Tingkat"
+                searchPlaceholder="Cari tingkat..."
+                allowClear={false}
+              />
             </div>
           )}
 

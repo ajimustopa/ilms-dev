@@ -10,14 +10,14 @@ const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
 router.get(
   '/cash-transfers',
   verifyJwt,
-  requirePermission('keuangan.master.cash_accounts.manage'),
+  requirePermission('keuangan.master.cash_accounts.manage', 'keuangan.expenses.manage', 'keuangan.reports.view'),
   controller.listTransfers
 );
 
 router.post(
   '/cash-transfers',
   verifyJwt,
-  requirePermission('keuangan.master.cash_accounts.manage'),
+  requirePermission('keuangan.master.cash_accounts.manage', 'keuangan.expenses.manage'),
   controller.createTransfer
 );
 

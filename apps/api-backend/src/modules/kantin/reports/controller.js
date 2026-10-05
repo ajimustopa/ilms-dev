@@ -1,9 +1,10 @@
 const reportsService = require('./service');
+const { getValidatedSchoolUnitId } = require('../utils/schoolUnitHelper');
 
 class ReportsController {
   async getProductsReport(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await reportsService.getProductsReport(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -13,7 +14,7 @@ class ReportsController {
 
   async getVendorsReport(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await reportsService.getVendorsReport(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -23,7 +24,7 @@ class ReportsController {
 
   async getCashReport(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await reportsService.getCashReport(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -33,7 +34,7 @@ class ReportsController {
 
   async getMonthlyReport(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await reportsService.getMonthlyReport(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {
@@ -43,7 +44,7 @@ class ReportsController {
 
   async getMonthlySpending(req, res, next) {
     try {
-      const schoolUnitId = req.query.school_unit_id || req.user?.school_units?.[0]?.id || 1;
+      const schoolUnitId = getValidatedSchoolUnitId(req);
       const data = await reportsService.getMonthlySpending(schoolUnitId, req.query);
       res.json({ success: true, data, message: null, errors: null });
     } catch (err) {

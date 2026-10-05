@@ -1,8 +1,6 @@
 /**
- * Other Incomes (Penerimaan Kas Non-SPP / Sumber Lain RAPBS)
- * Status: Menu standalone deprecated, UI terintegrasi penuh ke dalam Pusat Penerimaan Kas (Tahap 6: Payments.jsx Tab 3 & 4)
- * Endpoint di bawah tetap aktif sebagai penyedia data servis untuk portal Penerimaan Terpadu.
- * Sesuai api-contract-keuangan.md §2 (Modul 5) & roles-keuangan.md §4.2
+ * Other Incomes (Penerimaan Kas Non-Siswa / Penerimaan Lainnya)
+ * Sesuai Modul Keuangan Enterprise Aldepos
  */
 const express = require('express');
 const router = express.Router();
@@ -22,21 +20,27 @@ router.get(
   controller.getRapbsIncomeSources
 );
 router.get(
+  '/other-incomes/:id/receipt',
+  verifyJwt,
+  requirePermission('keuangan.income.manage', 'keuangan.payments.record', 'keuangan.reports.view'),
+  controller.getOtherIncomeReceipt
+);
+router.get(
   '/other-incomes/:id',
   verifyJwt,
-  requirePermission('keuangan.income.manage'),
+  requirePermission('keuangan.income.manage', 'keuangan.payments.record', 'keuangan.reports.view'),
   controller.getOtherIncomeById
 );
 router.post(
   '/other-incomes',
   verifyJwt,
-  requirePermission('keuangan.income.manage'),
+  requirePermission('keuangan.income.manage', 'keuangan.payments.record'),
   controller.createOtherIncome
 );
 router.put(
   '/other-incomes/:id',
   verifyJwt,
-  requirePermission('keuangan.income.manage'),
+  requirePermission('keuangan.income.manage', 'keuangan.payments.record'),
   controller.updateOtherIncome
 );
 router.delete(

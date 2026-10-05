@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
+import StatRibbonCard from '../../../shared/components/StatRibbonCard';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import {
+  formatCurrency,
+  formatNumber
+} from '../../../shared/utils/formatters';
 import {
   Coins,
   CheckCircle2,
   Clock,
   Send,
   Loader2,
-  Calendar,
   Wallet,
   RotateCw,
   XCircle,
@@ -15,15 +21,10 @@ import {
   ChevronRight,
   Info,
   X,
-  FileText,
-  AlertTriangle,
-  Building2,
   Search,
   Users,
   Briefcase,
   History,
-  FileSpreadsheet,
-  Check,
   ArrowDownRight
 } from 'lucide-react';
 
@@ -126,10 +127,6 @@ export default function Payroll({ isEmbedded = false }) {
     }
   };
 
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
-  };
-
   // Filter items based on active sub-tab
   const activeDisbursements = disbursements.filter(d => {
     if (subTab === 'realization') return d.status !== 'disbursed';
@@ -143,34 +140,48 @@ export default function Payroll({ isEmbedded = false }) {
     return name.includes(q) || period.includes(q);
   });
 
+  const pendingDisbursements = disbursements.filter(d => d.status !== 'disbursed');
+  const disbursedDisbursements = disbursements.filter(d => d.status === 'disbursed');
+
+  // Realization summary totals
+  const totalPendingNet = pendingDisbursements.reduce((sum, d) => sum + parseFloat(d.net_amount || 0), 0);
+  const totalPendingBasic = pendingDisbursements.reduce((sum, d) => sum + parseFloat(d.basic_salary || 0), 0);
+  const totalPendingAllowances = pendingDisbursements.reduce((sum, d) => sum + parseFloat(d.total_allowances || 0), 0);
+  const totalPendingDeductions = pendingDisbursements.reduce((sum, d) => sum + parseFloat(d.total_deductions || 0), 0);
+
+  // History summary totals
+  const totalHistoryNet = disbursedDisbursements.reduce((sum, d) => sum + parseFloat(d.net_amount || 0), 0);
+  const totalHistoryAllowances = disbursedDisbursements.reduce((sum, d) => sum + parseFloat(d.total_allowances || 0), 0);
+  const totalHistoryDeductions = disbursedDisbursements.reduce((sum, d) => sum + parseFloat(d.total_deductions || 0), 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Sub-Tabs Switcher */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex border-b border-slate-200 gap-4 sm:gap-6 overflow-x-auto">
         <button
           type="button"
           onClick={() => setSubTab('realization')}
-          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
+          className={`pb-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
             subTab === 'realization'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-700 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <Coins className="w-4 h-4" />
-          <span>Realisasi Penggajian & Pencairan</span>
-          {disbursements.filter(d => d.status !== 'disbursed').length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-              {disbursements.filter(d => d.status !== 'disbursed').length} draf
-            </span>
+          <span>Realisasi Penggajian &amp; Pencairan</span>
+          {pendingDisbursements.length > 0 && (
+            <StatusPill variant="warning">
+              {formatNumber(pendingDisbursements.length)} draf
+            </StatusPill>
           )}
         </button>
 
         <button
           type="button"
           onClick={() => setSubTab('setting')}
-          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
+          className={`pb-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
             subTab === 'setting'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-700 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -181,9 +192,9 @@ export default function Payroll({ isEmbedded = false }) {
         <button
           type="button"
           onClick={() => setSubTab('history')}
-          className={`pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
+          className={`pb-2.5 text-xs font-semibold flex items-center gap-2 border-b-2 transition shrink-0 ${
             subTab === 'history'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-700 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -197,82 +208,69 @@ export default function Payroll({ isEmbedded = false }) {
       {/* ========================================================================= */}
       {subTab === 'setting' && (
         <div className="space-y-4">
-          <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-indigo-600 text-white rounded-xl mt-0.5">
-                <Briefcase className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm">Penetapan Komponen & Standar Gaji Pegawai</h3>
-                <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-                  Data struktur gaji, tunjangan tetap, tunjangan fungsional, dan tarif honor mengajar dirumuskan melalui modul Kepegawaian (SDM). Bagian Keuangan menerima draf resmi untuk diverifikasi dan dicairkan.
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                    <Clock className="w-3 h-3 text-amber-600" />
-                    Menunggu Sinkronisasi Modul Kepegawaian
-                  </span>
-                </div>
-              </div>
-            </div>
+          <FlatAlertBanner
+            variant="info"
+            title="Penetapan Komponen & Standar Gaji Pegawai"
+            description="Data struktur gaji, tunjangan tetap, tunjangan fungsional, dan tarif honor mengajar dirumuskan melalui modul Kepegawaian (SDM). Bagian Keuangan menerima draf resmi untuk diverifikasi dan dicairkan."
+            action={
+              <button
+                type="button"
+                onClick={() => alert('Fitur sinkronisasi langsung dengan modul Kepegawaian (SDM) akan dihubungkan pada sesi integrasi berikutnya.')}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition shrink-0 flex items-center gap-1.5"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+                <span>Tarik Draf dari SDM</span>
+              </button>
+            }
+          />
 
-            <button
-              type="button"
-              onClick={() => alert('Fitur sinkronisasi langsung dengan modul Kepegawaian (SDM) akan dihubungkan pada sesi integrasi berikutnya.')}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 flex items-center gap-1.5"
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-              <span>Tarik Draf dari SDM</span>
-            </button>
-          </div>
-
-          {/* Placeholder Layout Struktur Gaji */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Daftar Penetapan Standar Gaji Pegawai (Pratinjau Struktur)</span>
-              <span className="text-slate-400">Total Karyawan Terdaftar: 42</span>
+          {/* Layout Struktur Gaji */}
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-3.5 border-b border-slate-100 flex items-center justify-between text-xs">
+              <span className="font-bold uppercase tracking-wide text-slate-700">Daftar Penetapan Standar Gaji Pegawai (Pratinjau Struktur)</span>
+              <span className="text-slate-400">Total Karyawan: 42</span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto table-container">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-3">Nama Pegawai & NIP</th>
-                    <th className="px-4 py-3">Jabatan & Unit</th>
-                    <th className="px-4 py-3 text-right">Gaji Pokok</th>
-                    <th className="px-4 py-3 text-right">Tunjangan Tetap</th>
-                    <th className="px-4 py-3 text-right">Tunjangan Jabatan</th>
-                    <th className="px-4 py-3 text-center">Status SDM</th>
+                    <th className="px-3.5 py-2.5 text-[11px] uppercase tracking-wide">Nama Pegawai &amp; NIP</th>
+                    <th className="px-3.5 py-2.5 text-[11px] uppercase tracking-wide">Jabatan &amp; Unit</th>
+                    <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Gaji Pokok</th>
+                    <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Tunjangan Tetap</th>
+                    <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Tunjangan Jabatan</th>
+                    <th className="px-3.5 py-2.5 text-center text-[11px] uppercase tracking-wide">Status SDM</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  <tr className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
+                  <tr className="hover:bg-slate-50/60 transition">
+                    <td className="px-3.5 py-2.5">
                       <div className="font-bold text-slate-800">Ustadz Ahmad Fauzi, S.Pd.I</div>
                       <div className="text-[10px] text-slate-400 font-mono">NIP: 19850112-201501</div>
                     </td>
-                    <td className="px-4 py-3">Kepala Bagian Kurikulum & Guru</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 4.500.000</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 850.000</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 1.200.000</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <td className="px-3.5 py-2.5">Kepala Bagian Kurikulum &amp; Guru</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 4.500.000</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 850.000</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 1.200.000</td>
+                    <td className="px-3.5 py-2.5 text-center">
+                      <StatusPill variant="success">
                         Aktif Tetap
-                      </span>
+                      </StatusPill>
                     </td>
                   </tr>
-                  <tr className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
+                  <tr className="hover:bg-slate-50/60 transition">
+                    <td className="px-3.5 py-2.5">
                       <div className="font-bold text-slate-800">Siti Rahmawati, M.Pd</div>
                       <div className="text-[10px] text-slate-400 font-mono">NIP: 19900325-201802</div>
                     </td>
-                    <td className="px-4 py-3">Guru Tetap Bahasa Arab</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 3.800.000</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 650.000</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">Rp 500.000</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <td className="px-3.5 py-2.5">Guru Tetap Bahasa Arab</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 3.800.000</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 650.000</td>
+                    <td className="px-3.5 py-2.5 num-cell font-medium tnum">Rp 500.000</td>
+                    <td className="px-3.5 py-2.5 text-center">
+                      <StatusPill variant="success">
                         Aktif Tetap
-                      </span>
+                      </StatusPill>
                     </td>
                   </tr>
                 </tbody>
@@ -283,12 +281,42 @@ export default function Payroll({ isEmbedded = false }) {
       )}
 
       {/* ========================================================================= */}
-      {/* SUB-TAB 2: REALISASI PENGGAJIAN & PENCAIRAN (EXISTING FULL FUNCTIONAL)   */}
+      {/* SUB-TAB 2: REALISASI PENGGAJIAN & PENCAIRAN                               */}
       {/* ========================================================================= */}
       {subTab === 'realization' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          {/* KPI Ribbon Realisasi Penggajian */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatRibbonCard
+              status="warning"
+              label="Total THP Menunggu Cair"
+              value={formatCurrency(totalPendingNet)}
+              icon={Coins}
+              context={`${formatNumber(pendingDisbursements.length)} Pegawai diproses`}
+            />
+            <StatRibbonCard
+              status="info"
+              label="Total Gaji Pokok"
+              value={formatCurrency(totalPendingBasic)}
+              icon={Briefcase}
+            />
+            <StatRibbonCard
+              status="success"
+              label="Total Tunjangan"
+              value={formatCurrency(totalPendingAllowances)}
+              icon={Wallet}
+            />
+            <StatRibbonCard
+              status="danger"
+              label="Total Potongan"
+              value={formatCurrency(totalPendingDeductions)}
+              icon={ArrowDownRight}
+            />
+          </div>
+
+          {/* Filter & Toolbar */}
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative w-64">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                 <input
@@ -296,15 +324,15 @@ export default function Payroll({ isEmbedded = false }) {
                   placeholder="Cari nama pegawai..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500 font-medium">Rekening Kas Pencairan:</span>
+                <span className="text-slate-500 font-medium">Kas Sumber:</span>
                 <select
                   value={selectedCashAccountId}
                   onChange={(e) => setSelectedCashAccountId(e.target.value)}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800"
                 >
                   {cashAccounts.map((ca) => (
                     <option key={ca.id} value={ca.id}>
@@ -319,39 +347,40 @@ export default function Payroll({ isEmbedded = false }) {
               type="button"
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs transition disabled:opacity-60"
             >
-              <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
+              <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
               <span>Muat Ulang</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Daftar Draf Gaji Menunggu Pencairan ({activeDisbursements.length})</span>
+          {/* Tabel Draf Gaji */}
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-3.5 border-b border-slate-100 flex items-center justify-between text-xs">
+              <span className="font-bold uppercase tracking-wide text-slate-700">Daftar Draf Gaji Menunggu Pencairan ({formatNumber(activeDisbursements.length)})</span>
             </div>
 
             {loading ? (
               <div className="p-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                 <span className="text-xs">Memuat daftar draf penggajian...</span>
               </div>
             ) : activeDisbursements.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs italic">
+              <div className="p-10 text-center text-slate-400 text-xs italic">
                 Tidak ada draf penggajian yang menunggu pencairan saat ini.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto table-container">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-3">Nama Pegawai & Periode</th>
-                      <th className="px-4 py-3 text-right">Gaji Pokok</th>
-                      <th className="px-4 py-3 text-right">Tunjangan</th>
-                      <th className="px-4 py-3 text-right">Potongan</th>
-                      <th className="px-4 py-3 text-right">Gaji Bersih (THP)</th>
-                      <th className="px-4 py-3 text-center">Status</th>
-                      <th className="px-4 py-3 text-right">Aksi</th>
+                      <th className="px-3.5 py-2.5 text-[11px] uppercase tracking-wide">Nama Pegawai &amp; Periode</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Gaji Pokok</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Tunjangan</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Potongan</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Gaji Bersih (THP)</th>
+                      <th className="px-3.5 py-2.5 text-center text-[11px] uppercase tracking-wide">Status</th>
+                      <th className="px-3.5 py-2.5 text-right text-[11px] uppercase tracking-wide">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -359,59 +388,59 @@ export default function Payroll({ isEmbedded = false }) {
                       const isExpanded = !!expandedRows[item.id];
                       return (
                         <React.Fragment key={item.id}>
-                          <tr className="hover:bg-slate-50/70 transition">
-                            <td className="px-4 py-3">
+                          <tr className="hover:bg-slate-50/60 transition">
+                            <td className="px-3.5 py-2.5">
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(item.id)}
                                   className="text-slate-400 hover:text-slate-600"
                                 >
-                                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                  {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                 </button>
                                 <div>
                                   <p className="font-bold text-slate-800">{item.employee_name || item.user_name || 'Pegawai'}</p>
-                                  <p className="text-[11px] text-slate-400 font-mono">Periode: {item.period || '-'}</p>
+                                  <p className="text-[10px] text-slate-400 font-mono">Periode: {item.period || '-'}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-600">
+                            <td className="px-3.5 py-2.5 num-cell text-slate-600 tnum">
                               {formatCurrency(item.basic_salary)}
                             </td>
-                            <td className="px-4 py-3 text-right font-mono text-emerald-600 font-medium">
+                            <td className="px-3.5 py-2.5 num-cell text-emerald-600 font-medium tnum">
                               +{formatCurrency(item.total_allowances)}
                             </td>
-                            <td className="px-4 py-3 text-right font-mono text-rose-600 font-medium">
+                            <td className="px-3.5 py-2.5 num-cell text-rose-600 font-medium tnum">
                               -{formatCurrency(item.total_deductions)}
                             </td>
-                            <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900 text-sm">
+                            <td className="px-3.5 py-2.5 num-cell font-bold text-slate-900 tnum">
                               {formatCurrency(item.net_amount)}
                             </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                <Clock className="w-3 h-3 text-amber-600 mr-1" />
+                            <td className="px-3.5 py-2.5 text-center">
+                              <StatusPill variant="warning">
+                                <Clock className="w-3 h-3 mr-0.5" />
                                 Menunggu Pencairan
-                              </span>
+                              </StatusPill>
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className="px-3.5 py-2.5 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   type="button"
                                   onClick={() => handleDisburse(item.id)}
                                   disabled={disbursingId === item.id}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition disabled:opacity-50"
                                 >
                                   {disbursingId === item.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3 h-3 animate-spin" />
                                   ) : (
-                                    <Send className="w-3.5 h-3.5" />
+                                    <Send className="w-3 h-3" />
                                   )}
                                   <span>Cairkan</span>
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => openRejectModal(item)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
                                   title="Kembalikan Draf ke SDM"
                                 >
                                   <XCircle className="w-4 h-4" />
@@ -423,23 +452,23 @@ export default function Payroll({ isEmbedded = false }) {
                           {/* Detail Breakdown Row */}
                           {isExpanded && (
                             <tr className="bg-slate-50/50">
-                              <td colSpan={7} className="px-8 py-3">
-                                <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 text-[11px]">
-                                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                              <td colSpan={7} className="px-6 py-2.5">
+                                <div className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1.5 text-xs">
+                                  <span className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
                                     <Info className="w-3.5 h-3.5 text-indigo-600" />
                                     Rincian Komponen Draf Gaji:
                                   </span>
-                                  <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-2 gap-3 text-[11px]">
                                     <div>
                                       <span className="font-semibold text-emerald-700">Tunjangan:</span>
-                                      <p className="text-slate-600 font-mono mt-0.5">
-                                        Tunjangan Fungsional & Kinerja: {formatCurrency(item.total_allowances)}
+                                      <p className="text-slate-600 tnum mt-0.5">
+                                        Tunjangan Fungsional &amp; Kinerja: {formatCurrency(item.total_allowances)}
                                       </p>
                                     </div>
                                     <div>
                                       <span className="font-semibold text-rose-700">Potongan:</span>
-                                      <p className="text-slate-600 font-mono mt-0.5">
-                                        Potongan BPJS & Absensi: {formatCurrency(item.total_deductions)}
+                                      <p className="text-slate-600 tnum mt-0.5">
+                                        Potongan BPJS &amp; Absensi: {formatCurrency(item.total_deductions)}
                                       </p>
                                     </div>
                                   </div>
@@ -463,7 +492,30 @@ export default function Payroll({ isEmbedded = false }) {
       {/* ========================================================================= */}
       {subTab === 'history' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* KPI Ribbon Histori Penggajian */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <StatRibbonCard
+              status="success"
+              label="Total Gaji Dicairkan"
+              value={formatCurrency(totalHistoryNet)}
+              icon={CheckCircle2}
+              context={`${formatNumber(disbursedDisbursements.length)} Transaksi selesai`}
+            />
+            <StatRibbonCard
+              status="info"
+              label="Total Tunjangan Terbayar"
+              value={formatCurrency(totalHistoryAllowances)}
+              icon={Wallet}
+            />
+            <StatRibbonCard
+              status="danger"
+              label="Total Potongan Terlaksana"
+              value={formatCurrency(totalHistoryDeductions)}
+              icon={ArrowDownRight}
+            />
+          </div>
+
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative w-72">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
@@ -471,75 +523,75 @@ export default function Payroll({ isEmbedded = false }) {
                 placeholder="Cari arsip penggajian pegawai..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <button
               type="button"
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs transition disabled:opacity-60"
             >
-              <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
+              <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
               <span>Muat Ulang Arsip</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Histori Penggajian Selesai Dicairkan ({activeDisbursements.length})</span>
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="p-3.5 border-b border-slate-100 flex items-center justify-between text-xs">
+              <span className="font-bold uppercase tracking-wide text-slate-700">Histori Penggajian Selesai Dicairkan ({formatNumber(activeDisbursements.length)})</span>
             </div>
 
             {loading ? (
               <div className="p-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                 <span className="text-xs">Memuat riwayat penggajian...</span>
               </div>
             ) : activeDisbursements.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs italic">
+              <div className="p-10 text-center text-slate-400 text-xs italic">
                 Belum ada transaksi penggajian yang telah dicairkan.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto table-container">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-3">Nama Pegawai & Periode</th>
-                      <th className="px-4 py-3">Rekening Kas Sumber</th>
-                      <th className="px-4 py-3 text-right">Gaji Pokok</th>
-                      <th className="px-4 py-3 text-right">Tunjangan</th>
-                      <th className="px-4 py-3 text-right">Potongan</th>
-                      <th className="px-4 py-3 text-right">Total Dicairkan</th>
-                      <th className="px-4 py-3 text-center">Status Pembukuan</th>
+                      <th className="px-3.5 py-2.5 text-[11px] uppercase tracking-wide">Nama Pegawai &amp; Periode</th>
+                      <th className="px-3.5 py-2.5 text-[11px] uppercase tracking-wide">Rekening Kas Sumber</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Gaji Pokok</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Tunjangan</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Potongan</th>
+                      <th className="px-3.5 py-2.5 text-right num-cell text-[11px] uppercase tracking-wide">Total Dicairkan</th>
+                      <th className="px-3.5 py-2.5 text-center text-[11px] uppercase tracking-wide">Status Pembukuan</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {activeDisbursements.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/70 transition">
-                        <td className="px-4 py-3">
+                      <tr key={item.id} className="hover:bg-slate-50/60 transition">
+                        <td className="px-3.5 py-2.5">
                           <p className="font-bold text-slate-800">{item.employee_name || item.user_name || 'Pegawai'}</p>
-                          <p className="text-[11px] text-slate-400 font-mono">Periode: {item.period || '-'}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">Periode: {item.period || '-'}</p>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-3.5 py-2.5 text-slate-600">
                           {item.cash_account_name || 'Rekening Kas Utama'}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-600">
+                        <td className="px-3.5 py-2.5 num-cell text-slate-600 tnum">
                           {formatCurrency(item.basic_salary)}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-emerald-600 font-medium">
+                        <td className="px-3.5 py-2.5 num-cell text-emerald-600 font-medium tnum">
                           +{formatCurrency(item.total_allowances)}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-rose-600 font-medium">
+                        <td className="px-3.5 py-2.5 num-cell text-rose-600 font-medium tnum">
                           -{formatCurrency(item.total_deductions)}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono font-extrabold text-emerald-800 text-sm">
+                        <td className="px-3.5 py-2.5 num-cell font-bold text-emerald-700 tnum">
                           {formatCurrency(item.net_amount)}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Dicairkan & Dibukukan
-                          </span>
+                        <td className="px-3.5 py-2.5 text-center">
+                          <StatusPill variant="success">
+                            <CheckCircle2 className="w-3 h-3 mr-0.5" />
+                            Dicairkan &amp; Dibukukan
+                          </StatusPill>
                         </td>
                       </tr>
                     ))}
@@ -553,16 +605,16 @@ export default function Payroll({ isEmbedded = false }) {
 
       {/* Reject Modal */}
       {isRejectModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-800 text-sm">Kembalikan Draf Gaji ke SDM</h3>
-              <button onClick={() => setIsRejectModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-4 shadow-xl border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wide">Kembalikan Draf Gaji ke SDM</h3>
+              <button type="button" onClick={() => setIsRejectModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleConfirmReject} className="space-y-3 text-xs">
-              <p className="text-slate-500">
+              <p className="text-slate-600">
                 Masukkan catatan perbaikan draf gaji pegawai <b>{rejectingItem?.employee_name || rejectingItem?.user_name}</b>:
               </p>
               <textarea
@@ -571,20 +623,20 @@ export default function Payroll({ isEmbedded = false }) {
                 placeholder="Contoh: Tunjangan jabatan belum sesuai SK terbaru..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
               />
               <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsRejectModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold"
+                  className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg font-semibold transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingReject}
-                  className="px-4 py-2 bg-rose-600 text-white rounded-xl font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold shadow-2xs transition"
                 >
                   {submittingReject ? 'Memproses...' : 'Kirim Catatan Penolakan'}
                 </button>

@@ -71,6 +71,9 @@ const keuanganLegacyMigrationRoutes = require('./modules/keuangan/legacy-migrati
 const keuanganCashTransfersRoutes = require('./modules/keuangan/cash-transfers/routes');
 const keuanganPpdbBillingRoutes = require('./modules/keuangan/ppdb-billing/routes');
 const keuanganBankStatementsRoutes = require('./modules/keuangan/bank-statements/routes');
+const keuanganCanteenRoutes = require('./modules/keuangan/canteen-integration/routes');
+
+const path = require('path');
 
 const app = express();
 
@@ -82,6 +85,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static Assets Storage (Uploads, Canteen QR Images, Documents)
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Root Health Check
 app.get('/', (req, res) => {
@@ -277,6 +283,7 @@ keuanganV1Router.use('/', keuanganLegacyMigrationRoutes);
 keuanganV1Router.use('/', keuanganCashTransfersRoutes);
 keuanganV1Router.use('/', keuanganPpdbBillingRoutes);
 keuanganV1Router.use('/', keuanganBankStatementsRoutes);
+keuanganV1Router.use('/', keuanganCanteenRoutes);
 
 // Mount Keuangan Router ke /api/v1/keuangan
 app.use('/api/v1/keuangan', keuanganV1Router);
@@ -328,6 +335,14 @@ const manajemenV1Router = require('./modules/manajemen/routes');
 // 10. Manajemen Service Router (/api/v1/manajemen)
 // ==========================================
 app.use('/api/v1/manajemen', manajemenV1Router);
+
+// Module Routes for PSB (Penerimaan Siswa Baru) Service
+const psbRoutes = require('./modules/psb/routes');
+
+// ==========================================
+// 11. PSB Service Router (/api/v1/psb)
+// ==========================================
+app.use('/api/v1/psb', psbRoutes);
 
 // 404 Not Found Handler
 app.use(notFoundHandler);

@@ -76,12 +76,12 @@ function requirePermission(...permissionCodes) {
 
       // Role Admin Satuan Pendidikan / Kepala Sekolah memiliki akses penuh ke modul satuan pendidikan
       if (
-        codes.some(c => c.startsWith('akademik.') || c.startsWith('kesiswaan.')) &&
-        (roleNames.includes('admin_satuan_pendidikan') || roleNames.includes('admin_satuan') || roleNames.includes('kepala_sekolah'))
+        codes.some(c => c.startsWith('akademik.') || c.startsWith('kesiswaan.') || c.startsWith('psb.') || c.startsWith('ppdb.')) &&
+        (roleNames.includes('admin_satuan_pendidikan') || roleNames.includes('admin_satuan') || roleNames.includes('kepala_sekolah') || roleNames.includes('panitia_ppdb'))
       ) {
         if (!validSchoolUnitId) return next();
         const hasMatchingUnit = userRoles.some(
-          (r) => (r.role_name === 'admin_satuan_pendidikan' || r.role_name === 'admin_satuan' || r.role_name === 'kepala_sekolah') &&
+          (r) => (r.role_name === 'admin_satuan_pendidikan' || r.role_name === 'admin_satuan' || r.role_name === 'kepala_sekolah' || r.role_name === 'panitia_ppdb') &&
                  (!r.school_unit_id || String(r.school_unit_id) === String(validSchoolUnitId))
         );
         if (hasMatchingUnit) return next();

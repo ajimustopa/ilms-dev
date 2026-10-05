@@ -8,6 +8,16 @@
   }
 }
 
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .num-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -193,4 +203,133 @@ table thead th.bg-rose-50 {
 table thead.bg-white th,
 table thead th.bg-white {
   background-color: #ffffff;
+}
+
+/* ==========================================================================
+   CORE DAYPICKER COMPACT & ADAPTIVE STYLING
+   Memastikan popup kalender tampil proporsional tanpa terpotong horizontal/vertikal
+   ========================================================================== */
+.core-daypicker {
+  --rdp-accent-color: #059669;
+  --rdp-accent-background-color: #ecfdf5;
+  --rdp-day-height: 32px;
+  --rdp-day-width: 32px;
+  --rdp-day_button-height: 30px;
+  --rdp-day_button-width: 30px;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-nav-height: 0px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.core-daypicker .rdp-root {
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.core-daypicker .rdp-months {
+  justify-content: center;
+  width: 100%;
+}
+
+.core-daypicker .rdp-month {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.core-daypicker .rdp-month_grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.core-daypicker .rdp-month_caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 2px;
+  text-transform: capitalize;
+}
+
+.core-daypicker .rdp-nav {
+  display: none !important;
+}
+
+.core-daypicker .rdp-weekdays {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.core-daypicker .rdp-weekday {
+  width: 32px;
+  text-align: center;
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.core-daypicker .rdp-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.core-daypicker .rdp-week {
+  display: flex;
+  justify-content: space-between;
+}
+
+.core-daypicker .rdp-day {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.core-daypicker .rdp-day_button {
+  width: 30px;
+  height: 30px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e293b;
+  transition: all 0.15s ease-in-out;
+}
+
+.core-daypicker .rdp-day_button:hover:not([disabled]) {
+  background-color: #ecfdf5;
+  color: #047857;
+  font-weight: 700;
+}
+
+.core-daypicker .rdp-selected .rdp-day_button {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.core-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: #059669;
+  font-weight: 800;
+  border: 1.5px solid #10b981;
+}
+
+.core-daypicker .rdp-outside .rdp-day_button {
+  opacity: 0.35;
 }

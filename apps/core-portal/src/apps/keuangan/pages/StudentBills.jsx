@@ -5,6 +5,9 @@ import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
 import DatePickerField from '../../../shared/components/DatePickerField';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatCurrency, formatNumber, formatPercentage } from '../../../shared/utils/formatters';
 import {
   Receipt,
   Calendar,
@@ -63,7 +66,8 @@ import {
   Plus,
   Phone,
   Share2,
-  Wallet
+  Wallet,
+  UserX
 } from 'lucide-react';
 
 export default function StudentBills() {
@@ -77,7 +81,10 @@ export default function StudentBills() {
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState(() => {
     try {
-      return localStorage.getItem('keuangan_bills_selected_ay_id') || '';
+      return localStorage.getItem('keuangan_bills_selected_ay_id') ||
+        localStorage.getItem('keuangan_payments_selected_ay') ||
+        localStorage.getItem('keuangan_fee_schemes_selected_ay') ||
+        '';
     } catch {
       return '';
     }
@@ -146,6 +153,9 @@ export default function StudentBills() {
     amount: '',
     bill_date: new Date().toISOString().slice(0, 10),
     due_date: '',
+    is_not_billed: false,
+    apply_to_subsequent_months: false,
+    unbilled_reason: 'Siswa belum aktif (Santri Pindahan)',
     has_discount: false,
     discount_amount: 0,
     discount_reason: '',
@@ -240,14 +250,19 @@ export default function StudentBills() {
   useEffect(() => {
     const fetchMasterContext = async () => {
       try {
-        const ayParams = {};
+        let ayParams = {};
         if (activeSchoolUnit && activeSchoolUnit.id && activeSchoolUnit.id !== 'all' && !activeSchoolUnit.is_foundation) {
           ayParams.satuan_pendidikan_id = activeSchoolUnit.id;
         }
 
+        let clsParams = {};
+        if (activeSchoolUnit && activeSchoolUnit.id && activeSchoolUnit.id !== 'all' && !activeSchoolUnit.is_foundation) {
+          clsParams.satuan_pendidikan_id = activeSchoolUnit.id;
+        }
+
         const [ayRes, clsRes, ftRes, coaRes, trRes, cashRes] = await Promise.allSettled([
           api.get('/akademik/academic-years', { params: ayParams }),
-          api.get('/akademik/class-groups'),
+          api.get('/akademik/class-groups', { params: clsParams }),
           api.get('/keuangan/fee-types'),
           api.get('/keuangan/chart-of-accounts'),
           api.get('/keuangan/transaction-account-mappings'),
@@ -255,17 +270,25 @@ export default function StudentBills() {
         ]);
 
         let yearsList = [];
-        if (ayRes.status === 'fulfilled' && ayRes.value.data) {
+        if (ayRes.status === 'fulfilled' && ayRes.value?.data) {
           yearsList = ayRes.value.data?.data || ayRes.value.data?.academic_years || (Array.isArray(ayRes.value.data) ? ayRes.value.data : []);
         }
 
-        // Fallback jika kosong
+        // Robust multi-tier fallback jika query dengan satuan_pendidikan_id kosong / gagal
         if (yearsList.length === 0) {
           try {
-            const fallbackRes = await api.get('/keuangan/academic-years').catch(() => api.get('/keuangan/master-data/academic-years'));
-            yearsList = fallbackRes?.data?.data || [];
+            const fallback1 = await api.get('/akademik/academic-years').catch(() => null);
+            const fallback2 = fallback1 || await api.get('/keuangan/master-data/academic-years').catch(() => null);
+            const fallback3 = fallback2 || await api.get('/akademik/internal/academic-years').catch(() => null);
+            if (fallback3?.data) {
+              yearsList = fallback3.data?.data || fallback3.data?.academic_years || (Array.isArray(fallback3.data) ? fallback3.data : []);
+            } else if (fallback2?.data) {
+              yearsList = fallback2.data?.data || fallback2.data?.academic_years || (Array.isArray(fallback2.data) ? fallback2.data : []);
+            } else if (fallback1?.data) {
+              yearsList = fallback1.data?.data || fallback1.data?.academic_years || (Array.isArray(fallback1.data) ? fallback1.data : []);
+            }
           } catch (e) {
-            console.warn('Fallback AY error:', e);
+            console.warn('Fallback academic years error:', e);
           }
         }
 
@@ -288,8 +311,21 @@ export default function StudentBills() {
 
         // Jika belum ada pilihan atau pilihan tidak valid, pilih tahun ajaran aktif atau pertama
         if (finalYears.length > 0) {
-          const found = finalYears.find((y) => String(y.id) === String(selectedAcademicYearId));
-          if (!found) {
+          const stored = (() => {
+            try {
+              return localStorage.getItem('keuangan_bills_selected_ay_id') ||
+                localStorage.getItem('keuangan_payments_selected_ay') ||
+                localStorage.getItem('keuangan_fee_schemes_selected_ay') ||
+                '';
+            } catch {
+              return '';
+            }
+          })();
+          const preferredId = selectedAcademicYearId || stored;
+          const found = finalYears.find((y) => String(y.id) === String(preferredId));
+          if (found) {
+            setSelectedAcademicYearId(String(found.id));
+          } else {
             const activeYear = finalYears.find((y) => y.is_active) || finalYears[0];
             setSelectedAcademicYearId(String(activeYear.id));
           }
@@ -311,18 +347,20 @@ export default function StudentBills() {
           setCashAccounts(cashRes.value.data.data);
         }
       } catch (err) {
-        console.error('Error fetching master context:', err);
+        console.error('Error fetching master context in StudentBills:', err);
       }
     };
 
     fetchMasterContext();
   }, [activeSchoolUnit]);
 
-  // Save selected AY ID to local storage
+  // Save selected AY ID to local storage & sync across modules
   useEffect(() => {
     if (selectedAcademicYearId) {
       try {
-        localStorage.setItem('keuangan_bills_selected_ay_id', selectedAcademicYearId);
+        localStorage.setItem('keuangan_bills_selected_ay_id', String(selectedAcademicYearId));
+        localStorage.setItem('keuangan_payments_selected_ay', String(selectedAcademicYearId));
+        localStorage.setItem('keuangan_fee_schemes_selected_ay', String(selectedAcademicYearId));
       } catch (e) {
         console.warn('Storage warning:', e);
       }
@@ -901,13 +939,14 @@ export default function StudentBills() {
   const handleOpenCellModal = (row, cell) => {
     setSelectedCellInfo({ row, cell });
     const isAlreadyPublished = cell.is_published;
+    const isCurrentlyUnbilled = Boolean(cell.is_unbilled || cell.status === 'cancelled');
     const ft = feeTypes.find((f) => f.id === cell.fee_type_id);
     const defaultRuleId = ft?.billing_account_mapping_id ? String(ft.billing_account_mapping_id) : '';
     const defaultDiscountRuleId = ft?.billing_discount_account_mapping_id ? String(ft.billing_discount_account_mapping_id) : '';
     const defaultPaymentDiscountRuleId = ft?.payment_discount_account_mapping_id ? String(ft.payment_discount_account_mapping_id) : '';
 
-    const baseNominal = cell.amount !== undefined && cell.amount !== null ? cell.amount : cell.base_amount;
-    const currentDiscount = cell.discount_amount || 0;
+    const baseNominal = isCurrentlyUnbilled ? 0 : (cell.amount !== undefined && cell.amount !== null ? cell.amount : cell.base_amount);
+    const currentDiscount = isCurrentlyUnbilled ? 0 : (cell.discount_amount || 0);
     const computedPct = baseNominal > 0 && currentDiscount > 0 ? ((currentDiscount / baseNominal) * 100).toFixed(1) : 0;
 
     const defaultDates = computeDefaultBillAndDueDates(cell, selectedAcademicYearId);
@@ -916,6 +955,9 @@ export default function StudentBills() {
       amount: baseNominal,
       bill_date: cell.bill_date ? String(cell.bill_date).slice(0, 10) : defaultDates.billDate,
       due_date: cell.due_date ? String(cell.due_date).slice(0, 10) : defaultDates.dueDate,
+      is_not_billed: isCurrentlyUnbilled,
+      apply_to_subsequent_months: false,
+      unbilled_reason: cell.cancel_reason || (isCurrentlyUnbilled ? 'Tidak ditagihkan' : 'Siswa belum aktif (Santri Pindahan)'),
       has_discount: Boolean(currentDiscount > 0),
       discount_type: 'amount',
       discount_amount: currentDiscount,
@@ -986,21 +1028,25 @@ export default function StudentBills() {
 
     setSubmittingCell(true);
     try {
+      const isUnbilled = Boolean(cellFormData.is_not_billed);
       const payload = {
         student_id: row.student_id,
         fee_type_id: cell.fee_type_id,
         period_month: cell.period_month,
         period_year: cell.period_year,
         academic_year_id: selectedAcademicYearId ? Number(selectedAcademicYearId) : 1,
-        amount: parseFloat(cellFormData.amount || 0),
+        is_not_billed: isUnbilled,
+        apply_to_subsequent_months: isUnbilled ? Boolean(cellFormData.apply_to_subsequent_months) : false,
+        unbilled_reason: isUnbilled ? (cellFormData.unbilled_reason?.trim() || 'Tidak ditagihkan') : null,
+        amount: isUnbilled ? 0 : parseFloat(cellFormData.amount || 0),
         bill_date: cellFormData.bill_date,
         due_date: cellFormData.due_date,
-        discount_amount: cellFormData.has_discount ? parseFloat(cellFormData.discount_amount || 0) : 0,
-        discount_reason: cellFormData.has_discount ? cellFormData.discount_reason : null,
-        notes: cellFormData.notes || null,
-        mapping_id: cellFormData.mapping_id ? Number(cellFormData.mapping_id) : null,
-        discount_mapping_id: cellFormData.discount_mapping_id ? Number(cellFormData.discount_mapping_id) : null,
-        payment_discount_mapping_id: cellFormData.payment_discount_mapping_id ? Number(cellFormData.payment_discount_mapping_id) : null
+        discount_amount: (!isUnbilled && cellFormData.has_discount) ? parseFloat(cellFormData.discount_amount || 0) : 0,
+        discount_reason: (!isUnbilled && cellFormData.has_discount) ? cellFormData.discount_reason : null,
+        notes: isUnbilled ? (cellFormData.unbilled_reason || 'Tidak ditagihkan') : (cellFormData.notes || null),
+        mapping_id: isUnbilled ? null : (cellFormData.mapping_id ? Number(cellFormData.mapping_id) : null),
+        discount_mapping_id: isUnbilled ? null : (cellFormData.discount_mapping_id ? Number(cellFormData.discount_mapping_id) : null),
+        payment_discount_mapping_id: isUnbilled ? null : (cellFormData.payment_discount_mapping_id ? Number(cellFormData.payment_discount_mapping_id) : null)
       };
 
       await api.post('/keuangan/student-bills/publish-cell', payload);
@@ -1008,7 +1054,7 @@ export default function StudentBills() {
       setSelectedCellInfo(null);
       fetchMatrixData();
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menerbitkan tagihan');
+      alert(err.response?.data?.message || 'Gagal menyimpan tagihan sel');
     } finally {
       setSubmittingCell(false);
     }
@@ -1065,6 +1111,91 @@ export default function StudentBills() {
       custom_discount_rule_mode: false
     });
     setColumnPublishModalOpen(true);
+  };
+
+  // Open Arrears Column Publish Modal
+  const handleOpenArrearsColumnPublish = () => {
+    const ft = feeTypes.find(
+      (f) => f.code === 'arrears_previous_year' || f.id === 11 || (f.name && f.name.toLowerCase().includes('tunggakan'))
+    );
+    const resolvedFeeTypeId = ft?.id || 11;
+    const resolvedFeeTypeName = ft?.name || 'Tunggakan TP Sebelumnya';
+    const resolvedFeeTypeCode = ft?.code || 'arrears_previous_year';
+
+    const selectedAY = academicYears.find((ay) => String(ay.id) === String(selectedAcademicYearId));
+    let periodYear = new Date().getFullYear();
+    if (selectedAY?.name) {
+      const parts = selectedAY.name.split('/');
+      periodYear = parseInt(parts[0], 10) || periodYear;
+    }
+
+    const arrearsCol = {
+      key: `arrears_${resolvedFeeTypeId}`,
+      fee_type_id: resolvedFeeTypeId,
+      fee_type_name: resolvedFeeTypeName,
+      fee_type_code: resolvedFeeTypeCode,
+      billing_pattern: 'one_time',
+      period_month: null,
+      period_year: periodYear,
+      month_label: null,
+      label: 'Tunggakan TP Sebelumnya',
+      badge_type: 'arrears',
+      badge_text: 'Tunggakan',
+      badge_color: 'bg-purple-50 text-purple-700 border-purple-200'
+    };
+
+    handleOpenColumnPublishModal(arrearsCol);
+  };
+
+  // Open Arrears Cell Modal (Per Siswa)
+  const handleOpenArrearsCellModal = (row) => {
+    const ft = feeTypes.find(
+      (f) => f.code === 'arrears_previous_year' || f.id === 11 || (f.name && f.name.toLowerCase().includes('tunggakan'))
+    );
+    const resolvedFeeTypeId = ft?.id || 11;
+    const resolvedFeeTypeName = ft?.name || 'Tunggakan TP Sebelumnya';
+    const resolvedFeeTypeCode = ft?.code || 'arrears_previous_year';
+
+    const selectedAY = academicYears.find((ay) => String(ay.id) === String(selectedAcademicYearId));
+    let periodYear = new Date().getFullYear();
+    if (selectedAY?.name) {
+      const parts = selectedAY.name.split('/');
+      periodYear = parseInt(parts[0], 10) || periodYear;
+    }
+
+    const existingArrearBill = (row.previous_arrears_items || []).find(
+      (it) => it.fee_type_id === resolvedFeeTypeId || it.id
+    );
+
+    const isPublished = Boolean(
+      existingArrearBill?.id &&
+      existingArrearBill?.status !== 'draft' &&
+      existingArrearBill?.status !== 'cancelled'
+    );
+
+    const arrearsCell = {
+      id: existingArrearBill?.id || null,
+      bill_id: existingArrearBill?.id || null,
+      fee_type_id: resolvedFeeTypeId,
+      fee_type_name: resolvedFeeTypeName,
+      fee_type_code: resolvedFeeTypeCode,
+      period_month: null,
+      period_year: periodYear,
+      amount: row.previous_arrears || 0,
+      base_amount: row.previous_arrears || 0,
+      paid_amount: existingArrearBill?.paid || 0,
+      discount_amount: 0,
+      discount_reason: null,
+      status: existingArrearBill?.status || (row.previous_arrears > 0 ? (isPublished ? 'unpaid' : 'not_published') : 'paid'),
+      is_published: isPublished,
+      is_paid: Boolean(row.previous_arrears <= 0),
+      is_partially_paid: Boolean(existingArrearBill?.paid > 0 && row.previous_arrears > 0),
+      is_overdue: Boolean(existingArrearBill?.status === 'overdue'),
+      is_unbilled: false,
+      notes: (row.previous_arrears_items || []).map((it) => it.notes || it.fee_type_name).filter(Boolean).join(', ') || 'Tunggakan TP Sebelumnya'
+    };
+
+    handleOpenCellModal(row, arrearsCell);
   };
 
   const handleColumnBillDateChange = (val) => {
@@ -1712,6 +1843,41 @@ export default function StudentBills() {
     return result;
   }, [historyBills, historySearch, historyFilterClassId, historyFilterFeeTypeId, historyFilterStatus, historySortConfig]);
 
+  // History Tab Summary metrics
+  const historySummary = useMemo(() => {
+    let pubCount = 0;
+    let pubAmount = 0;
+    let draftCount = 0;
+    let draftAmount = 0;
+    let paidAmount = 0;
+    let remainingAmount = 0;
+
+    for (const b of filteredAndSortedHistoryBills) {
+      const amt = parseFloat(b.amount || 0);
+      const paid = parseFloat(b.paid_amount || 0);
+      const rem = parseFloat(b.remaining_amount !== undefined ? b.remaining_amount : Math.max(0, amt - paid));
+
+      if (b.status === 'draft') {
+        draftCount++;
+        draftAmount += amt;
+      } else {
+        pubCount++;
+        pubAmount += amt;
+        paidAmount += paid;
+        remainingAmount += rem;
+      }
+    }
+
+    return {
+      publishedCount: pubCount,
+      publishedAmount: pubAmount,
+      draftCount: draftCount,
+      draftAmount: draftAmount,
+      totalPaid: paidAmount,
+      totalRemaining: remainingAmount
+    };
+  }, [filteredAndSortedHistoryBills]);
+
   // Open Detail Bill Modal
   const handleOpenDetailModal = async (bill) => {
     try {
@@ -1876,21 +2042,21 @@ export default function StudentBills() {
   const activeAY = academicYears.find((a) => String(a.id) === String(selectedAcademicYearId)) || academicYears[0];
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6 pb-24">
+    <div className="p-4 sm:p-5 max-w-[1600px] mx-auto space-y-4 pb-20">
       {/* ------------------------------------------------------------ */}
       {/* HEADER UTAMA & KONTROL TAHUN AJARAN */}
       {/* ------------------------------------------------------------ */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 shadow-xs relative z-40">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-            <Receipt className="w-6 h-6" />
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-slate-200/80 shadow-xs relative z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <Receipt className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-800 tracking-tight">Penagihan Siswa</h1>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <h1 className="text-base font-bold text-slate-800 tracking-tight">Penagihan Siswa</h1>
+              <StatusPill variant="info" size="sm">
                 {activeSchoolUnit?.name || 'Semua Unit'}
-              </span>
+              </StatusPill>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Matriks penetapan biaya 12 bulan (Juli-Juni), penerbitan piutang santri, audit riwayat &amp; reminder portal orang tua.
@@ -1899,9 +2065,9 @@ export default function StudentBills() {
         </div>
 
         {/* Global Academic Year Switcher */}
-        <div className="flex items-center gap-2.5 self-stretch sm:self-auto bg-slate-50 p-1.5 rounded-xl border border-slate-200 relative z-40">
+        <div className="flex items-center gap-2 self-stretch sm:self-auto bg-slate-50 p-1 rounded-lg border border-slate-200 relative z-40">
           <Calendar className="w-4 h-4 text-slate-400 ml-1.5 shrink-0" />
-          <div className="min-w-[240px] relative z-40">
+          <div className="min-w-[220px] relative z-40">
             <SearchableSelect
               options={academicYears.map((ay) => ({
                 value: String(ay.id),
@@ -1909,10 +2075,19 @@ export default function StudentBills() {
                 sublabel: ay.is_active ? 'Tahun Ajaran Berjalan' : 'Tahun Ajaran Arsip'
               }))}
               value={String(selectedAcademicYearId || '')}
-              onChange={(val) => setSelectedAcademicYearId(String(val))}
+              onChange={(val) => {
+                const sVal = String(val || '');
+                setSelectedAcademicYearId(sVal);
+                try {
+                  localStorage.setItem('keuangan_bills_selected_ay_id', sVal);
+                  localStorage.setItem('keuangan_payments_selected_ay', sVal);
+                } catch (e) {
+                  // ignore
+                }
+              }}
               placeholder="Pilih Tahun Ajaran"
               allowClear={false}
-              menuMinWidth="280px"
+              menuMinWidth="260px"
               dropdownPosition="down"
               dropdownAlign="right"
             />
@@ -1926,32 +2101,31 @@ export default function StudentBills() {
               else if (activeTab === 'reminders') fetchReminderLogs();
             }}
             title="Muat ulang data"
-            className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-white rounded-lg transition border border-transparent hover:border-slate-200 shadow-2xs"
+            className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-white rounded-md transition border border-transparent hover:border-slate-200"
           >
-            <RotateCw className="w-4 h-4" />
+            <RotateCw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* ------------------------------------------------------------ */}
+      {/* 4 TAB NAVIGATION */}
       {/* ------------------------------------------------------------ */}
-      {/* 3 TAB NAVIGATION */}
-      {/* ------------------------------------------------------------ */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-1">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-0">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('matrix')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${
               activeTab === 'matrix'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'border-emerald-600 text-emerald-700 font-bold bg-emerald-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-3.5 h-3.5" />
             <span>1. Tagihan &amp; Matriks Biaya</span>
             {matrixData.rows.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'matrix' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'matrix' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-600'}`}>
                 {matrixData.rows.length} Santri
               </span>
             )}
@@ -1960,16 +2134,16 @@ export default function StudentBills() {
           <button
             type="button"
             onClick={() => setActiveTab('alumni')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${
               activeTab === 'alumni'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'border-emerald-600 text-emerald-700 font-bold bg-emerald-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <GraduationCap className="w-4 h-4" />
+            <GraduationCap className="w-3.5 h-3.5" />
             <span>2. Tagihan Santri Alumni</span>
             {(alumniData.summary?.total_alumni_with_arrears !== undefined || alumniData.alumni?.length > 0) && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'alumni' ? 'bg-emerald-700 text-white' : 'bg-rose-100 text-rose-700 border border-rose-200/60'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'alumni' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'}`}>
                 {alumniData.summary?.total_alumni_with_arrears || alumniData.alumni?.length || 0} Alumni
               </span>
             )}
@@ -1978,16 +2152,16 @@ export default function StudentBills() {
           <button
             type="button"
             onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${
               activeTab === 'history'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'border-emerald-600 text-emerald-700 font-bold bg-emerald-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <History className="w-4 h-4" />
+            <History className="w-3.5 h-3.5" />
             <span>3. Riwayat Tagihan</span>
             {historyBills.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'history' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'history' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-600'}`}>
                 {historyBills.length}
               </span>
             )}
@@ -1996,16 +2170,16 @@ export default function StudentBills() {
           <button
             type="button"
             onClick={() => setActiveTab('reminders')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition relative ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${
               activeTab === 'reminders'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'border-emerald-600 text-emerald-700 font-bold bg-emerald-50/50'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-3.5 h-3.5" />
             <span>4. Reminder Tagihan (Portal Ortu)</span>
             {reminderLogs.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'reminders' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'reminders' ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-600'}`}>
                 {reminderLogs.length} Log
               </span>
             )}
@@ -2013,12 +2187,12 @@ export default function StudentBills() {
         </div>
 
         {/* Tab-specific top right actions */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex items-center gap-2 self-end sm:self-auto mb-1">
           {activeTab === 'reminders' && (
             <button
               type="button"
               onClick={handleOpenBroadcastModal}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Kirim Reminder Massal</span>
@@ -2033,65 +2207,112 @@ export default function StudentBills() {
       {activeTab === 'matrix' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Summary & KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Siswa</p>
-                <p className="text-xl font-black text-slate-800 mt-1">{matrixData.summary?.total_students || 0} Santri</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">Konteks T.A. {activeAY?.name || '-'}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            {/* Card 1: Total Tagihan Terbit */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white border border-indigo-700/60 shadow-md relative overflow-hidden group hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl group-hover:bg-indigo-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Tagihan Terbit</div>
+                <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-indigo-200 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                  <FileCheck className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                <Users className="w-5 h-5" />
+              <div className="mt-2 text-lg lg:text-xl font-black text-white tracking-tight relative z-10 truncate" title={formatCurrency(matrixData.summary?.total_published_amount || 0)}>
+                {formatCurrency(matrixData.summary?.total_published_amount || 0)}
               </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tunggakan TP Lalu</p>
-                <p className="text-xl font-black text-amber-700 mt-1">Rp {(matrixData.summary?.total_previous_arrears || 0).toLocaleString('id-ID')}</p>
-                <p className="text-[10px] text-amber-600 mt-0.5">Akumulasi sisa T.P. sebelumnya</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <History className="w-5 h-5" />
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-indigo-200">
+                <span>{formatNumber(matrixData.summary?.total_published_bills || 0)} tagihan resmi</span>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tagihan Diterbitkan</p>
-                <p className="text-xl font-black text-emerald-700 mt-1">{matrixData.summary?.total_published_bills || 0} Tagihan</p>
-                <p className="text-[10px] text-emerald-600 mt-0.5">Tercatat di Piutang T.A. ini</p>
+            {/* Card 2: Total Belum Terbit */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-orange-100/70 border border-amber-300 text-amber-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/20 rounded-full blur-xl group-hover:bg-amber-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-900">Belum Terbit</div>
+                <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <FileCheck className="w-5 h-5" />
+              <div className="mt-2 text-lg lg:text-xl font-black text-amber-950 tracking-tight relative z-10 truncate" title={formatCurrency(matrixData.summary?.total_unpublished_amount || 0)}>
+                {formatCurrency(matrixData.summary?.total_unpublished_amount || 0)}
               </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sisa Piutang T.A. Ini</p>
-                <p className="text-xl font-black text-rose-700 mt-1">Rp {(matrixData.summary?.total_unpaid_ar || 0).toLocaleString('id-ID')}</p>
-                <p className="text-[10px] text-rose-500 mt-0.5">Sisa tagihan aktif santri</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
-                <AlertCircle className="w-5 h-5" />
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-amber-800 font-medium">
+                <span>{formatNumber(matrixData.summary?.total_unpublished_bills || 0)} pos draf acuan</span>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Pembayaran Masuk</p>
-                <p className="text-xl font-black text-teal-700 mt-1">Rp {(matrixData.summary?.total_paid || 0).toLocaleString('id-ID')}</p>
-                <p className="text-[10px] text-teal-600 mt-0.5">Kas/Bank telah diterima</p>
+            {/* Card 3: Pembayaran Masuk */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-teal-100/70 border border-emerald-300 text-emerald-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-900">Kas Diterima</div>
+                <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="mt-2 text-lg lg:text-xl font-black text-emerald-950 tracking-tight relative z-10 truncate" title={formatCurrency(matrixData.summary?.total_paid || 0)}>
+                {formatCurrency(matrixData.summary?.total_paid || 0)}
+              </div>
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                <span>Kas/Bank lunas</span>
+              </div>
+            </div>
+
+            {/* Card 4: Sisa Piutang T.A. Ini */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-50 to-red-100/70 border border-rose-300 text-rose-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-rose-500/20 rounded-full blur-xl group-hover:bg-rose-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-rose-900">Sisa Piutang</div>
+                <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2 text-lg lg:text-xl font-black text-rose-950 tracking-tight relative z-10 truncate" title={formatCurrency(matrixData.summary?.total_unpaid_ar || 0)}>
+                {formatCurrency(matrixData.summary?.total_unpaid_ar || 0)}
+              </div>
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-rose-800 font-medium">
+                <span>Tagihan belum bayar</span>
+              </div>
+            </div>
+
+            {/* Card 5: Tunggakan TP Lalu */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/20 via-purple-50 to-indigo-100/70 border border-purple-300 text-purple-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-purple-500/20 rounded-full blur-xl group-hover:bg-purple-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-purple-900">Tunggakan Lalu</div>
+                <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <History className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2 text-lg lg:text-xl font-black text-purple-950 tracking-tight relative z-10 truncate" title={formatCurrency(matrixData.summary?.total_previous_arrears || 0)}>
+                {formatCurrency(matrixData.summary?.total_previous_arrears || 0)}
+              </div>
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-purple-800 font-medium">
+                <span>Akumulasi sisa T.P. lalu</span>
+              </div>
+            </div>
+
+            {/* Card 6: Total Siswa */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-sky-500/20 via-sky-50 to-cyan-100/70 border border-sky-300 text-sky-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-sky-500/20 rounded-full blur-xl group-hover:bg-sky-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-900">Total Santri</div>
+                <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <Users className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="mt-2 text-lg lg:text-xl font-black text-sky-950 tracking-tight relative z-10">
+                {formatNumber(matrixData.summary?.total_students || 0)} <span className="text-xs font-semibold text-sky-700">Santri</span>
+              </div>
+              <div className="mt-1 relative z-10 flex items-center justify-between text-[11px] text-sky-800 font-medium">
+                <span>T.A. {activeAY?.name || '-'}</span>
               </div>
             </div>
           </div>
 
           {/* Matrix Controls & Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative z-20">
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 relative z-20">
             <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -2100,7 +2321,7 @@ export default function StudentBills() {
                   placeholder="Cari santri, NIS, NIPD..."
                   value={matrixSearch}
                   onChange={(e) => setMatrixSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
                 />
               </div>
 
@@ -2121,7 +2342,7 @@ export default function StudentBills() {
             {/* Selection Status & Action Badge */}
             <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
               {selectedRowStudentIds.size > 0 ? (
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-xl text-xs font-semibold animate-in fade-in">
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1 rounded-lg text-xs font-semibold animate-in fade-in">
                   <CheckSquare className="w-4 h-4 text-emerald-600" />
                   <span>{selectedRowStudentIds.size} santri terpilih</span>
                   <button
@@ -2142,31 +2363,19 @@ export default function StudentBills() {
           </div>
 
           {/* Matrix Table with Horizontal & Vertical Scroll and Sticky Frozen Columns */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden relative">
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden relative">
             {/* Status Legend Bar */}
-            <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 flex-wrap text-[11px] text-slate-600">
+            <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 flex-wrap text-[11px] text-slate-600">
               <div className="flex items-center gap-1.5 font-semibold text-slate-700">
                 <span>🎨 Status Sel:</span>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Lunas
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-900 border border-blue-300 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Terbit
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 text-teal-900 border border-teal-300 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span> Sebagian
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-300 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span> Jatuh Tempo
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-950 border border-amber-300 font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Belum Ditagihkan (&gt; Rp 0)
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Rp 0
-                </span>
+                <StatusPill variant="success" size="sm" dot>Lunas</StatusPill>
+                <StatusPill variant="info" size="sm" dot>Terbit</StatusPill>
+                <StatusPill variant="info" size="sm" dot>Sebagian</StatusPill>
+                <StatusPill variant="danger" size="sm" dot>Jatuh Tempo</StatusPill>
+                <StatusPill variant="warning" size="sm" dot>Belum Ditagihkan (&gt; Rp 0)</StatusPill>
+                <StatusPill variant="neutral" size="sm" dot>Rp 0</StatusPill>
               </div>
             </div>
 
@@ -2182,12 +2391,12 @@ export default function StudentBills() {
                 <p className="text-[11px] text-slate-400 mt-1">Pastikan Tahun Ajaran dan Satuan Pendidikan telah memiliki daftar santri aktif.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[680px]">
+              <div className="table-container max-h-[680px]">
                 <table className="w-full text-left text-xs border-collapse border-separate border-spacing-0">
                   <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-20 border-b border-slate-200 shadow-2xs">
                     <tr>
                       {/* Fixed Left Header 1: Checkbox (44px) */}
-                      <th className="p-3 w-[44px] min-w-[44px] max-w-[44px] text-center sticky left-0 z-30 bg-slate-100 border-r border-b border-slate-200">
+                      <th className="px-3 py-2.5 w-[44px] min-w-[44px] max-w-[44px] text-center sticky left-0 z-30 bg-slate-100 border-r border-b border-slate-200">
                         <input
                           type="checkbox"
                           checked={selectedRowStudentIds.size === matrixData.rows.length && matrixData.rows.length > 0}
@@ -2199,7 +2408,7 @@ export default function StudentBills() {
                       {/* Fixed Left Header 2: Nama Siswa (260px, left: 44px) */}
                       <th
                         onClick={() => handleSortMatrix('name')}
-                        className="p-3 w-[260px] min-w-[260px] max-w-[260px] text-left sticky left-[44px] z-30 bg-slate-100 border-r border-b border-slate-200 font-bold text-slate-800 cursor-pointer hover:bg-slate-200/90 transition select-none group"
+                        className="px-3 py-2.5 w-[260px] min-w-[260px] max-w-[260px] text-left sticky left-[44px] z-30 bg-slate-100 border-r border-b border-slate-200 font-bold text-slate-800 cursor-pointer hover:bg-slate-200/90 transition select-none group"
                         title="Klik untuk mengurutkan berdasarkan nama santri"
                       >
                         <div className="flex items-center justify-between gap-1">
@@ -2219,7 +2428,7 @@ export default function StudentBills() {
                       {/* Fixed Left Header 3: Rombel (100px, left: 304px) */}
                       <th
                         onClick={() => handleSortMatrix('class_name')}
-                        className="p-3 w-[100px] min-w-[100px] max-w-[100px] text-left sticky left-[304px] z-30 bg-slate-100 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-200/90 transition select-none group"
+                        className="px-3 py-2.5 w-[100px] min-w-[100px] max-w-[100px] text-left sticky left-[304px] z-30 bg-slate-100 border-r border-b border-slate-200 cursor-pointer hover:bg-slate-200/90 transition select-none group"
                         title="Klik untuk mengurutkan berdasarkan rombel"
                       >
                         <div className="flex items-center justify-between gap-1">
@@ -2238,24 +2447,44 @@ export default function StudentBills() {
 
                       {/* Fixed Left Header 4: Tunggakan TP Sebelumnya (145px, left: 404px) */}
                       <th
-                        onClick={() => handleSortMatrix('previous_arrears')}
-                        className="p-3 w-[145px] min-w-[145px] max-w-[145px] text-right sticky left-[404px] z-30 bg-slate-100 border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] cursor-pointer hover:bg-slate-200/90 transition select-none group"
-                        title="Klik untuk mengurutkan berdasarkan sisa tunggakan tahun pelajaran sebelumnya"
+                        className="px-3 py-2.5 w-[145px] min-w-[145px] max-w-[145px] text-right sticky left-[404px] z-30 bg-slate-100 border-r border-b border-slate-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] align-top group hover:bg-slate-200/90 transition"
                       >
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex flex-col text-left">
-                            <span className="text-[11px] font-bold text-slate-800 leading-tight">Tunggakan TP</span>
-                            <span className="text-[10px] text-slate-500 font-normal">Sebelumnya</span>
-                          </div>
-                          {matrixSortConfig.key === 'previous_arrears' ? (
-                            matrixSortConfig.direction === 'asc' ? (
-                              <ArrowUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <div className="flex flex-col items-center gap-1">
+                          <div
+                            onClick={() => handleSortMatrix('previous_arrears')}
+                            className="w-full flex items-center justify-between gap-1 cursor-pointer select-none rounded-lg p-1 hover:bg-slate-200/60 transition group/sort"
+                            title="Klik untuk mengurutkan berdasarkan sisa tunggakan tahun pelajaran sebelumnya"
+                          >
+                            <div className="flex flex-col text-left">
+                              <span className="text-[11px] font-bold text-slate-800 leading-tight">Tunggakan TP</span>
+                              <span className="text-[10px] text-slate-500 font-normal">Sebelumnya</span>
+                            </div>
+                            {matrixSortConfig.key === 'previous_arrears' ? (
+                              matrixSortConfig.direction === 'asc' ? (
+                                <ArrowUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              ) : (
+                                <ArrowDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              )
                             ) : (
-                              <ArrowDown className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
-                          )}
+                              <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover/sort:text-slate-600 shrink-0" />
+                            )}
+                          </div>
+
+                          {/* Tombol Aksi Kolom Tunggakan TP Sebelumnya: Terbitkan */}
+                          <div className="mt-1.5 w-full flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenArrearsColumnPublish();
+                              }}
+                              title="Terbitkan tagihan tunggakan TP sebelumnya ke piutang siswa"
+                              className="w-full flex items-center justify-center gap-1 py-1 px-1.5 rounded-md bg-white border border-purple-300 hover:border-purple-600 hover:bg-purple-50 text-slate-700 hover:text-purple-700 text-[10px] font-semibold transition shadow-xs"
+                            >
+                              <Zap className="w-3 h-3 text-purple-600" />
+                              <span>Terbitkan</span>
+                            </button>
+                          </div>
                         </div>
                       </th>
 
@@ -2263,7 +2492,7 @@ export default function StudentBills() {
                       {matrixData.columns.map((col) => (
                         <th
                           key={col.key}
-                          className="p-3 min-w-[155px] text-center border-r border-b border-slate-200 align-top group hover:bg-slate-100/90 transition"
+                          className="px-3 py-2.5 min-w-[155px] text-center border-r border-b border-slate-200 align-top group hover:bg-slate-100/90 transition"
                         >
                           <div className="flex flex-col items-center gap-1">
                             <div
@@ -2298,7 +2527,7 @@ export default function StudentBills() {
                                 type="button"
                                 onClick={() => handleOpenColumnPublishModal(col)}
                                 title="Terbitkan tagihan kolom ini"
-                                className="flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg bg-white border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[10px] font-semibold transition shadow-2xs"
+                                className="flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-md bg-white border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-[10px] font-semibold transition shadow-xs"
                               >
                                 <Zap className="w-3 h-3 text-emerald-600" />
                                 <span>Terbitkan</span>
@@ -2307,9 +2536,9 @@ export default function StudentBills() {
                                 type="button"
                                 onClick={() => handleOpenImportModal(col)}
                                 title="Import data Excel & Unduh format kolom ini"
-                                className="flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg bg-white border border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-[10px] font-semibold transition shadow-2xs"
+                                className="flex-1 flex items-center justify-center gap-1 py-1 px-1.5 rounded-md bg-white border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-[10px] font-semibold transition shadow-xs"
                               >
-                                <FileSpreadsheet className="w-3 h-3 text-blue-600" />
+                                <FileSpreadsheet className="w-3 h-3 text-indigo-600" />
                                 <span>Import</span>
                               </button>
                             </div>
@@ -2334,7 +2563,7 @@ export default function StudentBills() {
                           className={`hover:bg-slate-100/70 transition ${isRowSelected ? 'bg-emerald-50/50' : rIdx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}
                         >
                           {/* Sticky Cell 1: Checkbox */}
-                          <td className={`p-3 w-[44px] min-w-[44px] max-w-[44px] text-center sticky left-0 z-10 ${stickyBg} border-r border-slate-200`}>
+                          <td className={`px-3 py-2.5 w-[44px] min-w-[44px] max-w-[44px] text-center sticky left-0 z-10 ${stickyBg} border-r border-slate-200`}>
                             <input
                               type="checkbox"
                               checked={isRowSelected}
@@ -2344,7 +2573,7 @@ export default function StudentBills() {
                           </td>
 
                           {/* Sticky Cell 2: Nama Siswa & NIS */}
-                          <td className={`p-3 w-[260px] min-w-[260px] max-w-[260px] sticky left-[44px] z-10 ${stickyBg} border-r border-slate-200 truncate`} title={row.name}>
+                          <td className={`px-3 py-2.5 w-[260px] min-w-[260px] max-w-[260px] sticky left-[44px] z-10 ${stickyBg} border-r border-slate-200 truncate`} title={row.name}>
                             <div>
                               <span className="font-bold text-slate-800 text-xs block truncate">{row.name}</span>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -2363,7 +2592,7 @@ export default function StudentBills() {
                           </td>
 
                           {/* Sticky Cell 3: Rombel */}
-                          <td className={`p-3 w-[100px] min-w-[100px] max-w-[100px] text-slate-600 sticky left-[304px] z-10 ${stickyBg} border-r border-slate-200 text-[11px]`}>
+                          <td className={`px-3 py-2.5 w-[100px] min-w-[100px] max-w-[100px] text-slate-600 sticky left-[304px] z-10 ${stickyBg} border-r border-slate-200 text-[11px]`}>
                             <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
                               {row.class_name}
                             </span>
@@ -2371,60 +2600,100 @@ export default function StudentBills() {
 
                           {/* Sticky Cell 4: Tunggakan TP Sebelumnya */}
                           <td
-                            className={`p-3 w-[145px] min-w-[145px] max-w-[145px] sticky left-[404px] z-10 ${stickyBg} border-r border-slate-200 text-right text-xs shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)]`}
+                            onClick={() => handleOpenArrearsCellModal(row)}
+                            className={`p-1.5 w-[145px] min-w-[145px] max-w-[145px] sticky left-[404px] z-10 ${stickyBg} border-r border-slate-200 text-center shadow-[3px_0_6px_-2px_rgba(0,0,0,0.12)] cursor-pointer group select-none`}
                             title={
                               row.previous_arrears > 0
-                                ? `Total Tunggakan TP Sebelumnya: Rp ${Number(row.previous_arrears || 0).toLocaleString('id-ID')} (${row.previous_arrears_count || 0} tagihan)\n${(row.previous_arrears_items || []).map(it => `• ${it.fee_type_name || (it.is_ppdb ? 'PPDB' : 'Tagihan')}: Rp ${Number(it.remaining || 0).toLocaleString('id-ID')} (${it.notes || (it.is_manual ? 'Manual' : it.status) || ''})`).join('\n')}`
-                                : 'Tidak ada tunggakan tahun pelajaran sebelumnya'
+                                ? `Klik untuk menerbitkan / menyesuaikan tagihan tunggakan santri ${row.name}\nTotal: ${formatCurrency(row.previous_arrears || 0)} (${row.previous_arrears_count || 0} tagihan)\n${(row.previous_arrears_items || []).map(it => `• ${it.fee_type_name || (it.is_ppdb ? 'PPDB' : 'Tagihan')}: ${formatCurrency(it.remaining || 0)} (${it.notes || (it.is_manual ? 'Manual' : it.status) || ''})`).join('\n')}`
+                                : (row.previous_arrears_items?.length > 0
+                                    ? `Tunggakan TP sebelumnya telah lunas untuk santri ${row.name}\n${row.previous_arrears_items.map(it => `• ${it.fee_type_name || 'Tunggakan'}: ${formatCurrency(it.paid || it.amount || 0)} (Lunas)`).join('\n')}\nKlik untuk melihat detail atau mencatat penyesuaian baru.`
+                                    : `Tidak ada tunggakan TP sebelumnya untuk santri ${row.name} (Lunas). Klik untuk mencatat/menyesuaikan.`)
                             }
                           >
-                            {row.previous_arrears > 0 ? (
-                              <div className="flex flex-col items-end">
-                                <span className="font-black text-rose-700 text-xs tracking-tight">
-                                  Rp {Number(row.previous_arrears).toLocaleString('id-ID')}
-                                </span>
-                                <span className="text-[10px] text-rose-600 font-semibold flex items-center gap-0.5 mt-0.5 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200/60">
-                                  <AlertCircle className="w-2.5 h-2.5 shrink-0 text-rose-500" />
-                                  {row.previous_arrears_count} tagihan
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                Lunas
-                              </span>
-                            )}
+                            <div
+                              className={`p-1.5 rounded-lg border text-center transition-all shadow-xs group-hover:shadow-sm group-hover:scale-[1.02] ${
+                                row.previous_arrears > 0
+                                  ? (row.previous_arrears_items?.some(it => it.id && it.status !== 'draft' && it.status !== 'cancelled')
+                                      ? 'bg-rose-50/90 text-rose-950 border-rose-300 font-bold hover:bg-rose-100/90'
+                                      : 'bg-amber-50/80 text-amber-950 border-amber-200/90 hover:border-amber-400 hover:bg-amber-100/70 font-semibold')
+                                  : 'bg-emerald-50/90 text-emerald-950 border-emerald-300 hover:bg-emerald-100 font-bold'
+                              }`}
+                            >
+                              {row.previous_arrears > 0 ? (
+                                <>
+                                  <div className="font-mono tnum text-xs">
+                                    {formatCurrency(row.previous_arrears || 0)}
+                                  </div>
+                                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                                    <span
+                                      className={`px-1.5 py-0.2 rounded text-[9px] ${
+                                        row.previous_arrears_items?.some(it => it.id && it.status !== 'draft' && it.status !== 'cancelled')
+                                          ? 'bg-rose-100 text-rose-800 font-bold'
+                                          : 'bg-amber-100 text-amber-900 border border-amber-200/70 font-semibold'
+                                      }`}
+                                    >
+                                      {row.previous_arrears_items?.some(it => it.id && it.status !== 'draft' && it.status !== 'cancelled')
+                                        ? 'Terbit'
+                                        : 'Belum Terbit'}
+                                    </span>
+                                    <span className="text-[9px] text-slate-500 font-medium">
+                                      ({row.previous_arrears_count || 1})
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="font-bold text-emerald-800 text-xs flex items-center justify-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Lunas</span>
+                                  </div>
+                                  <div className="flex items-center justify-center mt-0.5">
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200/60 font-mono tnum">
+                                      Rp 0
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </td>
 
                           {/* Dynamic Matrix Cells */}
                           {matrixData.columns.map((col) => {
                             const cell = row.cells[col.key] || {};
+                            const isUnbilled = Boolean(cell.is_unbilled || cell.status === 'cancelled');
                             const isPub = cell.is_published;
                             const isPaid = cell.is_paid;
                             const isPart = cell.is_partially_paid;
                             const isOver = cell.is_overdue;
-                            const cellNominal = cell.amount !== undefined && cell.amount !== null ? Number(cell.amount) : Number(cell.base_amount || 0);
+                            const cellNominal = isUnbilled ? 0 : (cell.amount !== undefined && cell.amount !== null ? Number(cell.amount) : Number(cell.base_amount || 0));
 
                             let cellStyle = 'bg-white text-slate-700 hover:border-emerald-400 border-slate-200';
                             let badgeText = 'Draf / Acuan';
                             let badgeClass = 'bg-slate-100 text-slate-500';
 
-                            if (isPaid) {
+                            if (isUnbilled) {
+                              cellStyle = 'bg-indigo-50/60 text-indigo-900 border-indigo-200/80 hover:border-indigo-400 hover:bg-indigo-100/50';
+                              const rTxt = String(cell.unbilled_reason || cell.cancel_reason || cell.notes || '').toLowerCase();
+                              badgeText = rTxt.includes('keluar') || rTxt.includes('berhenti')
+                                ? 'Bebas / Keluar'
+                                : (rTxt.includes('pindah') ? 'Bebas / Pindahan' : 'Tidak Ditagihkan');
+                              badgeClass = 'bg-indigo-100 text-indigo-800 font-semibold border border-indigo-200/60';
+                            } else if (isPaid) {
                               cellStyle = 'bg-emerald-50/90 text-emerald-950 border-emerald-300 font-bold';
                               badgeText = 'Lunas';
                               badgeClass = 'bg-emerald-100 text-emerald-800 font-bold';
                             } else if (isPart) {
-                              cellStyle = 'bg-teal-50/90 text-teal-950 border-teal-300 font-bold';
+                              cellStyle = 'bg-indigo-50/90 text-indigo-950 border-indigo-300 font-bold';
                               badgeText = 'Sebagian';
-                              badgeClass = 'bg-teal-100 text-teal-800 font-bold';
+                              badgeClass = 'bg-indigo-100 text-indigo-800 font-bold';
                             } else if (isOver) {
                               cellStyle = 'bg-rose-50/90 text-rose-950 border-rose-300 font-bold';
                               badgeText = 'Jatuh Tempo';
                               badgeClass = 'bg-rose-100 text-rose-800 font-bold animate-pulse';
                             } else if (isPub) {
-                              cellStyle = 'bg-blue-50/80 text-blue-950 border-blue-300 font-bold';
+                              cellStyle = 'bg-indigo-50/80 text-indigo-950 border-indigo-300 font-bold';
                               badgeText = 'Terbit';
-                              badgeClass = 'bg-blue-100 text-blue-800 font-bold';
+                              badgeClass = 'bg-indigo-100 text-indigo-800 font-bold';
                             } else {
                               // Belum ditagihkan / belum diterbitkan (Draf Acuan)
                               if (cellNominal > 0) {
@@ -2444,15 +2713,15 @@ export default function StudentBills() {
                               <td
                                 key={col.key}
                                 onClick={() => handleOpenCellModal(row, cell)}
-                                className="p-2 text-center border-r border-slate-100 cursor-pointer group select-none"
+                                className="p-1.5 text-center border-r border-slate-100 cursor-pointer group select-none"
                               >
                                 <div
-                                  className={`p-2 rounded-xl border text-center transition-all shadow-2xs group-hover:shadow-md group-hover:scale-[1.02] ${cellStyle}`}
+                                  className={`p-1.5 rounded-lg border text-center transition-all shadow-xs group-hover:shadow-sm group-hover:scale-[1.02] ${cellStyle}`}
                                 >
-                                  <div className="font-mono text-xs">
-                                    Rp {cellNominal.toLocaleString('id-ID')}
+                                  <div className="font-mono tnum text-xs">
+                                    {formatCurrency(cellNominal)}
                                   </div>
-                                  <div className="flex items-center justify-center gap-1 mt-1">
+                                  <div className="flex items-center justify-center gap-1 mt-0.5">
                                     <span className={`px-1.5 py-0.2 rounded text-[9px] ${badgeClass}`}>
                                       {badgeText}
                                     </span>
@@ -2481,79 +2750,78 @@ export default function StudentBills() {
       {activeTab === 'alumni' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Header & Status Banner */}
-          <div className="p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm font-bold">Data Piutang &amp; Sisa Tunggakan Alumni</h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                    Mode Pemantauan (Display Only)
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  Menampilkan saldo tunggakan historis santri yang telah lulus. Tidak ada proses penagihan karena sudah ditagihkan saat santri masih aktif.
-                </p>
-              </div>
-            </div>
-          </div>
+          <FlatAlertBanner
+            variant="warning"
+            icon={GraduationCap}
+            title="Data Piutang & Sisa Tunggakan Alumni — Mode Pemantauan (Display Only)"
+            message="Menampilkan saldo tunggakan historis santri yang telah lulus. Tidak ada proses penagihan baru karena sudah ditagihkan saat santri masih aktif."
+          />
 
           {/* KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-slate-500 font-medium">Santri Alumni Menunggak</p>
-                <h3 className="text-xl font-black text-rose-600 mt-0.5">
-                  {alumniData.summary?.total_alumni_with_arrears || 0}
-                  <span className="text-xs font-normal text-slate-400 ml-1">orang</span>
-                </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Card 1: Alumni Menunggak */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-orange-100/70 border border-amber-300 text-amber-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/20 rounded-full blur-xl group-hover:bg-amber-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-900">Alumni Menunggak</div>
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <Users className="w-4 h-4" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold border border-rose-200/60">
-                <Users className="w-5 h-5" />
+              <div className="mt-2 text-2xl font-black text-amber-950 tracking-tight relative z-10">
+                {alumniData.summary?.total_alumni_with_arrears || 0} <span className="text-xs font-semibold text-amber-700">orang</span>
               </div>
+              <p className="text-[11px] text-amber-800 mt-1 font-medium relative z-10">Santri lulus dengan sisa kewajiban</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-slate-500 font-medium">Total Sisa Tunggakan Alumni</p>
-                <h3 className="text-xl font-black text-rose-700 mt-0.5 tracking-tight">
-                  Rp {(alumniData.summary?.total_arrears_amount || 0).toLocaleString('id-ID')}
-                </h3>
+            {/* Card 2: Sisa Tunggakan Alumni */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-50 to-red-100/70 border border-rose-300 text-rose-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-rose-500/20 rounded-full blur-xl group-hover:bg-rose-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-900">Sisa Tunggakan Alumni</div>
+                <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-rose-100/70 text-rose-700 flex items-center justify-center font-bold border border-rose-300/80">
-                <AlertCircle className="w-5 h-5" />
+              <div className="mt-2 text-2xl font-black text-rose-950 tracking-tight relative z-10 truncate" title={formatCurrency(alumniData.summary?.total_arrears_amount || 0)}>
+                {formatCurrency(alumniData.summary?.total_arrears_amount || 0)}
               </div>
+              <p className="text-[11px] text-rose-800 mt-1 font-medium relative z-10">Total piutang tak tertagih berjalan</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-slate-500 font-medium">Total Tagihan Dilunasi</p>
-                <h3 className="text-xl font-black text-emerald-700 mt-0.5 tracking-tight">
-                  Rp {(alumniData.summary?.total_paid_amount || 0).toLocaleString('id-ID')}
-                </h3>
+            {/* Card 3: Total Tagihan Dilunasi */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-teal-100/70 border border-emerald-300 text-emerald-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">Tagihan Dilunasi</div>
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold border border-emerald-200/60">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="mt-2 text-2xl font-black text-emerald-950 tracking-tight relative z-10 truncate" title={formatCurrency(alumniData.summary?.total_paid_amount || 0)}>
+                {formatCurrency(alumniData.summary?.total_paid_amount || 0)}
               </div>
+              <p className="text-[11px] text-emerald-800 mt-1 font-medium relative z-10">Penerimaan kas dari alumni</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-slate-500 font-medium">Total Keseluruhan Piutang</p>
-                <h3 className="text-xl font-black text-slate-800 mt-0.5 tracking-tight">
-                  Rp {(alumniData.summary?.total_bills_amount || 0).toLocaleString('id-ID')}
-                </h3>
+            {/* Card 4: Total Keseluruhan Piutang */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white border border-slate-700/80 shadow-md relative overflow-hidden group hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl group-hover:bg-indigo-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300">Total Keseluruhan Piutang</div>
+                <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-indigo-300 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                  <Receipt className="w-4 h-4" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold border border-blue-200/60">
-                <Receipt className="w-5 h-5" />
+              <div className="mt-2 text-2xl font-black text-white tracking-tight relative z-10 truncate" title={formatCurrency(alumniData.summary?.total_bills_amount || 0)}>
+                {formatCurrency(alumniData.summary?.total_bills_amount || 0)}
               </div>
+              <p className="text-[11px] text-slate-300 mt-1 relative z-10">Akumulasi seluruh tagihan alumni</p>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-20">
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-20">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -2561,7 +2829,7 @@ export default function StudentBills() {
                 placeholder="Cari nama alumni, NIS, NIPD..."
                 value={alumniSearch}
                 onChange={(e) => setAlumniSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
               />
             </div>
 
@@ -2597,7 +2865,7 @@ export default function StudentBills() {
           </div>
 
           {/* Table Data Tagihan Alumni */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
             {alumniLoading ? (
               <div className="p-16 text-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-2" />
@@ -2614,14 +2882,14 @@ export default function StudentBills() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[700px]">
+              <div className="table-container max-h-[700px]">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
                     <tr>
-                      <th className="p-3.5 w-12 text-center">No</th>
+                      <th className="px-3 py-2.5 w-12 text-center">No</th>
                       <th
                         onClick={() => handleSortAlumni('full_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group min-w-[220px]"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group min-w-[220px]"
                         title="Klik untuk mengurutkan nama"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2629,11 +2897,11 @@ export default function StudentBills() {
                           <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
                         </div>
                       </th>
-                      <th className="p-3.5 min-w-[150px]">Tahun Lulus / Rombel</th>
-                      <th className="p-3.5 min-w-[180px]">Pos Biaya Menunggak</th>
+                      <th className="px-3 py-2.5 min-w-[150px]">Tahun Lulus / Rombel</th>
+                      <th className="px-3 py-2.5 min-w-[180px]">Pos Biaya Menunggak</th>
                       <th
                         onClick={() => handleSortAlumni('total_bills')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Total Tagihan</span>
@@ -2642,7 +2910,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortAlumni('total_paid')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[120px]"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Terbayar</span>
@@ -2651,15 +2919,15 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortAlumni('total_remaining')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[130px]"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group min-w-[130px]"
                       >
                         <div className="flex items-center justify-end gap-1.5">
                           <span>Sisa Tunggakan</span>
                           <ArrowUpDown className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
                         </div>
                       </th>
-                      <th className="p-3.5 text-center min-w-[110px]">Status</th>
-                      <th className="p-3.5 text-center w-24">Rincian</th>
+                      <th className="px-3 py-2.5 text-center min-w-[110px]">Status</th>
+                      <th className="px-3 py-2.5 text-center w-24">Rincian</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -2667,8 +2935,8 @@ export default function StudentBills() {
                       const hasArrears = alumnus.total_remaining > 0;
                       return (
                         <tr key={alumnus.id} className="hover:bg-slate-50/80 transition">
-                          <td className="p-3.5 text-center text-slate-400 font-mono text-[11px]">{idx + 1}</td>
-                          <td className="p-3.5">
+                          <td className="px-3 py-2.5 text-center text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="px-3 py-2.5">
                             <div className="font-bold text-slate-800">{alumnus.full_name}</div>
                             <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500">
                               <span className="font-mono bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
@@ -2679,7 +2947,7 @@ export default function StudentBills() {
                               )}
                             </div>
                           </td>
-                          <td className="p-3.5 text-slate-600">
+                          <td className="px-3 py-2.5 text-slate-600">
                             <div className="font-semibold text-slate-700 text-xs">
                               {alumnus.graduation_academic_year_name !== '-' ? `Lulus ${alumnus.graduation_academic_year_name}` : 'Alumni'}
                             </div>
@@ -2687,7 +2955,7 @@ export default function StudentBills() {
                               {alumnus.last_class_name || 'Alumni'}
                             </div>
                           </td>
-                          <td className="p-3.5">
+                          <td className="px-3 py-2.5">
                             {alumnus.arrears_fee_types && alumnus.arrears_fee_types.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
                                 {alumnus.arrears_fee_types.map((ftName, fIdx) => (
@@ -2703,47 +2971,46 @@ export default function StudentBills() {
                               <span className="text-[11px] text-emerald-600 font-medium">Tidak ada tunggakan</span>
                             )}
                           </td>
-                          <td className="p-3.5 text-right font-mono text-slate-700">
-                            Rp {(alumnus.total_bills || 0).toLocaleString('id-ID')}
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-slate-700">
+                            {formatCurrency(alumnus.total_bills || 0)}
                           </td>
-                          <td className="p-3.5 text-right font-mono text-emerald-700 font-medium">
-                            Rp {(alumnus.total_paid || 0).toLocaleString('id-ID')}
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-emerald-700 font-medium">
+                            {formatCurrency(alumnus.total_paid || 0)}
                           </td>
-                          <td className="p-3.5 text-right font-mono font-bold">
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell font-bold">
                             {hasArrears ? (
                               <span className="text-rose-700">
-                                Rp {(alumnus.total_remaining || 0).toLocaleString('id-ID')}
+                                {formatCurrency(alumnus.total_remaining || 0)}
                               </span>
                             ) : (
                               <span className="text-slate-400">Rp 0</span>
                             )}
                           </td>
-                          <td className="p-3.5 text-center">
+                          <td className="px-3 py-2.5 text-center">
                             {alumnus.status === 'paid' || (!hasArrears && alumnus.total_bills > 0) ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <StatusPill variant="success" size="sm">
                                 Lunas
-                              </span>
+                              </StatusPill>
                             ) : alumnus.status === 'partially_paid' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                                <RotateCw className="w-3 h-3 text-teal-600" />
+                              <StatusPill variant="info" size="sm">
                                 Sebagian ({alumnus.unpaid_bills_count} sisa)
-                              </span>
+                              </StatusPill>
                             ) : hasArrears ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                <AlertCircle className="w-3 h-3 text-rose-600" />
+                              <StatusPill variant="danger" size="sm">
                                 Menunggak ({alumnus.unpaid_bills_count} item)
-                              </span>
+                              </StatusPill>
                             ) : (
-                              <span className="text-[10px] text-slate-400">Tanpa Tagihan</span>
+                              <StatusPill variant="neutral" size="sm">
+                                Tanpa Tagihan
+                              </StatusPill>
                             )}
                           </td>
-                          <td className="p-3.5 text-center">
+                          <td className="px-3 py-2.5 text-center">
                             <button
                               type="button"
                               onClick={() => handleOpenAlumniDetailModal(alumnus)}
                               title="Lihat rincian riwayat tagihan & tunggakan alumni"
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 transition"
+                              className="p-1.5 rounded-md bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 transition"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -2754,17 +3021,17 @@ export default function StudentBills() {
                   </tbody>
                   <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
                     <tr>
-                      <td colSpan={4} className="p-3.5 text-right text-slate-600">
+                      <td colSpan={4} className="px-3 py-2.5 text-right text-slate-600">
                         Total ({sortedAlumniList.length} alumni)
                       </td>
-                      <td className="p-3.5 text-right font-mono text-slate-800">
-                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_bills || 0), 0).toLocaleString('id-ID')}
+                      <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-slate-800">
+                        {formatCurrency(sortedAlumniList.reduce((acc, a) => acc + (a.total_bills || 0), 0))}
                       </td>
-                      <td className="p-3.5 text-right font-mono text-emerald-800">
-                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_paid || 0), 0).toLocaleString('id-ID')}
+                      <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-emerald-800">
+                        {formatCurrency(sortedAlumniList.reduce((acc, a) => acc + (a.total_paid || 0), 0))}
                       </td>
-                      <td className="p-3.5 text-right font-mono text-rose-800">
-                        Rp {sortedAlumniList.reduce((acc, a) => acc + (a.total_remaining || 0), 0).toLocaleString('id-ID')}
+                      <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-rose-800">
+                        {formatCurrency(sortedAlumniList.reduce((acc, a) => acc + (a.total_remaining || 0), 0))}
                       </td>
                       <td colSpan={2}></td>
                     </tr>
@@ -2781,8 +3048,71 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {activeTab === 'history' && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Summary & KPI Cards for History Tab */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Card 1: Tagihan Terbit */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white border border-indigo-700/60 shadow-md relative overflow-hidden group hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl group-hover:bg-indigo-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">Total Tagihan Terbit</div>
+                <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-indigo-200 shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                  <FileCheck className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-black text-white tracking-tight relative z-10 truncate" title={formatCurrency(historySummary.publishedAmount)}>
+                {formatCurrency(historySummary.publishedAmount)}
+              </div>
+              <p className="text-[11px] text-indigo-200 mt-1 relative z-10">{formatNumber(historySummary.publishedCount)} tagihan resmi</p>
+            </div>
+
+            {/* Card 2: Belum Terbit (Draf) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-50 to-orange-100/70 border border-amber-300 text-amber-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/20 rounded-full blur-xl group-hover:bg-amber-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-900">Belum Terbit (Draf)</div>
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-black text-amber-950 tracking-tight relative z-10 truncate" title={formatCurrency(historySummary.draftAmount)}>
+                {formatCurrency(historySummary.draftAmount)}
+              </div>
+              <p className="text-[11px] text-amber-800 mt-1 font-medium relative z-10">{formatNumber(historySummary.draftCount)} tagihan draf</p>
+            </div>
+
+            {/* Card 3: Pembayaran Masuk */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-teal-100/70 border border-emerald-300 text-emerald-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">Pembayaran Masuk</div>
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-black text-emerald-950 tracking-tight relative z-10 truncate" title={formatCurrency(historySummary.totalPaid)}>
+                {formatCurrency(historySummary.totalPaid)}
+              </div>
+              <p className="text-[11px] text-emerald-800 mt-1 font-medium relative z-10">Kas/Bank terbayar</p>
+            </div>
+
+            {/* Card 4: Sisa Piutang Berjalan */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-50 to-red-100/70 border border-rose-300 text-rose-950 shadow-sm relative overflow-hidden group hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+              <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-rose-500/20 rounded-full blur-xl group-hover:bg-rose-500/30 transition-all pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-900">Sisa Piutang Berjalan</div>
+                <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 text-2xl font-black text-rose-950 tracking-tight relative z-10 truncate" title={formatCurrency(historySummary.totalRemaining)}>
+                {formatCurrency(historySummary.totalRemaining)}
+              </div>
+              <p className="text-[11px] text-rose-800 mt-1 font-medium relative z-10">Sisa tagihan terbit belum lunas</p>
+            </div>
+          </div>
+
           {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-20">
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-20">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -2790,7 +3120,7 @@ export default function StudentBills() {
                 placeholder="Cari santri, tagihan #ID..."
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
               />
             </div>
 
@@ -2835,7 +3165,7 @@ export default function StudentBills() {
           </div>
 
           {/* Table Riwayat with Sticky Header & Sortable Columns */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
             {historyLoading ? (
               <div className="p-16 text-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600 mb-2" />
@@ -2848,13 +3178,13 @@ export default function StudentBills() {
                 <p className="text-[11px] text-slate-400 mt-1">Coba sesuaikan filter pencarian di atas.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[700px]">
+              <div className="table-container max-h-[700px]">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
                     <tr>
                       <th
                         onClick={() => handleSortHistory('created_at')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan tanggal terbit"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2872,7 +3202,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('student_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan nama santri"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2890,7 +3220,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('class_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan rombel / kelas"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2908,7 +3238,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('fee_type_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan jenis biaya"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2926,7 +3256,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('gross_amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan nominal kotor"
                       >
                         <div className="flex items-center justify-end gap-1.5">
@@ -2944,7 +3274,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('discount_amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan diskon"
                       >
                         <div className="flex items-center justify-end gap-1.5">
@@ -2962,7 +3292,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('amount')}
-                        className="p-3.5 text-right cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 text-right cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan nominal bersih"
                       >
                         <div className="flex items-center justify-end gap-1.5">
@@ -2980,7 +3310,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('notes')}
-                        className="p-3.5 max-w-xs cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 max-w-xs cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan catatan"
                       >
                         <div className="flex items-center gap-1.5">
@@ -2998,7 +3328,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('due_date')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan tanggal jatuh tempo"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3016,7 +3346,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortHistory('status')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan status"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3032,7 +3362,7 @@ export default function StudentBills() {
                           )}
                         </div>
                       </th>
-                      <th className="p-3.5 text-right">Aksi</th>
+                      <th className="px-3 py-2.5 text-right">Aksi</th>
                     </tr>
                   </thead>
 
@@ -3049,25 +3379,25 @@ export default function StudentBills() {
                             isOverdue ? 'bg-rose-50/40 border-l-4 border-l-rose-500' : ''
                           }`}
                         >
-                          <td className="p-3.5 font-mono text-[11px] text-slate-600">
+                          <td className="px-3 py-2.5 font-mono text-[11px] text-slate-600">
                             <div>{b.bill_date ? String(b.bill_date).slice(0, 10) : String(b.created_at || '').slice(0, 10)}</div>
                             <div className="text-[10px] text-slate-400">#{b.id}</div>
                           </td>
 
-                          <td className="p-3.5 font-bold text-slate-800">
+                          <td className="px-3 py-2.5 font-bold text-slate-800">
                             <div>{b.student_name}</div>
                             <div className="text-[10px] text-slate-400 font-mono">
                               NIS: {b.nis || '-'} • ID: {b.student_id}
                             </div>
                           </td>
 
-                          <td className="p-3.5">
+                          <td className="px-3 py-2.5">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                               {b.class_name || '-'}
                             </span>
                           </td>
 
-                          <td className="p-3.5">
+                          <td className="px-3 py-2.5">
                             <div className="font-semibold text-slate-800">{b.fee_type_name}</div>
                             <div className="text-[10px] text-slate-500 font-medium">
                               {b.period_month ? `Bulan ke-${b.period_month} • ` : ''}
@@ -3081,27 +3411,27 @@ export default function StudentBills() {
                             </div>
                           </td>
 
-                          <td className="p-3.5 text-right font-mono text-slate-500">
-                            Rp {grossAmount.toLocaleString('id-ID')}
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-slate-500">
+                            {formatCurrency(grossAmount)}
                           </td>
 
-                          <td className="p-3.5 text-right font-mono text-amber-600 font-semibold">
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell text-amber-600 font-semibold">
                             {parseFloat(b.discount_amount || 0) > 0 ? (
-                              <span>- Rp {parseFloat(b.discount_amount).toLocaleString('id-ID')}</span>
+                              <span>- {formatCurrency(b.discount_amount)}</span>
                             ) : (
                               <span className="text-slate-300">-</span>
                             )}
                           </td>
 
-                          <td className="p-3.5 text-right font-mono font-bold text-slate-900">
-                            Rp {netAmount.toLocaleString('id-ID')}
+                          <td className="px-3 py-2.5 text-right font-mono tnum num-cell font-bold text-slate-900">
+                            {formatCurrency(netAmount)}
                           </td>
 
-                          <td className="p-3.5 text-slate-600 max-w-xs truncate text-[11px]" title={b.discount_reason || b.edit_reason}>
+                          <td className="px-3 py-2.5 text-slate-600 max-w-xs truncate text-[11px]" title={b.discount_reason || b.edit_reason}>
                             {b.discount_reason || b.edit_reason || <span className="text-slate-300 italic">-</span>}
                           </td>
 
-                          <td className="p-3.5 font-mono text-[11px]">
+                          <td className="px-3 py-2.5 font-mono text-[11px]">
                             {b.due_date ? (
                               <span className={isOverdue ? 'text-rose-700 font-bold flex items-center gap-1' : 'text-slate-700'}>
                                 {isOverdue && <AlertCircle className="w-3 h-3 text-rose-600" />}
@@ -3112,33 +3442,33 @@ export default function StudentBills() {
                             )}
                           </td>
 
-                          <td className="p-3.5">
+                          <td className="px-3 py-2.5">
                             {b.status === 'paid' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3" /> Lunas
-                              </span>
+                              <StatusPill variant="success" size="sm">
+                                Lunas
+                              </StatusPill>
                             ) : b.status === 'partially_paid' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                                <Clock className="w-3 h-3" /> Sebagian
-                              </span>
+                              <StatusPill variant="info" size="sm">
+                                Sebagian
+                              </StatusPill>
                             ) : isOverdue ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-                                <AlertCircle className="w-3 h-3" /> Jatuh Tempo
-                              </span>
+                              <StatusPill variant="danger" size="sm">
+                                Jatuh Tempo
+                              </StatusPill>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                <Clock className="w-3 h-3" /> Belum Bayar
-                              </span>
+                              <StatusPill variant="info" size="sm">
+                                Belum Bayar
+                              </StatusPill>
                             )}
                           </td>
 
-                          <td className="p-3.5 text-right">
+                          <td className="px-3 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 type="button"
                                 onClick={() => handleOpenDetailModal(b)}
                                 title="Lihat Detail & Jurnal Piutang"
-                                className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                                className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
@@ -3148,7 +3478,7 @@ export default function StudentBills() {
                                   type="button"
                                   onClick={() => handleOpenReviseModal(b)}
                                   title="Revisi Tagihan (Catat Riwayat)"
-                                  className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                                  className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-md transition"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
@@ -3160,7 +3490,7 @@ export default function StudentBills() {
                                   onClick={() => handleSendSingleReminder(b)}
                                   disabled={sendingSingleReminderId === b.id}
                                   title="Kirimkan Pengingat ke Portal Orang Tua"
-                                  className="p-1.5 text-slate-500 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition disabled:opacity-50"
+                                  className="p-1.5 text-slate-500 hover:text-orange-700 hover:bg-orange-50 rounded-md transition disabled:opacity-50"
                                 >
                                   {sendingSingleReminderId === b.id ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-600" />
@@ -3183,33 +3513,33 @@ export default function StudentBills() {
       )}
 
       {/* ============================================================ */}
-      {/* TAB 3: REMINDER TAGIHAN (PORTAL ORANG TUA NOTIFIKASI) */}
+      {/* TAB 4: REMINDER TAGIHAN (PORTAL ORANG TUA NOTIFIKASI) */}
       {/* ============================================================ */}
       {activeTab === 'reminders' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Quick KPI & Broadcast Banner */}
-          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-500/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-lg p-4 text-white shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <Bell className="w-6 h-6" />
-                <h2 className="text-lg font-black tracking-tight">Pusat Pengingat Tagihan (Portal Orang Tua)</h2>
+                <Bell className="w-5 h-5" />
+                <h2 className="text-base font-bold tracking-tight">Pusat Pengingat Tagihan (Portal Orang Tua)</h2>
               </div>
-              <p className="text-xs text-amber-100 mt-1 max-w-2xl">
+              <p className="text-xs text-amber-100 mt-0.5 max-w-2xl">
                 Kirim pesan tagihan otomatis atau pesan khusus langsung ke modul notifikasi wali murid di Portal Orang Tua santri, lengkap dengan log audit pengiriman.
               </p>
             </div>
             <button
               type="button"
               onClick={handleOpenBroadcastModal}
-              className="px-5 py-2.5 bg-white text-orange-700 font-bold text-xs rounded-xl shadow-md hover:bg-amber-50 transition shrink-0 flex items-center gap-2"
+              className="px-4 py-2 bg-white text-orange-700 font-bold text-xs rounded-lg shadow-xs hover:bg-amber-50 transition shrink-0 flex items-center gap-1.5"
             >
-              <Send className="w-4 h-4 text-orange-600" />
+              <Send className="w-3.5 h-3.5 text-orange-600" />
               <span>Broadcast Pengingat Sekarang</span>
             </button>
           </div>
 
           {/* Filter Logs */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between gap-3">
+          <div className="bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs flex items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -3217,7 +3547,7 @@ export default function StudentBills() {
                 placeholder="Cari log nama santri, penerima, pesan..."
                 value={reminderSearch}
                 onChange={(e) => setReminderSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 transition"
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 transition"
               />
             </div>
             <div className="text-xs text-slate-500 font-medium">
@@ -3226,7 +3556,7 @@ export default function StudentBills() {
           </div>
 
           {/* Table Log Riwayat Reminder */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-lg border border-slate-200/80 shadow-xs overflow-hidden">
             {reminderLogsLoading ? (
               <div className="p-16 text-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-600 mb-2" />
@@ -3239,13 +3569,13 @@ export default function StudentBills() {
                 <p className="text-[11px] text-slate-400 mt-1">Gunakan tombol "Broadcast Pengingat" di atas untuk mengirimkan pesan pertama.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[650px]">
+              <div className="table-container max-h-[650px]">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-50/95 backdrop-blur text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
                     <tr>
                       <th
                         onClick={() => handleSortReminders('sent_at')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan waktu kirim"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3263,7 +3593,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('student_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan nama santri"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3281,7 +3611,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('recipient_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan penerima"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3299,7 +3629,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('fee_type_name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan tagihan terkait"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3317,7 +3647,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('message')}
-                        className="p-3.5 max-w-md cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 max-w-md cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan isi notifikasi"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3335,7 +3665,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('channel')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan kanal"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3353,7 +3683,7 @@ export default function StudentBills() {
                       </th>
                       <th
                         onClick={() => handleSortReminders('status')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition group"
+                        className="px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition group"
                         title="Klik untuk mengurutkan status pengiriman"
                       >
                         <div className="flex items-center gap-1.5">
@@ -3374,37 +3704,37 @@ export default function StudentBills() {
                   <tbody className="divide-y divide-slate-100">
                     {filteredAndSortedReminderLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                        <td className="p-3.5 font-mono text-[11px] text-slate-600">
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-slate-600">
                           {new Date(log.sent_at || log.created_at).toLocaleString('id-ID')}
                         </td>
-                        <td className="p-3.5 font-bold text-slate-800">
+                        <td className="px-3 py-2.5 font-bold text-slate-800">
                           <div>{log.student_name}</div>
                           <div className="text-[10px] text-slate-400 font-medium">{log.class_name} • NIS: {log.nis}</div>
                         </td>
-                        <td className="p-3.5 text-slate-700">
+                        <td className="px-3 py-2.5 text-slate-700">
                           <div className="font-semibold">{log.recipient_name || 'Wali Santri'}</div>
                           {log.phone_or_email && <div className="text-[10px] text-slate-400 font-mono">{log.phone_or_email}</div>}
                         </td>
-                        <td className="p-3.5">
+                        <td className="px-3 py-2.5">
                           <div className="font-semibold text-slate-800">{log.fee_type_name}</div>
-                          <div className="text-[10px] text-slate-500 font-mono">
-                            Rp {parseFloat(log.bill_amount || 0).toLocaleString('id-ID')} • JT: {String(log.bill_due_date || '-').slice(0, 10)}
+                          <div className="text-[10px] text-slate-500 font-mono tnum num-cell">
+                            {formatCurrency(log.bill_amount || 0)} • JT: {String(log.bill_due_date || '-').slice(0, 10)}
                           </div>
                         </td>
-                        <td className="p-3.5 text-slate-600 max-w-md text-[11px] bg-slate-50/40 rounded">
+                        <td className="px-3 py-2.5 text-slate-600 max-w-md text-[11px] bg-slate-50/40 rounded">
                           <p className="line-clamp-2" title={log.message}>
                             {log.message || 'Pengingat tagihan reguler via Portal'}
                           </p>
                         </td>
-                        <td className="p-3.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             <Smartphone className="w-3 h-3" /> {log.channel === 'portal_notification' ? 'Portal Ortu' : log.channel}
                           </span>
                         </td>
-                        <td className="p-3.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" /> Terkirim
-                          </span>
+                        <td className="px-3 py-2.5">
+                          <StatusPill variant="success" size="sm">
+                            Terkirim
+                          </StatusPill>
                         </td>
                       </tr>
                     ))}
@@ -3421,11 +3751,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {cellModalOpen && selectedCellInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  <Receipt className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <Receipt className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">
@@ -3439,224 +3769,336 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setCellModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSavePublishCell} className="flex flex-col min-h-0 flex-1 overflow-hidden">
-              <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs flex-1">
                 {/* Info Fee Type & Periode */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Jenis Biaya Tagihan:</span>
-                  <span className="font-bold text-slate-800">{selectedCellInfo.cell.fee_type_name}</span>
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Jenis Biaya Tagihan:</span>
+                    <span className="font-bold text-slate-800">{selectedCellInfo.cell.fee_type_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pola &amp; Periode:</span>
+                    <span className="font-semibold text-slate-700">
+                      {selectedCellInfo.cell.month_label ? `Bulan ${selectedCellInfo.cell.month_label} - ` : ''}T.A. {selectedCellInfo.cell.period_year}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Status Saat Ini:</span>
+                    <span className="font-bold uppercase text-[10px] text-emerald-700">
+                      {selectedCellInfo.cell.is_unbilled || selectedCellInfo.cell.status === 'cancelled'
+                        ? 'Tidak Ditagihkan (Bebas / Pindahan)'
+                        : (selectedCellInfo.cell.is_published ? selectedCellInfo.cell.status : 'Belum Diterbitkan (Draf Acuan)')}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Pola &amp; Periode:</span>
-                  <span className="font-semibold text-slate-700">
-                    {selectedCellInfo.cell.month_label ? `Bulan ${selectedCellInfo.cell.month_label} - ` : ''}T.A. {selectedCellInfo.cell.period_year}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Status Saat Ini:</span>
-                  <span className="font-bold uppercase text-[10px] text-emerald-700">
-                    {selectedCellInfo.cell.is_published ? selectedCellInfo.cell.status : 'Belum Diterbitkan (Draf Acuan)'}
-                  </span>
-                </div>
-              </div>
 
-              {/* Nominal Input */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Nominal Tagihan (Rp) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="any"
-                  value={cellFormData.amount}
-                  onChange={(e) => setCellFormData({ ...cellFormData, amount: e.target.value })}
-                  placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 text-xs"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Dapat diisi 0 atau nominal berapa pun (tidak ada batas minimal).
-                </p>
-              </div>
-
-              {/* Date Pickers */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tanggal Tagihan</label>
-                  <DatePickerField
-                    value={cellFormData.bill_date}
-                    onChange={handleCellBillDateChange}
-                    placeholder="DD/MM/YYYY"
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Jatuh Tempo <span className="text-red-500">*</span></label>
-                  <DatePickerField
-                    value={cellFormData.due_date}
-                    onChange={handleCellDueDateChange}
-                    placeholder="DD/MM/YYYY"
-                    align="right"
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Diskon Toggle & Input (Nominal vs Persentase) */}
-              <div className="p-3.5 rounded-2xl border border-amber-200/80 bg-amber-50/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                {/* Opsi Ceklist: Tidak Ditagihkan (Siswa Belum Aktif / Santri Pindahan) */}
+                <div className={`p-3 rounded-lg border transition-all ${cellFormData.is_not_billed ? 'bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-slate-50/80 border-slate-200'}`}>
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
                     <input
                       type="checkbox"
-                      checked={cellFormData.has_discount}
+                      checked={cellFormData.is_not_billed}
                       onChange={(e) => {
                         const checked = e.target.checked;
-                        setCellFormData({
-                          ...cellFormData,
-                          has_discount: checked,
-                          discount_amount: checked ? (cellFormData.discount_amount || 0) : 0
-                        });
+                        const baseNominal = selectedCellInfo?.cell?.amount !== undefined && selectedCellInfo?.cell?.amount !== null
+                          ? selectedCellInfo.cell.amount
+                          : (selectedCellInfo?.cell?.base_amount || 0);
+
+                        setCellFormData((prev) => ({
+                          ...prev,
+                          is_not_billed: checked,
+                          amount: checked ? 0 : (baseNominal || 0),
+                          has_discount: checked ? false : prev.has_discount,
+                          unbilled_reason: checked ? (prev.unbilled_reason || 'Siswa belum aktif (Santri Pindahan)') : prev.unbilled_reason
+                        }));
                       }}
-                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                      className="mt-0.5 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300 cursor-pointer"
                     />
-                    <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                      <Percent className="w-3.5 h-3.5 text-amber-700" /> Berikan Potongan / Diskon Khusus
-                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                        <UserX className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Tidak Ditagihkan (Siswa Belum Aktif / Santri Pindahan / Siswa Keluar)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                        Centang opsi ini jika santri belum aktif belajar atau telah keluar/berhenti di bulan ini. Sistem otomatis membebaskan tagihan sel ini (Rp 0), tidak mencatat piutang, dan menghapus catatan piutang/jurnal di akuntansi.
+                      </p>
+                    </div>
                   </label>
 
-                  {cellFormData.has_discount && (
-                    <div className="flex items-center bg-white border border-amber-200 rounded-lg p-0.5 text-[11px] font-semibold">
-                      <button
-                        type="button"
-                        onClick={() => setCellFormData({ ...cellFormData, discount_type: 'amount' })}
-                        className={`px-2 py-0.5 rounded-md transition ${cellFormData.discount_type === 'amount' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Nominal (Rp)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const baseNominal = parseFloat(cellFormData.amount || 0);
-                          const currentDisc = parseFloat(cellFormData.discount_amount || 0);
-                          const pct = baseNominal > 0 ? ((currentDisc / baseNominal) * 100).toFixed(1) : 0;
-                          setCellFormData({ ...cellFormData, discount_type: 'percentage', discount_percent: pct });
-                        }}
-                        className={`px-2 py-0.5 rounded-md transition ${cellFormData.discount_type === 'percentage' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Persentase (%)
-                      </button>
+                  {cellFormData.is_not_billed && (
+                    <div className="mt-3 pt-3 border-t border-indigo-200/80 space-y-2.5 animate-in fade-in">
+                      <label className="block text-[11px] font-semibold text-indigo-950">
+                        Pilih / Isi Keterangan Alasan Tidak Ditagihkan:
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {[
+                          'Siswa keluar / berhenti di bulan ini',
+                          'Siswa keluar di bulan sebelumnya (Tidak Ditagihkan)',
+                          'Siswa belum aktif (Santri Pindahan)',
+                          'Santri baru masuk pertengahan semester',
+                          'Cuti / Izin Khusus Belum Aktif',
+                          'Pembebasan Khusus Santri'
+                        ].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setCellFormData({ ...cellFormData, unbilled_reason: preset })}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] text-left border transition ${
+                              cellFormData.unbilled_reason === preset
+                                ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                                : 'bg-white text-slate-700 border-indigo-200 hover:bg-indigo-100/60'
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={cellFormData.unbilled_reason}
+                        onChange={(e) => setCellFormData({ ...cellFormData, unbilled_reason: e.target.value })}
+                        placeholder="Ketik keterangan alasan spesifik..."
+                        className="w-full px-3 py-1.5 bg-white border border-indigo-300 rounded-lg text-xs font-semibold text-indigo-950 focus:ring-2 focus:ring-indigo-500"
+                      />
+
+                      {/* Opsi Terapkan ke Seluruh Bulan Berikutnya untuk Siswa yang Keluar / Berhenti */}
+                      {selectedCellInfo?.cell?.period_month && (
+                        <div className="p-2.5 bg-white/95 border border-indigo-200 rounded-lg space-y-1">
+                          <label className="flex items-start gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={cellFormData.apply_to_subsequent_months}
+                              onChange={(e) => setCellFormData({ ...cellFormData, apply_to_subsequent_months: e.target.checked })}
+                              className="mt-0.5 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-indigo-950 block">
+                                Terapkan juga "Tidak Ditagihkan" ke seluruh bulan berikutnya di Tahun Ajaran ini
+                              </span>
+                              <span className="text-[10.5px] text-indigo-700 leading-snug block mt-0.5">
+                                Otomatis membebaskan (Rp 0) tagihan bulan-bulan berikutnya setelah bulan <strong>{selectedCellInfo?.cell?.month_label || 'ini'}</strong> untuk santri ini.
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+
+                      <div className="p-2.5 bg-indigo-100/70 border border-indigo-200/80 rounded-lg flex items-start gap-2 text-[11px] text-indigo-950 font-medium">
+                        <Info className="w-3.5 h-3.5 text-indigo-700 shrink-0 mt-0.5" />
+                        <span>Tagihan sel ini akan diset <strong>Rp 0 (Bebas / Pindahan / Keluar)</strong>. Seluruh entri jurnal piutang di buku besar &amp; neraca akuntansi akan otomatis dihapus bersih.</span>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {cellFormData.has_discount && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-amber-100 animate-in fade-in">
-                    <div>
-                      {cellFormData.discount_type === 'percentage' ? (
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Persentase Diskon (%)</label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={cellFormData.discount_percent}
-                              onChange={(e) => {
-                                const pct = e.target.value;
-                                const base = parseFloat(cellFormData.amount || 0);
-                                const nominal = base > 0 ? ((base * parseFloat(pct || 0)) / 100) : 0;
-                                setCellFormData({
-                                  ...cellFormData,
-                                  discount_percent: pct,
-                                  discount_amount: nominal
-                                });
-                              }}
-                              className="w-full pl-3 pr-8 py-1.5 bg-white border border-amber-300 rounded-lg font-bold text-xs"
-                              placeholder="0"
-                            />
-                            <span className="absolute right-2.5 top-1.5 font-bold text-slate-400 text-xs">%</span>
-                          </div>
-                          <p className="text-[10px] text-amber-800 font-semibold mt-1">
-                            Setara: {formatCurrency(cellFormData.discount_amount || 0)}
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nominal Diskon (Rp)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={cellFormData.discount_amount}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const base = parseFloat(cellFormData.amount || 0);
-                              const pct = base > 0 ? ((parseFloat(val || 0) / base) * 100).toFixed(1) : 0;
-                              setCellFormData({
-                                ...cellFormData,
-                                discount_amount: val,
-                                discount_percent: pct
-                              });
+                {/* Nominal Input */}
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Nominal Tagihan (Rp) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="any"
+                    disabled={cellFormData.is_not_billed}
+                    value={cellFormData.is_not_billed ? 0 : cellFormData.amount}
+                    onChange={(e) => setCellFormData({ ...cellFormData, amount: e.target.value })}
+                    placeholder="0"
+                    className={`w-full px-3 py-2 border rounded-lg font-mono font-bold text-xs ${
+                      cellFormData.is_not_billed
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                        : 'bg-slate-50 border-slate-200 text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500'
+                    }`}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {cellFormData.is_not_billed
+                      ? 'Terkunci Rp 0 karena opsi Tidak Ditagihkan (Siswa Belum Aktif / Santri Pindahan) aktif.'
+                      : 'Dapat diisi 0 atau nominal berapa pun (tidak ada batas minimal).'}
+                  </p>
+                </div>
+
+                {/* Date Pickers */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Tanggal Tagihan</label>
+                    <DatePickerField
+                      value={cellFormData.bill_date}
+                      onChange={handleCellBillDateChange}
+                      placeholder="DD/MM/YYYY"
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Jatuh Tempo <span className="text-red-500">*</span></label>
+                    <DatePickerField
+                      value={cellFormData.due_date}
+                      onChange={handleCellDueDateChange}
+                      placeholder="DD/MM/YYYY"
+                      align="right"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Diskon Toggle & Input (Nominal vs Persentase) */}
+                {!cellFormData.is_not_billed && (
+                  <div className="p-3 rounded-lg border border-amber-200/80 bg-amber-50/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={cellFormData.has_discount}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setCellFormData({
+                              ...cellFormData,
+                              has_discount: checked,
+                              discount_amount: checked ? (cellFormData.discount_amount || 0) : 0
+                            });
+                          }}
+                          className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                        />
+                        <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                          <Percent className="w-3.5 h-3.5 text-amber-700" /> Berikan Potongan / Diskon Khusus
+                        </span>
+                      </label>
+
+                      {cellFormData.has_discount && (
+                        <div className="flex items-center bg-white border border-amber-200 rounded-lg p-0.5 text-[11px] font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setCellFormData({ ...cellFormData, discount_type: 'amount' })}
+                            className={`px-2 py-0.5 rounded-md transition ${cellFormData.discount_type === 'amount' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                          >
+                            Nominal (Rp)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const baseNominal = parseFloat(cellFormData.amount || 0);
+                              const currentDisc = parseFloat(cellFormData.discount_amount || 0);
+                              const pct = baseNominal > 0 ? ((currentDisc / baseNominal) * 100).toFixed(1) : 0;
+                              setCellFormData({ ...cellFormData, discount_type: 'percentage', discount_percent: pct });
                             }}
-                            className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg font-bold font-mono text-xs"
-                            placeholder="0"
-                          />
-                          <p className="text-[10px] text-amber-800 font-semibold mt-1">
-                            Setara: {cellFormData.discount_percent || 0}% dari nominal tagihan
-                          </p>
+                            className={`px-2 py-0.5 rounded-md transition ${cellFormData.discount_type === 'percentage' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                          >
+                            Persentase (%)
+                          </button>
                         </div>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Alasan Diskon / Beasiswa</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Beasiswa Tahfidz 50% / Keringanan"
-                        value={cellFormData.discount_reason}
-                        onChange={(e) => setCellFormData({ ...cellFormData, discount_reason: e.target.value })}
-                        className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs"
-                      />
-                    </div>
+
+                    {cellFormData.has_discount && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-amber-100 animate-in fade-in">
+                        <div>
+                          {cellFormData.discount_type === 'percentage' ? (
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Persentase Diskon (%)</label>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.5"
+                                  value={cellFormData.discount_percent}
+                                  onChange={(e) => {
+                                    const pct = e.target.value;
+                                    const base = parseFloat(cellFormData.amount || 0);
+                                    const nominal = base > 0 ? ((base * parseFloat(pct || 0)) / 100) : 0;
+                                    setCellFormData({
+                                      ...cellFormData,
+                                      discount_percent: pct,
+                                      discount_amount: nominal
+                                    });
+                                  }}
+                                  className="w-full pl-3 pr-8 py-1.5 bg-white border border-amber-300 rounded-lg font-bold text-xs"
+                                  placeholder="0"
+                                />
+                                <span className="absolute right-2.5 top-1.5 font-bold text-slate-400 text-xs">%</span>
+                              </div>
+                              <p className="text-[10px] text-amber-800 font-semibold mt-1">
+                                Setara: {formatCurrency(cellFormData.discount_amount || 0)}
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Nominal Diskon (Rp)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={cellFormData.discount_amount}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const base = parseFloat(cellFormData.amount || 0);
+                                  const pct = base > 0 ? ((parseFloat(val || 0) / base) * 100).toFixed(1) : 0;
+                                  setCellFormData({
+                                    ...cellFormData,
+                                    discount_amount: val,
+                                    discount_percent: pct
+                                  });
+                                }}
+                                className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg font-bold font-mono text-xs"
+                                placeholder="0"
+                              />
+                              <p className="text-[10px] text-amber-800 font-semibold mt-1">
+                                Setara: {cellFormData.discount_percent || 0}% dari nominal tagihan
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Alasan Diskon / Beasiswa</label>
+                          <input
+                            type="text"
+                            placeholder="Contoh: Beasiswa Tahfidz 50% / Keringanan"
+                            value={cellFormData.discount_reason}
+                            onChange={(e) => setCellFormData({ ...cellFormData, discount_reason: e.target.value })}
+                            className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
 
-              {/* Catatan */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Catatan Operasional</label>
-                <textarea
-                  rows="2"
-                  value={cellFormData.notes}
-                  onChange={(e) => setCellFormData({ ...cellFormData, notes: e.target.value })}
-                  placeholder="Keterangan tambahan..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              {/* Aturan Transaksi Penagihan & Penjurnalan (Transparansi Akuntansi) */}
-              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-blue-700" />
-                    <span className="font-bold text-blue-900 text-xs">Aturan Transaksi Penagihan (Piutang)</span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                    <RefreshCw className="w-3 h-3 text-blue-600" /> Non-Kas (Akrual Piutang)
-                  </span>
+                {/* Catatan */}
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Catatan Operasional</label>
+                  <textarea
+                    rows="2"
+                    value={cellFormData.notes}
+                    onChange={(e) => setCellFormData({ ...cellFormData, notes: e.target.value })}
+                    placeholder="Keterangan tambahan..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
 
-                {(() => {
-                  const activeRule = cellFormData.mapping_id
-                    ? transactionRules.find((r) => r.id === Number(cellFormData.mapping_id))
-                    : (transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_type === 'non_kas')
+                {/* Aturan Transaksi Penagihan & Penjurnalan (Transparansi Akuntansi) */}
+                {!cellFormData.is_not_billed ? (
+                  <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <BookOpen className="w-4 h-4 text-indigo-700" />
+                        <span className="font-bold text-indigo-900 text-xs">Aturan Transaksi Penagihan (Piutang)</span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+                        <RefreshCw className="w-3 h-3 text-indigo-600" /> Non-Kas (Akrual Piutang)
+                      </span>
+                    </div>
+
+                    {(() => {
+                      const activeRule = (cellFormData.mapping_id
+                        ? transactionRules.find((r) => r.id === Number(cellFormData.mapping_id))
+                        : null)
+                        || transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_type === 'non_kas')
                         || transactionRules.find((r) => r.transaction_code === 'student_bill_issued')
                         || {
                             transaction_code: 'student_bill_issued',
@@ -3665,229 +4107,232 @@ export default function StudentBills() {
                             debit_account_name: 'Piutang Siswa',
                             credit_account_code: '601',
                             credit_account_name: 'Pendapatan Pendidikan'
-                          });
-
-                  return (
-                    <div className="bg-white p-2.5 rounded-xl border border-blue-100 space-y-1.5 text-[11px]">
-                      <div className="flex justify-between items-center text-slate-700">
-                        <span>Aturan Terpilih:</span>
-                        <span className="font-bold text-slate-900">{activeRule.transaction_label}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Posisi Aktiva/Piutang)</div>
-                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule.debit_account_name || 'Piutang'}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{activeRule.debit_account_code}</div>
-                        </div>
-                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                          <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Pendapatan)</div>
-                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule.credit_account_name || 'Pendapatan'}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{activeRule.credit_account_code}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Opsi Penyesuaian Aturan Penagihan oleh Pengguna */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setCellFormData({ ...cellFormData, custom_rule_mode: !cellFormData.custom_rule_mode })}
-                    className="text-[11px] text-blue-700 hover:text-blue-800 font-semibold flex items-center gap-1"
-                  >
-                    <Sliders className="w-3 h-3" />
-                    <span>{cellFormData.custom_rule_mode ? 'Tutup Pilihan Aturan Penagihan' : 'Sesuaikan / Ganti Aturan Penagihan'}</span>
-                  </button>
-
-                  {cellFormData.custom_rule_mode && (
-                    <div className="mt-2 pt-2 border-t border-blue-200 animate-in fade-in">
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Transaksi Penagihan:</label>
-                      <SearchableSelect
-                        options={transactionRules
-                          .filter((r) => r.is_active && (r.transaction_type === 'non_kas' || r.transaction_code.includes('bill')))
-                          .map((r) => ({
-                            value: r.id,
-                            label: `[${r.transaction_code}] ${r.transaction_label}`,
-                            sublabel: `Debit: ${r.debit_account_name || '-'} • Kredit: ${r.credit_account_name || '-'}`
-                          }))}
-                        value={cellFormData.mapping_id || ''}
-                        onChange={(val) => setCellFormData({ ...cellFormData, mapping_id: val })}
-                        placeholder="-- Pilih Aturan Penagihan --"
-                        searchPlaceholder="Cari aturan transaksi..."
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Aturan Transaksi Diskon / Potongan (Hanya Tampil Jika Diskon Diberikan) */}
-              {cellFormData.has_discount && parseFloat(cellFormData.discount_amount || 0) > 0 && (
-                <div className="space-y-3 animate-in fade-in">
-                  {/* 1. Aturan Diskon Penagihan (Non-Kas) */}
-                  <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Percent className="w-4 h-4 text-amber-700" />
-                        <span className="font-bold text-amber-900 text-xs">Aturan Diskon Penagihan</span>
-                      </div>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                        <RefreshCw className="w-3 h-3 text-amber-600" /> Non-Kas (Beban Diskon)
-                      </span>
-                    </div>
-
-                    {(() => {
-                      const activeDiscountRule = cellFormData.discount_mapping_id
-                        ? transactionRules.find((r) => r.id === Number(cellFormData.discount_mapping_id))
-                        : (transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_code.startsWith('bill_discount'))
-                            || transactionRules.find((r) => r.transaction_code === 'student_bill_discount')
-                            || {
-                              transaction_code: 'student_bill_discount',
-                              transaction_label: 'Diskon Tagihan Siswa',
-                              debit_account_code: '69001',
-                              debit_account_name: 'Diskon / Potongan Beasiswa',
-                              credit_account_code: '201',
-                              credit_account_name: 'Piutang Siswa'
-                            });
+                          };
 
                       return (
-                        <div className="bg-white p-2.5 rounded-xl border border-amber-100 space-y-1.5 text-[11px]">
+                        <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1.5 text-[11px]">
                           <div className="flex justify-between items-center text-slate-700">
-                            <span>Aturan Diskon Penagihan:</span>
-                            <span className="font-bold text-slate-900">{activeDiscountRule.transaction_label}</span>
+                            <span>Aturan Terpilih:</span>
+                            <span className="font-bold text-slate-900">{activeRule?.transaction_label || 'Penerbitan Tagihan Siswa'}</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                              <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Beban Diskon)</div>
-                              <div className="font-semibold text-slate-800 mt-0.5">{activeDiscountRule.debit_account_name || 'Beban Diskon'}</div>
-                              <div className="font-mono text-[10px] text-slate-400">{activeDiscountRule.debit_account_code || '69001'}</div>
+                            <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Posisi Aktiva/Piutang)</div>
+                              <div className="font-semibold text-slate-800 mt-0.5">{activeRule?.debit_account_name || 'Piutang Siswa'}</div>
+                              <div className="font-mono text-[10px] text-slate-400">{activeRule?.debit_account_code || '201'}</div>
                             </div>
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                              <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Piutang Terkait)</div>
-                              <div className="font-semibold text-slate-800 mt-0.5">{activeDiscountRule.credit_account_name || 'Piutang Terkait'}</div>
-                              <div className="font-mono text-[10px] text-slate-400">{activeDiscountRule.credit_account_code || '201'}</div>
+                            <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Pendapatan)</div>
+                              <div className="font-semibold text-slate-800 mt-0.5">{activeRule?.credit_account_name || 'Pendapatan Pendidikan'}</div>
+                              <div className="font-mono text-[10px] text-slate-400">{activeRule?.credit_account_code || '601'}</div>
                             </div>
                           </div>
                         </div>
                       );
                     })()}
 
-                    {/* Opsi Penyesuaian Aturan Diskon Penagihan */}
+                    {/* Opsi Penyesuaian Aturan Penagihan oleh Pengguna */}
                     <div>
                       <button
                         type="button"
-                        onClick={() => setCellFormData({ ...cellFormData, custom_discount_rule_mode: !cellFormData.custom_discount_rule_mode })}
-                        className="text-[11px] text-amber-800 hover:text-amber-900 font-semibold flex items-center gap-1"
+                        onClick={() => setCellFormData({ ...cellFormData, custom_rule_mode: !cellFormData.custom_rule_mode })}
+                        className="text-[11px] text-indigo-700 hover:text-indigo-800 font-semibold flex items-center gap-1"
                       >
                         <Sliders className="w-3 h-3" />
-                        <span>{cellFormData.custom_discount_rule_mode ? 'Tutup Pilihan Aturan Diskon Penagihan' : 'Sesuaikan / Ganti Aturan Diskon Penagihan'}</span>
+                        <span>{cellFormData.custom_rule_mode ? 'Tutup Pilihan Aturan Penagihan' : 'Sesuaikan / Ganti Aturan Penagihan'}</span>
                       </button>
 
-                      {cellFormData.custom_discount_rule_mode && (
-                        <div className="mt-2 pt-2 border-t border-amber-200 animate-in fade-in">
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Diskon Penagihan:</label>
+                      {cellFormData.custom_rule_mode && (
+                        <div className="mt-2 pt-2 border-t border-indigo-200 animate-in fade-in">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Transaksi Penagihan:</label>
                           <SearchableSelect
                             options={transactionRules
-                              .filter((r) => r.is_active && (r.transaction_code.includes('discount') || r.transaction_type === 'non_kas'))
+                              .filter((r) => r.is_active && (r.transaction_type === 'non_kas' || r.transaction_code.includes('bill')))
                               .map((r) => ({
                                 value: r.id,
                                 label: `[${r.transaction_code}] ${r.transaction_label}`,
                                 sublabel: `Debit: ${r.debit_account_name || '-'} • Kredit: ${r.credit_account_name || '-'}`
                               }))}
-                            value={cellFormData.discount_mapping_id || ''}
-                            onChange={(val) => setCellFormData({ ...cellFormData, discount_mapping_id: val })}
-                            placeholder="-- Pilih Aturan Diskon Penagihan --"
-                            searchPlaceholder="Cari aturan diskon penagihan..."
+                            value={cellFormData.mapping_id || ''}
+                            onChange={(val) => setCellFormData({ ...cellFormData, mapping_id: val })}
+                            placeholder="-- Pilih Aturan Penagihan --"
+                            searchPlaceholder="Cari aturan transaksi..."
                           />
                         </div>
                       )}
                     </div>
                   </div>
+                ) : null}
 
-                  {/* 2. Aturan Diskon Pembayaran (Pelunasan) */}
-                  <div className="p-3.5 bg-teal-50/70 border border-teal-200 rounded-2xl space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Percent className="w-4 h-4 text-teal-700" />
-                        <span className="font-bold text-teal-900 text-xs">Aturan Diskon Pembayaran</span>
+                {/* Aturan Transaksi Diskon / Potongan (Hanya Tampil Jika Diskon Diberikan) */}
+                {!cellFormData.is_not_billed && cellFormData.has_discount && parseFloat(cellFormData.discount_amount || 0) > 0 && (
+                  <div className="space-y-3 animate-in fade-in">
+                    {/* 1. Aturan Diskon Penagihan (Non-Kas) */}
+                    <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Percent className="w-4 h-4 text-amber-700" />
+                          <span className="font-bold text-amber-900 text-xs">Aturan Diskon Penagihan</span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          <RefreshCw className="w-3 h-3 text-amber-600" /> Non-Kas (Beban Diskon)
+                        </span>
                       </div>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-300">
-                        <RefreshCw className="w-3 h-3 text-teal-600" /> Non-Kas (Pelunasan Diskon)
-                      </span>
+
+                      {(() => {
+                        const activeDiscountRule = (cellFormData.discount_mapping_id
+                          ? transactionRules.find((r) => r.id === Number(cellFormData.discount_mapping_id))
+                          : null)
+                          || transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_code.startsWith('bill_discount'))
+                          || transactionRules.find((r) => r.transaction_code === 'student_bill_discount')
+                          || {
+                            transaction_code: 'student_bill_discount',
+                            transaction_label: 'Diskon Tagihan Siswa',
+                            debit_account_code: '69001',
+                            debit_account_name: 'Diskon / Potongan Beasiswa',
+                            credit_account_code: '201',
+                            credit_account_name: 'Piutang Siswa'
+                          };
+
+                        return (
+                          <div className="bg-white p-2.5 rounded-lg border border-amber-100 space-y-1.5 text-[11px]">
+                            <div className="flex justify-between items-center text-slate-700">
+                              <span>Aturan Diskon Penagihan:</span>
+                              <span className="font-bold text-slate-900">{activeDiscountRule?.transaction_label || 'Diskon Tagihan Siswa'}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Beban Diskon)</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activeDiscountRule?.debit_account_name || 'Beban Diskon'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activeDiscountRule?.debit_account_code || '69001'}</div>
+                              </div>
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Piutang Terkait)</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activeDiscountRule?.credit_account_name || 'Piutang Terkait'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activeDiscountRule?.credit_account_code || '201'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Opsi Penyesuaian Aturan Diskon Penagihan */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setCellFormData({ ...cellFormData, custom_discount_rule_mode: !cellFormData.custom_discount_rule_mode })}
+                          className="text-[11px] text-amber-800 hover:text-amber-900 font-semibold flex items-center gap-1"
+                        >
+                          <Sliders className="w-3 h-3" />
+                          <span>{cellFormData.custom_discount_rule_mode ? 'Tutup Pilihan Aturan Diskon Penagihan' : 'Sesuaikan / Ganti Aturan Diskon Penagihan'}</span>
+                        </button>
+
+                        {cellFormData.custom_discount_rule_mode && (
+                          <div className="mt-2 pt-2 border-t border-amber-200 animate-in fade-in">
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Diskon Penagihan:</label>
+                            <SearchableSelect
+                              options={transactionRules
+                                .filter((r) => r.is_active && (r.transaction_code.includes('discount') || r.transaction_type === 'non_kas'))
+                                .map((r) => ({
+                                  value: r.id,
+                                  label: `[${r.transaction_code}] ${r.transaction_label}`,
+                                  sublabel: `Debit: ${r.debit_account_name || '-'} • Kredit: ${r.credit_account_name || '-'}`
+                                }))}
+                              value={cellFormData.discount_mapping_id || ''}
+                              onChange={(val) => setCellFormData({ ...cellFormData, discount_mapping_id: val })}
+                              placeholder="-- Pilih Aturan Diskon Penagihan --"
+                              searchPlaceholder="Cari aturan diskon penagihan..."
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {(() => {
-                      const activePaymentDiscountRule = cellFormData.payment_discount_mapping_id
-                        ? transactionRules.find((r) => r.id === Number(cellFormData.payment_discount_mapping_id))
-                        : (transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_code.startsWith('pay_discount'))
-                            || transactionRules.find((r) => r.transaction_code.includes('discount'))
-                            || {
-                              transaction_code: 'pay_discount_default',
-                              transaction_label: 'Diskon Pembayaran Tagihan',
-                              debit_account_code: '69001',
-                              debit_account_name: 'Beban Diskon Pelunasan',
-                              credit_account_code: '201',
-                              credit_account_name: 'Piutang Siswa'
-                            });
-
-                      return (
-                        <div className="bg-white p-2.5 rounded-xl border border-teal-100 space-y-1.5 text-[11px]">
-                          <div className="flex justify-between items-center text-slate-700">
-                            <span>Aturan Diskon Pembayaran:</span>
-                            <span className="font-bold text-slate-900">{activePaymentDiscountRule.transaction_label}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                              <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Beban Diskon)</div>
-                              <div className="font-semibold text-slate-800 mt-0.5">{activePaymentDiscountRule.debit_account_name || 'Beban Diskon'}</div>
-                              <div className="font-mono text-[10px] text-slate-400">{activePaymentDiscountRule.debit_account_code || '69001'}</div>
-                            </div>
-                            <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
-                              <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Piutang Terkait)</div>
-                              <div className="font-semibold text-slate-800 mt-0.5">{activePaymentDiscountRule.credit_account_name || 'Piutang Terkait'}</div>
-                              <div className="font-mono text-[10px] text-slate-400">{activePaymentDiscountRule.credit_account_code || '201'}</div>
-                            </div>
-                          </div>
+                    {/* 2. Aturan Diskon Pembayaran (Pelunasan) */}
+                    <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Percent className="w-4 h-4 text-indigo-700" />
+                          <span className="font-bold text-indigo-900 text-xs">Aturan Diskon Pembayaran</span>
                         </div>
-                      );
-                    })()}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+                          <RefreshCw className="w-3 h-3 text-indigo-600" /> Non-Kas (Pelunasan Diskon)
+                        </span>
+                      </div>
 
-                    {/* Opsi Penyesuaian Aturan Diskon Pembayaran */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setCellFormData({ ...cellFormData, custom_payment_discount_rule_mode: !cellFormData.custom_payment_discount_rule_mode })}
-                        className="text-[11px] text-teal-800 hover:text-teal-900 font-semibold flex items-center gap-1"
-                      >
-                        <Sliders className="w-3 h-3" />
-                        <span>{cellFormData.custom_payment_discount_rule_mode ? 'Tutup Pilihan Aturan Diskon Pembayaran' : 'Sesuaikan / Ganti Aturan Diskon Pembayaran'}</span>
-                      </button>
+                      {(() => {
+                        const activePaymentDiscountRule = (cellFormData.payment_discount_mapping_id
+                          ? transactionRules.find((r) => r.id === Number(cellFormData.payment_discount_mapping_id))
+                          : null)
+                          || transactionRules.find((r) => r.related_fee_type_id === selectedCellInfo?.cell?.fee_type_id && r.transaction_code.startsWith('pay_discount'))
+                          || transactionRules.find((r) => r.transaction_code.includes('discount'))
+                          || {
+                            transaction_code: 'pay_discount_default',
+                            transaction_label: 'Diskon Pembayaran Tagihan',
+                            debit_account_code: '69001',
+                            debit_account_name: 'Beban Diskon Pelunasan',
+                            credit_account_code: '201',
+                            credit_account_name: 'Piutang Siswa'
+                          };
 
-                      {cellFormData.custom_payment_discount_rule_mode && (
-                        <div className="mt-2 pt-2 border-t border-teal-200 animate-in fade-in">
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Diskon Pembayaran:</label>
-                          <SearchableSelect
-                            options={transactionRules
-                              .filter((r) => r.is_active && (r.transaction_code.includes('discount') || r.transaction_type === 'non_kas'))
-                              .map((r) => ({
-                                value: r.id,
-                                label: `[${r.transaction_code}] ${r.transaction_label}`,
-                                sublabel: `Debit: ${r.debit_account_name || '-'} • Kredit: ${r.credit_account_name || '-'}`
-                              }))}
-                            value={cellFormData.payment_discount_mapping_id || ''}
-                            onChange={(val) => setCellFormData({ ...cellFormData, payment_discount_mapping_id: val })}
-                            placeholder="-- Pilih Aturan Diskon Pembayaran --"
-                            searchPlaceholder="Cari aturan diskon pembayaran..."
-                          />
-                        </div>
-                      )}
+                        return (
+                          <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1.5 text-[11px]">
+                            <div className="flex justify-between items-center text-slate-700">
+                              <span>Aturan Diskon Pembayaran:</span>
+                              <span className="font-bold text-slate-900">{activePaymentDiscountRule?.transaction_label || 'Diskon Pembayaran Tagihan'}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Beban Diskon)</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activePaymentDiscountRule?.debit_account_name || 'Beban Diskon'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activePaymentDiscountRule?.debit_account_code || '69001'}</div>
+                              </div>
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
+                                <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Piutang Terkait)</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activePaymentDiscountRule?.credit_account_name || 'Piutang Terkait'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activePaymentDiscountRule?.credit_account_code || '201'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Opsi Penyesuaian Aturan Diskon Pembayaran */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setCellFormData({ ...cellFormData, custom_payment_discount_rule_mode: !cellFormData.custom_payment_discount_rule_mode })}
+                          className="text-[11px] text-indigo-700 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                        >
+                          <Sliders className="w-3 h-3" />
+                          <span>{cellFormData.custom_payment_discount_rule_mode ? 'Tutup Pilihan Aturan Diskon Pembayaran' : 'Sesuaikan / Ganti Aturan Diskon Pembayaran'}</span>
+                        </button>
+
+                        {cellFormData.custom_payment_discount_rule_mode && (
+                          <div className="mt-2 pt-2 border-t border-indigo-200 animate-in fade-in">
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Diskon Pembayaran:</label>
+                            <SearchableSelect
+                              options={transactionRules
+                                .filter((r) => r.is_active && (r.transaction_code.includes('discount') || r.transaction_type === 'non_kas'))
+                                .map((r) => ({
+                                  value: r.id,
+                                  label: `[${r.transaction_code}] ${r.transaction_label}`,
+                                  sublabel: `Debit: ${r.debit_account_name || '-'} • Kredit: ${r.credit_account_name || '-'}`
+                                }))}
+                              value={cellFormData.payment_discount_mapping_id || ''}
+                              onChange={(val) => setCellFormData({ ...cellFormData, payment_discount_mapping_id: val })}
+                              placeholder="-- Pilih Aturan Diskon Pembayaran --"
+                              searchPlaceholder="Cari aturan diskon pembayaran..."
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
 
-              <div className="p-4 px-5 border-t border-slate-100 shrink-0 bg-slate-50/70 flex items-center justify-between gap-2">
+              <div className="p-3.5 sm:p-4 px-4 sm:px-5 border-t border-slate-100 shrink-0 bg-slate-50/70 flex items-center justify-between gap-2">
                 <div>
                   {selectedCellInfo.cell.is_published && selectedCellInfo.cell.bill_id && (
                     <button
@@ -3899,9 +4344,9 @@ export default function StudentBills() {
                         });
                         setCancelModalOpen(true);
                       }}
-                      className="px-3.5 py-2 border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 hover:border-rose-300 rounded-xl font-bold flex items-center gap-1.5 transition text-xs shadow-2xs"
+                      className="px-3 py-1.5 border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 hover:border-rose-300 rounded-lg font-bold flex items-center gap-1.5 transition text-xs shadow-2xs"
                     >
-                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <XCircle className="w-3.5 h-3.5 text-rose-600" />
                       <span>Batalkan Tagihan</span>
                     </button>
                   )}
@@ -3911,17 +4356,31 @@ export default function StudentBills() {
                   <button
                     type="button"
                     onClick={() => setCellModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition"
+                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
                     disabled={submittingCell}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-2 disabled:opacity-50"
+                    className={`px-4 py-2 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-2 disabled:opacity-50 ${
+                      cellFormData.is_not_billed
+                        ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                    }`}
                   >
-                    {submittingCell ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
-                    <span>{selectedCellInfo.cell.is_published ? 'Simpan Perubahan' : 'Terbitkan & Catat Piutang'}</span>
+                    {submittingCell ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : cellFormData.is_not_billed ? (
+                      <UserX className="w-3.5 h-3.5" />
+                    ) : (
+                      <FileCheck className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {cellFormData.is_not_billed
+                        ? 'Simpan Status Bebas / Pindahan'
+                        : (selectedCellInfo.cell.is_published ? 'Simpan Perubahan' : 'Terbitkan & Catat Piutang')}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -3935,11 +4394,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {cancelModalOpen && selectedCellInfo && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-rose-200 overflow-hidden">
-            <div className="p-5 border-b border-rose-100 flex items-center justify-between bg-rose-50/70">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-rose-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-rose-100 flex items-center justify-between bg-rose-50/70">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold">
-                  <XCircle className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold">
+                  <XCircle className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-rose-950">Batalkan Tagihan Santri</h3>
@@ -3949,7 +4408,7 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3959,15 +4418,15 @@ export default function StudentBills() {
               const hasPayment = parseFloat(selectedCellInfo.cell.paid_amount || 0) > 0 || selectedCellInfo.cell.is_paid || selectedCellInfo.cell.is_partially_paid;
 
               return (
-                <form onSubmit={handleExecuteCancelCellBill} className="p-5 space-y-4 text-xs">
+                <form onSubmit={handleExecuteCancelCellBill} className="p-4 sm:p-5 space-y-3.5 text-xs">
                   {hasPayment ? (
-                    <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-2 text-amber-900">
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg space-y-2 text-amber-900">
                       <div className="flex items-center gap-2 font-bold text-xs text-amber-800">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>Peringatan: Tagihan Sudah Memiliki Pembayaran!</span>
                       </div>
                       <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Tagihan santri <b>{selectedCellInfo.row.name}</b> untuk <b>{selectedCellInfo.cell.fee_type_name}</b> telah tercatat pembayaran oleh orang tua sebesar <b>Rp {parseFloat(selectedCellInfo.cell.paid_amount || 0).toLocaleString('id-ID')}</b>.
+                        Tagihan santri <b>{selectedCellInfo.row.name}</b> untuk <b>{selectedCellInfo.cell.fee_type_name}</b> telah tercatat pembayaran oleh orang tua sebesar <b>{formatCurrency(selectedCellInfo.cell.paid_amount || 0)}</b>.
                       </p>
                       <p className="text-[11px] text-amber-700 font-semibold">
                         Tagihan yang sudah memiliki transaksi penerimaan pembayaran tidak dapat dibatalkan untuk menjaga integritas pembukuan kas &amp; audit trail keuangan.
@@ -3975,13 +4434,13 @@ export default function StudentBills() {
                     </div>
                   ) : (
                     <>
-                      <div className="p-3 bg-rose-50/80 border border-rose-200 rounded-2xl text-rose-900 space-y-1">
+                      <div className="p-3 bg-rose-50/80 border border-rose-200 rounded-lg text-rose-900 space-y-1">
                         <p className="font-bold flex items-center gap-1.5 text-xs text-rose-800">
-                          <AlertCircle className="w-4 h-4 text-rose-600" />
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
                           <span>Konfirmasi Pembatalan Tagihan</span>
                         </p>
                         <p className="text-[11px] text-rose-800">
-                          Tagihan <b>#{selectedCellInfo.cell.bill_id}</b> ({selectedCellInfo.cell.fee_type_name}) untuk santri <b>{selectedCellInfo.row.name}</b> sebesar <b>Rp {(selectedCellInfo.cell.amount || selectedCellInfo.cell.base_amount || 0).toLocaleString('id-ID')}</b> akan dibatalkan secara permanen.
+                          Tagihan <b>#{selectedCellInfo.cell.bill_id}</b> ({selectedCellInfo.cell.fee_type_name}) untuk santri <b>{selectedCellInfo.row.name}</b> sebesar <b>{formatCurrency(selectedCellInfo.cell.amount || selectedCellInfo.cell.base_amount || 0)}</b> akan dibatalkan secara permanen.
                         </p>
                       </div>
 
@@ -4007,7 +4466,7 @@ export default function StudentBills() {
                           placeholder="Contoh: Salah penetapan pos biaya / siswa telah mutasi / keringanan disetujui..."
                           value={cancelFormData.cancel_reason}
                           onChange={(e) => setCancelFormData({ ...cancelFormData, cancel_reason: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 transition placeholder:text-slate-400"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-rose-500 transition placeholder:text-slate-400"
                         />
                       </div>
                     </>
@@ -4017,7 +4476,7 @@ export default function StudentBills() {
                     <button
                       type="button"
                       onClick={() => setCancelModalOpen(false)}
-                      className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition"
+                      className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
                     >
                       Tutup
                     </button>
@@ -4025,9 +4484,9 @@ export default function StudentBills() {
                       <button
                         type="submit"
                         disabled={submittingCancel}
-                        className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-600/20 transition flex items-center gap-2 disabled:opacity-50"
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs shadow-rose-600/20 transition flex items-center gap-2 disabled:opacity-50"
                       >
-                        {submittingCancel ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                        {submittingCancel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
                         <span>Konfirmasi Batalkan Tagihan</span>
                       </button>
                     )}
@@ -4044,11 +4503,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {columnPublishModalOpen && targetColumnInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  <Zap className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <Zap className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Penerbitan Tagihan Kolom</h3>
@@ -4058,16 +4517,16 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setColumnPublishModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 space-y-1">
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs flex-1">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 space-y-1">
                 <p className="font-bold flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
                   Konfirmasi Penerbitan Massal
                 </p>
                 <p className="text-[11px] text-amber-800">
@@ -4079,7 +4538,7 @@ export default function StudentBills() {
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-slate-600 text-[11px]">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1 text-slate-600 text-[11px]">
                 <div className="flex justify-between">
                   <span>Jenis Biaya:</span>
                   <span className="font-bold text-slate-800">{targetColumnInfo.fee_type_name}</span>
@@ -4123,52 +4582,53 @@ export default function StudentBills() {
                   placeholder="Contoh: Penerbitan massal tagihan kolom..."
                   value={columnPublishFormData.notes}
                   onChange={(e) => setColumnPublishFormData({ ...columnPublishFormData, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 transition"
                 />
               </div>
 
               {/* Aturan Transaksi Penagihan Kolom Massal */}
-              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-2.5">
+              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-blue-700" />
-                    <span className="font-bold text-blue-900 text-xs">Aturan Transaksi Penagihan Kolom</span>
+                    <BookOpen className="w-4 h-4 text-indigo-700" />
+                    <span className="font-bold text-indigo-900 text-xs">Aturan Transaksi Penagihan Kolom</span>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                    <RefreshCw className="w-3 h-3 text-blue-600" /> Non-Kas (Piutang)
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+                    <RefreshCw className="w-3 h-3 text-indigo-600" /> Non-Kas (Piutang)
                   </span>
                 </div>
 
                 {(() => {
-                  const activeRule = columnPublishFormData.mapping_id
+                  const activeRule = (columnPublishFormData.mapping_id
                     ? transactionRules.find((r) => r.id === Number(columnPublishFormData.mapping_id))
-                    : (transactionRules.find((r) => r.related_fee_type_id === targetColumnInfo.fee_type_id && r.transaction_type === 'non_kas')
-                        || transactionRules.find((r) => r.transaction_code === 'student_bill_issued')
-                        || {
-                            transaction_code: 'student_bill_issued',
-                            transaction_label: 'Penerbitan Tagihan Siswa',
-                            debit_account_name: 'Piutang Siswa',
-                            debit_account_code: '201',
-                            credit_account_name: 'Pendapatan Pendidikan',
-                            credit_account_code: '601'
-                          });
+                    : null)
+                    || transactionRules.find((r) => r.related_fee_type_id === targetColumnInfo?.fee_type_id && r.transaction_type === 'non_kas')
+                    || transactionRules.find((r) => r.transaction_code === 'student_bill_issued')
+                    || {
+                        transaction_code: 'student_bill_issued',
+                        transaction_label: 'Penerbitan Tagihan Siswa',
+                        debit_account_name: 'Piutang Siswa',
+                        debit_account_code: '201',
+                        credit_account_name: 'Pendapatan Pendidikan',
+                        credit_account_code: '601'
+                      };
 
                   return (
-                    <div className="bg-white p-2.5 rounded-xl border border-blue-100 space-y-1.5 text-[11px]">
+                    <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1.5 text-[11px]">
                       <div className="flex justify-between items-center text-slate-700">
                         <span>Aturan Diterapkan:</span>
-                        <span className="font-bold text-slate-900">{activeRule.transaction_label}</span>
+                        <span className="font-bold text-slate-900">{activeRule?.transaction_label || 'Penerbitan Tagihan Siswa'}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
+                        <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
                           <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Piutang)</div>
-                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule.debit_account_name || 'Piutang'}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{activeRule.debit_account_code}</div>
+                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule?.debit_account_name || 'Piutang'}</div>
+                          <div className="font-mono text-[10px] text-slate-400">{activeRule?.debit_account_code}</div>
                         </div>
-                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
+                        <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
                           <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Pendapatan)</div>
-                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule.credit_account_name || 'Pendapatan'}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{activeRule.credit_account_code}</div>
+                          <div className="font-semibold text-slate-800 mt-0.5">{activeRule?.credit_account_name || 'Pendapatan'}</div>
+                          <div className="font-mono text-[10px] text-slate-400">{activeRule?.credit_account_code}</div>
                         </div>
                       </div>
                     </div>
@@ -4180,14 +4640,14 @@ export default function StudentBills() {
                   <button
                     type="button"
                     onClick={() => setColumnPublishFormData({ ...columnPublishFormData, custom_rule_mode: !columnPublishFormData.custom_rule_mode })}
-                    className="text-[11px] text-blue-700 hover:text-blue-800 font-semibold flex items-center gap-1"
+                    className="text-[11px] text-indigo-700 hover:text-indigo-800 font-semibold flex items-center gap-1"
                   >
                     <Sliders className="w-3 h-3" />
                     <span>{columnPublishFormData.custom_rule_mode ? 'Tutup Pilihan Aturan' : 'Sesuaikan / Ganti Aturan Penagihan'}</span>
                   </button>
 
                   {columnPublishFormData.custom_rule_mode && (
-                    <div className="mt-2 pt-2 border-t border-blue-200 animate-in fade-in">
+                    <div className="mt-2 pt-2 border-t border-indigo-200 animate-in fade-in">
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Aturan Transaksi Penagihan:</label>
                       <SearchableSelect
                         options={transactionRules
@@ -4208,7 +4668,7 @@ export default function StudentBills() {
               </div>
 
               {/* Pilihan Diskon Massal Kolom */}
-              <div className="p-3.5 rounded-2xl border border-amber-200/80 bg-amber-50/40 space-y-3">
+              <div className="p-3 rounded-lg border border-amber-200/80 bg-amber-50/40 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -4296,7 +4756,7 @@ export default function StudentBills() {
                     </div>
 
                     {/* Aturan Transaksi Diskon Kolom Massal */}
-                    <div className="p-3 bg-white rounded-xl border border-amber-200 space-y-2 text-[11px]">
+                    <div className="p-3 bg-white rounded-lg border border-amber-200 space-y-2 text-[11px]">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-amber-900">Aturan Transaksi Diskon Kolom:</span>
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
@@ -4305,35 +4765,36 @@ export default function StudentBills() {
                       </div>
 
                       {(() => {
-                        const activeColDiscountRule = columnPublishFormData.discount_mapping_id
+                        const activeColDiscountRule = (columnPublishFormData.discount_mapping_id
                           ? transactionRules.find((r) => r.id === Number(columnPublishFormData.discount_mapping_id))
-                          : (transactionRules.find((r) => r.related_fee_type_id === targetColumnInfo.fee_type_id && r.transaction_code.includes('discount'))
-                              || transactionRules.find((r) => r.transaction_code === 'student_bill_discount')
-                              || {
-                                  transaction_code: 'student_bill_discount',
-                                  transaction_label: 'Diskon Tagihan Siswa',
-                                  debit_account_name: 'Beban Diskon',
-                                  debit_account_code: '69001',
-                                  credit_account_name: 'Piutang Siswa',
-                                  credit_account_code: '201'
-                                });
+                          : null)
+                          || transactionRules.find((r) => r.related_fee_type_id === targetColumnInfo?.fee_type_id && r.transaction_code.includes('discount'))
+                          || transactionRules.find((r) => r.transaction_code === 'student_bill_discount')
+                          || {
+                              transaction_code: 'student_bill_discount',
+                              transaction_label: 'Diskon Tagihan Siswa',
+                              debit_account_name: 'Beban Diskon',
+                              debit_account_code: '69001',
+                              credit_account_name: 'Piutang Siswa',
+                              credit_account_code: '201'
+                            };
 
                         return (
                           <div className="space-y-1.5">
                             <div className="flex justify-between">
                               <span>Aturan Diterapkan:</span>
-                              <span className="font-bold text-slate-800">{activeColDiscountRule.transaction_label}</span>
+                              <span className="font-bold text-slate-800">{activeColDiscountRule?.transaction_label || 'Diskon Tagihan Siswa'}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                              <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
                                 <div className="text-[10px] font-bold text-slate-500 uppercase">Debit (Beban Diskon)</div>
-                                <div className="font-semibold text-slate-800 mt-0.5">{activeColDiscountRule.debit_account_name || 'Beban Diskon'}</div>
-                                <div className="font-mono text-[10px] text-slate-400">{activeColDiscountRule.debit_account_code}</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activeColDiscountRule?.debit_account_name || 'Beban Diskon'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activeColDiscountRule?.debit_account_code}</div>
                               </div>
-                              <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60">
+                              <div className="p-1.5 bg-slate-50 rounded-md border border-slate-200/60">
                                 <div className="text-[10px] font-bold text-slate-500 uppercase">Kredit (Piutang)</div>
-                                <div className="font-semibold text-slate-800 mt-0.5">{activeColDiscountRule.credit_account_name || 'Piutang Terkait'}</div>
-                                <div className="font-mono text-[10px] text-slate-400">{activeColDiscountRule.credit_account_code}</div>
+                                <div className="font-semibold text-slate-800 mt-0.5">{activeColDiscountRule?.credit_account_name || 'Piutang Terkait'}</div>
+                                <div className="font-mono text-[10px] text-slate-400">{activeColDiscountRule?.credit_account_code}</div>
                               </div>
                             </div>
                           </div>
@@ -4374,11 +4835,11 @@ export default function StudentBills() {
                 )}
               </div>
 
-              <div className="p-4 px-5 border-t border-slate-100 shrink-0 bg-slate-50/70 flex justify-end gap-2">
+              <div className="p-3.5 sm:p-4 px-4 sm:px-5 border-t border-slate-100 shrink-0 bg-slate-50/70 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setColumnPublishModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition"
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
                 >
                   Batal
                 </button>
@@ -4386,9 +4847,9 @@ export default function StudentBills() {
                   type="button"
                   onClick={handleExecuteColumnPublish}
                   disabled={submittingColumnPublish}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs shadow-emerald-600/20 transition flex items-center gap-2 disabled:opacity-50"
                 >
-                  {submittingColumnPublish ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  {submittingColumnPublish ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                   <span>Eksekusi Penerbitan Kolom</span>
                 </button>
               </div>
@@ -4402,17 +4863,17 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {columnImportModalOpen && targetImportColumnInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-xl border border-slate-200 overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50/70 via-slate-50 to-emerald-50/50 shrink-0">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50/70 via-slate-50 to-emerald-50/50 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20">
-                  <FileSpreadsheet className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-600 to-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shadow-indigo-500/20">
+                  <FileSpreadsheet className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-800">Import Data Tagihan (Excel)</h3>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${targetImportColumnInfo.badge_color || 'bg-blue-100 text-blue-800 border-blue-200'}`}>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-800">Import Data Tagihan (Excel)</h3>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${targetImportColumnInfo.badge_color || 'bg-indigo-100 text-indigo-800 border-indigo-200'}`}>
                       {targetImportColumnInfo.badge_text || 'Kolom Tagihan'}
                     </span>
                   </div>
@@ -4424,23 +4885,23 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setColumnImportModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Body (Scrollable) */}
-            <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs flex-1">
               {/* Bagian 1: Identitas Dokumen & Unduh Format */}
-              <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-3">
+              <div className="p-3.5 rounded-lg bg-indigo-50/60 border border-indigo-200/80 space-y-2.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center">1</span>
-                      <h4 className="font-bold text-blue-950 text-xs">Identitas &amp; Unduh Format Excel</h4>
+                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">1</span>
+                      <h4 className="font-bold text-indigo-950 text-xs">Identitas &amp; Unduh Format Excel</h4>
                     </div>
-                    <p className="text-[11px] text-blue-900 leading-relaxed">
+                    <p className="text-[11px] text-indigo-900 leading-relaxed">
                       Satu berkas Excel berlaku <b>khusus untuk kolom ini pada Tahun Ajaran terkait</b>. Baris 1-5 di file Excel memuat identitas dokumen verifikasi otomatis.
                     </p>
                   </div>
@@ -4448,15 +4909,15 @@ export default function StudentBills() {
                   <button
                     type="button"
                     onClick={() => handleDownloadColumnTemplate(targetImportColumnInfo)}
-                    className="shrink-0 px-4 py-2.5 bg-white border border-blue-300 hover:border-blue-600 hover:bg-blue-50/70 text-blue-700 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-2xs hover:shadow-xs"
+                    className="shrink-0 px-3.5 py-2 bg-white border border-indigo-300 hover:border-indigo-600 hover:bg-indigo-50/70 text-indigo-700 rounded-lg font-bold flex items-center justify-center gap-2 transition shadow-2xs hover:shadow-xs text-xs"
                   >
-                    <Download className="w-4 h-4 text-blue-600" />
+                    <Download className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Unduh Format Excel (Terisi Data)</span>
                   </button>
                 </div>
 
-                <div className="bg-white/80 p-2.5 rounded-xl border border-blue-100 flex items-center gap-2 text-[11px] text-blue-800">
-                  <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="bg-white/80 p-2.5 rounded-lg border border-indigo-100 flex items-center gap-2 text-[11px] text-indigo-800">
+                  <Info className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                   <span>
                     Format yang diunduh sudah berisi seluruh daftar santri aktif rombel beserta data tagihan/tarif yang ada di kolom ini saat ini.
                   </span>
@@ -4464,10 +4925,10 @@ export default function StudentBills() {
               </div>
 
               {/* Bagian 2: Unggah Berkas Excel */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-700 text-white font-bold text-[11px] flex items-center justify-center">2</span>
+                    <span className="w-4 h-4 rounded-full bg-slate-700 text-white font-bold text-[10px] flex items-center justify-center">2</span>
                     <h4 className="font-bold text-slate-800 text-xs">Unggah Berkas Excel (.xlsx / .xls)</h4>
                   </div>
                   {importFileName && (
@@ -4488,7 +4949,7 @@ export default function StudentBills() {
 
                 <div
                   onClick={() => importFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white rounded-2xl p-5 text-center cursor-pointer transition group"
+                  className="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-white rounded-xl p-4 text-center cursor-pointer transition group"
                 >
                   <input
                     type="file"
@@ -4497,8 +4958,8 @@ export default function StudentBills() {
                     onChange={handleImportFileUpload}
                     className="hidden"
                   />
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-blue-50 text-blue-600 group-hover:scale-110 flex items-center justify-center mb-2 transition">
-                    <UploadCloud className="w-5 h-5" />
+                  <div className="w-9 h-9 mx-auto rounded-lg bg-indigo-50 text-indigo-600 group-hover:scale-110 flex items-center justify-center mb-1.5 transition">
+                    <UploadCloud className="w-4 h-4" />
                   </div>
                   {importFileName ? (
                     <div>
@@ -4518,9 +4979,9 @@ export default function StudentBills() {
               {importFileValidation && (
                 <div>
                   {importFileValidation.isValid ? (
-                    <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-900 space-y-1">
+                    <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 space-y-1">
                       <div className="flex items-center gap-2 font-bold text-xs text-emerald-800">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span>Identitas Dokumen &amp; Format Terverifikasi Valid</span>
                       </div>
                       <p className="text-[11px] text-emerald-800">
@@ -4528,9 +4989,9 @@ export default function StudentBills() {
                       </p>
                     </div>
                   ) : (
-                    <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl text-rose-900 space-y-1">
+                    <div className="p-3 bg-rose-50 border border-rose-300 rounded-lg text-rose-900 space-y-1">
                       <div className="flex items-center gap-2 font-bold text-xs text-rose-800">
-                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                         <span>Validasi Dokumen Tidak Cocok</span>
                       </div>
                       <p className="text-[11px] text-rose-800 leading-relaxed">
@@ -4543,10 +5004,10 @@ export default function StudentBills() {
 
               {/* Bagian 3: Review Data Preview Table (Ketika Data Terbaca) */}
               {importParsedRows.length > 0 && (
-                <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+                <div className="p-3.5 rounded-lg bg-white border border-slate-200/90 shadow-2xs space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center">3</span>
+                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">3</span>
                       <h4 className="font-bold text-slate-800 text-xs">Review Data Santri yang Akan Diinput ({importParsedRows.length} Data)</h4>
                     </div>
 
@@ -4609,50 +5070,50 @@ export default function StudentBills() {
 
                   {/* Summary Metric Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
                       <p className="text-[10px] text-slate-500 font-medium">Total Baris</p>
                       <p className="text-sm font-bold text-slate-800">{importParsedRows.length}</p>
                     </div>
-                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-center">
                       <p className="text-[10px] text-emerald-700 font-medium">Baru / Ditimpa</p>
                       <p className="text-sm font-bold text-emerald-800">
                         {importParsedRows.filter((r) => r.change_status === 'new' || r.change_status === 'updated').length}
                       </p>
                     </div>
-                    <div className="p-2 rounded-xl bg-slate-100 border border-slate-300 text-center">
+                    <div className="p-2 rounded-lg bg-slate-100 border border-slate-300 text-center">
                       <p className="text-[10px] text-slate-600 font-medium">Sama (Tidak Diubah)</p>
                       <p className="text-sm font-bold text-slate-700">
                         {importParsedRows.filter((r) => r.change_status === 'unchanged').length}
                       </p>
                     </div>
-                    <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                    <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-center">
                       <p className="text-[10px] text-amber-700 font-medium">Nominal 0 (Dilewati)</p>
                       <p className="text-sm font-bold text-amber-800">
                         {importParsedRows.filter((r) => r.change_status === 'skipped_zero').length}
                       </p>
                     </div>
-                    <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-center col-span-2 sm:col-span-1">
-                      <p className="text-[10px] text-blue-700 font-medium">Total Akumulasi</p>
-                      <p className="text-xs font-bold font-mono text-blue-900 truncate">
-                        Rp {importParsedRows.reduce((acc, r) => acc + (r.is_valid && r.amount > 0 ? parseFloat(r.amount || 0) : 0), 0).toLocaleString('id-ID')}
+                    <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-center col-span-2 sm:col-span-1">
+                      <p className="text-[10px] text-indigo-700 font-medium">Total Akumulasi</p>
+                      <p className="text-xs font-bold font-mono text-indigo-900 truncate">
+                        {formatCurrency(importParsedRows.reduce((acc, r) => acc + (r.is_valid && r.amount > 0 ? parseFloat(r.amount || 0) : 0), 0))}
                       </p>
                     </div>
                   </div>
 
                   {/* Review Table */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[300px] overflow-y-auto">
+                  <div className="table-container max-h-[300px]">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200">
                         <tr>
-                          <th className="p-2.5 text-center w-10">No</th>
-                          <th className="p-2.5 w-32">Status Perubahan</th>
-                          <th className="p-2.5 w-24">NIS / NIPD</th>
-                          <th className="p-2.5">Nama Santri</th>
-                          <th className="p-2.5 w-24">Rombel</th>
-                          <th className="p-2.5 text-right w-28">Nominal (Rp)</th>
-                          <th className="p-2.5 text-center w-24">Tgl Tagihan</th>
-                          <th className="p-2.5 text-center w-24">Jatuh Tempo</th>
-                          <th className="p-2.5 max-w-[140px]">Catatan</th>
+                          <th className="px-3 py-2 text-center w-10">No</th>
+                          <th className="px-3 py-2 w-32">Status Perubahan</th>
+                          <th className="px-3 py-2 w-24">NIS / NIPD</th>
+                          <th className="px-3 py-2">Nama Santri</th>
+                          <th className="px-3 py-2 w-24">Rombel</th>
+                          <th className="px-3 py-2 text-right w-28 num-cell">Nominal</th>
+                          <th className="px-3 py-2 text-center w-24">Tgl Tagihan</th>
+                          <th className="px-3 py-2 text-center w-24">Jatuh Tempo</th>
+                          <th className="px-3 py-2 max-w-[140px]">Catatan</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -4680,21 +5141,21 @@ export default function StudentBills() {
                                   : r.change_status === 'skipped_zero'
                                     ? 'bg-amber-50/30'
                                     : r.change_status === 'updated'
-                                      ? 'bg-blue-50/30'
+                                      ? 'bg-indigo-50/30'
                                       : idx % 2 === 1
                                         ? 'bg-slate-50/30'
                                         : 'bg-white'
                               }`}
                             >
-                              <td className="p-2 text-center text-slate-400 font-mono text-[11px]">{r.row_index || idx + 1}</td>
-                              <td className="p-2">
+                              <td className="px-3 py-2 text-center text-slate-400 font-mono text-[11px]">{r.row_index || idx + 1}</td>
+                              <td className="px-3 py-2">
                                 {r.change_status === 'new' ? (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                     <Sparkles className="w-3 h-3 text-emerald-600" /> Data Baru
                                   </span>
                                 ) : r.change_status === 'updated' ? (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800" title={r.diff_summary}>
-                                    <Edit2 className="w-3 h-3 text-blue-600" /> Ditimpa
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800" title={r.diff_summary}>
+                                    <Edit2 className="w-3 h-3 text-indigo-600" /> Ditimpa
                                   </span>
                                 ) : r.change_status === 'unchanged' ? (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600" title={r.diff_summary}>
@@ -4710,23 +5171,23 @@ export default function StudentBills() {
                                   </span>
                                 )}
                               </td>
-                              <td className="p-2 font-mono text-slate-600 text-[11px]">{r.nis || '-'}</td>
-                              <td className="p-2 font-bold text-slate-800 truncate max-w-[200px]" title={r.name}>
+                              <td className="px-3 py-2 font-mono text-slate-600 text-[11px]">{r.nis || '-'}</td>
+                              <td className="px-3 py-2 font-bold text-slate-800 truncate max-w-[200px]" title={r.name}>
                                 {r.name}
                                 {r.diff_summary && (
-                                  <span className="block text-[10px] text-blue-600 font-normal truncate">{r.diff_summary}</span>
+                                  <span className="block text-[10px] text-indigo-600 font-normal truncate">{r.diff_summary}</span>
                                 )}
                                 {!r.is_valid && r.validation_error && (
                                   <span className="block text-[10px] text-rose-600 font-normal">{r.validation_error}</span>
                                 )}
                               </td>
-                              <td className="p-2 text-slate-600 text-[11px]">{r.class_name || '-'}</td>
-                              <td className={`p-2 text-right font-mono font-bold text-[11px] ${r.amount <= 0 ? 'text-slate-400' : 'text-slate-900'}`}>
-                                Rp {parseFloat(r.amount || 0).toLocaleString('id-ID')}
+                              <td className="px-3 py-2 text-slate-600 text-[11px]">{r.class_name || '-'}</td>
+                              <td className={`px-3 py-2 text-right font-mono font-bold text-[11px] num-cell tnum ${r.amount <= 0 ? 'text-slate-400' : 'text-slate-900'}`}>
+                                {formatCurrency(r.amount || 0)}
                               </td>
-                              <td className="p-2 text-center font-mono text-[11px] text-slate-600">{r.bill_date ? formatDateToDMY(r.bill_date) : '-'}</td>
-                              <td className="p-2 text-center font-mono text-[11px] text-slate-600">{r.due_date ? formatDateToDMY(r.due_date) : '-'}</td>
-                              <td className="p-2 text-slate-500 text-[11px] max-w-[140px] truncate" title={r.notes}>{r.notes || '-'}</td>
+                              <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-600">{r.bill_date ? formatDateToDMY(r.bill_date) : '-'}</td>
+                              <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-600">{r.due_date ? formatDateToDMY(r.due_date) : '-'}</td>
+                              <td className="px-3 py-2 text-slate-500 text-[11px] max-w-[140px] truncate" title={r.notes}>{r.notes || '-'}</td>
                             </tr>
                           ))}
                       </tbody>
@@ -4734,47 +5195,48 @@ export default function StudentBills() {
                   </div>
 
                   {/* Aturan Jurnal Akuntansi Penagihan (Otomatis & Transparan) */}
-                  <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-2">
+                  <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <BookOpen className="w-4 h-4 text-blue-700" />
-                        <span className="font-bold text-blue-900 text-xs">Aturan Jurnal Akuntansi (Khusus jika Langsung Diterbitkan)</span>
+                        <BookOpen className="w-4 h-4 text-indigo-700" />
+                        <span className="font-bold text-indigo-900 text-xs">Aturan Jurnal Akuntansi (Khusus jika Langsung Diterbitkan)</span>
                       </div>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                        <RefreshCw className="w-3 h-3 text-blue-600" /> Non-Kas (Akrual Piutang)
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+                        <RefreshCw className="w-3 h-3 text-indigo-600" /> Non-Kas (Akrual Piutang)
                       </span>
                     </div>
 
                     {(() => {
-                      const activeRule = importAccountingRuleId
+                      const activeRule = (importAccountingRuleId
                         ? transactionRules.find((r) => r.id === Number(importAccountingRuleId))
-                        : (transactionRules.find((r) => r.related_fee_type_id === targetImportColumnInfo?.fee_type_id && r.transaction_type === 'non_kas')
-                            || transactionRules.find((r) => r.transaction_code === 'student_bill_issued')
-                            || {
-                                transaction_code: 'student_bill_issued',
-                                transaction_label: 'Penerbitan Tagihan Siswa',
-                                debit_account_code: '201',
-                                debit_account_name: 'Piutang Siswa',
-                                credit_account_code: '601',
-                                credit_account_name: 'Pendapatan Pendidikan'
-                              });
+                        : null)
+                        || transactionRules.find((r) => r.related_fee_type_id === targetImportColumnInfo?.fee_type_id && r.transaction_type === 'non_kas')
+                        || transactionRules.find((r) => r.transaction_code === 'student_bill_issued')
+                        || {
+                            transaction_code: 'student_bill_issued',
+                            transaction_label: 'Penerbitan Tagihan Siswa',
+                            debit_account_code: '201',
+                            debit_account_name: 'Piutang Siswa',
+                            credit_account_code: '601',
+                            credit_account_name: 'Pendapatan Pendidikan'
+                          };
 
                       return (
-                        <div className="bg-white p-2.5 rounded-xl border border-blue-100 space-y-1 text-[11px]">
+                        <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1 text-[11px]">
                           <div className="flex justify-between items-center text-slate-700">
                             <span>Aturan Transaksi:</span>
-                            <span className="font-bold text-slate-900">{activeRule.transaction_label}</span>
+                            <span className="font-bold text-slate-900">{activeRule?.transaction_label || 'Penerbitan Tagihan Siswa'}</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-[10px]">
-                            <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                            <div className="bg-slate-50 p-1.5 rounded-md border border-slate-200">
                               <span className="text-slate-400 block font-semibold">Debit (Posisi Aktiva/Piutang)</span>
-                              <span className="font-bold text-slate-800">{activeRule.debit_account_name || 'Piutang Santri'}</span>
-                              <span className="text-slate-500 font-mono ml-1">({activeRule.debit_account_code || '201'})</span>
+                              <span className="font-bold text-slate-800">{activeRule?.debit_account_name || 'Piutang Santri'}</span>
+                              <span className="text-slate-500 font-mono ml-1">({activeRule?.debit_account_code || '201'})</span>
                             </div>
-                            <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                            <div className="bg-slate-50 p-1.5 rounded-md border border-slate-200">
                               <span className="text-slate-400 block font-semibold">Kredit (Pendapatan)</span>
-                              <span className="font-bold text-slate-800">{activeRule.credit_account_name || 'Pendapatan Biaya'}</span>
-                              <span className="text-slate-500 font-mono ml-1">({activeRule.credit_account_code || '601'})</span>
+                              <span className="font-bold text-slate-800">{activeRule?.credit_account_name || 'Pendapatan Biaya'}</span>
+                              <span className="text-slate-500 font-mono ml-1">({activeRule?.credit_account_code || '601'})</span>
                             </div>
                           </div>
                         </div>
@@ -4786,11 +5248,11 @@ export default function StudentBills() {
             </div>
 
             {/* Modal Footer: 2 Action Buttons (Simpan Draf vs Langsung Terbitkan) */}
-            <div className="p-4 px-5 border-t border-slate-100 shrink-0 bg-slate-50/90 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-3.5 sm:p-4 px-4 sm:px-5 border-t border-slate-100 shrink-0 bg-slate-50/90 flex flex-col sm:flex-row items-center justify-between gap-2.5">
               <button
                 type="button"
                 onClick={() => setColumnImportModalOpen(false)}
-                className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition"
+                className="w-full sm:w-auto px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
               >
                 Batal
               </button>
@@ -4801,10 +5263,10 @@ export default function StudentBills() {
                   type="button"
                   onClick={() => handleExecuteImport('draft')}
                   disabled={submittingImport || importParsedRows.length === 0 || !importFileValidation?.isValid}
-                  className="w-full sm:w-auto px-4 py-2 bg-white border-2 border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-50 rounded-xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-40 shadow-2xs"
+                  className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-40 shadow-2xs"
                   title="Simpan data tagihan sebagai draf ke tabel matriks tanpa menerbitkan/mencatat jurnal"
                 >
-                  {submittingImport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-slate-600" />}
+                  {submittingImport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-slate-600" />}
                   <span>Simpan Draf (Belum Diterbitkan)</span>
                 </button>
 
@@ -4813,10 +5275,10 @@ export default function StudentBills() {
                   type="button"
                   onClick={() => handleExecuteImport('publish')}
                   disabled={submittingImport || importParsedRows.length === 0 || !importFileValidation?.isValid}
-                  className="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-40"
+                  className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-40"
                   title="Terbitkan tagihan resmi ke santri dan langsung catat jurnal akuntansi piutang"
                 >
-                  {submittingImport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 text-emerald-200" />}
+                  {submittingImport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-emerald-200" />}
                   <span>Langsung Terbitkan &amp; Catat Jurnal</span>
                 </button>
               </div>
@@ -4830,11 +5292,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {detailModalOpen && selectedBillDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-xl max-w-xl w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
-                  <FileText className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Detail Tagihan Siswa #{selectedBillDetail.id}</h3>
@@ -4844,14 +5306,14 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="p-4 sm:p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <div>
                   <span className="text-slate-400 text-[10px] block">Jenis Biaya</span>
                   <span className="font-bold text-slate-800">{selectedBillDetail.fee_type_name}</span>
@@ -4865,19 +5327,31 @@ export default function StudentBills() {
                 <div>
                   <span className="text-slate-400 text-[10px] block">Nominal Bersih</span>
                   <span className="font-mono font-bold text-emerald-700 text-sm">
-                    Rp {parseFloat(selectedBillDetail.amount || 0).toLocaleString('id-ID')}
+                    {formatCurrency(selectedBillDetail.amount || 0)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px] block">Status Pembayaran</span>
-                  <span className="font-bold uppercase text-[10px] text-slate-800">{selectedBillDetail.status}</span>
+                  <span className="text-slate-400 text-[10px] block mb-1">Status Pembayaran</span>
+                  <StatusPill
+                    variant={
+                      selectedBillDetail.status === 'paid' ? 'success' :
+                      selectedBillDetail.status === 'partially_paid' ? 'info' :
+                      selectedBillDetail.status === 'cancelled' ? 'neutral' : 'danger'
+                    }
+                    size="sm"
+                    dot
+                  >
+                    {selectedBillDetail.status === 'paid' ? 'Lunas' :
+                     selectedBillDetail.status === 'partially_paid' ? 'Sebagian' :
+                     selectedBillDetail.status === 'cancelled' ? 'Dibatalkan' : 'Belum Bayar'}
+                  </StatusPill>
                 </div>
               </div>
 
               {selectedBillDetail.discount_amount > 0 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px]">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px]">
                   <p className="font-bold">Potongan / Diskon Tercatat</p>
-                  <p>Rp {parseFloat(selectedBillDetail.discount_amount).toLocaleString('id-ID')} ({selectedBillDetail.discount_reason || 'Dispensasi'})</p>
+                  <p>{formatCurrency(selectedBillDetail.discount_amount)} ({selectedBillDetail.discount_reason || 'Dispensasi'})</p>
                 </div>
               )}
 
@@ -4889,7 +5363,7 @@ export default function StudentBills() {
                     {selectedBillDetail.payments.map((p) => (
                       <div key={p.id} className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-200 flex justify-between items-center text-[11px]">
                         <div>
-                          <span className="font-bold text-slate-800">Rp {parseFloat(p.amount).toLocaleString('id-ID')}</span>
+                          <span className="font-bold text-slate-800">{formatCurrency(p.amount)}</span>
                           <span className="text-slate-500 ml-2">via {p.payment_method} ({p.receipt_number || '-'})</span>
                         </div>
                         <span className="font-mono text-slate-500">{new Date(p.paid_at).toLocaleDateString('id-ID')}</span>
@@ -4905,7 +5379,7 @@ export default function StudentBills() {
                 <button
                   type="button"
                   onClick={() => setDetailModalOpen(false)}
-                  className="px-5 py-2 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs transition"
                 >
                   Tutup
                 </button>
@@ -4920,11 +5394,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {reviseModalOpen && revisingBill && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold">
-                  <Edit2 className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
+                  <Edit2 className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Revisi Tagihan #{revisingBill.id}</h3>
@@ -4934,13 +5408,13 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setReviseModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveReviseBill} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleSaveReviseBill} className="p-4 sm:p-5 space-y-3.5 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Nominal Baru (Rp) *</label>
                 <input
@@ -4949,7 +5423,7 @@ export default function StudentBills() {
                   min="0"
                   value={reviseFormData.new_amount}
                   onChange={(e) => setReviseFormData({ ...reviseFormData, new_amount: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 text-xs"
                 />
               </div>
 
@@ -4961,7 +5435,7 @@ export default function StudentBills() {
                   value={reviseFormData.revision_reason}
                   onChange={(e) => setReviseFormData({ ...reviseFormData, revision_reason: e.target.value })}
                   placeholder="Wajib isi alasan perubahan nominal tagihan..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-emerald-500 text-xs"
                 />
               </div>
 
@@ -4969,16 +5443,16 @@ export default function StudentBills() {
                 <button
                   type="button"
                   onClick={() => setReviseModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold"
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingRevise}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 disabled:opacity-50 transition"
                 >
-                  {submittingRevise ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit2 className="w-4 h-4" />}
+                  {submittingRevise ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit2 className="w-3.5 h-3.5" />}
                   <span>Simpan Revisi</span>
                 </button>
               </div>
@@ -4992,11 +5466,11 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {broadcastModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+          <div className="bg-white rounded-xl max-w-lg w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-500 text-white">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center font-bold">
-                  <Send className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold">
+                  <Send className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold">Broadcast Pengingat Tagihan</h3>
@@ -5006,13 +5480,13 @@ export default function StudentBills() {
               <button
                 type="button"
                 onClick={() => setBroadcastModalOpen(false)}
-                className="p-1.5 text-white/80 hover:text-white rounded-lg"
+                className="p-1.5 text-white/80 hover:text-white rounded-lg transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs">
+            <div className="p-4 sm:p-5 space-y-3.5 text-xs">
               <div className="space-y-2">
                 <label className="block font-semibold text-slate-700">Target Penerima Pengingat:</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -5023,7 +5497,7 @@ export default function StudentBills() {
                       const overdue = historyBills.filter((b) => b.status === 'unpaid' && b.due_date && new Date(b.due_date) < new Date());
                       setBroadcastSelectedBillIds(overdue.map((b) => b.id));
                     }}
-                    className={`p-2.5 rounded-xl border text-left transition font-semibold ${
+                    className={`p-2.5 rounded-lg border text-left transition font-semibold ${
                       broadcastFilterMode === 'overdue'
                         ? 'border-rose-500 bg-rose-50 text-rose-800'
                         : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -5042,7 +5516,7 @@ export default function StudentBills() {
                       const allUnpaid = historyBills.filter((b) => b.status === 'unpaid' || b.status === 'partially_paid');
                       setBroadcastSelectedBillIds(allUnpaid.map((b) => b.id));
                     }}
-                    className={`p-2.5 rounded-xl border text-left transition font-semibold ${
+                    className={`p-2.5 rounded-lg border text-left transition font-semibold ${
                       broadcastFilterMode === 'unpaid_all'
                         ? 'border-amber-500 bg-amber-50 text-amber-800'
                         : 'border-slate-200 bg-slate-50 text-slate-600'
@@ -5065,12 +5539,12 @@ export default function StudentBills() {
                   value={broadcastCustomMessage}
                   onChange={(e) => setBroadcastCustomMessage(e.target.value)}
                   placeholder="Kosongkan untuk menggunakan template pesan resmi default..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] flex items-start gap-2">
-                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] flex items-start gap-2">
+                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   Pesan akan otomatis terkirim ke <b>{broadcastSelectedBillIds.length} wali murid</b> dan tercatat di riwayat reminder.
                 </div>
@@ -5080,7 +5554,7 @@ export default function StudentBills() {
                 <button
                   type="button"
                   onClick={() => setBroadcastModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-bold"
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition"
                 >
                   Batal
                 </button>
@@ -5088,9 +5562,9 @@ export default function StudentBills() {
                   type="button"
                   onClick={handleExecuteBroadcastReminders}
                   disabled={submittingBroadcast || broadcastSelectedBillIds.length === 0}
-                  className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 disabled:opacity-50 transition shadow-xs"
                 >
-                  {submittingBroadcast ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {submittingBroadcast ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   <span>Kirim ke {broadcastSelectedBillIds.length} Santri</span>
                 </button>
               </div>
@@ -5104,12 +5578,12 @@ export default function StudentBills() {
       {/* ============================================================ */}
       {alumniDetailModalOpen && selectedAlumnusDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full shadow-xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-900 to-indigo-950 text-white shrink-0">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-900 to-indigo-950 text-white shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 font-bold">
-                  <GraduationCap className="w-6 h-6" />
+                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-amber-400 font-bold">
+                  <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold">Rincian Tagihan Santri Alumni</h3>
@@ -5128,9 +5602,9 @@ export default function StudentBills() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+            <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto flex-1 text-xs">
               {/* Profile & Arrears Banner */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Status &amp; Angkatan</p>
                   <p className="font-semibold text-slate-800 mt-0.5">
@@ -5142,22 +5616,26 @@ export default function StudentBills() {
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Riwayat Tagihan</p>
                   <p className="font-mono font-bold text-slate-800 text-sm mt-0.5">
-                    Rp {Number(selectedAlumnusDetail.total_bills || 0).toLocaleString('id-ID')}
+                    {formatCurrency(selectedAlumnusDetail.total_bills || 0)}
                   </p>
                   <p className="text-[10px] text-emerald-600 font-medium">
-                    Terbayar: Rp {Number(selectedAlumnusDetail.total_paid || 0).toLocaleString('id-ID')}
+                    Terbayar: {formatCurrency(selectedAlumnusDetail.total_paid || 0)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sisa Tunggakan</p>
-                  <p className="font-mono font-black text-rose-700 text-sm mt-0.5">
-                    Rp {Number(selectedAlumnusDetail.total_remaining || 0).toLocaleString('id-ID')}
+                  <p className="font-mono font-bold text-rose-700 text-sm mt-0.5">
+                    {formatCurrency(selectedAlumnusDetail.total_remaining || 0)}
                   </p>
-                  <span className={`inline-block mt-0.5 px-2 py-0.2 rounded text-[10px] font-bold ${
-                    selectedAlumnusDetail.total_remaining > 0 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
-                  }`}>
-                    {selectedAlumnusDetail.total_remaining > 0 ? `${selectedAlumnusDetail.unpaid_bills_count} tagihan belum lunas` : 'Lunas Sepenuhnya'}
-                  </span>
+                  <div className="mt-1">
+                    <StatusPill
+                      variant={selectedAlumnusDetail.total_remaining > 0 ? 'danger' : 'success'}
+                      size="sm"
+                      dot
+                    >
+                      {selectedAlumnusDetail.total_remaining > 0 ? `${selectedAlumnusDetail.unpaid_bills_count} tagihan belum lunas` : 'Lunas Sepenuhnya'}
+                    </StatusPill>
+                  </div>
                 </div>
               </div>
 
@@ -5168,29 +5646,29 @@ export default function StudentBills() {
                   <span>Daftar Rincian Seluruh Tagihan</span>
                 </h4>
                 {(!selectedAlumnusDetail.bills || selectedAlumnusDetail.bills.length === 0) ? (
-                  <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-lg border border-slate-200">
                     Tidak ada rincian tagihan tercatat untuk alumni ini.
                   </div>
                 ) : (
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                  <div className="table-container max-h-[350px]">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10">
                         <tr>
-                          <th className="p-2.5 text-center w-10">No</th>
-                          <th className="p-2.5">Pos Biaya &amp; Periode</th>
-                          <th className="p-2.5">T.A. Asal</th>
-                          <th className="p-2.5 text-right">Nominal</th>
-                          <th className="p-2.5 text-right">Diskon</th>
-                          <th className="p-2.5 text-right">Terbayar</th>
-                          <th className="p-2.5 text-right">Sisa</th>
-                          <th className="p-2.5 text-center">Status</th>
+                          <th className="px-3 py-2 text-center w-10">No</th>
+                          <th className="px-3 py-2">Pos Biaya &amp; Periode</th>
+                          <th className="px-3 py-2">T.A. Asal</th>
+                          <th className="px-3 py-2 text-right num-cell">Nominal</th>
+                          <th className="px-3 py-2 text-right num-cell">Diskon</th>
+                          <th className="px-3 py-2 text-right num-cell">Terbayar</th>
+                          <th className="px-3 py-2 text-right num-cell">Sisa</th>
+                          <th className="px-3 py-2 text-center">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {selectedAlumnusDetail.bills.map((bill, bIdx) => (
                           <tr key={bill.id || bIdx} className="hover:bg-slate-50/80 transition">
-                            <td className="p-2.5 text-center text-slate-400 font-mono text-[11px]">{bIdx + 1}</td>
-                            <td className="p-2.5">
+                            <td className="px-3 py-2 text-center text-slate-400 font-mono text-[11px]">{bIdx + 1}</td>
+                            <td className="px-3 py-2">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-bold text-slate-800">{bill.fee_type_name}</span>
                                 {bill.is_manual && (
@@ -5210,39 +5688,36 @@ export default function StudentBills() {
                                 </span>
                               )}
                             </td>
-                            <td className="p-2.5 text-slate-600 font-medium">
+                            <td className="px-3 py-2 text-slate-600 font-medium">
                               {bill.academic_year_name || `T.A. ${bill.period_year || '-'}`}
                             </td>
-                            <td className="p-2.5 text-right font-mono text-slate-700">
-                              Rp {Number(bill.amount || 0).toLocaleString('id-ID')}
+                            <td className="px-3 py-2 text-right font-mono text-slate-700 num-cell tnum">
+                              {formatCurrency(bill.amount || 0)}
                             </td>
-                            <td className="p-2.5 text-right font-mono text-amber-600">
-                              {bill.discount_amount > 0 ? `Rp ${Number(bill.discount_amount).toLocaleString('id-ID')}` : '-'}
+                            <td className="px-3 py-2 text-right font-mono text-amber-600 num-cell tnum">
+                              {bill.discount_amount > 0 ? formatCurrency(bill.discount_amount) : '-'}
                             </td>
-                            <td className="p-2.5 text-right font-mono text-emerald-700">
-                              Rp {Number(bill.paid_amount || 0).toLocaleString('id-ID')}
+                            <td className="px-3 py-2 text-right font-mono text-emerald-700 num-cell tnum">
+                              {formatCurrency(bill.paid_amount || 0)}
                             </td>
-                            <td className="p-2.5 text-right font-mono font-bold">
+                            <td className="px-3 py-2 text-right font-mono font-bold num-cell tnum">
                               {bill.remaining_amount > 0 ? (
-                                <span className="text-rose-700">Rp {Number(bill.remaining_amount).toLocaleString('id-ID')}</span>
+                                <span className="text-rose-700">{formatCurrency(bill.remaining_amount)}</span>
                               ) : (
                                 <span className="text-slate-400">Rp 0</span>
                               )}
                             </td>
-                            <td className="p-2.5 text-center">
-                              {bill.status === 'paid' || bill.remaining_amount === 0 ? (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
-                                  Lunas
-                                </span>
-                              ) : bill.status === 'partially_paid' || (bill.paid_amount > 0 && bill.remaining_amount > 0) ? (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-teal-100 text-teal-800">
-                                  Sebagian
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800">
-                                  Belum Bayar
-                                </span>
-                              )}
+                            <td className="px-3 py-2 text-center">
+                              <StatusPill
+                                variant={
+                                  bill.status === 'paid' || bill.remaining_amount === 0 ? 'success' :
+                                  bill.status === 'partially_paid' || (bill.paid_amount > 0 && bill.remaining_amount > 0) ? 'info' : 'danger'
+                                }
+                                size="sm"
+                              >
+                                {bill.status === 'paid' || bill.remaining_amount === 0 ? 'Lunas' :
+                                 bill.status === 'partially_paid' || (bill.paid_amount > 0 && bill.remaining_amount > 0) ? 'Sebagian' : 'Belum Bayar'}
+                              </StatusPill>
                             </td>
                           </tr>
                         ))}
@@ -5254,14 +5729,14 @@ export default function StudentBills() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+            <div className="p-3.5 sm:p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <span className="text-[11px] text-slate-400 italic">
                 * Halaman tampilan data riwayat tagihan &amp; tunggakan alumni (Read-Only).
               </span>
               <button
                 type="button"
                 onClick={() => setAlumniDetailModalOpen(false)}
-                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition shadow-xs"
               >
                 Tutup
               </button>

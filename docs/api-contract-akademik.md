@@ -438,6 +438,7 @@ Dikonsumsi modul lain lewat pemanggilan in-process/HTTP internal:
 | `GET` | `/internal/students` | List siswa aktif per `satuan_pendidikan_id`, dipakai untuk penagihan massal | Keuangan |
 | `GET` | `/internal/students/:id/guardians` | Data wali untuk notifikasi/portal | Portal Orangtua, Komunikasi & Notifikasi |
 | `GET` | `/internal/class-groups/:id` | Detail rombel | Kantin, Perpustakaan, CBE |
+| `GET` | `/internal/academic-years` | List tahun ajaran akademik (aktif & riwayat) per satuan pendidikan | PSB, Keuangan, Portal |
 | `POST` | `/internal/scores/exam-result` | Terima hasil ujian daring dari CBE untuk masuk `student_scores` | CBE *(perlu dikonfirmasi — lihat rancangan-akademik.md §6)* |
 
 > Endpoint provisioning akun **bukan** endpoint yang Akademik sediakan — Akademik yang

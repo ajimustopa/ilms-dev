@@ -50,9 +50,11 @@ function generateExcel(recapData, schoolUnit) {
       'April',
       'Mei',
       'Juni',
-      'Total Tagihan (Formula)',
+      'Kewajiban TP Ini',
       'Sudah Dibayar',
-      'Sisa Piutang (Formula)',
+      'Sisa TP Ini',
+      'Sisa TP Lalu',
+      'Total Piutang',
       'Status Pelunasan'
     ]
   ];
@@ -79,9 +81,11 @@ function generateExcel(recapData, schoolUnit) {
       s.months?.apr?.billed || 0,
       s.months?.may?.billed || 0,
       s.months?.jun?.billed || 0,
-      { f: `SUM(E${rNum}:P${rNum})` }, // Formula SUM 12 bulan
+      { f: `SUM(E${rNum}:P${rNum})` }, // Formula SUM 12 bulan (Kewajiban TP Ini)
       s.total_paid || 0,
-      { f: `Q${rNum}-R${rNum}` }, // Formula Sisa = Total Tagihan - Terbayar
+      { f: `Q${rNum}-R${rNum}` }, // Formula Sisa TP Ini = Kewajiban TP Ini - Terbayar
+      s.arrears_previous_year || 0, // Sisa TP Lalu
+      { f: `S${rNum}+T${rNum}` }, // Total Piutang = Sisa TP Ini + Sisa TP Lalu
       s.settlement_status || '-'
     ];
     ws1Data.push(row);
@@ -110,6 +114,8 @@ function generateExcel(recapData, schoolUnit) {
       { f: `SUM(Q${startRow}:Q${endRow})` },
       { f: `SUM(R${startRow}:R${endRow})` },
       { f: `SUM(S${startRow}:S${endRow})` },
+      { f: `SUM(T${startRow}:T${endRow})` },
+      { f: `SUM(U${startRow}:U${endRow})` },
       ''
     ];
     ws1Data.push(totalRow);
@@ -123,9 +129,11 @@ function generateExcel(recapData, schoolUnit) {
     { wch: 26 }, // Nama
     { wch: 12 }, // Kelas
     ...monthKeys.map(() => ({ wch: 13 })), // 12 bulan
-    { wch: 18 }, // Total Tagihan
+    { wch: 18 }, // Kewajiban TP Ini
     { wch: 16 }, // Sudah Dibayar
-    { wch: 16 }, // Sisa Piutang
+    { wch: 16 }, // Sisa TP Ini
+    { wch: 16 }, // Sisa TP Lalu
+    { wch: 18 }, // Total Piutang
     { wch: 16 }  // Status
   ];
   XLSX.utils.book_append_sheet(wb, ws1, 'Matriks Penagihan');
@@ -141,16 +149,18 @@ function generateExcel(recapData, schoolUnit) {
       'NIS',
       'Nama Santri',
       'Kelas',
-      'Total Kewajiban',
+      'Kewajiban TP Ini',
       'Sudah Dibayar',
-      'Sisa Tunggakan',
+      'Sisa TP Ini',
+      'Sisa TP Lalu',
+      'Total Piutang',
       'Umur Tunggakan (Hari)',
       'Status Risiko',
       'Kolektibilitas'
     ]
   ];
 
-  const overdueStudents = students.filter(s => (s.total_remaining || 0) > 0);
+  const overdueStudents = students.filter(s => (s.grand_total_remaining || s.total_remaining || 0) > 0);
   overdueStudents.forEach((s, idx) => {
     ws2Data.push([
       idx + 1,
@@ -160,6 +170,8 @@ function generateExcel(recapData, schoolUnit) {
       s.total_billed,
       s.total_paid,
       s.total_remaining,
+      s.arrears_previous_year || 0,
+      s.grand_total_remaining || (s.total_remaining + (s.arrears_previous_year || 0)),
       s.aging_days,
       s.aging_status.toUpperCase(),
       s.aging_days > 90 ? 'Macet (>90 hari)' : (s.aging_days > 60 ? 'Diragukan (61-90 hari)' : (s.aging_days > 30 ? 'Kurang Lancar (31-60 hari)' : 'Dalam Perhatian (0-30 hari)'))
@@ -172,9 +184,11 @@ function generateExcel(recapData, schoolUnit) {
     { wch: 12 }, // NIS
     { wch: 28 }, // Nama
     { wch: 12 }, // Kelas
-    { wch: 16 }, // Total Kewajiban
+    { wch: 16 }, // Kewajiban TP Ini
     { wch: 16 }, // Sudah Dibayar
-    { wch: 16 }, // Sisa Tunggakan
+    { wch: 16 }, // Sisa TP Ini
+    { wch: 16 }, // Sisa TP Lalu
+    { wch: 18 }, // Total Piutang
     { wch: 22 }, // Umur Tunggakan
     { wch: 16 }, // Status Risiko
     { wch: 28 }  // Kolektibilitas
@@ -218,25 +232,26 @@ function generatePdf(recapData, schoolUnit, user) {
 
   drawHeaderLandscape();
 
-  // 1. KPI Summary Box
+  // Summary Metrics Header Card
   const summary = recapData.performance_summary || {};
-  const kpiY = doc.y;
-  doc.rect(startX, kpiY, contentWidth, 34).fill('#f8fafc');
-  doc.strokeColor('#cbd5e1').lineWidth(0.5).rect(startX, kpiY, contentWidth, 34).stroke();
+  const sumY = doc.y;
+  doc.rect(startX, sumY, contentWidth, 34).fill('#f8fafc');
+  doc.strokeColor('#e2e8f0').lineWidth(0.8).rect(startX, sumY, contentWidth, 34).stroke();
 
-  doc.fontSize(8).font('Helvetica-Bold').fillColor('#334155');
-  doc.text(`Total Santri: ${summary.total_students || 0} Siswa`, startX + 10, kpiY + 8);
-  doc.text(`Total Kewajiban: ${formatCurrency(summary.total_billed)}`, startX + 10, kpiY + 20);
+  doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#334155');
+  doc.text(`Total Santri: ${summary.total_students || 0} orang`, startX + 10, sumY + 8);
+  doc.text(`Kewajiban TP Ini: ${formatCurrency(summary.total_billed)}`, startX + 130, sumY + 8);
+  doc.text(`Terbayar: ${formatCurrency(summary.total_paid)}`, startX + 290, sumY + 8);
+  doc.text(`Sisa TP Ini: ${formatCurrency(summary.total_remaining)}`, startX + 430, sumY + 8);
+  doc.text(`Sisa TP Lalu: ${formatCurrency(summary.total_arrears_previous_year)}`, startX + 570, sumY + 8);
 
-  doc.text(`Total Kas Diterima: ${formatCurrency(summary.total_paid)}`, startX + 220, kpiY + 8);
-  doc.text(`Sisa Tunggakan: ${formatCurrency(summary.total_remaining)}`, startX + 220, kpiY + 20);
+  doc.fontSize(7).font('Helvetica').fillColor('#047857');
+  doc.text(`Grand Total Piutang: ${formatCurrency(summary.grand_total_remaining || ((summary.total_remaining || 0) + (summary.total_arrears_previous_year || 0)))}`, startX + 10, sumY + 20);
+  doc.text(`Tingkat Pelunasan TP: ${summary.overall_collection_rate || 0}%`, startX + 290, sumY + 20);
 
-  doc.fillColor('#0369a1');
-  doc.text(`Efisiensi Kolektibilitas (Overall Collection Rate): ${summary.overall_collection_rate || 0}%`, startX + 460, kpiY + 14);
+  doc.y = sumY + 44;
 
-  doc.y = kpiY + 42;
-
-  // 2. Table: Monthly Performance (Juli - Juni)
+  // 2. Table: Monthly Performance Target vs Actual
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a').text('KINERJA PENAGIHAN BULANAN (COLLECTION PERFORMANCE)', startX, doc.y);
   doc.moveDown(0.3);
 
@@ -284,8 +299,8 @@ function generatePdf(recapData, schoolUnit, user) {
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a').text('DAFTAR DETAIL SANTRI & REKAPITULASI PEMBAYARAN', startX, doc.y);
   doc.moveDown(0.3);
 
-  const colWidths = [24, 60, 160, 60, 85, 85, 85, 65, 85]; // total ~709 pt
-  const headers = ['No', 'NIS', 'Nama Santri', 'Kelas', 'Total Kewajiban', 'Sudah Bayar', 'Sisa Piutang', 'Status', 'Umur Tunggakan'];
+  const colWidths = [24, 55, 140, 50, 70, 70, 70, 70, 75, 55, 70]; // total ~749 pt
+  const headers = ['No', 'NIS', 'Nama Santri', 'Kelas', 'Kewajiban TP', 'Terbayar', 'Sisa TP Ini', 'Sisa TP Lalu', 'Total Piutang', 'Status', 'Aging'];
 
   const renderTableHeader = () => {
     const y = doc.y;
@@ -294,7 +309,7 @@ function generatePdf(recapData, schoolUnit, user) {
     doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#1e293b');
     let curX = startX;
     headers.forEach((h, idx) => {
-      const align = (idx >= 4 && idx <= 6) ? 'right' : (idx === 0 || idx >= 7 ? 'center' : 'left');
+      const align = (idx >= 4 && idx <= 8) ? 'right' : (idx === 0 || idx >= 9 ? 'center' : 'left');
       doc.text(h, curX + 3, y + 5, { width: colWidths[idx] - 6, align });
       curX += colWidths[idx];
     });
@@ -335,7 +350,7 @@ function generatePdf(recapData, schoolUnit, user) {
     doc.font('Helvetica').text(s.class_name || '-', curX + 2, ry + 4, { width: colWidths[3] - 4 });
     curX += colWidths[3];
 
-    // Total Kewajiban
+    // Kewajiban TP Ini
     doc.text(formatRawNumber(s.total_billed), curX + 2, ry + 4, { width: colWidths[4] - 4, align: 'right' });
     curX += colWidths[4];
 
@@ -343,17 +358,25 @@ function generatePdf(recapData, schoolUnit, user) {
     doc.fillColor('#059669').text(formatRawNumber(s.total_paid), curX + 2, ry + 4, { width: colWidths[5] - 4, align: 'right' });
     curX += colWidths[5];
 
-    // Sisa
+    // Sisa TP Ini
     doc.fillColor(s.total_remaining > 0 ? '#e11d48' : '#059669').text(formatRawNumber(s.total_remaining), curX + 2, ry + 4, { width: colWidths[6] - 4, align: 'right' });
     curX += colWidths[6];
 
-    // Status
-    doc.fillColor('#1e293b').text(s.settlement_status || '-', curX + 2, ry + 4, { width: colWidths[7] - 4, align: 'center' });
+    // Sisa TP Lalu
+    doc.fillColor(s.arrears_previous_year > 0 ? '#b45309' : '#94a3b8').text(s.arrears_previous_year > 0 ? formatRawNumber(s.arrears_previous_year) : '-', curX + 2, ry + 4, { width: colWidths[7] - 4, align: 'right' });
     curX += colWidths[7];
 
+    // Total Piutang
+    doc.fillColor(s.grand_total_remaining > 0 ? '#b91c1c' : '#059669').font('Helvetica-Bold').text(formatRawNumber(s.grand_total_remaining), curX + 2, ry + 4, { width: colWidths[8] - 4, align: 'right' });
+    curX += colWidths[8];
+
+    // Status
+    doc.font('Helvetica').fillColor('#1e293b').text(s.settlement_status || '-', curX + 2, ry + 4, { width: colWidths[9] - 4, align: 'center' });
+    curX += colWidths[9];
+
     // Aging
-    const agingLabel = s.total_remaining > 0 ? `${s.aging_days} hari (${s.aging_status})` : 'Lancar';
-    doc.text(agingLabel, curX + 2, ry + 4, { width: colWidths[8] - 4, align: 'center' });
+    const agingLabel = s.grand_total_remaining > 0 ? `${s.aging_days}h (${s.aging_status})` : 'Lancar';
+    doc.text(agingLabel, curX + 2, ry + 4, { width: colWidths[10] - 4, align: 'center' });
 
     doc.y = ry + 16;
   });

@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { ShieldAlert, ArrowLeft, Home, LogOut } from 'lucide-react';
 import { useAuth } from '../store/AuthContext';
-import { getAppLoginPath } from '../utils/authHelper';
+import { getAppLoginPath, isCashierOnlyUser } from '../utils/authHelper';
 
 /**
  * Mapping akses modul aplikasi berdasarkan Role / Permission.
@@ -79,6 +79,15 @@ export default function ProtectedRoute({
 
   if (!isAuthenticated || !user) {
     return <Navigate to={loginPath} replace state={{ from: location }} />;
+  }
+
+  // 1b. Khusus Akun Kasir Kantin: Hanya diizinkan mengakses /kantin/pos.
+  // Jika mencoba membuka halaman lain atau modul lain, langsung dialihkan ke /kantin/pos.
+  if (isCashierOnlyUser(user)) {
+    if (location.pathname === '/kantin/pos') {
+      return <Outlet />;
+    }
+    return <Navigate to="/kantin/pos" replace />;
   }
 
   // 2. Kumpulkan seluruh role user saat ini

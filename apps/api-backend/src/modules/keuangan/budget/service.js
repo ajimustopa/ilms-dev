@@ -13,7 +13,12 @@ class BudgetService {
   // ============================================================
 
   async listBudgetPlans(schoolUnitId, filters = {}) {
-    let query = db('budget_plans').where('school_unit_id', schoolUnitId);
+    let query = db('budget_plans');
+    if (schoolUnitId !== undefined && schoolUnitId !== null && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0) {
+      query = query.where(builder => {
+        builder.where('school_unit_id', schoolUnitId).orWhere('school_unit_id', 0);
+      });
+    }
     if (filters.academic_year_id) {
       query = query.where('academic_year_id', filters.academic_year_id);
     }
@@ -24,19 +29,28 @@ class BudgetService {
   }
 
   async getBudgetPlanById(schoolUnitId, id) {
-    const plan = await db('budget_plans')
-      .where({ id, school_unit_id: schoolUnitId })
-      .first();
+    let query = db('budget_plans').where({ id });
+    if (schoolUnitId !== undefined && schoolUnitId !== null && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0) {
+      query = query.where(builder => {
+        builder.where('school_unit_id', schoolUnitId).orWhere('school_unit_id', 0);
+      });
+    }
+    const plan = await query.first();
 
     if (!plan) return null;
 
     const incomeItems = (await db('budget_plan_income_items')
       .leftJoin('fee_types', 'budget_plan_income_items.fee_type_id', 'fee_types.id')
+      .leftJoin('chart_of_accounts as inc_credit_coa', 'budget_plan_income_items.credit_account_id', 'inc_credit_coa.id')
+      .leftJoin('cash_accounts as inc_cash', 'budget_plan_income_items.cash_account_id', 'inc_cash.id')
       .where('budget_plan_income_items.budget_plan_id', id)
       .select(
         'budget_plan_income_items.*',
         'fee_types.name as fee_type_name',
-        'fee_types.billing_pattern as fee_type_billing_pattern'
+        'fee_types.billing_pattern as fee_type_billing_pattern',
+        'inc_credit_coa.account_code as credit_account_code',
+        'inc_credit_coa.account_name as credit_account_name',
+        'inc_cash.name as cash_account_name'
       )).map(item => {
       let monthlyDist = {};
       if (item.monthly_distribution) {
@@ -53,6 +67,11 @@ class BudgetService {
     const rawExpenseItems = await db('budget_plan_expense_items')
       .leftJoin('budget_programs', 'budget_plan_expense_items.budget_program_id', 'budget_programs.id')
       .leftJoin('catalog_items', 'budget_plan_expense_items.catalog_item_id', 'catalog_items.id')
+      .leftJoin('transaction_categories', 'catalog_items.expense_category_id', 'transaction_categories.id')
+      .leftJoin('chart_of_accounts', 'transaction_categories.related_account_id', 'chart_of_accounts.id')
+      .leftJoin('chart_of_accounts as exp_debit_coa', 'budget_plan_expense_items.debit_account_id', 'exp_debit_coa.id')
+      .leftJoin('chart_of_accounts as exp_credit_coa', 'budget_plan_expense_items.credit_account_id', 'exp_credit_coa.id')
+      .leftJoin('cash_accounts as exp_cash', 'budget_plan_expense_items.cash_account_id', 'exp_cash.id')
       .leftJoin('fee_types', 'budget_plan_expense_items.fund_source_fee_type_id', 'fee_types.id')
       .leftJoin('budget_plan_income_items', 'budget_plan_expense_items.fund_source_income_item_id', 'budget_plan_income_items.id')
       .where('budget_plan_expense_items.budget_plan_id', id)
@@ -62,6 +81,20 @@ class BudgetService {
         'budget_programs.rks_reference_id',
         'catalog_items.name as catalog_item_name',
         'catalog_items.reference_price as catalog_reference_price',
+        'catalog_items.expense_category_id',
+        'catalog_items.debit_account_id as catalog_debit_account_id',
+        'catalog_items.credit_account_id as catalog_credit_account_id',
+        'catalog_items.cash_account_id as catalog_cash_account_id',
+        'catalog_items.fund_source_income_item_id as catalog_fund_source_income_item_id',
+        'transaction_categories.name as expense_category_name',
+        'transaction_categories.related_account_id',
+        'chart_of_accounts.account_code as related_account_code',
+        'chart_of_accounts.account_name as related_account_name',
+        'exp_debit_coa.account_code as debit_account_code',
+        'exp_debit_coa.account_name as debit_account_name',
+        'exp_credit_coa.account_code as credit_account_code',
+        'exp_credit_coa.account_name as credit_account_name',
+        'exp_cash.name as cash_account_name',
         'fee_types.name as fund_source_fee_type_name',
         'budget_plan_income_items.name as fund_source_income_name'
       );
@@ -207,22 +240,33 @@ class BudgetService {
     if (existing.income_items && existing.income_items.length > 0) {
       const incomesToInsert = existing.income_items.map(item => ({
         budget_plan_id: newPlanId,
+        source_category: item.source_category || (item.fee_type_id ? 'fee_billing' : 'other'),
         fee_type_id: item.fee_type_id || null,
+        credit_account_id: item.credit_account_id || null,
+        cash_account_id: item.cash_account_id || null,
         name: item.name,
         planned_amount: item.planned_amount,
-        max_cap_amount: item.max_cap_amount || item.planned_amount,
+        max_cap_amount: item.fee_type_id ? (item.max_cap_amount || item.planned_amount) : null,
+        notes: item.notes || null,
         monthly_distribution: item.monthly_distribution ? (typeof item.monthly_distribution === 'object' ? JSON.stringify(item.monthly_distribution) : item.monthly_distribution) : null
       }));
       await db('budget_plan_income_items').insert(incomesToInsert);
     }
 
-    // Duplikasi expense items (termasuk kolom katalog & sumber dana & monthly distribution)
+    // Duplikasi expense items (termasuk kolom katalog, sumber dana, lump sum, akun debet/kredit/kas & monthly distribution)
     if (existing.expense_items && existing.expense_items.length > 0) {
       const expensesToInsert = existing.expense_items.map(item => ({
         budget_plan_id: newPlanId,
         budget_program_id: item.budget_program_id,
         catalog_item_id: item.catalog_item_id || null,
         fund_source_fee_type_id: item.fund_source_fee_type_id || null,
+        fund_source_income_item_id: item.fund_source_income_item_id || null,
+        fund_sources: item.fund_sources ? (typeof item.fund_sources === 'object' ? JSON.stringify(item.fund_sources) : item.fund_sources) : null,
+        entry_mode: item.entry_mode || 'itemized',
+        lump_sum_description: item.lump_sum_description || null,
+        debit_account_id: item.debit_account_id || null,
+        credit_account_id: item.credit_account_id || null,
+        cash_account_id: item.cash_account_id || null,
         name: item.name,
         unit: item.unit || null,
         quantity: item.quantity || 1.00,
@@ -276,12 +320,23 @@ class BudgetService {
     return updated;
   }
 
+  // Helper untuk lookup plan dengan fleksibilitas school_unit_id (unit vs yayasan/0)
+  async _findPlan(schoolUnitId, planId) {
+    let query = db('budget_plans').where({ id: planId });
+    if (schoolUnitId !== undefined && schoolUnitId !== null && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0) {
+      query = query.where(builder => {
+        builder.where('school_unit_id', schoolUnitId).orWhere('school_unit_id', 0);
+      });
+    }
+    return query.first();
+  }
+
   // ============================================================
   // 2. INCOME & EXPENSE ITEMS
   // ============================================================
 
   async addIncomeItem(schoolUnitId, planId, data, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') {
       const err = new Error('Hanya RAPBS berstatus draft yang dapat ditambahkan item pendapatan');
       err.statusCode = 422;
@@ -294,32 +349,68 @@ class BudgetService {
     if (monthlyDist) {
       const distObj = typeof monthlyDist === 'string' ? JSON.parse(monthlyDist) : monthlyDist;
       const sumMonths = Object.values(distObj || {}).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-      if (sumMonths > 0) {
+      if (sumMonths > 0 || Object.keys(distObj || {}).length > 0) {
         plannedAmount = sumMonths;
       }
       monthlyDist = typeof monthlyDist === 'object' ? JSON.stringify(monthlyDist) : monthlyDist;
     }
 
-    const maxCap = data.max_cap_amount !== undefined && data.max_cap_amount !== null ? parseFloat(data.max_cap_amount) : null;
-    if (maxCap !== null && plannedAmount > maxCap) {
-      const err = new Error(`Total alokasi bulanan (Rp ${plannedAmount.toLocaleString('id-ID')}) melebihi batas maksimal penetapan setahun (Rp ${maxCap.toLocaleString('id-ID')})`);
-      err.statusCode = 422;
-      throw err;
+    const feeTypeId = data.fee_type_id ? Number(data.fee_type_id) : null;
+    let creditAccountId = data.credit_account_id ? Number(data.credit_account_id) : null;
+    let cashAccountId = data.cash_account_id ? Number(data.cash_account_id) : null;
+
+    // Jika belum diisi manual dan fee_type_id tersedia, inherit otomatis dari Aturan Pembayaran / Jenis Biaya
+    if (feeTypeId && (!creditAccountId || !cashAccountId)) {
+      const ft = await db('fee_types')
+        .leftJoin('transaction_account_mappings as payment_tam', 'fee_types.payment_account_mapping_id', 'payment_tam.id')
+        .leftJoin('transaction_account_mappings as billing_tam', 'fee_types.billing_account_mapping_id', 'billing_tam.id')
+        .where('fee_types.id', feeTypeId)
+        .select(
+          'fee_types.*',
+          'payment_tam.credit_account_id as payment_credit_account_id',
+          'payment_tam.debit_account_id as payment_debit_account_id',
+          'payment_tam.default_cash_account_id as payment_default_cash_account_id',
+          'billing_tam.credit_account_id as billing_credit_account_id'
+        )
+        .first();
+
+      if (ft) {
+        if (!creditAccountId) {
+          creditAccountId = ft.related_revenue_account_id || ft.billing_credit_account_id || ft.payment_credit_account_id || null;
+        }
+        if (!cashAccountId) {
+          cashAccountId = ft.payment_default_cash_account_id || null;
+          if (!cashAccountId && ft.payment_debit_account_id) {
+            const matchedCash = await db('cash_accounts').where({ account_id: ft.payment_debit_account_id }).first();
+            if (matchedCash) cashAccountId = matchedCash.id;
+          }
+        }
+      }
+    }
+
+    // Pos selain tagihan tidak dikenakan batas maksimal (maxCap null)
+    let maxCap = null;
+    if (feeTypeId && data.max_cap_amount !== undefined && data.max_cap_amount !== null && data.max_cap_amount !== '') {
+      maxCap = parseFloat(data.max_cap_amount);
     }
 
     const [id] = await db('budget_plan_income_items').insert({
       budget_plan_id: planId,
-      fee_type_id: data.fee_type_id || null,
+      source_category: data.source_category || (feeTypeId ? 'tagihan_santri' : 'lainnya'),
+      fee_type_id: feeTypeId,
+      credit_account_id: creditAccountId,
+      cash_account_id: cashAccountId,
       name: data.name,
       planned_amount: plannedAmount,
       max_cap_amount: maxCap,
+      notes: data.notes || null,
       monthly_distribution: monthlyDist
     });
     return db('budget_plan_income_items').where({ id }).first();
   }
 
   async updateIncomeItem(schoolUnitId, planId, itemId, data, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') {
       const err = new Error('Hanya RAPBS berstatus draft yang dapat diubah item pendapatannya');
       err.statusCode = 422;
@@ -341,20 +432,28 @@ class BudgetService {
       monthlyDist = typeof data.monthly_distribution === 'object' ? JSON.stringify(data.monthly_distribution) : data.monthly_distribution;
     }
 
-    const maxCap = data.max_cap_amount !== undefined ? (data.max_cap_amount ? parseFloat(data.max_cap_amount) : null) : (before.max_cap_amount ? parseFloat(before.max_cap_amount) : null);
-    if (maxCap !== null && plannedAmount > maxCap) {
-      const err = new Error(`Total alokasi bulanan (Rp ${plannedAmount.toLocaleString('id-ID')}) melebihi batas maksimal penetapan setahun (Rp ${maxCap.toLocaleString('id-ID')})`);
-      err.statusCode = 422;
-      throw err;
+    const feeTypeId = data.fee_type_id !== undefined ? (data.fee_type_id ? Number(data.fee_type_id) : null) : before.fee_type_id;
+    // Pos selain tagihan tidak dikenakan batas maksimal (maxCap null)
+    let maxCap = null;
+    if (feeTypeId) {
+      if (data.max_cap_amount !== undefined) {
+        maxCap = (data.max_cap_amount !== null && data.max_cap_amount !== '') ? parseFloat(data.max_cap_amount) : null;
+      } else {
+        maxCap = before.max_cap_amount ? parseFloat(before.max_cap_amount) : null;
+      }
     }
 
     await db('budget_plan_income_items')
       .where({ id: itemId, budget_plan_id: planId })
       .update({
         name: data.name !== undefined ? data.name : before.name,
-        fee_type_id: data.fee_type_id !== undefined ? data.fee_type_id : before.fee_type_id,
+        source_category: data.source_category !== undefined ? data.source_category : (before.source_category || (feeTypeId ? 'tagihan_santri' : 'lainnya')),
+        fee_type_id: feeTypeId,
+        credit_account_id: data.credit_account_id !== undefined ? (data.credit_account_id ? Number(data.credit_account_id) : null) : (before.credit_account_id || null),
+        cash_account_id: data.cash_account_id !== undefined ? (data.cash_account_id ? Number(data.cash_account_id) : null) : (before.cash_account_id || null),
         planned_amount: plannedAmount,
         max_cap_amount: maxCap,
+        notes: data.notes !== undefined ? data.notes : (before.notes || null),
         monthly_distribution: monthlyDist,
         updated_at: db.fn.now()
       });
@@ -362,7 +461,7 @@ class BudgetService {
   }
 
   async deleteIncomeItem(schoolUnitId, planId, itemId, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') return false;
 
     await db('budget_plan_income_items')
@@ -374,9 +473,12 @@ class BudgetService {
   /**
    * Generate Rencana Penerimaan RAPBS otomatis dari Penetapan Biaya Siswa
    * Sesuai aturan: Pos bulanan (SPP / billing_pattern='monthly') dikali 12 bulan.
+   * Mengaitkan otomatis Kategori Sumber Penerimaan ('tagihan_santri'),
+   * Pemetaan Akun Pendapatan (Kredit), dan Rekening Kas Penampung (Debet)
+   * merujuk pada Aturan Pembayaran (Kas Masuk) dari masing-masing jenis biaya.
    */
   async generateIncomeFromFeeAssignments(schoolUnitId, planId, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') {
       const err = new Error('Hanya RAPBS berstatus draft yang dapat digenerate rencana penerimaannya');
       err.statusCode = 422;
@@ -388,16 +490,103 @@ class BudgetService {
       academic_year_id: plan.academic_year_id
     });
 
-    const feeTypes = await db('fee_types').select('*');
+    // Ambil jenis biaya beserta pemetaan aturan pembayaran (kas masuk) & aturan penagihan
+    const feeTypes = await db('fee_types')
+      .leftJoin('chart_of_accounts as rev_acc', 'fee_types.related_revenue_account_id', 'rev_acc.id')
+      .leftJoin('transaction_account_mappings as payment_tam', 'fee_types.payment_account_mapping_id', 'payment_tam.id')
+      .leftJoin('transaction_account_mappings as billing_tam', 'fee_types.billing_account_mapping_id', 'billing_tam.id')
+      .select(
+        'fee_types.*',
+        'rev_acc.id as direct_rev_account_id',
+        'rev_acc.account_code as rev_account_code',
+        'rev_acc.account_name as rev_account_name',
+        'payment_tam.id as payment_tam_id',
+        'payment_tam.transaction_code as payment_tam_code',
+        'payment_tam.transaction_label as payment_tam_label',
+        'payment_tam.debit_account_id as payment_debit_account_id',
+        'payment_tam.credit_account_id as payment_credit_account_id',
+        'payment_tam.default_cash_account_id as payment_default_cash_account_id',
+        'billing_tam.id as billing_tam_id',
+        'billing_tam.credit_account_id as billing_credit_account_id',
+        'billing_tam.transaction_label as billing_tam_label'
+      );
+
+    // Ambil seluruh daftar kas aktif unit untuk fallback resolusi rekening kas penampung
+    const activeCashAccounts = await db('cash_accounts')
+      .where(function () {
+        if (schoolUnitId !== undefined && schoolUnitId !== null && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0) {
+          this.where('school_unit_id', schoolUnitId).orWhere('school_unit_id', 0);
+        }
+      })
+      .andWhere('is_active', true);
+
+    // Ambil seluruh aturan transaksi pembayaran aktif untuk fallback jika payment_account_mapping_id belum di-link
+    const allPaymentRules = await db('transaction_account_mappings')
+      .where(function () {
+        if (schoolUnitId !== undefined && schoolUnitId !== null && schoolUnitId !== 'all' && Number(schoolUnitId) !== 0) {
+          this.where('school_unit_id', schoolUnitId).orWhere('school_unit_id', 0);
+        }
+      })
+      .andWhere('is_active', true);
 
     // Akumulasi rencana penerimaan per pos biaya
     const incomeEstimates = {};
     feeTypes.forEach(ft => {
+      // 1. Temukan Aturan Pembayaran (Kas Masuk) terkait
+      let paymentRule = null;
+      if (ft.payment_tam_id) {
+        paymentRule = {
+          id: ft.payment_tam_id,
+          code: ft.payment_tam_code,
+          label: ft.payment_tam_label,
+          debit_account_id: ft.payment_debit_account_id,
+          credit_account_id: ft.payment_credit_account_id,
+          default_cash_account_id: ft.payment_default_cash_account_id
+        };
+      } else {
+        const found = allPaymentRules.find(r => r.related_fee_type_id === ft.id && (r.transaction_type === 'penambahan_kas' || r.transaction_type === 'cash_in'))
+          || allPaymentRules.find(r => r.related_fee_type_id === ft.id)
+          || allPaymentRules.find(r => r.transaction_code === 'student_bill_payment');
+        if (found) {
+          paymentRule = {
+            id: found.id,
+            code: found.transaction_code,
+            label: found.transaction_label,
+            debit_account_id: found.debit_account_id,
+            credit_account_id: found.credit_account_id,
+            default_cash_account_id: found.default_cash_account_id
+          };
+        }
+      }
+
+      // 2. Tentukan Akun Pendapatan (Kredit)
+      const resolvedCreditAccountId = ft.direct_rev_account_id
+        || ft.related_revenue_account_id
+        || ft.billing_credit_account_id
+        || paymentRule?.credit_account_id
+        || null;
+
+      // 3. Tentukan Rekening Kas/Bank Penampung (Debet)
+      let resolvedCashAccountId = paymentRule?.default_cash_account_id || null;
+      if (!resolvedCashAccountId && paymentRule?.debit_account_id) {
+        const matchedCash = activeCashAccounts.find(c => c.account_id === paymentRule.debit_account_id);
+        if (matchedCash) resolvedCashAccountId = matchedCash.id;
+      }
+      if (!resolvedCashAccountId && activeCashAccounts.length > 0) {
+        resolvedCashAccountId = activeCashAccounts[0].id;
+      }
+
+      const ruleNote = paymentRule?.label || paymentRule?.code || ft.billing_tam_label || 'Default Loket';
+
       incomeEstimates[ft.id] = {
         fee_type_id: ft.id,
         name: ft.name,
         billing_pattern: ft.billing_pattern,
         is_monthly: ft.billing_pattern === 'monthly' || ft.name.toLowerCase() === 'spp',
+        credit_account_id: resolvedCreditAccountId,
+        cash_account_id: resolvedCashAccountId,
+        source_category: 'tagihan_santri',
+        notes: `Auto-generated dari penetapan biaya santri (Aturan: ${ruleNote})`,
         total_nominal: 0,
         total_students: 0
       };
@@ -436,6 +625,10 @@ class BudgetService {
         return {
           budget_plan_id: planId,
           fee_type_id: i.fee_type_id,
+          source_category: i.source_category || 'tagihan_santri',
+          credit_account_id: i.credit_account_id || null,
+          cash_account_id: i.cash_account_id || null,
+          notes: i.notes || null,
           name: `${i.name} (${i.total_students} Santri${i.is_monthly ? ' × 12 Bln' : ''})`,
           planned_amount: i.total_nominal,
           max_cap_amount: i.total_nominal,
@@ -450,11 +643,63 @@ class BudgetService {
     }
 
     return db.transaction(async (trx) => {
-      // Hapus item penerimaan lama pada draft ini
-      await trx('budget_plan_income_items').where({ budget_plan_id: planId }).del();
+      // 1. Ambil pos penerimaan yang sudah ada di draft ini
+      const existingIncomeItems = await trx('budget_plan_income_items').where({ budget_plan_id: planId });
 
-      // Masukkan item penerimaan baru hasil kalkulasi penetapan biaya
-      await trx('budget_plan_income_items').insert(generatedItems);
+      // 2. Petakan pos tagihan santri yang sudah ada berdasarkan fee_type_id
+      const existingFeeMap = new Map();
+      existingIncomeItems.forEach(item => {
+        if (item.fee_type_id) {
+          existingFeeMap.set(Number(item.fee_type_id), item);
+        }
+      });
+
+      // 3. Lakukan smart upsert untuk generatedItems:
+      // - Jika pos jenis tagihan sudah ada: lakukan update nominal, plafon, sebaran bulanan, dan inherit akun tanpa menghapus ID
+      // - Jika pos jenis tagihan baru: insert pos baru
+      for (const item of generatedItems) {
+        const ftId = Number(item.fee_type_id);
+        if (existingFeeMap.has(ftId)) {
+          const existing = existingFeeMap.get(ftId);
+          await trx('budget_plan_income_items')
+            .where({ id: existing.id })
+            .update({
+              name: item.name,
+              source_category: 'tagihan_santri',
+              credit_account_id: existing.credit_account_id || item.credit_account_id || null,
+              cash_account_id: existing.cash_account_id || item.cash_account_id || null,
+              notes: existing.notes || item.notes || null,
+              planned_amount: item.planned_amount,
+              max_cap_amount: item.max_cap_amount,
+              monthly_distribution: item.monthly_distribution,
+              updated_at: db.fn.now()
+            });
+          existingFeeMap.delete(ftId);
+        } else {
+          await trx('budget_plan_income_items').insert(item);
+        }
+      }
+
+      // 4. Untuk pos tagihan santri yang sebelumnya ada tapi di penetapan baru sudah 0 nominal / tidak ada santri:
+      // Jika terhubung ke pos belanja, set planned_amount = 0 agar integritas referensi belanja tetap utuh; jika tidak, boleh dihapus
+      for (const orphan of existingFeeMap.values()) {
+        const isReferenced = await trx('budget_plan_expense_items')
+          .where({ fund_source_income_item_id: orphan.id })
+          .first();
+        if (isReferenced) {
+          await trx('budget_plan_income_items')
+            .where({ id: orphan.id })
+            .update({
+              planned_amount: 0,
+              max_cap_amount: 0,
+              updated_at: db.fn.now()
+            });
+        } else {
+          await trx('budget_plan_income_items').where({ id: orphan.id }).del();
+        }
+      }
+
+      // Catatan: Seluruh pos manual (fee_type_id null atau kategori sumber dana selain tagihan seperti BOS, Hibah, Donasi, Unit Usaha, dll) TETAP UTUH dan TIDAK DISENTUH SAMA SEKALI.
 
       const updated = await this.getBudgetPlanById(schoolUnitId, planId);
 
@@ -465,8 +710,8 @@ class BudgetService {
         entityType: 'budget_plan',
         entityId: planId,
         dataAfter: {
-          total_items: generatedItems.length,
-          items: generatedItems
+          total_items: updated?.income_items?.length || 0,
+          generated_items: generatedItems
         },
         trx
       });
@@ -476,7 +721,7 @@ class BudgetService {
   }
 
   async addExpenseItem(schoolUnitId, planId, data, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') {
       const err = new Error('Hanya RAPBS berstatus draft yang dapat ditambahkan item belanja');
       err.statusCode = 422;
@@ -494,12 +739,7 @@ class BudgetService {
 
     if (entryMode === 'lump_sum') {
       // 1. Mode Lump Sum per Kegiatan
-      lumpSumDesc = data.lump_sum_description ? String(data.lump_sum_description).trim() : '';
-      if (!lumpSumDesc) {
-        const err = new Error('Uraian kegiatan / keperluan (lump_sum_description) wajib diisi untuk mode belanja Lump Sum');
-        err.statusCode = 422;
-        throw err;
-      }
+      lumpSumDesc = data.lump_sum_description ? String(data.lump_sum_description).trim() : null;
 
       if (monthlyDist) {
         const distObj = typeof monthlyDist === 'string' ? JSON.parse(monthlyDist) : monthlyDist;
@@ -554,6 +794,21 @@ class BudgetService {
     let fundSourceIncomeItemId = data.fund_source_income_item_id || null;
     let fundSourceFeeTypeId = data.fund_source_fee_type_id || null;
 
+    // Resolusi Akun Akuntansi & Kas Terkait (Opsional / Inherit dari Katalog jika ada)
+    let debitAccountId = data.debit_account_id ? Number(data.debit_account_id) : null;
+    let creditAccountId = data.credit_account_id ? Number(data.credit_account_id) : null;
+    let cashAccountId = data.cash_account_id ? Number(data.cash_account_id) : null;
+
+    if (catalogItemId && (!debitAccountId || !creditAccountId || !cashAccountId || !fundSourceIncomeItemId)) {
+      const catalogItem = await db('catalog_items').where({ id: catalogItemId }).first();
+      if (catalogItem) {
+        if (!debitAccountId && catalogItem.debit_account_id) debitAccountId = catalogItem.debit_account_id;
+        if (!creditAccountId && catalogItem.credit_account_id) creditAccountId = catalogItem.credit_account_id;
+        if (!cashAccountId && catalogItem.cash_account_id) cashAccountId = catalogItem.cash_account_id;
+        if (!fundSourceIncomeItemId && catalogItem.fund_source_income_item_id) fundSourceIncomeItemId = catalogItem.fund_source_income_item_id;
+      }
+    }
+
     if (fundSources && typeof fundSources === 'string') {
       try { fundSources = JSON.parse(fundSources); } catch (e) { fundSources = []; }
     }
@@ -597,6 +852,9 @@ class BudgetService {
       budget_plan_id: planId,
       budget_program_id: data.budget_program_id,
       catalog_item_id: catalogItemId,
+      debit_account_id: debitAccountId,
+      credit_account_id: creditAccountId,
+      cash_account_id: cashAccountId,
       fund_source_fee_type_id: fundSourceFeeTypeId,
       fund_source_income_item_id: fundSourceIncomeItemId,
       entry_mode: entryMode,
@@ -613,7 +871,7 @@ class BudgetService {
   }
 
   async updateExpenseItem(schoolUnitId, planId, itemId, data, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') {
       const err = new Error('Hanya RAPBS berstatus draft yang dapat diubah item belanjanya');
       err.statusCode = 422;
@@ -645,14 +903,8 @@ class BudgetService {
 
     if (newEntryMode === 'lump_sum') {
       lumpSumDesc = data.lump_sum_description !== undefined
-        ? String(data.lump_sum_description).trim()
-        : (before.lump_sum_description || '');
-
-      if (!lumpSumDesc) {
-        const err = new Error('Uraian kegiatan / keperluan (lump_sum_description) wajib diisi untuk mode belanja Lump Sum');
-        err.statusCode = 422;
-        throw err;
-      }
+        ? (String(data.lump_sum_description).trim() || null)
+        : (before.lump_sum_description || null);
 
       if (data.monthly_distribution !== undefined) {
         const distObj = typeof data.monthly_distribution === 'string' ? JSON.parse(data.monthly_distribution) : data.monthly_distribution;
@@ -699,6 +951,17 @@ class BudgetService {
       plannedAmount = quantity * unitPrice;
     }
 
+    // Resolusi Akun Akuntansi & Kas Terkait
+    let debitAccountId = data.debit_account_id !== undefined
+      ? (data.debit_account_id ? Number(data.debit_account_id) : null)
+      : (before.debit_account_id || null);
+    let creditAccountId = data.credit_account_id !== undefined
+      ? (data.credit_account_id ? Number(data.credit_account_id) : null)
+      : (before.credit_account_id || null);
+    let cashAccountId = data.cash_account_id !== undefined
+      ? (data.cash_account_id ? Number(data.cash_account_id) : null)
+      : (before.cash_account_id || null);
+
     // Resolusi Pos Sumber Dana
     let fundSources = data.fund_sources !== undefined ? data.fund_sources : before.fund_sources;
     let fundSourceIncomeItemId = data.fund_source_income_item_id !== undefined ? data.fund_source_income_item_id : before.fund_source_income_item_id;
@@ -737,6 +1000,9 @@ class BudgetService {
       .update({
         budget_program_id: data.budget_program_id !== undefined ? data.budget_program_id : before.budget_program_id,
         catalog_item_id: catalogItemId || null,
+        debit_account_id: debitAccountId,
+        credit_account_id: creditAccountId,
+        cash_account_id: cashAccountId,
         fund_source_fee_type_id: fundSourceFeeTypeId || null,
         fund_source_income_item_id: fundSourceIncomeItemId || null,
         entry_mode: newEntryMode,
@@ -754,7 +1020,7 @@ class BudgetService {
   }
 
   async deleteExpenseItem(schoolUnitId, planId, itemId, userId = null) {
-    const plan = await db('budget_plans').where({ id: planId, school_unit_id: schoolUnitId }).first();
+    const plan = await this._findPlan(schoolUnitId, planId);
     if (!plan || plan.status !== 'draft') return false;
 
     await db('budget_plan_expense_items')

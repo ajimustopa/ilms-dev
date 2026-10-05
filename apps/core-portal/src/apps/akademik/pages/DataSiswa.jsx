@@ -30,6 +30,34 @@ import {
   ArrowDown
 } from 'lucide-react';
 
+function parseDateToYmd(val) {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const clean = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+    if (clean.includes('T') || clean.includes('Z')) {
+      const d = new Date(clean);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    }
+    const match = clean.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (match) {
+      return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+    }
+  }
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
 export default function DataSiswa() {
   const { activeSchoolUnit } = useAuth();
   const [students, setStudents] = useState([]);
@@ -249,7 +277,7 @@ export default function DataSiswa() {
       birth_date: '',
       address: '',
       status: 'aktif',
-      enrolled_at: new Date().toISOString().split('T')[0]
+      enrolled_at: parseDateToYmd(new Date())
     });
     setErrorMsg('');
     try {
@@ -289,10 +317,10 @@ export default function DataSiswa() {
       full_name: student.full_name || '',
       gender: student.gender || 'L',
       birth_place: student.birth_place || '',
-      birth_date: student.birth_date ? student.birth_date.split('T')[0] : '',
+      birth_date: parseDateToYmd(student.birth_date),
       address: student.address || '',
       status: student.status || 'aktif',
-      enrolled_at: student.enrolled_at ? student.enrolled_at.split('T')[0] : (student.admission_date ? student.admission_date.split('T')[0] : new Date().toISOString().split('T')[0])
+      enrolled_at: parseDateToYmd(student.enrolled_at || student.admission_date || new Date())
     });
     setErrorMsg('');
     setModalOpen(true);
@@ -323,7 +351,8 @@ export default function DataSiswa() {
         academic_year_id: targetYearId,
         class_group_id: resolvedClassGroupId,
         initial_grade_level_id: fullDetail.admission?.initial_grade_level_id ? String(fullDetail.admission.initial_grade_level_id) : (prev.initial_grade_level_id || ''),
-        enrolled_at: fullDetail.enrolled_at ? fullDetail.enrolled_at.split('T')[0] : (fullDetail.admission?.admission_date ? fullDetail.admission.admission_date.split('T')[0] : prev.enrolled_at),
+        birth_date: parseDateToYmd(fullDetail.birth_date || prev.birth_date),
+        enrolled_at: parseDateToYmd(fullDetail.enrolled_at || fullDetail.admission?.admission_date || prev.enrolled_at),
         registration_type: fullDetail.admission?.registration_type ? (String(fullDetail.admission.registration_type).toLowerCase().includes('pindah') ? 'Siswa Pindahan' : 'Siswa Baru') : prev.registration_type,
         previous_school_name: fullDetail.admission?.previous_school_name || prev.previous_school_name,
         previous_school_address: fullDetail.admission?.previous_school_address || prev.previous_school_address
@@ -959,7 +988,7 @@ export default function DataSiswa() {
 
       {/* Modal Tambah / Edit Siswa */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800">
@@ -1289,7 +1318,7 @@ export default function DataSiswa() {
 
       {/* Modal Kelola Orang Tua / Wali */}
       {guardianModalOpen && selectedStudentForGuardian && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
@@ -1408,7 +1437,7 @@ export default function DataSiswa() {
 
       {/* Modal Masukkan / Pindah Siswa ke Rombel */}
       {assignRombelModalOpen && selectedStudentForRombel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -1489,7 +1518,7 @@ export default function DataSiswa() {
 
       {/* Modal Kenaikan Kelas / Roll-over Tahun Ajaran */}
       {promoteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">

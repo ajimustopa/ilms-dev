@@ -9,5 +9,6 @@ router.get('/vendors/:id', verifyJwt, requireRole('admin', 'kepala_kantin'), con
 router.post('/vendors', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.createVendor);
 router.put('/vendors/:id', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.updateVendor);
 router.patch('/vendors/:id/status', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.updateStatus);
+router.get('/vendors/:id/status-histories', verifyJwt, requireRole('admin', 'kepala_kantin'), controller.listStatusHistories);
 
 module.exports = router;

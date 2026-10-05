@@ -21,3 +21,63 @@ export const getAppLoginPath = (pathname = '') => {
   
   return '/core/login';
 };
+
+/**
+ * Cek apakah user merupakan akun Kasir Kantin murni (bukan admin/pengelola).
+ * Akun kasir hanya diizinkan membuka halaman POS (/kantin/pos).
+ */
+export const isCashierOnlyUser = (user) => {
+  if (!user) return false;
+
+  const userRoles = new Set();
+  if (user.account_type) userRoles.add(String(user.account_type).toLowerCase());
+  if (user.role) userRoles.add(String(user.role).toLowerCase());
+  if (Array.isArray(user.roles)) {
+    user.roles.forEach(r => userRoles.add((typeof r === 'string' ? r : r.name || r.role_name || '').toLowerCase()));
+  }
+  if (Array.isArray(user.school_roles)) {
+    user.school_roles.forEach(sr => {
+      if (sr.role_name) userRoles.add(String(sr.role_name).toLowerCase());
+      if (sr.name) userRoles.add(String(sr.name).toLowerCase());
+    });
+  }
+  if (Array.isArray(user.school_units)) {
+    user.school_units.forEach(su => {
+      if (su.role) userRoles.add(String(su.role).toLowerCase());
+      if (Array.isArray(su.roles)) {
+        su.roles.forEach(r => userRoles.add((typeof r === 'string' ? r : r.name || r.role_name || '').toLowerCase()));
+      }
+    });
+  }
+
+  const userPermissions = new Set();
+  if (Array.isArray(user.permissions)) {
+    user.permissions.forEach(p => userPermissions.add(String(p).toLowerCase()));
+  }
+
+  const isSuperOrAdmin =
+    user.is_super_admin ||
+    userRoles.has('super_admin') ||
+    userRoles.has('superadmin') ||
+    userRoles.has('admin') ||
+    userRoles.has('admin_yayasan') ||
+    userRoles.has('admin_satuan_pendidikan') ||
+    userRoles.has('admin_satuan') ||
+    userRoles.has('pengelola_kantin') ||
+    userRoles.has('kepala_kantin') ||
+    userRoles.has('bendahara_kantin') ||
+    userRoles.has('bendahara') ||
+    userRoles.has('kepala_sekolah') ||
+    userRoles.has('tu') ||
+    userPermissions.has('kantin.manage') ||
+    userPermissions.has('core.all');
+
+  if (isSuperOrAdmin) return false;
+
+  return (
+    userRoles.has('kasir_kantin') ||
+    userRoles.has('kasir') ||
+    userRoles.has('kasir pos') ||
+    userPermissions.has('kantin.pos')
+  );
+};

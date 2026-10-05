@@ -159,6 +159,14 @@ class ReportsController {
     } catch (err) { next(err); }
   };
 
+  getCollectionPerformance = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const data = await reportsService.getCollectionPerformance(schoolUnitId, req.query);
+      res.json({ success: true, data, message: 'Data analisis kinerja penerimaan berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  };
+
   getStudentLedgerPdf = async (req, res, next) => {
     try {
       const schoolUnitId = this.getSchoolUnitId(req);
@@ -187,6 +195,52 @@ class ReportsController {
       const schoolUnitId = this.getSchoolUnitId(req);
       const classes = await crossModuleServices.listClassGroups(schoolUnitId, req.query.academic_year_id);
       res.json({ success: true, data: classes, message: 'Daftar rombel berhasil dimuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  getStudentLedgerFilterOptions = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const isUnit = (val) => val && val !== 'all' && val !== 'foundation' && !isNaN(Number(val)) && Number(val) > 0;
+      const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
+      const queryObj = targetUnit ? { satuan_pendidikan_id: targetUnit } : {};
+
+      const [cohorts, gradeLevels] = await Promise.all([
+        crossModuleServices.listCohorts(queryObj).catch(() => []),
+        crossModuleServices.listGradeLevels(queryObj).catch(() => [])
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          cohorts,
+          grade_levels: gradeLevels
+        },
+        message: 'Opsi filter kartu bayar siswa berhasil dimuat',
+        errors: null
+      });
+    } catch (err) { next(err); }
+  };
+
+  listCohorts = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const isUnit = (val) => val && val !== 'all' && val !== 'foundation' && !isNaN(Number(val)) && Number(val) > 0;
+      const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
+      const queryObj = targetUnit ? { satuan_pendidikan_id: targetUnit } : {};
+      const cohorts = await crossModuleServices.listCohorts(queryObj).catch(() => []);
+      res.json({ success: true, data: cohorts, message: 'Daftar angkatan berhasil dimuat', errors: null });
+    } catch (err) { next(err); }
+  };
+
+  listGradeLevels = async (req, res, next) => {
+    try {
+      const schoolUnitId = this.getSchoolUnitId(req);
+      const isUnit = (val) => val && val !== 'all' && val !== 'foundation' && !isNaN(Number(val)) && Number(val) > 0;
+      const targetUnit = isUnit(schoolUnitId) ? Number(schoolUnitId) : null;
+      const queryObj = targetUnit ? { satuan_pendidikan_id: targetUnit } : {};
+      const gradeLevels = await crossModuleServices.listGradeLevels(queryObj).catch(() => []);
+      res.json({ success: true, data: gradeLevels, message: 'Daftar tingkat kelas berhasil dimuat', errors: null });
     } catch (err) { next(err); }
   };
 

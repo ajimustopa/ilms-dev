@@ -76,10 +76,34 @@ router.post(
   controller.notifyOverdueBill
 );
 router.get(
+  '/reports/student-ledger/filter-options',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getStudentLedgerFilterOptions
+);
+router.get(
+  '/reports/student-ledger/filters/cohorts',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.listCohorts
+);
+router.get(
+  '/reports/student-ledger/filters/grade-levels',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.listGradeLevels
+);
+router.get(
   '/reports/student-ledger',
   verifyJwt,
   requirePermission('keuangan.reports.view'),
   controller.getClassStudentLedger
+);
+router.get(
+  '/reports/student-ledger/collection-performance',
+  verifyJwt,
+  requirePermission('keuangan.reports.view'),
+  controller.getCollectionPerformance
 );
 router.get(
   '/reports/student-ledger/:student_id',

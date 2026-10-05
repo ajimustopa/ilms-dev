@@ -23,19 +23,25 @@ import {
 
 const MODULE_LABELS = {
   core: 'Core Service & Pengaturan Sistem',
+  website_utama: 'Website Utama & Publikasi Informasi (CMS)',
   kepegawaian: 'Kepegawaian, GTK & SDM',
-  akademik: 'Akademik, Kurikulum & Siswa',
-  keuangan: 'Keuangan, Kas & Tagihan SPP',
+  'kepegawaian.payroll': 'Kepegawaian — Penggajian & Payroll',
+  akademik: 'Akademik, Kurikulum & Nilai Siswa',
+  keuangan: 'Keuangan, Kas, Tagihan SPP & Pembukuan',
+  kantin: 'Kantin Sekolah & e-Wallet Santri',
+  dapur: 'Dapur & Logistik Makan Santri',
+  sarpras: 'Sarana, Prasarana & Aset',
+  perpustakaan: 'Perpustakaan Digital & Sirkulasi Buku',
+  al_quran: 'Al-Qur\'an & Tahfidz',
+  manajemen: 'Manajemen & Perencanaan Strategis (RKT/Monev/BSC)',
+  ppdb: 'PPDB Online (Penerimaan Peserta Didik Baru)',
+  psb: 'PSB Terintegrasi (Penerimaan Santri Baru)',
   kesiswaan: 'Kesiswaan & Ekstrakurikuler',
-  sarpras: 'Sarana & Prasarana',
-  perpustakaan: 'Perpustakaan Digital',
-  cbt: 'CBT & Ujian Online',
   bk: 'Bimbingan & Konseling (BK)',
+  cbt: 'CBT & Ujian Online',
   alumni: 'Tracer Study & Alumni',
-  ppdb: 'PPDB / PSB Online',
   portal_ortu: 'Portal Orang Tua',
-  portal_siswa: 'Portal Siswa',
-  al_quran: 'Al-Qur\'an & Tahfidz'
+  portal_siswa: 'Portal Siswa'
 };
 
 export default function RoleManagement() {
@@ -256,7 +262,7 @@ export default function RoleManagement() {
             <span>Manajemen Role & Hak Akses (RBAC)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Definisi master peran baku dan paket izin (permissions) untuk seluruh 14 modul aplikasi sekolah.
+            Definisi master peran baku dan paket izin (permissions) untuk seluruh modul ekosistem aplikasi sekolah.
           </p>
         </div>
         <div className="flex items-center gap-2">

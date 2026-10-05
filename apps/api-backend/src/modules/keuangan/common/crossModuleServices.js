@@ -83,8 +83,21 @@ async function getStudent(studentId, academicYearId = null) {
 
   try {
     const student = await dbAkademik('students')
-      .where({ id })
-      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id', 'enrolled_at')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
+      .where({ 'students.id': id })
+      .select(
+        'students.id',
+        'students.satuan_pendidikan_id',
+        'students.nis',
+        'students.nisn',
+        'students.full_name',
+        'students.gender',
+        'students.status',
+        'students.user_id',
+        'students.cohort_id',
+        'cohorts.name as cohort_name',
+        'students.enrolled_at'
+      )
       .first()
       .timeout(5000, { cancel: true });
 
@@ -173,6 +186,7 @@ async function getStudent(studentId, academicYearId = null) {
       status: student.status,
       user_id: student.user_id,
       cohort_id: student.cohort_id,
+      cohort_name: student.cohort_name || null,
       registration_type: registrationType,
       registration_type_display: registrationTypeDisplay,
       entry_type: entryType,
@@ -204,8 +218,21 @@ async function getStudentsByIds(studentIds = [], academicYearId = null) {
 
   try {
     const students = await dbAkademik('students')
-      .whereIn('id', validIds)
-      .select('id', 'satuan_pendidikan_id', 'nis', 'nisn', 'full_name', 'gender', 'status', 'user_id', 'cohort_id', 'enrolled_at')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
+      .whereIn('students.id', validIds)
+      .select(
+        'students.id',
+        'students.satuan_pendidikan_id',
+        'students.nis',
+        'students.nisn',
+        'students.full_name',
+        'students.gender',
+        'students.status',
+        'students.user_id',
+        'students.cohort_id',
+        'cohorts.name as cohort_name',
+        'students.enrolled_at'
+      )
       .timeout(10000, { cancel: true });
 
     let matchingAyIds = [];
@@ -272,25 +299,23 @@ async function getStudentsByIds(studentIds = [], academicYearId = null) {
       let gradeLevelId = matchedEnrollment?.grade_level_id || null;
 
       if (!className) {
-        let isFutureStudent = false;
-        if (currentAyObj) {
-          const ayEndDate = currentAyObj.end_date ? new Date(currentAyObj.end_date) : null;
-          const enrolledDate = s.enrolled_at ? new Date(s.enrolled_at) : null;
-          if (enrolledDate && ayEndDate && enrolledDate > ayEndDate) {
-            isFutureStudent = true;
-          } else {
-            const studentEns = allEnrollments.filter(e => e.student_id === s.id);
-            const hasFutureEnrollment = studentEns.some(e => e.academic_year_id > (currentAyObj.id || 0));
-            if (hasFutureEnrollment) isFutureStudent = true;
-          }
-        }
+        const studentEns = allEnrollments.filter(e => e.student_id === s.id);
+        const lastEn = studentEns.length > 0 ? studentEns[studentEns.length - 1] : null;
 
-        if (isFutureStudent) {
-          className = 'Calon Siswa Baru';
-        } else if (s.status === 'lulus') {
-          className = 'Alumni';
+        if (s.status === 'lulus') {
+          className = lastEn ? `${lastEn.class_group_name} (Lulus)` : 'Alumni';
+          classId = lastEn?.class_group_id || null;
+          gradeLevelId = lastEn?.grade_level_id || null;
         } else if (s.status === 'keluar') {
-          className = 'Keluar / Mutasi';
+          className = lastEn ? `${lastEn.class_group_name} (Keluar)` : 'Keluar / Mutasi';
+          classId = lastEn?.class_group_id || null;
+          gradeLevelId = lastEn?.grade_level_id || null;
+        } else if (lastEn) {
+          className = lastEn.class_group_name;
+          classId = lastEn.class_group_id;
+          gradeLevelId = lastEn.grade_level_id;
+        } else if (s.status === 'calon' || s.status === 'ppdb') {
+          className = 'Calon Siswa Baru';
         } else {
           className = '-';
         }
@@ -307,6 +332,7 @@ async function getStudentsByIds(studentIds = [], academicYearId = null) {
         status: s.status,
         user_id: s.user_id,
         cohort_id: s.cohort_id,
+        cohort_name: s.cohort_name || null,
         registration_type: registrationType,
         registration_type_display: registrationTypeDisplay,
         entry_type: entryType,
@@ -387,7 +413,8 @@ async function getAllActiveStudents(schoolUnitId, filters = {}) {
     }).leftJoin('class_groups', function() {
       this.on('student_class_enrollments.class_group_id', '=', 'class_groups.id')
         .andOn('class_groups.type', '=', dbAkademik.raw('?', ['reguler']));
-    }).leftJoin('student_admissions as sa', 'sa.student_id', 'students.id');
+    }).leftJoin('student_admissions as sa', 'sa.student_id', 'students.id')
+    .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id');
 
     const regTypeFilter = filters.registration_type || filters.jenis_pendaftaran;
     if (regTypeFilter && regTypeFilter !== 'all') {
@@ -419,6 +446,7 @@ async function getAllActiveStudents(schoolUnitId, filters = {}) {
       'students.full_name',
       'students.gender',
       'students.cohort_id',
+      'cohorts.name as cohort_name',
       'sa.registration_type as adm_registration_type',
       'class_groups.id as class_id',
       'class_groups.name as class_name',
@@ -431,6 +459,8 @@ async function getAllActiveStudents(schoolUnitId, filters = {}) {
       const isPindahan = rawReg.includes('pindah');
       return {
         ...s,
+        cohort_id: s.cohort_id,
+        cohort_name: s.cohort_name || null,
         registration_type: isPindahan ? 'pindahan' : 'siswa_baru',
         registration_type_display: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru',
         entry_type: isPindahan ? 'pindahan' : 'reguler',
@@ -459,6 +489,7 @@ async function getStudentsByClass(classId, schoolUnitId) {
     const enrollments = await dbAkademik('student_class_enrollments')
       .join('students', 'student_class_enrollments.student_id', 'students.id')
       .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
       .where({
         'student_class_enrollments.class_group_id': cId
       })
@@ -473,6 +504,7 @@ async function getStudentsByClass(classId, schoolUnitId) {
         'students.gender',
         'students.status as student_status',
         'students.cohort_id',
+        'cohorts.name as cohort_name',
         'class_groups.id as class_id',
         'class_groups.name as class_name',
         'class_groups.grade_level_id',
@@ -519,6 +551,7 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
         .join('students', 'student_class_enrollments.student_id', 'students.id')
         .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
         .leftJoin('student_admissions as sa', 'sa.student_id', 'students.id')
+        .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
         .whereIn('student_class_enrollments.academic_year_id', targetYearIds)
         .where('class_groups.type', 'reguler')
         .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
@@ -531,6 +564,7 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
           'students.gender',
           'students.status as student_status',
           'students.cohort_id',
+          'cohorts.name as cohort_name',
           'sa.registration_type as adm_registration_type',
           'class_groups.id as class_id',
           'class_groups.name as class_name',
@@ -550,6 +584,7 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
         .join('students', 'student_class_history.student_id', 'students.id')
         .join('class_groups', 'student_class_history.class_group_id', 'class_groups.id')
         .leftJoin('student_admissions as sa', 'sa.student_id', 'students.id')
+        .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
         .whereIn('student_class_history.academic_year_id', targetYearIds)
         .where('class_groups.type', 'reguler')
         .select(
@@ -561,6 +596,7 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
           'students.gender',
           'students.status as student_status',
           'students.cohort_id',
+          'cohorts.name as cohort_name',
           'sa.registration_type as adm_registration_type',
           'class_groups.id as class_id',
           'class_groups.name as class_name',
@@ -609,6 +645,8 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
         const isPindahan = rawReg.includes('pindah');
         map.set(s.id, {
           ...s,
+          cohort_id: s.cohort_id,
+          cohort_name: s.cohort_name || null,
           registration_type: isPindahan ? 'pindahan' : 'siswa_baru',
           registration_type_display: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru',
           entry_type: isPindahan ? 'pindahan' : 'reguler',
@@ -621,6 +659,8 @@ async function getStudentsByAcademicYear(schoolUnitId, filters = {}) {
         const isPindahan = rawReg.includes('pindah');
         map.set(s.id, {
           ...s,
+          cohort_id: s.cohort_id,
+          cohort_name: s.cohort_name || null,
           registration_type: isPindahan ? 'pindahan' : 'siswa_baru',
           registration_type_display: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru',
           entry_type: isPindahan ? 'pindahan' : 'reguler',
@@ -731,6 +771,46 @@ async function listCohorts(query = {}) {
     console.error('[Keuangan CrossModule] Gagal mengambil daftar cohorts:', err.message);
     throw new Error(`Gagal terhubung ke data Akademik (List Cohorts): ${err.message}`);
   }
+}
+
+/**
+ * Mendapatkan daftar Rombel / Kelas (Class Groups) dari modul Akademik
+ * @param {Object|number|string} query
+ * @returns {Promise<Array>}
+ */
+async function listClassGroups(query = {}) {
+  try {
+    let q = dbAkademik('class_groups');
+    const unitId = typeof query === 'object' && query !== null
+      ? (query.satuan_pendidikan_id || query.school_unit_id)
+      : (typeof query === 'number' || typeof query === 'string' ? query : null);
+
+    if (unitId && unitId !== 'all' && unitId !== 'foundation' && !isNaN(Number(unitId)) && Number(unitId) > 0) {
+      q = q.where('satuan_pendidikan_id', Number(unitId));
+    }
+    if (typeof query === 'object' && query !== null) {
+      if (query.academic_year_id && query.academic_year_id !== 'all' && !isNaN(Number(query.academic_year_id))) {
+        q = q.where('academic_year_id', Number(query.academic_year_id));
+      }
+      if (query.type) {
+        q = q.where('type', query.type);
+      }
+    }
+    const list = await q.select('id', 'satuan_pendidikan_id as school_unit_id', 'satuan_pendidikan_id', 'academic_year_id', 'grade_level_id', 'name', 'capacity', 'type')
+      .orderBy('name', 'asc')
+      .timeout(5000, { cancel: true });
+    return list;
+  } catch (err) {
+    console.error('[Keuangan CrossModule] Gagal mengambil daftar rombel / class_groups:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Alias getSchoolClasses untuk kompatibilitas lintas modul
+ */
+async function getSchoolClasses(schoolUnitId, academicYearId = null) {
+  return listClassGroups({ school_unit_id: schoolUnitId, academic_year_id: academicYearId });
 }
 
 /**
@@ -1030,9 +1110,23 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
     const startYearStr = targetAyName ? targetAyName.split('/')[0].trim() : null;
     const isSingleUnit = schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' && schoolUnitId !== 'null' && Number(schoolUnitId) !== 0;
 
+    // Helper: cari ID grade_level untuk jenjang masuk awal (Kelas 7 untuk SMP, Kelas 10 untuk SMA, dsb)
+    let entryGradeQuery = dbAkademik('grade_levels').where(b => {
+      b.where('order', 1)
+        .orWhere('name', 'like', '%7%')
+        .orWhere('name', 'like', '%10%')
+        .orWhere('name', 'like', '%1%');
+    });
+    if (isSingleUnit) {
+      entryGradeQuery = entryGradeQuery.where('satuan_pendidikan_id', Number(schoolUnitId));
+    }
+    const entryGradeRows = await entryGradeQuery.select('id', 'name', 'satuan_pendidikan_id');
+    const entryGradeIds = entryGradeRows.map(g => g.id);
+
     // 1. Ambil pendaftar baru & pindahan dari modul PSB (psb_registrants)
     let query = dbAkademik('psb_registrants as r')
-      .join('psb_processes as p', 'r.psb_process_id', 'p.id');
+      .join('psb_processes as p', 'r.psb_process_id', 'p.id')
+      .leftJoin('grade_levels as gl', 'r.requested_grade_level_id', 'gl.id');
 
     if (isSingleUnit) {
       query = query.where('r.satuan_pendidikan_id', Number(schoolUnitId));
@@ -1068,6 +1162,20 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
       });
     }
 
+    // Ambil seluruh calon santri yang mendaftar pada proses PSB tahun ajaran sasaran
+    // (baik pendaftar baru maupun pindahan, baik yang belum maupun sudah masuk rombel)
+    if (entryGradeIds.length > 0) {
+      query = query.where(b => {
+        b.where('r.entry_type', 'pindahan')
+          .orWhereNull('r.requested_grade_level_id')
+          .orWhereIn('r.requested_grade_level_id', entryGradeIds)
+          .orWhere('gl.order', 1)
+          .orWhere('gl.name', 'like', '%7%')
+          .orWhere('gl.name', 'like', '%10%')
+          .orWhere('gl.name', 'like', '%1%');
+      });
+    }
+
     const rows = await query
       .select(
         'r.id',
@@ -1078,14 +1186,33 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
         'r.satuan_pendidikan_id',
         'p.target_academic_year',
         'p.name as process_name',
-        'r.placed_student_id as student_id'
+        'r.placed_student_id as student_id',
+        'gl.name as requested_grade_name'
       )
       .orderBy('r.id', 'desc');
 
     const mappedRows = rows.map(r => {
       const isPindahan = r.entry_type === 'pindahan';
+      const isPlaced = Boolean(r.student_id); // r.placed_student_id
+
+      let candidateCategory = 'registrant_unplaced';
+      let candidateCategoryLabel = 'Pendaftar PPDB (Belum Masuk Rombel)';
+
+      if (isPlaced) {
+        candidateCategory = isPindahan ? 'student_transfer' : 'registrant_placed';
+        candidateCategoryLabel = isPindahan ? 'Siswa Pindahan (Sudah di Rombel)' : 'Siswa Baru (Sudah di Rombel)';
+      } else if (isPindahan) {
+        candidateCategory = 'registrant_transfer_unplaced';
+        candidateCategoryLabel = 'Pendaftar Pindahan (Belum di Rombel)';
+      }
+
       return {
         ...r,
+        student_id: r.student_id || null,
+        is_placed: isPlaced,
+        is_student: isPlaced,
+        candidate_category: candidateCategory,
+        candidate_category_label: candidateCategoryLabel,
         entry_type_label: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru (Reguler)',
         registration_type: isPindahan ? 'pindahan' : 'siswa_baru',
         registration_type_display: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru',
@@ -1093,52 +1220,106 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
       };
     });
 
-    // 2. Ambil siswa baru / pindahan yang tercatat di tabel students HANYA untuk tahun ajaran sasaran ini
+    // 2. Ambil siswa baru di kelas 7/10 atau siswa pindahan yang tahun masuknya di tahun ajaran sasaran
     let studentRows = [];
     if (ayRow && startYearStr) {
+      const activeAyIds = targetAyIds.length > 0 ? targetAyIds : [ayRow.id];
+      const ayStartDate = ayRow.start_date ? new Date(ayRow.start_date) : null;
+      const ayEndDate = ayRow.end_date ? new Date(ayRow.end_date) : null;
+
       let sQuery = dbAkademik('students as s')
         .leftJoin('cohorts as c', 's.cohort_id', 'c.id')
-        .leftJoin('student_admissions as sa', 'sa.student_id', 's.id');
+        .leftJoin('student_admissions as sa', 'sa.student_id', 's.id')
+        .leftJoin('grade_levels as sa_gl', 'sa.initial_grade_level_id', 'sa_gl.id');
 
       if (isSingleUnit) {
         sQuery = sQuery.where('s.satuan_pendidikan_id', Number(schoolUnitId));
       }
 
-      const activeAyIds = targetAyIds.length > 0 ? targetAyIds : [ayRow.id];
-
-      // Pastikan hanya siswa yang baru masuk di Tahun Ajaran ini (bukan siswa yang naik dari tahun sebelumnya):
-      // 1. Cohort-nya harus sesuai tahun ajaran ini (misal: '2026' untuk TA 2026/2027) ATAU enrolled_at di tahun ini ATAU pertama kali masuk rombel di TA ini
-      // 2. TIDAK terdaftar di angkatan tahun sebelumnya (c.year >= startYearStr)
-      // 3. TIDAK memiliki riwayat kelas/enrollment di tahun ajaran sebelum tahun ajaran target (ay.start_date < targetAy.start_date)
-      sQuery = sQuery.where(b => {
-        b.where('c.year', startYearStr)
-          .orWhere('c.name', 'like', `%${startYearStr}%`)
-          .orWhere(dbAkademik.raw('YEAR(s.enrolled_at)'), startYearStr)
-          .orWhere(function() {
-            this.whereExists(function() {
-              this.select('sce.id')
-                .from('student_class_enrollments as sce')
-                .whereRaw('sce.student_id = s.id')
-                .whereIn('sce.academic_year_id', activeAyIds);
-            }).whereNotExists(function() {
-              this.select('prev_sce.id')
-                .from('student_class_enrollments as prev_sce')
-                .join('academic_years as prev_ay', 'prev_sce.academic_year_id', 'prev_ay.id')
-                .whereRaw('prev_sce.student_id = s.id')
-                .where('prev_ay.start_date', '<', ayRow.start_date);
+      // Syarat Masuk PPDB Billing:
+      // 1. Cabang Siswa Pindahan: sa.registration_type = 'pindahan' dan tahun masuknya di tahun ajaran target
+      // 2. Cabang Siswa Baru Masuk: Bukan pindahan, tahun masuk di tahun ajaran target, berada di Kelas 7 atau Kelas 10 (order = 1), dan tidak ada kelas sebelum tahun target
+      sQuery = sQuery.where(function() {
+        // Cabang 1: Siswa Pindahan
+        this.where(function() {
+          this.where('sa.registration_type', 'like', '%pindah%')
+            .andWhere(function() {
+              if (activeAyIds.length > 0) {
+                this.whereIn('sa.entry_academic_year_id', activeAyIds);
+              }
+              if (ayStartDate && ayEndDate) {
+                this.orWhereBetween('sa.admission_date', [
+                  formatDateOnly(new Date(ayStartDate.getTime() - 90 * 86400000)),
+                  formatDateOnly(ayEndDate)
+                ]);
+              }
+              this.orWhere(function() {
+                this.whereNull('sa.admission_date')
+                  .andWhere(function() {
+                    this.where(dbAkademik.raw('YEAR(s.enrolled_at)'), startYearStr)
+                      .orWhere('c.year', startYearStr)
+                      .orWhere('c.name', 'like', `%${startYearStr}%`);
+                  });
+              });
             });
+        })
+        // Cabang 2: Siswa Baru Reguler (Kelas 7 atau Kelas 10)
+        .orWhere(function() {
+          this.where(function() {
+            this.whereNull('sa.registration_type')
+              .orWhereNot('sa.registration_type', 'like', '%pindah%');
+          })
+          // Siswa baru reguler tidak boleh memiliki riwayat kelas di tahun ajaran SEBELUM tahun target
+          .whereNotExists(function() {
+            this.select('prev_sce.id')
+              .from('student_class_enrollments as prev_sce')
+              .join('academic_years as prev_ay', 'prev_sce.academic_year_id', 'prev_ay.id')
+              .whereRaw('prev_sce.student_id = s.id')
+              .where('prev_ay.start_date', '<', ayRow.start_date);
+          })
+          .andWhere(function() {
+            if (ayStartDate && ayEndDate) {
+              this.whereBetween('sa.admission_date', [
+                formatDateOnly(new Date(ayStartDate.getTime() - 90 * 86400000)),
+                formatDateOnly(ayEndDate)
+              ]);
+            }
+            this.orWhere(dbAkademik.raw('YEAR(s.enrolled_at)'), startYearStr)
+              .orWhere('c.year', startYearStr)
+              .orWhere('c.name', 'like', `%${startYearStr}%`)
+              .orWhere(function() {
+                this.whereExists(function() {
+                  this.select('sce.id')
+                    .from('student_class_enrollments as sce')
+                    .whereRaw('sce.student_id = s.id')
+                    .whereIn('sce.academic_year_id', activeAyIds);
+                });
+              });
+          })
+          .andWhere(function() {
+            // Harus di kelas 7 atau kelas 10 (atau grade awal)
+            this.whereIn('sa.initial_grade_level_id', entryGradeIds)
+              .orWhere('sa_gl.order', 1)
+              .orWhere('sa_gl.name', 'like', '%7%')
+              .orWhere('sa_gl.name', 'like', '%10%')
+              .orWhereExists(function() {
+                this.select('sce2.id')
+                  .from('student_class_enrollments as sce2')
+                  .join('class_groups as cg2', 'sce2.class_group_id', 'cg2.id')
+                  .join('grade_levels as gl2', 'cg2.grade_level_id', 'gl2.id')
+                  .whereRaw('sce2.student_id = s.id')
+                  .whereIn('sce2.academic_year_id', activeAyIds)
+                  .where(function() {
+                    this.whereIn('gl2.id', entryGradeIds)
+                      .orWhere('gl2.order', 1)
+                      .orWhere('gl2.name', 'like', '%7%')
+                      .orWhere('gl2.name', 'like', '%10%')
+                      .orWhere('cg2.name', 'like', '%7%')
+                      .orWhere('cg2.name', 'like', '%10%');
+                  });
+              });
           });
-      })
-      .where(b => {
-        b.whereNull('c.year')
-          .orWhere('c.year', '>=', startYearStr);
-      })
-      .whereNotExists(function() {
-        this.select('prev_sce.id')
-          .from('student_class_enrollments as prev_sce')
-          .join('academic_years as prev_ay', 'prev_sce.academic_year_id', 'prev_ay.id')
-          .whereRaw('prev_sce.student_id = s.id')
-          .where('prev_ay.start_date', '<', ayRow.start_date);
+        });
       });
 
       if (filters.search) {
@@ -1158,7 +1339,9 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
           's.nis',
           's.status',
           's.satuan_pendidikan_id',
-          'sa.registration_type as adm_registration_type'
+          'sa.registration_type as adm_registration_type',
+          'sa.admission_date',
+          's.enrolled_at'
         )
         .limit(300);
 
@@ -1182,11 +1365,14 @@ async function listPsbRegistrants(schoolUnitId, filters = {}) {
             entry_type_label: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru (Terdaftar)',
             registration_type: isPindahan ? 'pindahan' : 'siswa_baru',
             registration_type_display: isPindahan ? 'Siswa Pindahan' : 'Siswa Baru',
+            candidate_category: isPindahan ? 'student_transfer' : 'student_active',
+            candidate_category_label: isPindahan ? 'Siswa Pindahan (Aktif Rombel)' : 'Siswa Baru (Aktif Rombel)',
             satuan_pendidikan_id: s.satuan_pendidikan_id,
             target_academic_year: targetAyName || 'Tahun Ajaran Sasaran',
             process_name: isPindahan ? `Siswa Pindahan TA ${targetAyName || ''}` : `Siswa Baru TA ${targetAyName || ''}`,
             student_id: s.id,
-            is_student: true
+            is_student: true,
+            is_placed: true
           });
         }
       });
@@ -1497,6 +1683,7 @@ async function getAlumniStudents(schoolUnitId, filters = {}) {
     }
 
     let q = dbAkademik('students')
+      .leftJoin('cohorts', 'students.cohort_id', 'cohorts.id')
       .whereIn('students.status', ['lulus', 'alumni', 'keluar', 'mutasi', 'drop_out', 'non_aktif']);
 
     if (targetUnitId) {
@@ -1525,7 +1712,7 @@ async function getAlumniStudents(schoolUnitId, filters = {}) {
       'students.gender',
       'students.status as student_status',
       'students.cohort_id',
-      'students.cohort_name',
+      'cohorts.name as cohort_name',
       'students.created_at'
     ).orderBy('students.full_name', 'asc');
 
@@ -1601,6 +1788,76 @@ async function getAlumniStudents(schoolUnitId, filters = {}) {
   }
 }
 
+/**
+ * Sinkronisasi status pendaftar PPDB ke modul PSB setelah pembayaran kasir dicatat di Keuangan
+ * @param {Object} bill - Record tagihan ppdb_registration_bills
+ * @param {Object} payment - { amountPaid, receiptNumber, isLunas, userId }
+ * @returns {Promise<void>}
+ */
+async function syncPsbRegistrantPaymentStatus(bill, payment = {}) {
+  const registrantId = Number(bill?.psb_registrant_ref_id);
+  if (!registrantId) return;
+
+  try {
+    const reg = await dbAkademik('psb_registrants').where({ id: registrantId }).first();
+    if (!reg) return;
+
+    const isEnrollmentFee = bill.billing_phase === 'enrollment_fee' || 
+      Number(bill.fee_type_id) === 8 || 
+      String(bill.notes || '').toLowerCase().includes('pangkal') ||
+      String(bill.notes || '').toLowerCase().includes('daftar ulang');
+
+    const isRegistrationFee = bill.billing_phase === 'registration_fee' || 
+      Number(bill.fee_type_id) === 2 || 
+      String(bill.notes || '').toLowerCase().includes('formulir') ||
+      String(bill.notes || '').toLowerCase().includes('pendaftaran');
+
+    if (payment.isLunas && isEnrollmentFee) {
+      // Jika statusnya belum placed / enrolled, update ke 'enrolled'
+      if (reg.status !== 'placed' && reg.status !== 'enrolled') {
+        await dbAkademik('psb_registrants')
+          .where({ id: registrantId })
+          .update({
+            status: 'enrolled',
+            updated_at: dbAkademik.fn.now()
+          });
+
+        await dbAkademik('psb_status_logs').insert({
+          psb_registrant_id: registrantId,
+          previous_status: reg.status,
+          new_status: 'enrolled',
+          action_by_user_id: payment.userId ? Number(payment.userId) : null,
+          action_by_name: 'Kasir Keuangan',
+          notes: `Pembayaran Uang Pangkal Lunas dicatat di Keuangan (${payment.receiptNumber || '-'}). Calon santri siap ditempatkan di rombel kelas.`,
+          created_at: dbAkademik.fn.now()
+        });
+      }
+    } else if (payment.isLunas && isRegistrationFee) {
+      // Biaya formulir lunas
+      if (reg.status === 'registered' || reg.status === 'pending') {
+        await dbAkademik('psb_registrants')
+          .where({ id: registrantId })
+          .update({
+            status: 'registration_fee_paid',
+            updated_at: dbAkademik.fn.now()
+          });
+
+        await dbAkademik('psb_status_logs').insert({
+          psb_registrant_id: registrantId,
+          previous_status: reg.status,
+          new_status: 'registration_fee_paid',
+          action_by_user_id: payment.userId ? Number(payment.userId) : null,
+          action_by_name: 'Kasir Keuangan',
+          notes: `Biaya Formulir Pendaftaran Lunas dicatat di Keuangan (${payment.receiptNumber || '-'}). Berkas siap diverifikasi panitia.`,
+          created_at: dbAkademik.fn.now()
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Keuangan CrossModule] Gagal sinkronisasi status pendaftar PSB:', err.message);
+  }
+}
+
 module.exports = {
   getSchoolUnit,
   listSchoolUnits,
@@ -1614,6 +1871,7 @@ module.exports = {
   getStudentsByAcademicYear,
   getAlumniStudents,
   listClassGroups,
+  getSchoolClasses,
   listCohorts,
   listGradeLevels,
   getEmployee,
@@ -1625,6 +1883,7 @@ module.exports = {
   onStudentPlaced,
   syncPpdbBillToStudentBill,
   syncStudentBillToPpdbBill,
+  syncPsbRegistrantPaymentStatus,
   formatDateOnly
 };
 

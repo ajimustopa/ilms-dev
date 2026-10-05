@@ -5,20 +5,17 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Search,
-  Filter,
-  Loader2,
-  Layers,
-  Barcode,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  X,
-  Eye,
   BookCopy,
-  ChevronLeft,
-  ChevronRight
+  Barcode,
+  Loader2,
+  X
 } from 'lucide-react';
+import DataTable from '../../../shared/components/DataTable';
+import FilterBar from '../../../shared/components/FilterBar';
+import Modal from '../../../shared/components/Modal';
+import Drawer from '../../../shared/components/Drawer';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import StatusPill from '../../../shared/components/StatusPill';
 
 export default function Katalog() {
   const [books, setBooks] = useState([]);
@@ -40,8 +37,8 @@ export default function Katalog() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Copies Modal
-  const [copiesModalOpen, setCopiesModalOpen] = useState(false);
+  // Copies Drawer
+  const [copiesDrawerOpen, setCopiesDrawerOpen] = useState(false);
   const [activeBookForCopies, setActiveBookForCopies] = useState(null);
   const [copiesList, setCopiesList] = useState([]);
   const [loadingCopies, setLoadingCopies] = useState(false);
@@ -89,10 +86,9 @@ export default function Katalog() {
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
+  const handleSearch = (text) => {
+    setSearch(text);
     setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchBooks();
   };
 
   const handleOpenCreate = () => {
@@ -119,10 +115,7 @@ export default function Katalog() {
     setModalMode('edit');
     setSelectedBook(book);
     setErrorMsg(null);
-    setFormData({
-      ...book,
-      category_id: book.category_id || '',
-    });
+    setFormData({ ...book });
     setModalOpen(true);
   };
 
@@ -134,9 +127,9 @@ export default function Katalog() {
     try {
       const payload = {
         ...formData,
-        category_id: formData.category_id ? Number(formData.category_id) : null,
-        publish_year: formData.publish_year ? Number(formData.publish_year) : null,
-        total_copies: Number(formData.total_copies) || 0,
+        category_id: Number(formData.category_id),
+        publish_year: Number(formData.publish_year),
+        total_copies: Number(formData.total_copies) || 1,
       };
 
       if (modalMode === 'create') {
@@ -154,20 +147,20 @@ export default function Katalog() {
     }
   };
 
-  const handleDeleteBook = async (id, title) => {
-    if (!window.confirm(`Nonaktifkan koleksi buku "${title}" dari katalog?`)) return;
+  const handleDeleteBook = async (book) => {
+    if (!window.confirm(`Hapus judul buku "${book.title}" beserta seluruh eksemplarnya?`)) return;
+
     try {
-      await api.delete(`/api/v1/perpustakaan/books/${id}`);
+      await api.delete(`/api/v1/perpustakaan/books/${book.id}`);
       fetchBooks();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Gagal menonaktifkan buku');
+      alert(err.response?.data?.message || err.message || 'Gagal menghapus buku');
     }
   };
 
-  // Open Copies Detail Modal
   const handleOpenCopies = async (book) => {
     setActiveBookForCopies(book);
-    setCopiesModalOpen(true);
+    setCopiesDrawerOpen(true);
     setLoadingCopies(true);
     setNewCopyCode('');
     try {
@@ -182,16 +175,17 @@ export default function Katalog() {
 
   const handleAddCopy = async (e) => {
     e.preventDefault();
-    if (!activeBookForCopies) return;
+    if (!newCopyCode.trim()) return;
+
     setAddingCopy(true);
     try {
       await api.post(`/api/v1/perpustakaan/books/${activeBookForCopies.id}/copies`, {
-        copy_code: newCopyCode || undefined,
-        condition_status: 'good',
-        circulation_status: 'available',
+        copy_code: newCopyCode.trim(),
+        condition: 'good',
+        status: 'available',
       });
       setNewCopyCode('');
-      // Refresh copies list & books
+      // Reload copies & book list
       const res = await api.get(`/api/v1/perpustakaan/books/${activeBookForCopies.id}/copies`);
       setCopiesList(res.data?.data || []);
       fetchBooks();
@@ -202,55 +196,154 @@ export default function Katalog() {
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  const handleUpdateCopyStatus = async (copyId, nextStatus) => {
+    try {
+      await api.patch(`/api/v1/perpustakaan/copies/${copyId}/status`, { status: nextStatus });
+      const res = await api.get(`/api/v1/perpustakaan/books/${activeBookForCopies.id}/copies`);
+      setCopiesList(res.data?.data || []);
+      fetchBooks();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Gagal memperbarui status eksemplar');
+    }
+  };
+
+  const columns = [
+    {
+      key: 'title',
+      label: 'Judul & Penulis',
+      render: (val, row) => (
         <div>
-          <h1 className="text-xl font-black text-slate-900 sm:text-2xl tracking-tight">
-            Katalog Buku & Bahan Pustaka
+          <div className="font-semibold text-slate-800 leading-snug">{val}</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">
+            {row.author || 'Anonim'} • {row.publisher || '-'} ({row.publish_year || '-'})
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'category_name',
+      label: 'Kategori / ISBN',
+      render: (val, row) => (
+        <div>
+          <div className="text-slate-700 font-medium">{val || 'Umum'}</div>
+          <div className="text-[11px] font-mono text-slate-400">{row.isbn || '-'}</div>
+        </div>
+      )
+    },
+    {
+      key: 'shelf_location',
+      label: 'Lokasi Rak',
+      render: (val) => (
+        <span className="font-mono text-slate-700 font-medium">
+          {val || '-'}
+        </span>
+      )
+    },
+    {
+      key: 'copies',
+      label: 'Eksemplar Fisik',
+      render: (_, row) => (
+        <div>
+          <div className="text-xs font-semibold text-slate-800 tnum">
+            {row.available_copies || 0} / {row.total_copies || 0} Tersedia
+          </div>
+          <div className="text-[10px] text-slate-400 capitalize">{row.material_type || 'Buku'}</div>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'status',
+      width: '100px'
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      align: 'right',
+      sticky: 'right',
+      width: '120px',
+      render: (_, item) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => handleOpenCopies(item)}
+            className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+            title="Kelola Eksemplar Fisik"
+          >
+            <BookCopy className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenEdit(item)}
+            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            title="Edit Buku"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteBook(item)}
+            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+            title="Hapus Buku"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="space-y-4 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800 leading-snug">
+            Katalog Buku & Koleksi Pustaka
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Kelola data induk pustaka, nomor klasifikasi/ISBN, nomor rak, dan eksemplar fisik.
+            Manajemen master data judul buku, nomor ISBN, penempatan rak, dan salinan fisik.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Tambah Judul Buku</span>
         </button>
       </div>
 
-      {/* Filter / Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan judul, pengarang, penerbit, atau ISBN..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-teal-500 transition"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+      {/* FilterBar Standar */}
+      <FilterBar
+        searchValue={search}
+        onSearchChange={handleSearch}
+        searchPlaceholder="Cari judul, penulis, atau ISBN..."
+        onReset={() => {
+          setSearch('');
+          setSelectedCategory('');
+          setSelectedMaterialType('');
+          setSelectedStatus('');
+          setPagination((prev) => ({ ...prev, page: 1 }));
+        }}
+        hasActiveFilters={Boolean(selectedCategory || selectedMaterialType || selectedStatus || search)}
+        filters={
+          <>
             <select
               value={selectedCategory}
               onChange={(e) => {
                 setSelectedCategory(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-hidden focus:border-teal-500"
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
             >
               <option value="">Semua Kategori</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.category_name}
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -261,15 +354,13 @@ export default function Katalog() {
                 setSelectedMaterialType(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-hidden focus:border-teal-500"
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
             >
               <option value="">Semua Jenis</option>
-              <option value="book">Buku (Fisik)</option>
+              <option value="book">Buku Fisik</option>
               <option value="ebook">E-Book</option>
               <option value="journal">Jurnal</option>
               <option value="magazine">Majalah</option>
-              <option value="cd">CD / Multimedia</option>
-              <option value="other">Lainnya</option>
             </select>
 
             <select
@@ -278,451 +369,294 @@ export default function Katalog() {
                 setSelectedStatus(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-hidden focus:border-teal-500"
+              className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-emerald-500 transition"
             >
               <option value="">Semua Status</option>
               <option value="active">Aktif</option>
-              <option value="inactive">Nonaktif</option>
+              <option value="archived">Diarsipkan</option>
             </select>
+          </>
+        }
+        actions={
+          <span className="text-xs text-slate-500">
+            Total: <span className="font-bold text-slate-800 tnum">{pagination.total}</span> judul
+          </span>
+        }
+      />
 
+      {/* Generic DataTable View */}
+      <DataTable
+        columns={columns}
+        data={books}
+        loading={loading}
+        density="compact"
+        emptyTitle="Belum Ada Buku Terdaftar"
+        emptyDescription="Koleksi buku belum tersedia atau tidak cocok dengan filter pencarian yang diterapkan."
+        emptyAction={
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah Judul Buku Baru</span>
+          </button>
+        }
+        pagination={{
+          currentPage: pagination.page,
+          totalItems: pagination.total,
+          pageSize: pagination.per_page,
+          onPageChange: (newPage) => setPagination((prev) => ({ ...prev, page: newPage }))
+        }}
+      />
+
+      {/* Modal Tambah / Edit Buku */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalMode === 'create' ? 'Tambah Judul Buku Baru' : 'Edit Judul Buku'}
+        subtitle="Masukkan detail bibliografi buku dan lokasi rak penyimpanan."
+        size="lg"
+        footer={
+          <>
             <button
-              type="submit"
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-3.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>Cari</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Table Content */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
-          </div>
-        ) : books.length === 0 ? (
-          <div className="py-20 text-center text-xs text-slate-400">
-            Tidak ada data koleksi buku ditemukan.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 uppercase text-[10px] font-bold tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Judul & Pengarang</th>
-                  <th className="py-3 px-4">Kategori</th>
-                  <th className="py-3 px-4">Jenis & ISBN</th>
-                  <th className="py-3 px-4">Lokasi Rak</th>
-                  <th className="py-3 px-4 text-center">Eksemplar</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {books.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/60 transition">
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-800 text-xs sm:text-sm leading-tight">
-                        {b.title}
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {b.author || 'Penulis tidak dicantumkan'} • {b.publisher || 'Penerbit -'} ({b.publish_year || '-'})
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
-                        {b.category_name || 'Umum'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="capitalize font-medium text-slate-700">{b.material_type}</div>
-                      <div className="text-[11px] font-mono text-slate-400">{b.isbn || '-'}</div>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono font-medium text-slate-700">
-                      {b.shelf_location || '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => handleOpenCopies(b)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-mono font-bold text-xs transition border border-teal-200/60 cursor-pointer"
-                        title="Klik untuk kelola eksemplar fisik"
-                      >
-                        <BookCopy className="w-3.5 h-3.5" />
-                        <span>{b.total_copies || 0} unit</span>
-                      </button>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          b.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/60'
-                            : 'bg-rose-50 text-rose-600 border border-rose-200/60'
-                        }`}
-                      >
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(b)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition cursor-pointer"
-                          title="Edit Buku"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        {b.status === 'active' && (
-                          <button
-                            onClick={() => handleDeleteBook(b.id, b.title)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Nonaktifkan Buku"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination Footer */}
-        <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <div>
-            Menampilkan halaman <span className="font-bold text-slate-800">{pagination.page}</span> dari{' '}
-            <span className="font-bold text-slate-800">{pagination.total_pages || 1}</span> (Total: {pagination.total} buku)
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled={pagination.page <= 1}
-              onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
+              Batal
             </button>
             <button
-              disabled={pagination.page >= pagination.total_pages}
-              onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 transition cursor-pointer"
+              type="button"
+              onClick={handleSaveBook}
+              disabled={submitting}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
             >
-              <ChevronRight className="w-4 h-4" />
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Simpan Judul Buku</span>
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <div className="space-y-3.5">
+          {errorMsg && (
+            <FlatAlertBanner
+              variant="danger"
+              title="Gagal Menyimpan Buku"
+              description={errorMsg}
+            />
+          )}
 
-      {/* Modal Form Tambah / Edit Buku */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-              <h2 className="text-sm font-bold text-slate-800">
-                {modalMode === 'create' ? 'Tambah Judul Buku Baru' : 'Edit Informasi Buku'}
-              </h2>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <form onSubmit={handleSaveBook} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Judul Utama Buku / Pustaka
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title || ''}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Contoh: Fiqih Sunnah Jilid 1"
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+              />
             </div>
 
-            {errorMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveBook} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Judul Buku / Koleksi <span className="text-rose-500">*</span>
+                  Penulis / Pengarang
                 </label>
                 <input
                   type="text"
                   required
-                  value={formData.title || ''}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Masukkan judul buku lengkap"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  value={formData.author || ''}
+                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  placeholder="Sayyid Sabiq"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Penulis / Pengarang
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.author || ''}
-                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    placeholder="Nama pengarang"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Penerbit
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.publisher || ''}
-                    onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
-                    placeholder="Nama penerbit"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Tahun Terbit
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.publish_year || ''}
-                    onChange={(e) => setFormData({ ...formData, publish_year: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    ISBN / Barcode
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.isbn || ''}
-                    onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                    placeholder="978-..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Lokasi Rak
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.shelf_location || ''}
-                    onChange={(e) => setFormData({ ...formData, shelf_location: e.target.value })}
-                    placeholder="misal: A1-01"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Kategori Koleksi
-                  </label>
-                  <select
-                    value={formData.category_id || ''}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  >
-                    <option value="">Pilih Kategori</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.category_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Jenis Bahan Pustaka
-                  </label>
-                  <select
-                    value={formData.material_type || 'book'}
-                    onChange={(e) => setFormData({ ...formData, material_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs capitalize"
-                  >
-                    <option value="book">Buku (Fisik)</option>
-                    <option value="ebook">E-Book</option>
-                    <option value="journal">Jurnal</option>
-                    <option value="magazine">Majalah</option>
-                    <option value="cd">CD / Multimedia</option>
-                    <option value="other">Lainnya</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Sumber Perolehan
-                  </label>
-                  <select
-                    value={formData.source_type || 'purchase'}
-                    onChange={(e) => setFormData({ ...formData, source_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs capitalize"
-                  >
-                    <option value="purchase">Pembelian</option>
-                    <option value="donation">Hibah / Donasi</option>
-                    <option value="other">Lainnya</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Status Koleksi
-                  </label>
-                  <select
-                    value={formData.status || 'active'}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  >
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Nonaktif</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Simpan Data Buku</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Kelola Eksemplar Fisik */}
-      {copiesModalOpen && activeBookForCopies && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
               <div>
-                <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <BookCopy className="w-4 h-4 text-teal-600" />
-                  <span>Daftar Eksemplar Fisik</span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                  {activeBookForCopies.title}
-                </p>
-              </div>
-              <button
-                onClick={() => setCopiesModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Add New Copy Form */}
-            <form onSubmit={handleAddCopy} className="py-4 border-b border-slate-100 flex items-center gap-2 shrink-0">
-              <div className="relative flex-1">
-                <Barcode className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Penerbit
+                </label>
                 <input
                   type="text"
-                  placeholder="Kode Barcode Eksemplar (opsional / otomatis)"
-                  value={newCopyCode}
-                  onChange={(e) => setNewCopyCode(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                  value={formData.publisher || ''}
+                  onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
+                  placeholder="Darul Kutub"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Kategori Koleksi
+                </label>
+                <select
+                  value={formData.category_id || ''}
+                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                >
+                  <option value="">Pilih Kategori</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tahun Terbit
+                </label>
+                <input
+                  type="number"
+                  value={formData.publish_year || ''}
+                  onChange={(e) => setFormData({ ...formData, publish_year: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ISBN / Barcode
+                </label>
+                <input
+                  type="text"
+                  value={formData.isbn || ''}
+                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                  placeholder="978-602-..."
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Lokasi Rak
+                </label>
+                <input
+                  type="text"
+                  value={formData.shelf_location || ''}
+                  onChange={(e) => setFormData({ ...formData, shelf_location: e.target.value })}
+                  placeholder="Rak A1-02"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Jumlah Eksemplar Awal
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.total_copies || 1}
+                  onChange={(e) => setFormData({ ...formData, total_copies: e.target.value })}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      {/* Drawer Kelola Eksemplar Fisik */}
+      <Drawer
+        isOpen={copiesDrawerOpen}
+        onClose={() => setCopiesDrawerOpen(false)}
+        title="Kelola Salinan Eksemplar Fisik"
+        subtitle={activeBookForCopies ? `${activeBookForCopies.title} (${activeBookForCopies.author})` : ''}
+        size="md"
+      >
+        <div className="space-y-4">
+          {/* Form Tambah Barcode / Eksemplar Baru */}
+          <form onSubmit={handleAddCopy} className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
+            <label className="block text-xs font-semibold text-slate-700">
+              Registrasi Eksemplar Baru (Barcode / Kode Fisik)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                required
+                value={newCopyCode}
+                onChange={(e) => setNewCopyCode(e.target.value)}
+                placeholder="Contoh: BK-2026-001"
+                className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:border-emerald-500 transition"
+              />
               <button
                 type="submit"
                 disabled={addingCopy}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
               >
                 {addingCopy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                <span>Tambah Eksemplar</span>
-              </button>
-            </form>
-
-            {/* Copies Table */}
-            <div className="flex-1 overflow-y-auto py-2">
-              {loadingCopies ? (
-                <div className="py-12 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-teal-500 animate-spin" />
-                </div>
-              ) : copiesList.length === 0 ? (
-                <div className="py-12 text-center text-xs text-slate-400">
-                  Belum ada eksemplar fisik untuk buku ini.
-                </div>
-              ) : (
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                    <tr>
-                      <th className="py-2.5 px-3">Kode Eksemplar</th>
-                      <th className="py-2.5 px-3">Kondisi Fisik</th>
-                      <th className="py-2.5 px-3">Status Sirkulasi</th>
-                      <th className="py-2.5 px-3">Lokasi Rak</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {copiesList.map((copy) => (
-                      <tr key={copy.id} className="hover:bg-slate-50/60">
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">
-                          {copy.copy_code || `COPY-${copy.id}`}
-                        </td>
-                        <td className="py-2.5 px-3 capitalize">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              copy.condition_status === 'good'
-                                ? 'bg-emerald-50 text-emerald-600'
-                                : 'bg-rose-50 text-rose-600'
-                            }`}
-                          >
-                            {copy.condition_status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 capitalize">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              copy.circulation_status === 'available'
-                                ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                                : copy.circulation_status === 'borrowed'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {copy.circulation_status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 font-mono text-slate-600">
-                          {copy.shelf_location || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 text-right shrink-0">
-              <button
-                onClick={() => setCopiesModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
-              >
-                Tutup
+                <span>Tambah</span>
               </button>
             </div>
+          </form>
+
+          {/* List Eksemplar */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Daftar Eksemplar Terdaftar ({copiesList.length})
+            </h4>
+
+            {loadingCopies ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+              </div>
+            ) : copiesList.length > 0 ? (
+              <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden bg-white">
+                {copiesList.map((copy) => (
+                  <div key={copy.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50/70 transition">
+                    <div>
+                      <div className="font-mono font-bold text-slate-800">{copy.copy_code}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Kondisi: <span className="capitalize">{copy.condition || 'Baik'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <StatusPill
+                        variant={
+                          copy.status === 'available'
+                            ? 'success'
+                            : copy.status === 'borrowed'
+                            ? 'warning'
+                            : 'danger'
+                        }
+                      >
+                        {copy.status}
+                      </StatusPill>
+
+                      {copy.status !== 'borrowed' && (
+                        <select
+                          value={copy.status}
+                          onChange={(e) => handleUpdateCopyStatus(copy.id, e.target.value)}
+                          className="px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-700 focus:bg-white focus:outline-none"
+                        >
+                          <option value="available">Tersedia</option>
+                          <option value="damaged">Rusak</option>
+                          <option value="lost">Hilang</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                Belum ada eksemplar terdaftar untuk buku ini.
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </Drawer>
     </div>
   );
 }

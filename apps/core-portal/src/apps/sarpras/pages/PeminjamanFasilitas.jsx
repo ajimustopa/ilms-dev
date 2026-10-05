@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../../shared/store/AuthContext';
+import DataTable from '../../../shared/components/DataTable';
+import Modal from '../../../shared/components/Modal';
+import StatusPill from '../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { formatDate } from '../../../shared/utils/formatters';
 import {
   CalendarClock,
   Plus,
-  CheckCircle,
   XCircle,
   Clock,
-  Search,
-  Loader2,
   Calendar as CalendarIcon,
   Check,
   X,
-  AlertCircle
+  Loader2
 } from 'lucide-react';
 
 export default function PeminjamanFasilitas() {
@@ -39,7 +41,7 @@ export default function PeminjamanFasilitas() {
     setLoading(true);
     try {
       const res = await api.get('/sarpras/bookings');
-      if (res.data.success) setBookings(res.data.data);
+      if (res.data?.success) setBookings(res.data.data || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
     } finally {
@@ -50,7 +52,7 @@ export default function PeminjamanFasilitas() {
   const fetchSchedule = async (date) => {
     try {
       const res = await api.get(`/sarpras/bookings/schedule?date=${date}`);
-      if (res.data.success) setSchedule(res.data.data);
+      if (res.data?.success) setSchedule(res.data.data || []);
     } catch (err) {
       console.error('Error fetching schedule:', err);
     }
@@ -59,7 +61,7 @@ export default function PeminjamanFasilitas() {
   const fetchRooms = async () => {
     try {
       const res = await api.get('/sarpras/rooms');
-      if (res.data.success) setRooms(res.data.data);
+      if (res.data?.success) setRooms(res.data.data || []);
     } catch (err) {
       console.error('Error fetching rooms:', err);
     }
@@ -94,11 +96,11 @@ export default function PeminjamanFasilitas() {
     setSubmitting(true);
     try {
       await api.post('/sarpras/bookings', formData);
-      setMessage({ type: 'success', text: 'Pengajuan peminjaman fasilitas berhasil dikirim' });
+      setMessage({ type: 'emerald', title: 'Berhasil', text: 'Pengajuan peminjaman fasilitas berhasil dikirim' });
       setCreateModalOpen(false);
       fetchBookings();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -121,13 +123,14 @@ export default function PeminjamanFasilitas() {
 
       await api.post(endpoint, { notes: actionNotes });
       setMessage({
-        type: 'success',
+        type: 'emerald',
+        title: 'Berhasil',
         text: `Peminjaman berhasil di-${actionType === 'approve' ? 'setujui' : 'tolak'}`
       });
       setApprovalModalOpen(false);
       fetchBookings();
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     } finally {
       setSubmitting(false);
     }
@@ -137,12 +140,92 @@ export default function PeminjamanFasilitas() {
     if (!window.confirm('Yakin ingin membatalkan pengajuan peminjaman ini?')) return;
     try {
       await api.delete(`/sarpras/bookings/${id}`);
-      setMessage({ type: 'success', text: 'Pengajuan peminjaman berhasil dibatalkan' });
+      setMessage({ type: 'emerald', title: 'Dibatalkan', text: 'Pengajuan peminjaman berhasil dibatalkan' });
       fetchBookings();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setMessage({ type: 'rose', title: 'Gagal', text: err.response?.data?.message || err.message });
     }
   };
+
+  const columns = useMemo(() => [
+    {
+      key: 'facility',
+      header: 'Fasilitas / Ruangan',
+      sortable: true,
+      render: (row) => (
+        <span className="font-semibold text-slate-800">
+          {row.room_name ? `${row.room_name} (${row.room_code})` : row.other_facility_name || 'Fasilitas Terbuka'}
+        </span>
+      )
+    },
+    {
+      key: 'purpose',
+      header: 'Keperluan / Acara',
+      render: (row) => <span className="text-slate-600 line-clamp-2">{row.purpose}</span>
+    },
+    {
+      key: 'booking_date',
+      header: 'Tanggal',
+      sortable: true,
+      className: 'w-28 text-slate-700 font-medium',
+      render: (row) => formatDate(row.booking_date)
+    },
+    {
+      key: 'time',
+      header: 'Waktu',
+      align: 'center',
+      className: 'w-32 text-center font-mono text-xs text-slate-600',
+      render: (row) => `${row.start_time?.slice(0, 5)} - ${row.end_time?.slice(0, 5)}`
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      className: 'w-28 text-center',
+      render: (row) => <StatusPill status={row.status || 'pending'} />
+    },
+    {
+      key: 'actions',
+      header: 'Aksi & Approval',
+      align: 'right',
+      sticky: 'right',
+      className: 'w-44 text-right bg-white',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {row.status === 'pending' && (
+            <>
+              <button
+                type="button"
+                onClick={() => openApprovalModal(row, 'approve')}
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition"
+                title="Setujui Peminjaman"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Setuju</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openApprovalModal(row, 'reject')}
+                className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition"
+                title="Tolak Peminjaman"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Tolak</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCancelBooking(row.id)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+                title="Batalkan"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      )
+    }
+  ], []);
 
   return (
     <div className="space-y-6">
@@ -155,33 +238,34 @@ export default function PeminjamanFasilitas() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ajukan Peminjaman</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-xs transition"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Ajukan Peminjaman</span>
+        </button>
       </div>
 
       {message && (
-        <div className={`p-3.5 rounded-xl border text-xs flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="font-bold ml-4">&times;</button>
-        </div>
+        <FlatAlertBanner
+          variant={message.type}
+          title={message.title}
+          onClose={() => setMessage(null)}
+        >
+          {message.text}
+        </FlatAlertBanner>
       )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200">
         <button
+          type="button"
           onClick={() => setActiveTab('bookings')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'bookings'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -189,10 +273,11 @@ export default function PeminjamanFasilitas() {
           <span>Daftar Pengajuan ({bookings.length})</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('schedule')}
           className={`pb-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${
             activeTab === 'schedule'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -203,123 +288,51 @@ export default function PeminjamanFasilitas() {
 
       {/* Tab 1: Bookings Table */}
       {activeTab === 'bookings' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="px-4 py-3">Fasilitas / Ruangan</th>
-                  <th className="px-4 py-3">Keperluan / Acara</th>
-                  <th className="px-4 py-3">Tanggal</th>
-                  <th className="px-4 py-3 text-center">Waktu</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Aksi & Approval</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {bookings.length > 0 ? (
-                  bookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-3 font-semibold text-slate-800">
-                        {b.room_name ? `${b.room_name} (${b.room_code})` : b.other_facility_name || 'Fasilitas Terbuka'}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{b.purpose}</td>
-                      <td className="px-4 py-3 text-slate-700 font-medium">{b.booking_date}</td>
-                      <td className="px-4 py-3 text-center font-mono text-slate-600">
-                        {b.start_time?.slice(0, 5)} - {b.end_time?.slice(0, 5)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                          b.status === 'approved'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : b.status === 'pending'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : b.status === 'cancelled'
-                            ? 'bg-slate-100 text-slate-600 border-slate-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {b.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => openApprovalModal(b, 'approve')}
-                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition"
-                                title="Setujui Peminjaman"
-                              >
-                                <Check className="w-3 h-3" />
-                                <span>Setuju</span>
-                              </button>
-                              <button
-                                onClick={() => openApprovalModal(b, 'reject')}
-                                className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition"
-                                title="Tolak Peminjaman"
-                              >
-                                <X className="w-3 h-3" />
-                                <span>Tolak</span>
-                              </button>
-                              <button
-                                onClick={() => handleCancelBooking(b.id)}
-                                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-                                title="Batalkan"
-                              >
-                                <XCircle className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-xs text-slate-400">
-                      Belum ada permohonan peminjaman ruangan
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          columns={columns}
+          data={bookings}
+          loading={loading}
+          emptyTitle="Belum Ada Pengajuan Peminjaman"
+          emptyDescription="Klik 'Ajukan Peminjaman' untuk mengajukan penggunaan ruangan atau fasilitas sekolah."
+        />
       )}
 
       {/* Tab 2: Schedule View */}
       {activeTab === 'schedule' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-            <CalendarIcon className="w-4 h-4 text-indigo-600" />
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-3">
+            <CalendarIcon className="w-4 h-4 text-emerald-600" />
             <span className="text-xs font-semibold text-slate-700">Pilih Tanggal:</span>
             <input
               type="date"
               value={filterDate}
               onChange={(e) => setFilterDate(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs"
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {schedule.length > 0 ? (
               schedule.map((item, idx) => (
-                <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-indigo-600">
+                    <span className="font-mono text-xs font-bold text-slate-800">
                       {item.start_time?.slice(0, 5)} - {item.end_time?.slice(0, 5)}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {item.status}
-                    </span>
+                    <StatusPill status={item.status || 'approved'} />
                   </div>
                   <h4 className="text-sm font-bold text-slate-900 mt-2">{item.room_name || item.other_facility_name}</h4>
                   <p className="text-xs text-slate-600 mt-1">{item.purpose}</p>
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>Pemohon: {item.requested_by_user_id ? `User #${item.requested_by_user_id}` : 'Staff'}</span>
+                    <span>{item.booking_date}</span>
+                  </div>
                 </div>
               ))
             ) : (
-              <div className="col-span-3 p-12 bg-white rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
-                Fasilitas belum memiliki agenda pemakaian pada tanggal ini (Tersedia / Kosong)
+              <div className="col-span-3 py-12 text-center bg-white rounded-xl border border-slate-200">
+                <CalendarIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-500 font-medium">Tidak ada fasilitas yang dipinjam pada tanggal ini</p>
               </div>
             )}
           </div>
@@ -327,149 +340,151 @@ export default function PeminjamanFasilitas() {
       )}
 
       {/* Modal Ajukan Peminjaman */}
-      {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative">
-            <h3 className="text-base font-bold text-slate-900 mb-4">Ajukan Peminjaman Fasilitas</h3>
-
-            <form onSubmit={handleCreateBooking} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Ruangan / Gedung</label>
-                <select
-                  value={formData.facility_room_id || ''}
-                  onChange={(e) => setFormData({ ...formData, facility_room_id: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                >
-                  <option value="">-- Atau Isi Fasilitas Terbuka di Bawah --</option>
-                  {rooms.map(r => <option key={r.id} value={r.id}>{r.room_name} ({r.room_code})</option>)}
-                </select>
-              </div>
-
-              {!formData.facility_room_id && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Fasilitas Non-Ruangan</label>
-                  <input
-                    type="text"
-                    value={formData.other_facility_name || ''}
-                    onChange={(e) => setFormData({ ...formData, other_facility_name: e.target.value })}
-                    placeholder="Contoh: Lapangan Rumput Utama / Tenda Parkir"
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Tujuan / Acara *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.purpose || ''}
-                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                  placeholder="Contoh: Rapat Koordinasi Guru & Wali Kelas"
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Pemakaian *</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.booking_date || ''}
-                  onChange={(e) => setFormData({ ...formData, booking_date: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jam Mulai *</label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.start_time || '08:00'}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Jam Selesai *</label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.end_time || '10:00'}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition"
-                >
-                  Kirim Permohonan
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Form Pengajuan Peminjaman Fasilitas"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-booking"
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>Kirim Permohonan</span>
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form id="form-booking" onSubmit={handleCreateBooking} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Ruangan / Gedung</label>
+            <select
+              value={formData.facility_room_id || ''}
+              onChange={(e) => setFormData({ ...formData, facility_room_id: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            >
+              <option value="">-- Atau Isi Fasilitas Terbuka di Bawah --</option>
+              {rooms.map(r => <option key={r.id} value={r.id}>{r.room_name} ({r.room_code})</option>)}
+            </select>
+          </div>
+
+          {!formData.facility_room_id && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Fasilitas Non-Ruangan</label>
+              <input
+                type="text"
+                value={formData.other_facility_name || ''}
+                onChange={(e) => setFormData({ ...formData, other_facility_name: e.target.value })}
+                placeholder="Contoh: Lapangan Rumput Utama / Tenda Parkir"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Tujuan / Acara *</label>
+            <input
+              type="text"
+              required
+              value={formData.purpose || ''}
+              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+              placeholder="Contoh: Rapat Koordinasi Guru & Wali Kelas"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Pemakaian *</label>
+            <input
+              type="date"
+              required
+              value={formData.booking_date || ''}
+              onChange={(e) => setFormData({ ...formData, booking_date: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Jam Mulai *</label>
+              <input
+                type="time"
+                required
+                value={formData.start_time || '08:00'}
+                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Jam Selesai *</label>
+              <input
+                type="time"
+                required
+                value={formData.end_time || '10:00'}
+                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal Approval / Reject */}
-      {approvalModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-base font-bold text-slate-900 mb-2">
-              {actionType === 'approve' ? 'Persetujuan Peminjaman' : 'Penolakan Peminjaman'}
-            </h3>
-            <p className="text-xs text-slate-600 mb-4">
-              Acara: <strong>{targetBooking?.purpose}</strong> ({targetBooking?.booking_date})
-            </p>
-
-            <form onSubmit={handleApprovalSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Keterangan</label>
-                <textarea
-                  rows={3}
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  placeholder={actionType === 'approve' ? 'Catatan persetujuan (opsional)...' : 'Alasan penolakan...'}
-                  className="w-full px-3 py-2 border rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setApprovalModalOpen(false)}
-                  className="px-4 py-2 border text-slate-600 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`px-4 py-2 text-white rounded-xl text-xs font-semibold ${
-                    actionType === 'approve' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
-                  }`}
-                >
-                  {actionType === 'approve' ? 'Setujui Peminjaman' : 'Tolak Peminjaman'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={approvalModalOpen}
+        onClose={() => setApprovalModalOpen(false)}
+        title={actionType === 'approve' ? 'Persetujuan Peminjaman' : 'Penolakan Peminjaman'}
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setApprovalModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="form-approval"
+              disabled={submitting}
+              className={`px-4 py-2 text-white rounded-lg text-xs font-semibold transition ${
+                actionType === 'approve' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
+              }`}
+            >
+              {actionType === 'approve' ? 'Setujui Peminjaman' : 'Tolak Peminjaman'}
+            </button>
           </div>
+        }
+      >
+        <div className="mb-4 text-xs text-slate-600">
+          Acara: <strong className="text-slate-800">{targetBooking?.purpose}</strong> ({targetBooking?.booking_date})
         </div>
-      )}
+
+        <form id="form-approval" onSubmit={handleApprovalSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Keterangan</label>
+            <textarea
+              rows={3}
+              value={actionNotes}
+              onChange={(e) => setActionNotes(e.target.value)}
+              placeholder={actionType === 'approve' ? 'Catatan persetujuan (opsional)...' : 'Alasan penolakan...'}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -157,5 +157,11 @@ router.get(
   requirePermission('keuangan.bookkeeping.view', 'keuangan.reports.view'),
   controller.getWorksheet
 );
+router.get(
+  '/bookkeeping/cash-ledger',
+  verifyJwt,
+  requirePermission('keuangan.bookkeeping.view', 'keuangan.reports.view', 'keuangan.expenses.manage'),
+  controller.getCashLedger
+);
 
 module.exports = router;
