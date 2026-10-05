@@ -17,8 +17,12 @@ class InternalService {
       throw error;
     }
 
-    // 1. Ambil tahun ajaran aktif di modul akademik
-    const activeYear = await db('academic_years').where('is_active', true).first();
+    // 1. Ambil tahun ajaran aktif di modul akademik sesuai satuan pendidikan siswa
+    let activeYearQuery = db('academic_years').where('is_active', true);
+    if (student.satuan_pendidikan_id) {
+      activeYearQuery = activeYearQuery.where('satuan_pendidikan_id', student.satuan_pendidikan_id);
+    }
+    const activeYear = await activeYearQuery.first();
 
     // 2. Cari enrollment siswa pada tahun ajaran aktif (HANYA ROMBEL REGULER)
     let activeEnrollment = null;
