@@ -11,25 +11,25 @@ const { verifyJwt, requirePermission } = require('../../../middlewares/auth');
 router.get(
   '/expenses/summary',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.expenses.view', 'keuangan.reports.view', 'keuangan.view'),
   controller.getExpenseSummary
 );
 router.get(
   '/expenses/:id/voucher',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.expenses.view', 'keuangan.reports.view', 'keuangan.view'),
   controller.getExpenseVoucher
 );
 router.get(
   '/expenses',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.expenses.view', 'keuangan.reports.view', 'keuangan.view'),
   controller.listExpenses
 );
 router.get(
   '/expenses/:id',
   verifyJwt,
-  requirePermission('keuangan.expenses.manage', 'keuangan.reports.view'),
+  requirePermission('keuangan.expenses.manage', 'keuangan.expenses.view', 'keuangan.reports.view', 'keuangan.view'),
   controller.getExpenseById
 );
 router.post(

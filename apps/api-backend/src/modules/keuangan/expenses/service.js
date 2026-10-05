@@ -90,7 +90,11 @@ class ExpensesService {
       );
 
     if (unitId) {
-      query = query.where('expenses.school_unit_id', unitId);
+      query = query.where(function() {
+        this.where('expenses.school_unit_id', unitId)
+            .orWhere('expenses.school_unit_id', 0)
+            .orWhereNull('expenses.school_unit_id');
+      });
     }
 
     if (filters.include_deleted === 'true' || filters.include_deleted === true || filters.include_deleted === '1') {
@@ -165,14 +169,20 @@ class ExpensesService {
    * Mengambil Ringkasan Statistik Makro Pengeluaran
    */
   async getExpenseSummary(schoolUnitId, filters = {}) {
-    const isAllUnits = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    const isAllUnits = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation' || schoolUnitId === '0' || schoolUnitId === 0;
     const unitId = isAllUnits ? null : Number(schoolUnitId);
-    const ayId = filters.academic_year_id ? Number(filters.academic_year_id) : null;
+    const ayId = filters.academic_year_id && filters.academic_year_id !== 'all' ? Number(filters.academic_year_id) : null;
     const month = filters.month && filters.month !== 'all' ? Number(filters.month) : null;
 
     // 1. Query Pengeluaran Aktif
     let expQuery = db('expenses').whereNull('deleted_at');
-    if (unitId) expQuery = expQuery.where('school_unit_id', unitId);
+    if (unitId) {
+      expQuery = expQuery.where(function() {
+        this.where('school_unit_id', unitId)
+            .orWhere('school_unit_id', 0)
+            .orWhereNull('school_unit_id');
+      });
+    }
     if (ayId) expQuery = expQuery.where('academic_year_id', ayId);
     if (month) expQuery = expQuery.whereRaw('MONTH(expense_date) = ?', [month]);
 

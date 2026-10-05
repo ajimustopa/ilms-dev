@@ -83,6 +83,16 @@ class CanteenStudentsController {
     }
   }
 
+  async bulkResetChildPin(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const data = await canteenStudentsService.bulkResetChildPin(schoolUnitId, req.body);
+      res.json({ success: true, data, message: data.message, errors: null });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async resetParentPin(req, res, next) {
     try {
       const schoolUnitId = getValidatedSchoolUnitId(req);
@@ -102,6 +112,21 @@ class CanteenStudentsController {
       next(err);
     }
   }
+
+  async printCardsPdf(req, res, next) {
+    try {
+      const schoolUnitId = getValidatedSchoolUnitId(req);
+      const pdfBuffer = await canteenStudentsService.generatePrintableCardsPdf(schoolUnitId, req.body);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="kartu-santri-kantin.pdf"');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new CanteenStudentsController();
+

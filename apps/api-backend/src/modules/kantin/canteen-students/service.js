@@ -123,6 +123,9 @@ class CanteenStudentsService {
         limit_source: limitSource,
         has_daily_limit: Boolean(effectiveLimit !== null),
         is_blocked_by_parent: Boolean(s.is_blocked_by_parent),
+        child_pin: s.child_pin_plain || '123456',
+        has_child_pin: Boolean(s.child_pin_hash),
+        has_parent_pin: Boolean(s.parent_pin_hash),
         status: s.status,
         status_note: s.status_note
       });
@@ -244,6 +247,7 @@ class CanteenStudentsService {
       is_blocked_by_parent: Boolean(s.is_blocked_by_parent),
       has_child_pin: Boolean(s.child_pin_hash),
       has_parent_pin: Boolean(s.parent_pin_hash),
+      child_pin: s.child_pin_plain || '123456',
       status: s.status,
       status_note: s.status_note
     };
@@ -270,6 +274,7 @@ class CanteenStudentsService {
         qr_code: defaultQr,
         wallet_balance: 0,
         child_pin_hash: defaultPinHash,
+        child_pin_plain: '123456',
         parent_pin_hash: defaultPinHash,
         status: 'active'
       });
@@ -372,12 +377,49 @@ class CanteenStudentsService {
 
     await db('canteen_students')
       .where({ id: s.id })
-      .update({ child_pin_hash: pinHash, updated_at: db.fn.now() });
+      .update({
+        child_pin_hash: pinHash,
+        child_pin_plain: newPin,
+        updated_at: db.fn.now()
+      });
 
     return {
       student_id: Number(studentId),
       new_pin: newPin,
       message: 'PIN anak berhasil di-reset'
+    };
+  }
+
+  async bulkResetChildPin(schoolUnitId, payload = {}) {
+    const { student_ids = [] } = payload;
+    const isAll = !schoolUnitId || schoolUnitId === 'all' || schoolUnitId === 'foundation';
+    let q = db('canteen_students');
+    if (!isAll) {
+      q = q.where('school_unit_id', schoolUnitId);
+    }
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      q = q.whereIn('student_id', student_ids);
+    }
+
+    const students = await q;
+    let resetCount = 0;
+
+    for (const s of students) {
+      const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const pinHash = await bcrypt.hash(newPin, 10);
+      await db('canteen_students')
+        .where({ id: s.id })
+        .update({
+          child_pin_hash: pinHash,
+          child_pin_plain: newPin,
+          updated_at: db.fn.now()
+        });
+      resetCount++;
+    }
+
+    return {
+      total_reset: resetCount,
+      message: `Berhasil mereset PIN untuk ${resetCount} santri dengan 6-digit PIN acak baru.`
     };
   }
 
@@ -450,6 +492,7 @@ class CanteenStudentsService {
           qr_code: universalQr,
           wallet_balance: 0,
           child_pin_hash: defaultPinHash,
+          child_pin_plain: '123456',
           parent_pin_hash: defaultPinHash,
           status: 'active'
         });
@@ -469,6 +512,70 @@ class CanteenStudentsService {
       message: `Berhasil menyinkronkan ${activeStudents.length} santri dari Akademik (${inserted} baru, ${updated} diperbarui)`
     };
   }
+
+  /**
+   * Generate PDF Lembar Cetak Label PIN & Kartu Siswa (Multi-Layout & Multi-Student)
+   * @param {number|string|null} schoolUnitId
+   * @param {Object} payload
+   * @returns {Promise<Buffer>}
+   */
+  async generatePrintableCardsPdf(schoolUnitId, payload = {}) {
+    const {
+      student_ids = [],
+      paper_size = 'a4',
+      paper_orientation = 'portrait',
+      custom_paper_width_mm,
+      custom_paper_height_mm,
+      card_size = 'label_standard',
+      custom_card_width_mm,
+      custom_card_height_mm,
+      margin_mm = 8,
+      gap_mm = 3,
+      show_cutting_lines = true,
+      show_pin = true,
+      show_qr = true,
+      show_class = true,
+      regenerate_pins = false
+    } = payload;
+
+    // Jika opsi generate PIN baru diaktifkan sebelum cetak
+    if (regenerate_pins && Array.isArray(student_ids) && student_ids.length > 0) {
+      await this.bulkResetChildPin(schoolUnitId, { student_ids });
+    }
+
+    let studentsToPrint = [];
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      const allStudents = await this.listStudents(schoolUnitId, {});
+      const selectedSet = new Set(student_ids.map(id => Number(id)));
+      studentsToPrint = allStudents.filter(s => selectedSet.has(Number(s.student_id)));
+    } else {
+      studentsToPrint = await this.listStudents(schoolUnitId, payload.filters || {});
+    }
+
+    if (studentsToPrint.length === 0) {
+      const err = new Error('Tidak ada data siswa yang dipilih untuk dicetak');
+      err.statusCode = 422;
+      throw err;
+    }
+
+    const { generateCardsPdf } = require('../utils/cardPdfGenerator');
+    return await generateCardsPdf(studentsToPrint, {
+      paper_size,
+      paper_orientation,
+      custom_paper_width_mm,
+      custom_paper_height_mm,
+      card_size,
+      custom_card_width_mm,
+      custom_card_height_mm,
+      margin_mm,
+      gap_mm,
+      show_cutting_lines,
+      show_pin,
+      show_qr,
+      show_class
+    });
+  }
 }
 
 module.exports = new CanteenStudentsService();
+

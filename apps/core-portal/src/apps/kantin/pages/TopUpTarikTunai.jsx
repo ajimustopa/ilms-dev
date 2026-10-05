@@ -665,6 +665,18 @@ export default function TopUpTarikTunai() {
             </button>
           </div>
 
+          {activeTab === 'opening_balance' && (
+            <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs flex items-start gap-2.5 shadow-2xs">
+              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold text-indigo-900">Mode Pencatatan Saldo Awal (Cutover Migrasi)</p>
+                <p className="text-[11px] text-indigo-800 leading-relaxed">
+                  Pencatatan ini murni mengisi saldo kartu digital santri dari data lama tanpa mendebit ulang kas/bank. Uang fisik/rekening sudah tersimpan pada Saldo Awal Kas BNI (Modul Keuangan), sehingga saldo kas Anda tetap aman dan tidak mengalami duplikasi.
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -876,101 +888,150 @@ export default function TopUpTarikTunai() {
               />
             </div>
 
-            {/* Preview Akuntansi Mini */}
-            <div className="p-3.5 bg-gradient-to-br from-emerald-50/70 via-slate-50 to-emerald-50/40 border border-emerald-200/80 rounded-xl space-y-2 text-[11px] shadow-xs">
-              <div className="flex items-center justify-between font-bold text-emerald-900 border-b border-emerald-200/60 pb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <BadgeCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Alokasi Akuntansi Otomatis</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono">
-                  Double-Entry JRN
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
-                {/* Kolom Debet */}
-                <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                  <span className="text-emerald-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                    [Dr] Akun Debet:
+            {/* Preview Akuntansi Mini / Sub-Ledger Preview */}
+            {activeTab === 'opening_balance' ? (
+              <div className="p-3.5 bg-gradient-to-br from-indigo-50/70 via-slate-50 to-indigo-50/40 border border-indigo-200/80 rounded-xl space-y-2 text-[11px] shadow-xs">
+                <div className="flex items-center justify-between font-bold text-indigo-900 border-b border-indigo-200/60 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <BadgeCheck className="w-4 h-4 text-indigo-600" />
+                    <span>Pencatatan Sub-Ledger Saldo Awal (Cutover)</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded font-mono font-bold">
+                    TANPA MUTASI KAS GANDA
                   </span>
-                  {activeTab === 'top_up' || activeTab === 'opening_balance' ? (
-                    <div>
-                      <span className="font-bold text-slate-900 block text-[11px]">
-                        {selectedCashAccount?.name || 'Kas Tunai'}
-                      </span>
-                      {selectedCashAccount?.bank_account_number ? (
-                        <span className="font-mono text-[10px] text-emerald-800 font-semibold block mt-0.5">
-                          {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
-                          (Kas Fisik Tunai)
-                        </span>
-                      )}
-                      {selectedCashAccount?.coa_code && (
-                        <span className="text-[9px] text-slate-400 font-mono block">
-                          COA: {selectedCashAccount.coa_code}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="font-bold text-slate-900 block text-[11px]">
-                        404 - Dana Titipan Dompet
-                      </span>
-                      <span className="text-[10px] text-amber-700 block mt-0.5">
-                        Liabilitas / Titipan Santri
-                      </span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Kolom Kredit */}
-                <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                  <span className="text-rose-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                    [Cr] Akun Kredit:
+                <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
+                  {/* Kolom Sub-Ledger Kartu Santri */}
+                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
+                    <span className="text-indigo-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
+                      [Sub-Ledger] Kartu Santri:
+                    </span>
+                    <span className="font-bold text-slate-900 block text-[11px]">
+                      {selectedStudent?.student_name || 'Kartu Santri'}
+                    </span>
+                    <span className="text-[10px] text-indigo-700 font-mono font-bold block mt-0.5">
+                      +Rp {amount ? parseFloat(amount || 0).toLocaleString('id-ID') : '0'}
+                    </span>
+                  </div>
+
+                  {/* Kolom Status Kas Bank */}
+                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
+                    <span className="text-slate-600 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
+                      [Kas/Bank] Rekening Sumber:
+                    </span>
+                    <span className="font-bold text-slate-900 block text-[11px]">
+                      {selectedCashAccount?.name || 'Kas/Bank BNI Kantin'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Saldo sudah tercatat di Keuangan (tidak didebit ulang)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-indigo-800 font-medium pt-1 flex items-center justify-between border-t border-indigo-200/60">
+                  <span>Keterangan Cutover:</span>
+                  <span className="font-semibold text-indigo-900">
+                    Murni aktivasi saldo kartu santri untuk POS Kantin
                   </span>
-                  {activeTab === 'top_up' || activeTab === 'opening_balance' ? (
-                    <div>
-                      <span className="font-bold text-slate-900 block text-[11px]">
-                        404 - Dana Titipan Dompet
-                      </span>
-                      <span className="text-[10px] text-emerald-800 block mt-0.5">
-                        {activeTab === 'opening_balance' ? 'Saldo Awal Migrasi Cutover' : 'Liabilitas / Titipan Santri'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="font-bold text-slate-900 block text-[11px]">
-                        {selectedCashAccount?.name || 'Kas Tunai'}
-                      </span>
-                      {selectedCashAccount?.bank_account_number ? (
-                        <span className="font-mono text-[10px] text-rose-800 font-semibold block mt-0.5">
-                          {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
-                          (Kas Fisik Tunai)
-                        </span>
-                      )}
-                      {selectedCashAccount?.coa_code && (
-                        <span className="text-[9px] text-slate-400 font-mono block">
-                          COA: {selectedCashAccount.coa_code}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
+            ) : (
+              <div className="p-3.5 bg-gradient-to-br from-emerald-50/70 via-slate-50 to-emerald-50/40 border border-emerald-200/80 rounded-xl space-y-2 text-[11px] shadow-xs">
+                <div className="flex items-center justify-between font-bold text-emerald-900 border-b border-emerald-200/60 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <BadgeCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Alokasi Akuntansi Otomatis</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono">
+                    Double-Entry JRN
+                  </span>
+                </div>
 
-              <div className="text-[10px] text-emerald-800 font-medium pt-1 flex items-center justify-between border-t border-emerald-200/60">
-                <span>Pos Sumber Dana:</span>
-                <span className="font-bold bg-emerald-100/80 text-emerald-900 px-1.5 py-0.5 rounded">
-                  Pos Dana Dompet Santri (canteen_wallet)
-                </span>
+                <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
+                  {/* Kolom Debet */}
+                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
+                    <span className="text-emerald-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
+                      [Dr] Akun Debet:
+                    </span>
+                    {activeTab === 'top_up' ? (
+                      <div>
+                        <span className="font-bold text-slate-900 block text-[11px]">
+                          {selectedCashAccount?.name || 'Kas Tunai'}
+                        </span>
+                        {selectedCashAccount?.bank_account_number ? (
+                          <span className="font-mono text-[10px] text-emerald-800 font-semibold block mt-0.5">
+                            {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            (Kas Fisik Tunai)
+                          </span>
+                        )}
+                        {selectedCashAccount?.coa_code && (
+                          <span className="text-[9px] text-slate-400 font-mono block">
+                            COA: {selectedCashAccount.coa_code}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="font-bold text-slate-900 block text-[11px]">
+                          404 - Dana Titipan Dompet
+                        </span>
+                        <span className="text-[10px] text-amber-700 block mt-0.5">
+                          Liabilitas / Titipan Santri
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Kolom Kredit */}
+                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
+                    <span className="text-rose-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
+                      [Cr] Akun Kredit:
+                    </span>
+                    {activeTab === 'top_up' ? (
+                      <div>
+                        <span className="font-bold text-slate-900 block text-[11px]">
+                          404 - Dana Titipan Dompet
+                        </span>
+                        <span className="text-[10px] text-emerald-800 block mt-0.5">
+                          Liabilitas / Titipan Santri
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="font-bold text-slate-900 block text-[11px]">
+                          {selectedCashAccount?.name || 'Kas Tunai'}
+                        </span>
+                        {selectedCashAccount?.bank_account_number ? (
+                          <span className="font-mono text-[10px] text-rose-800 font-semibold block mt-0.5">
+                            {selectedCashAccount.bank_name ? `${selectedCashAccount.bank_name} ` : ''}No. {selectedCashAccount.bank_account_number}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            (Kas Fisik Tunai)
+                          </span>
+                        )}
+                        {selectedCashAccount?.coa_code && (
+                          <span className="text-[9px] text-slate-400 font-mono block">
+                            COA: {selectedCashAccount.coa_code}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-emerald-800 font-medium pt-1 flex items-center justify-between border-t border-emerald-200/60">
+                  <span>Pos Sumber Dana:</span>
+                  <span className="font-bold bg-emerald-100/80 text-emerald-900 px-1.5 py-0.5 rounded">
+                    Pos Dana Dompet Santri (canteen_wallet)
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Tombol Submit */}
             <button

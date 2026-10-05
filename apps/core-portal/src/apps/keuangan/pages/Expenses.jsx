@@ -474,7 +474,7 @@ export default function Expenses() {
   const [fundBalancesOptions, setFundBalancesOptions] = useState([]);
   const [availableFundGroups, setAvailableFundGroups] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
-  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('');
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('all');
   const [loading, setLoading] = useState(false);
 
   // 2. Macro Summary State
@@ -907,7 +907,9 @@ export default function Expenses() {
   const fetchMasterData = async () => {
     try {
       const [ayRes, cashRes, catRes, coaRes, progRes, catalogRes, empRes, feesRes] = await Promise.all([
-        api.get('/akademik/academic-years').catch(() => api.get('/keuangan/academic-years').catch(() => ({ data: { data: [] } }))),
+        api.get('/akademik/academic-years', {
+          params: activeSchoolUnit?.id && activeSchoolUnit.id !== 'all' ? { satuan_pendidikan_id: activeSchoolUnit.id } : {}
+        }).catch(() => api.get('/keuangan/academic-years').catch(() => ({ data: { data: [] } }))),
         api.get('/keuangan/cash-accounts').catch(() => ({ data: { data: [] } })),
         api.get('/keuangan/transaction-categories').catch(() => ({ data: { data: [] } })),
         api.get('/keuangan/chart-of-accounts').catch(() => ({ data: { data: [] } })),
@@ -919,10 +921,6 @@ export default function Expenses() {
 
       const yearsList = normalizeArray(ayRes, ['academic_years']);
       setAcademicYears(yearsList);
-      if (yearsList.length > 0 && !selectedAcademicYearId) {
-        const activeYear = yearsList.find(y => y.is_active) || yearsList[0];
-        setSelectedAcademicYearId(String(activeYear.id));
-      }
 
       setCashAccounts(normalizeArray(cashRes, ['cash_accounts']));
       setExpenseCategories(normalizeArray(catRes, ['categories', 'transaction_categories']));
@@ -964,8 +962,9 @@ export default function Expenses() {
   // Fetch Sumber Dana / Fund Balances
   const fetchAvailableFundSources = async (ayId) => {
     try {
+      const targetAy = (ayId && ayId !== 'all') ? ayId : (selectedAcademicYearId !== 'all' ? selectedAcademicYearId : undefined);
       const res = await api.get('/keuangan/fund-balances/available-sources', {
-        params: { academic_year_id: ayId || selectedAcademicYearId || undefined }
+        params: { academic_year_id: targetAy }
       });
       if (res.data?.success) {
         setAvailableFundGroups(Array.isArray(res.data.data?.groups) ? res.data.data.groups : []);
@@ -980,7 +979,7 @@ export default function Expenses() {
   const fetchExpensesData = async () => {
     setLoading(true);
     try {
-      const ayId = selectedAcademicYearId || undefined;
+      const ayId = (selectedAcademicYearId && selectedAcademicYearId !== 'all') ? selectedAcademicYearId : undefined;
       const params = {
         academic_year_id: ayId,
         month: filterMonth !== 'all' ? filterMonth : undefined,
@@ -1074,7 +1073,7 @@ export default function Expenses() {
 
   // Helper Sinkronisasi Cepat Pos Anggaran RAPBS & Master Data COA
   const handleSyncBudgetPlans = async (targetAyId = null) => {
-    const ayId = targetAyId || formData.academic_year_id || editFormData.academic_year_id || selectedAcademicYearId || undefined;
+    const ayId = targetAyId || formData.academic_year_id || editFormData.academic_year_id || (selectedAcademicYearId !== 'all' ? selectedAcademicYearId : undefined);
     setSyncingBudget(true);
     try {
       await fetchMasterData();
@@ -1143,9 +1142,7 @@ export default function Expenses() {
   };
 
   useEffect(() => {
-    if (selectedAcademicYearId) {
-      fetchExpensesData();
-    }
+    fetchExpensesData();
   }, [
     activeSchoolUnit,
     selectedAcademicYearId,
@@ -2027,7 +2024,7 @@ export default function Expenses() {
         vendor: formData.vendor || null,
         expense_date: formData.expense_date,
         proof_number: formData.proof_number || null,
-        academic_year_id: Number(formData.academic_year_id || selectedAcademicYearId || 2),
+        academic_year_id: Number(formData.academic_year_id || (selectedAcademicYearId !== 'all' ? selectedAcademicYearId : null) || (academicYears.find(y => y.is_active)?.id || academicYears[0]?.id || 2)),
         fund_source_type: formData.fund_source_type || 'opening_pool',
         fund_source_ref_id: Number(formData.fund_source_ref_id || 0),
         fund_source_override_reason: formData.fund_source_override_reason || null,
@@ -2109,7 +2106,7 @@ export default function Expenses() {
         vendor: editFormData.vendor || null,
         expense_date: editFormData.expense_date,
         proof_number: editFormData.proof_number || null,
-        academic_year_id: Number(editFormData.academic_year_id || selectedAcademicYearId || 2),
+        academic_year_id: Number(editFormData.academic_year_id || (selectedAcademicYearId !== 'all' ? selectedAcademicYearId : null) || (academicYears.find(y => y.is_active)?.id || academicYears[0]?.id || 2)),
         fund_source_type: editFormData.fund_source_type || 'opening_pool',
         fund_source_ref_id: Number(editFormData.fund_source_ref_id || 0),
         fund_source_override_reason: editFormData.fund_source_override_reason || null,
@@ -2740,15 +2737,41 @@ export default function Expenses() {
     }));
   }, [chartOfAccounts]);
 
-  // Options Tahun Ajaran
+  // Options Tahun Ajaran (Deduplikasi per nama tahun ajaran & filter unit aktif)
   const academicYearOptions = useMemo(() => {
-    return (Array.isArray(academicYears) ? academicYears : []).map(ay => ({
-      value: String(ay.id),
-      label: `${ay.name || ay.academic_year_name || 'T.A.'} ${ay.is_active ? '(Aktif)' : ''}`,
-      badge: ay.is_active ? 'T.A. Aktif' : '',
-      badgeClass: ay.is_active ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : ''
-    }));
-  }, [academicYears]);
+    const uniqueMap = new Map();
+
+    (Array.isArray(academicYears) ? academicYears : []).forEach(ay => {
+      const yearName = ay.name || ay.academic_year_name;
+      if (!yearName) return;
+
+      const isMatchingUnit = activeSchoolUnit?.id && activeSchoolUnit.id !== 'all'
+        ? String(ay.satuan_pendidikan_id) === String(activeSchoolUnit.id)
+        : true;
+
+      if (!uniqueMap.has(yearName) || isMatchingUnit) {
+        uniqueMap.set(yearName, ay);
+      }
+    });
+
+    const uniqueYears = Array.from(uniqueMap.values());
+    uniqueYears.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+
+    return [
+      {
+        value: 'all',
+        label: 'Semua Tahun Ajaran',
+        badge: 'Semua T.A.',
+        badgeClass: 'bg-slate-100 text-slate-800 border-slate-300'
+      },
+      ...uniqueYears.map(ay => ({
+        value: String(ay.id),
+        label: `${ay.name || ay.academic_year_name || 'T.A.'} ${ay.is_active ? '(Aktif)' : ''}`,
+        badge: ay.is_active ? 'T.A. Aktif' : '',
+        badgeClass: ay.is_active ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : ''
+      }))
+    ];
+  }, [academicYears, activeSchoolUnit]);
 
   // Active Selected BudgetItem Details untuk Visual Guide
   const activeSelectedBudgetItem = useMemo(() => {
@@ -2775,6 +2798,7 @@ export default function Expenses() {
       const budgetItem = (exp.budget_item_name || '').toLowerCase();
       const budgetProg = (exp.budget_program_name || '').toLowerCase();
       const catName = (exp.catalog_item_name || exp.category_name || '').toLowerCase();
+      const cashName = (exp.cash_account_name || '').toLowerCase();
       const bankName = (exp.cash_bank_name || '').toLowerCase();
       const bankAccNo = (exp.cash_bank_account_number || '').toLowerCase();
       const amountStr = String(exp.total_amount || '');
@@ -2863,7 +2887,7 @@ export default function Expenses() {
                   staff_name: '',
                   expense_category_id: '',
                   transaction_category_id: '',
-                  academic_year_id: selectedAcademicYearId || 2,
+                  academic_year_id: (selectedAcademicYearId && selectedAcademicYearId !== 'all') ? selectedAcademicYearId : (academicYears.find(y => y.is_active)?.id ? String(academicYears.find(y => y.is_active).id) : (academicYears[0]?.id ? String(academicYears[0].id) : '2')),
                   fund_source_type: 'opening_pool',
                   fund_source_ref_id: 0,
                   fund_source_override_reason: '',
@@ -3192,8 +3216,19 @@ export default function Expenses() {
               <ShoppingBag className="w-9 h-9 mx-auto text-slate-300" />
               <p className="font-semibold text-slate-600 text-sm">Belum ada catatan pengeluaran belanja.</p>
               <p className="text-[11px] text-slate-400 max-w-md mx-auto">
-                Klik tombol "Catat Pengeluaran Baru" di atas untuk mencatat pengadaan barang/jasa berbasis RAPBS atau operasional kas.
+                {selectedAcademicYearId && selectedAcademicYearId !== 'all'
+                  ? 'Tidak ada transaksi pengeluaran pada Tahun Ajaran yang dipilih. Anda dapat mengganti filter ke "Semua Tahun Ajaran" atau mencatat transaksi baru.'
+                  : 'Klik tombol "Catat Pengeluaran Baru" di atas untuk mencatat pengadaan barang/jasa berbasis RAPBS atau operasional kas.'}
               </p>
+              {selectedAcademicYearId && selectedAcademicYearId !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedAcademicYearId('all')}
+                  className="px-3.5 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Tampilkan Semua Tahun Ajaran
+                </button>
+              )}
             </div>
           ) : filteredExpenses.length === 0 ? (
             <div className="py-16 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 space-y-2.5">
@@ -3447,7 +3482,7 @@ export default function Expenses() {
                                   staff_id: exp.staff_id ? String(exp.staff_id) : '',
                                   staff_name: exp.staff_name || '',
                                   transaction_category_id: exp.transaction_category_id ? String(exp.transaction_category_id) : '',
-                                  academic_year_id: exp.academic_year_id ? String(exp.academic_year_id) : selectedAcademicYearId,
+                                  academic_year_id: exp.academic_year_id ? String(exp.academic_year_id) : ((selectedAcademicYearId && selectedAcademicYearId !== 'all') ? selectedAcademicYearId : (academicYears.find(y => y.is_active)?.id ? String(academicYears.find(y => y.is_active).id) : '2')),
                                   fund_source_type: editFundType,
                                   fund_source_ref_id: editFundRefId,
                                   fund_source_override_reason: exp.fund_source_override_reason || '',

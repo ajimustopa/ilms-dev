@@ -204,23 +204,9 @@ class WalletTransactionsService {
         updated_at: db.fn.now()
       });
 
-    // 2. Catat Jurnal Akuntansi & Pos Dana Otomatis ke Modul Keuangan (In-Process)
-    let journalResult = null;
-    try {
-      journalResult = await keuanganInternalService.recordWalletTopUpJournal({
-        schoolUnitId: effectiveUnitId,
-        studentId: Number(student_id),
-        studentName: student.cached_student_name || `Siswa #${student_id}`,
-        amount: initialAmount,
-        cashAccountId: cash_account_id ? Number(cash_account_id) : null,
-        bankStatementId: bank_statement_id ? Number(bank_statement_id) : null,
-        occurredAt: transactionDate,
-        notes: notes || `Saldo Awal Migrasi Dompet Santri - ${student.cached_student_name || `Siswa #${student_id}`}`,
-        userId
-      });
-    } catch (journalErr) {
-      console.error(`[Kantin Opening Balance] Gagal posting jurnal ke Modul Keuangan: ${journalErr.message}`);
-    }
+    // 2. Saldo Awal Migrasi (Cutover): Murni pencatatan Sub-Ledger Kartu Santri.
+    // Uang fisik/rekening sudah ada di Saldo Awal Kas BNI (Keuangan), sehingga TIDAK mendebit kas ulang.
+    const journalNumber = 'SALDO-AWAL-CUTOVER';
 
     // 3. Simpan record transaksi di tabel wallet_transactions
     const [txId] = await db('wallet_transactions').insert({
@@ -229,11 +215,11 @@ class WalletTransactionsService {
       transaction_type: 'opening_balance',
       amount: initialAmount,
       balance_after: newBalance,
-      payment_method,
+      payment_method: payment_method || 'transfer',
       cash_account_id: cash_account_id ? Number(cash_account_id) : null,
       bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
-      journal_entry_id: journalResult?.journal_entry_id || null,
-      journal_number: journalResult?.journal_number || null,
+      journal_entry_id: null,
+      journal_number: journalNumber,
       notes: notes || 'Saldo Awal Migrasi Sistem Lama (Cutover)',
       processed_by: userId || 1,
       occurred_at: transactionDate
@@ -249,7 +235,7 @@ class WalletTransactionsService {
           student_id: Number(student_id),
           amount: initialAmount,
           balance_after: newBalance,
-          journal_number: journalResult?.journal_number || null,
+          journal_number: journalNumber,
           occurred_at: transactionDate.toISOString()
         })
       });
@@ -260,7 +246,7 @@ class WalletTransactionsService {
       student_id: Number(student_id),
       amount: initialAmount,
       balance_after: newBalance,
-      journal_number: journalResult?.journal_number || null
+      journal_number: journalNumber
     };
   }
 
@@ -515,7 +501,7 @@ class WalletTransactionsService {
 
     // Hitung dampak perubahan saldo santri
     let deltaBalance = 0;
-    if (tx.transaction_type === 'top_up') {
+    if (tx.transaction_type === 'top_up' || tx.transaction_type === 'opening_balance') {
       deltaBalance = diff;
     } else if (tx.transaction_type === 'withdrawal' || tx.transaction_type === 'purchase') {
       deltaBalance = -diff;
@@ -595,24 +581,26 @@ class WalletTransactionsService {
       });
     });
 
-    // 4. Sinkronisasi ke Modul Keuangan (Pos Dana, Jurnal, Mutasi Rekening Koran)
-    try {
-      await keuanganInternalService.syncWalletTransactionRevision({
-        schoolUnitId: tx.school_unit_id,
-        journalEntryId: tx.journal_entry_id,
-        oldAmount,
-        newAmount,
-        oldCashAccountId: tx.cash_account_id,
-        newCashAccountId: updatedFields.cash_account_id,
-        oldBankStatementId: tx.bank_statement_id,
-        newBankStatementId: updatedFields.bank_statement_id,
-        transactionType: tx.transaction_type,
-        notes: updatedFields.notes,
-        studentName: tx.cached_student_name,
-        userId: user.id || null
-      });
-    } catch (err) {
-      console.warn('[Wallet Revision] Gagal sinkron ke modul keuangan:', err.message);
+    // 4. Sinkronisasi ke Modul Keuangan jika memiliki jurnal (Top-Up / Penarikan biasa)
+    if (tx.transaction_type !== 'opening_balance' && tx.journal_entry_id) {
+      try {
+        await keuanganInternalService.syncWalletTransactionRevision({
+          schoolUnitId: tx.school_unit_id,
+          journalEntryId: tx.journal_entry_id,
+          oldAmount,
+          newAmount,
+          oldCashAccountId: tx.cash_account_id,
+          newCashAccountId: updatedFields.cash_account_id,
+          oldBankStatementId: tx.bank_statement_id,
+          newBankStatementId: updatedFields.bank_statement_id,
+          transactionType: tx.transaction_type,
+          notes: updatedFields.notes,
+          studentName: tx.cached_student_name,
+          userId: user.id || null
+        });
+      } catch (err) {
+        console.warn('[Wallet Revision] Gagal sinkron ke modul keuangan:', err.message);
+      }
     }
 
     return {

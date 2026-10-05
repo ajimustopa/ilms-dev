@@ -33,8 +33,40 @@ import {
   RotateCcw,
   School,
   SlidersHorizontal,
-  History
+  History,
+  CheckSquare,
+  Square,
+  FileText,
+  LayoutGrid,
+  Settings2,
+  Maximize2,
+  Sliders,
+  Eye,
+  EyeOff,
+  Scissors,
+  CreditCard,
+  Trash2
 } from 'lucide-react';
+
+const PAPER_OPTIONS = [
+  { value: 'a4', label: 'A4 (210 × 297 mm)', width: 210, height: 297, desc: 'Standar kertas kantor' },
+  { value: 'f4', label: 'F4 / Folio (215 × 330 mm)', width: 215, height: 330, desc: 'Kertas F4 / Folio Indonesia' },
+  { value: 'letter', label: 'Letter (215.9 × 279.4 mm)', width: 215.9, height: 279.4, desc: 'Standar US Letter' },
+  { value: 'a3', label: 'A3 (297 × 420 mm)', width: 297, height: 420, desc: 'Ukuran Besar A3' },
+  { value: 'custom', label: 'Ukuran Kertas Kustom (mm)', width: 210, height: 297, desc: 'Tentukan panjang & lebar kertas sendiri' }
+];
+
+const CARD_OPTIONS = [
+  { value: 'label_standard', label: 'Slip Label Standar (95 × 52 mm - ~10 slip/A4)', width: 95.0, height: 52.0, desc: 'Format ideal slip gunting pembagian ke santri (2 kolom × 5 baris)', is_label: true },
+  { value: 'label_compact', label: 'Slip Label Hemat / Compact (64 × 38 mm - ~21 slip/A4)', width: 64.0, height: 38.0, desc: 'Format mini hemat kertas untuk santri banyak (3 kolom × 7 baris)', is_label: true },
+  { value: 'label_mini', label: 'Slip Mini Strip (95 × 36 mm - ~14 slip/A4)', width: 95.0, height: 36.0, desc: 'Format pita horizontal ramping (2 kolom × 7 baris)', is_label: true },
+  { value: 'cr80', label: 'Standar ID Card / CR80 (85.6 × 54 mm)', width: 85.6, height: 54.0, desc: 'Ukuran kartu ATM / KTP / Kartu PVC', is_label: false },
+  { value: 'b2', label: 'Ukuran B2 (106 × 82 mm)', width: 106.0, height: 82.0, desc: 'Ukuran Name Tag B2 Landscape', is_label: false },
+  { value: 'b3', label: 'Ukuran B3 (124 × 95 mm)', width: 124.0, height: 95.0, desc: 'Ukuran Name Tag B3 Landscape', is_label: false },
+  { value: 'compact', label: 'Ukuran Compact (70 × 45 mm)', width: 70.0, height: 45.0, desc: 'Ukuran Mini Hemat Kertas', is_label: false },
+  { value: 'a6_landscape', label: 'Ukuran A6 Landscape (148 × 105 mm)', width: 148.0, height: 105.0, desc: 'Ukuran Kartu Besar A6', is_label: false },
+  { value: 'custom', label: 'Ukuran Kartu/Slip Kustom (mm)', width: 95.0, height: 52.0, desc: 'Tentukan dimensi kartu/slip sendiri', is_label: true }
+];
 
 /**
  * Komponen Dropdown Filter Interaktif Enterprise
@@ -219,6 +251,29 @@ export default function DataSiswaKantin() {
   const [openingBalanceSuccess, setOpeningBalanceSuccess] = useState(null);
   const [cashAccounts, setCashAccounts] = useState([]);
 
+  // State Cetak Kartu & Label PIN Siswa PDF (Multi-Selection & Layout Config)
+  const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [showPinOnTable, setShowPinOnTable] = useState(false);
+  const [printConfig, setPrintConfig] = useState({
+    paper_size: 'a4',
+    paper_orientation: 'portrait',
+    custom_paper_width_mm: 210,
+    custom_paper_height_mm: 297,
+    card_size: 'label_standard',
+    custom_card_width_mm: 95.0,
+    custom_card_height_mm: 52.0,
+    margin_mm: 8,
+    gap_mm: 3,
+    show_cutting_lines: true,
+    show_pin: true,
+    show_qr: true,
+    show_class: true,
+    regenerate_pins: false
+  });
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [printSearch, setPrintSearch] = useState('');
+
   const fetchCashAccounts = async () => {
     try {
       const res = await api.get('/kantin/wallet-transactions/cash-accounts');
@@ -275,7 +330,7 @@ export default function DataSiswaKantin() {
 
       const res = await api.post('/kantin/wallet-transactions/opening-balance', payload);
       const resData = res.data?.data;
-      const jrnInfo = resData?.journal_number ? ` [Jurnal: ${resData.journal_number}]` : '';
+      const jrnInfo = resData?.journal_number ? ` [Ref: ${resData.journal_number}]` : '';
 
       setOpeningBalanceSuccess(`Saldo awal sebesar Rp${parseFloat(openingBalanceAmount).toLocaleString('id-ID')} berhasil dicatat! Saldo baru: Rp${resData.balance_after.toLocaleString('id-ID')}${jrnInfo}`);
       fetchStudents();
@@ -289,58 +344,247 @@ export default function DataSiswaKantin() {
     }
   };
 
-  // Cetak Kartu Digital Santri dengan QR Code
-  const handlePrintCard = (student) => {
-    if (!student) return;
-    const printWindow = window.open('', '_blank', 'width=650,height=750');
-    if (!printWindow) {
-      alert('Pop-up terblokir di browser. Izinkan pop-up untuk mencetak kartu.');
+  // Data Siswa Terfilter (Live Filter & Search)
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => {
+      // Filter Status Akademik
+      if (selectedAcademicStatus !== 'all') {
+        if (selectedAcademicStatus === 'aktif_ta' && !s.is_active_ta) return false;
+        if (selectedAcademicStatus === 'lulus' && s.academic_status !== 'lulus') return false;
+        if (selectedAcademicStatus === 'pindah' && s.academic_status !== 'pindah' && s.academic_status !== 'keluar') return false;
+        if (selectedAcademicStatus === 'non_aktif_ta' && (s.is_active_ta || s.academic_status === 'lulus' || s.academic_status === 'pindah' || s.academic_status === 'keluar')) return false;
+      }
+
+      // Filter Angkatan
+      if (selectedCohort !== 'all') {
+        if (s.cohort_name !== selectedCohort) return false;
+      }
+
+      // Filter Kelas Reguler
+      if (selectedClassGroup !== 'all') {
+        if (s.class_group_name !== selectedClassGroup) return false;
+      }
+
+      // Filter Status Akun Kasir
+      if (selectedAccountStatus !== 'all') {
+        if (selectedAccountStatus === 'active' && (s.status !== 'active' || s.is_blocked_by_parent)) return false;
+        if (selectedAccountStatus === 'inactive' && s.status === 'active') return false;
+        if (selectedAccountStatus === 'blocked' && !s.is_blocked_by_parent) return false;
+      }
+
+      // Filter Pencarian Teks
+      if (!search.trim()) return true;
+      const term = search.toLowerCase().trim();
+      return (
+        s.student_name?.toLowerCase().includes(term) ||
+        s.class_group_name?.toLowerCase().includes(term) ||
+        s.cohort_name?.toLowerCase().includes(term) ||
+        s.academic_status_label?.toLowerCase().includes(term) ||
+        s.nis?.includes(term) ||
+        s.nipd?.includes(term) ||
+        s.qr_code?.toLowerCase().includes(term)
+      );
+    });
+  }, [students, search, selectedCohort, selectedAcademicStatus, selectedClassGroup, selectedAccountStatus]);
+
+  const isAnyFilterActive =
+    selectedAcademicStatus !== 'all' ||
+    selectedCohort !== 'all' ||
+    selectedClassGroup !== 'all' ||
+    selectedAccountStatus !== 'all' ||
+    Boolean(search.trim());
+
+  const handleResetAllFilters = () => {
+    setSelectedAcademicStatus('all');
+    setSelectedCohort('all');
+    setSelectedClassGroup('all');
+    setSelectedAccountStatus('all');
+    setSearch('');
+  };
+
+  // Handlers Pemilihan Siswa untuk Cetak Kartu / Label PIN
+  const handleToggleSelectStudent = (studentId) => {
+    setSelectedStudentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(studentId)) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = (filteredList) => {
+    setSelectedStudentIds(prev => {
+      const next = new Set(prev);
+      filteredList.forEach(s => next.add(s.student_id));
+      return next;
+    });
+  };
+
+  const handleDeselectAllFiltered = (filteredList) => {
+    setSelectedStudentIds(prev => {
+      const next = new Set(prev);
+      filteredList.forEach(s => next.delete(s.student_id));
+      return next;
+    });
+  };
+
+  const handleClearAllSelected = () => {
+    setSelectedStudentIds(new Set());
+  };
+
+  const handleOpenPrintModal = (singleStudent = null) => {
+    if (singleStudent) {
+      setSelectedStudentIds(new Set([singleStudent.student_id]));
+    } else if (selectedStudentIds.size === 0) {
+      // Jika belum ada yang dipilih, otomatis pilih semua siswa dari filter aktif
+      const allFilteredIds = new Set(filteredStudents.map(s => s.student_id));
+      setSelectedStudentIds(allFilteredIds);
+    }
+    setPrintModalOpen(true);
+  };
+
+  // Eksekusi Pembuatan File PDF Label PIN / Kartu
+  const handleExecutePrintPdf = async (actionType = 'open') => {
+    const targetStudents = students.filter(s => selectedStudentIds.has(s.student_id));
+    if (targetStudents.length === 0) {
+      alert('Pilih minimal satu santri untuk dicetak.');
       return;
     }
-    const svgHtml = student.svg_content || (student.qr_image_url ? `<img src="${student.qr_image_url}" style="width:180px;height:180px;" alt="QR"/>` : '<p>QR Code tidak ditemukan</p>');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Kartu QR Santri - ${student.student_name}</title>
-          <style>
-            @page { size: auto; margin: 10mm; }
-            * { box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 90vh; margin: 0; background: #f1f5f9; }
-            .card { width: 340px; padding: 24px; background: white; border: 2px solid #0f172a; border-radius: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-            .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px; }
-            .school-title { font-size: 15px; font-weight: 800; color: #065f46; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
-            .sub-title { font-size: 11px; font-weight: 600; color: #64748b; margin: 2px 0 0; }
-            .qr-container { width: 200px; height: 200px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 8px; border: 1.5px solid #cbd5e1; border-radius: 12px; }
-            .qr-container svg { width: 100%; height: 100%; }
-            .name { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 6px; }
-            .meta { font-size: 12px; font-weight: 600; color: #475569; margin: 0 0 12px; }
-            .nipd-badge { display: inline-block; background: #ecfdf5; border: 1.5px solid #10b981; color: #065f46; font-family: monospace; font-weight: 800; font-size: 14px; padding: 5px 16px; border-radius: 9999px; letter-spacing: 1px; }
-            .footer { margin-top: 16px; font-size: 9px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="header">
-              <div class="school-title">PESANTREN ALDEPOS</div>
-              <div class="sub-title">Kartu Digital QR Universal Santri</div>
-            </div>
-            <div class="qr-container">
-              ${svgHtml}
-            </div>
-            <div class="name">${student.student_name}</div>
-            <div class="meta">${student.class_group_name || 'Santri'} • ${student.cohort_name && student.cohort_name !== '-' ? student.cohort_name : 'Santri Aktif'}</div>
-            <div class="nipd-badge">NIPD: ${student.qr_code || student.nipd || student.nis}</div>
-            <div class="footer">Dapat discan di Kasir Kantin, Perpustakaan, dan POS Yayasan</div>
-          </div>
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+
+    if (printConfig.regenerate_pins) {
+      const confirmRegen = window.confirm(
+        `PERHATIAN: Anda memilih opsi "Generate PIN Baru (Acak 6-Digit)".\n\nSebanyak ${targetStudents.length} santri yang dipilih akan diberikan PIN baru secara acak dan langsung disimpan ke database.\n\nLanjutkan proses cetak & reset PIN?`
+      );
+      if (!confirmRegen) return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      const payload = {
+        student_ids: targetStudents.map(s => s.student_id),
+        paper_size: printConfig.paper_size,
+        paper_orientation: printConfig.paper_orientation,
+        custom_paper_width_mm: printConfig.custom_paper_width_mm,
+        custom_paper_height_mm: printConfig.custom_paper_height_mm,
+        card_size: printConfig.card_size,
+        custom_card_width_mm: printConfig.custom_card_width_mm,
+        custom_card_height_mm: printConfig.custom_card_height_mm,
+        margin_mm: printConfig.margin_mm,
+        gap_mm: printConfig.gap_mm,
+        show_cutting_lines: printConfig.show_cutting_lines,
+        show_pin: printConfig.show_pin,
+        show_qr: printConfig.show_qr,
+        show_class: printConfig.show_class,
+        regenerate_pins: printConfig.regenerate_pins
+      };
+
+      const res = await api.post('/kantin/canteen-students/print-cards-pdf', payload, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadName = printConfig.show_pin
+        ? `slip-label-pin-santri-${targetStudents.length}-siswa.pdf`
+        : `kartu-santri-kantin-${targetStudents.length}-siswa.pdf`;
+
+      if (actionType === 'open') {
+        const printWindow = window.open(blobUrl, '_blank');
+        if (!printWindow) {
+          // Fallback jika pop-up terblokir
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = downloadName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      if (printConfig.regenerate_pins) {
+        fetchStudents();
+      }
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Gagal membuat file PDF: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
+
+  // Kalkulasi Estimasi Layout Kartu per Lembar Kertas
+  const printLayoutEstimate = useMemo(() => {
+    const paperDef = PAPER_OPTIONS.find(p => p.value === printConfig.paper_size) || PAPER_OPTIONS[0];
+    let pW = printConfig.paper_size === 'custom' ? (parseFloat(printConfig.custom_paper_width_mm) || 210) : paperDef.width;
+    let pH = printConfig.paper_size === 'custom' ? (parseFloat(printConfig.custom_paper_height_mm) || 297) : paperDef.height;
+
+    if (printConfig.paper_orientation === 'landscape') {
+      const t = pW;
+      pW = Math.max(pW, pH);
+      pH = Math.min(t, pH);
+    } else {
+      const t = pW;
+      pW = Math.min(pW, pH);
+      pH = Math.max(t, pH);
+    }
+
+    const cardDef = CARD_OPTIONS.find(c => c.value === printConfig.card_size) || CARD_OPTIONS[0];
+    let rawCW = printConfig.card_size === 'custom' ? (parseFloat(printConfig.custom_card_width_mm) || 85.6) : cardDef.width;
+    let rawCH = printConfig.card_size === 'custom' ? (parseFloat(printConfig.custom_card_height_mm) || 54.0) : cardDef.height;
+
+    // Kartu selalu landscape (lebar >= tinggi)
+    const cW = Math.max(rawCW, rawCH);
+    const cH = Math.min(rawCW, rawCH);
+
+    const margin = parseFloat(printConfig.margin_mm) || 8;
+    const gap = parseFloat(printConfig.gap_mm) || 4;
+
+    const availW = Math.max(0, pW - (2 * margin));
+    const availH = Math.max(0, pH - (2 * margin));
+
+    const cols = Math.max(1, Math.floor((availW + gap) / (cW + gap)));
+    const rows = Math.max(1, Math.floor((availH + gap) / (cH + gap)));
+    const cardsPerPage = cols * rows;
+    const selectedCount = selectedStudentIds.size;
+    const totalPages = selectedCount > 0 ? Math.ceil(selectedCount / cardsPerPage) : 1;
+
+    return {
+      pW,
+      pH,
+      cW,
+      cH,
+      cols,
+      rows,
+      cardsPerPage,
+      totalPages,
+      selectedCount
+    };
+  }, [printConfig, selectedStudentIds]);
+
+  // Santri contoh untuk live preview di modal
+  const sampleStudentForPreview = useMemo(() => {
+    const selectedList = students.filter(s => selectedStudentIds.has(s.student_id));
+    if (selectedList.length > 0) return selectedList[0];
+    if (filteredStudents.length > 0) return filteredStudents[0];
+    return students[0] || {
+      student_name: 'AHMAD DAFI FAKHRUDIN',
+      nipd: '2024001',
+      nis: '2024001',
+      class_group_name: '10 IPA 1',
+      child_pin: '123456',
+      qr_code: '2024001'
+    };
+  }, [students, selectedStudentIds, filteredStudents]);
 
   // Generate QR Per Siswa
   const handleGenerateQr = async (studentId) => {
@@ -522,63 +766,6 @@ export default function DataSiswaKantin() {
     ];
   }, [students]);
 
-  const isAnyFilterActive =
-    selectedAcademicStatus !== 'all' ||
-    selectedCohort !== 'all' ||
-    selectedClassGroup !== 'all' ||
-    selectedAccountStatus !== 'all' ||
-    Boolean(search.trim());
-
-  const handleResetAllFilters = () => {
-    setSelectedAcademicStatus('all');
-    setSelectedCohort('all');
-    setSelectedClassGroup('all');
-    setSelectedAccountStatus('all');
-    setSearch('');
-  };
-
-  const filteredStudents = useMemo(() => {
-    return students.filter(s => {
-      // Filter Status Akademik
-      if (selectedAcademicStatus !== 'all') {
-        if (selectedAcademicStatus === 'aktif_ta' && !s.is_active_ta) return false;
-        if (selectedAcademicStatus === 'lulus' && s.academic_status !== 'lulus') return false;
-        if (selectedAcademicStatus === 'pindah' && s.academic_status !== 'pindah' && s.academic_status !== 'keluar') return false;
-        if (selectedAcademicStatus === 'non_aktif_ta' && (s.is_active_ta || s.academic_status === 'lulus' || s.academic_status === 'pindah' || s.academic_status === 'keluar')) return false;
-      }
-
-      // Filter Angkatan
-      if (selectedCohort !== 'all') {
-        if (s.cohort_name !== selectedCohort) return false;
-      }
-
-      // Filter Kelas Reguler
-      if (selectedClassGroup !== 'all') {
-        if (s.class_group_name !== selectedClassGroup) return false;
-      }
-
-      // Filter Status Akun Kasir
-      if (selectedAccountStatus !== 'all') {
-        if (selectedAccountStatus === 'active' && (s.status !== 'active' || s.is_blocked_by_parent)) return false;
-        if (selectedAccountStatus === 'inactive' && s.status === 'active') return false;
-        if (selectedAccountStatus === 'blocked' && !s.is_blocked_by_parent) return false;
-      }
-
-      // Filter Pencarian Teks
-      if (!search.trim()) return true;
-      const term = search.toLowerCase().trim();
-      return (
-        s.student_name?.toLowerCase().includes(term) ||
-        s.class_group_name?.toLowerCase().includes(term) ||
-        s.cohort_name?.toLowerCase().includes(term) ||
-        s.academic_status_label?.toLowerCase().includes(term) ||
-        s.nis?.includes(term) ||
-        s.nipd?.includes(term) ||
-        s.qr_code?.toLowerCase().includes(term)
-      );
-    });
-  }, [students, search, selectedCohort, selectedAcademicStatus, selectedClassGroup, selectedAccountStatus]);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -598,6 +785,22 @@ export default function DataSiswaKantin() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Tombol Cetak Label PIN & Kartu Santri (PDF) */}
+          <button
+            type="button"
+            onClick={() => handleOpenPrintModal()}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer border border-slate-700 hover:shadow-md"
+            title="Cetak slip label PIN santri (format gunting) atau kartu santri format PDF multi-halaman"
+          >
+            <Scissors className="w-4 h-4 text-emerald-400" />
+            <span>Cetak Label PIN &amp; Kartu (PDF)</span>
+            {selectedStudentIds.size > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-[10px]">
+                {selectedStudentIds.size}
+              </span>
+            )}
+          </button>
+
           {/* Tombol Generate QR Masal */}
           <button
             type="button"
@@ -756,8 +959,19 @@ export default function DataSiswaKantin() {
           )}
         </div>
 
-        <div className="text-xs text-slate-400 font-medium self-end lg:self-center shrink-0">
-          Menampilkan <span className="font-bold text-slate-800">{filteredStudents.length}</span> dari {students.length} Santri
+        <div className="flex items-center gap-3 self-end lg:self-center shrink-0">
+          {selectedStudentIds.size > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAllSelected}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+            >
+              Batalkan ({selectedStudentIds.size})
+            </button>
+          )}
+          <div className="text-xs text-slate-400 font-medium">
+            Menampilkan <span className="font-bold text-slate-800">{filteredStudents.length}</span> dari {students.length} Santri
+          </div>
         </div>
       </div>
 
@@ -773,220 +987,296 @@ export default function DataSiswaKantin() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
+                  <th className="px-3 py-3 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allFilteredSelected = filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.has(s.student_id));
+                        if (allFilteredSelected) {
+                          handleDeselectAllFiltered(filteredStudents);
+                        } else {
+                          handleSelectAllFiltered(filteredStudents);
+                        }
+                      }}
+                      className="p-1 rounded-md text-slate-400 hover:text-emerald-600 transition cursor-pointer"
+                      title="Pilih seluruh santri pada tabel ini"
+                    >
+                      {filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.has(s.student_id)) ? (
+                        <CheckSquare className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-4 py-3">Nama Santri &amp; Angkatan</th>
                   <th className="px-4 py-3">Rombel / Kelas (TA Aktif)</th>
                   <th className="px-4 py-3">NIPD / Kode QR Universal</th>
+                  <th className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <span>PIN Kasir</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPinOnTable(!showPinOnTable)}
+                        className="p-1 rounded text-slate-400 hover:text-emerald-700 transition cursor-pointer"
+                        title={showPinOnTable ? 'Sembunyikan PIN' : 'Tampilkan PIN'}
+                      >
+                        {showPinOnTable ? <EyeOff className="w-3.5 h-3.5 text-emerald-600" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </th>
                   <th className="px-4 py-3">Saldo Dompet</th>
                   <th className="px-4 py-3">Limit Harian</th>
                   <th className="px-4 py-3">Status Kasir</th>
-                  <th className="px-4 py-3 text-right">Aksi Keamanan</th>
+                  <th className="px-4 py-3 text-right">Aksi &amp; Keamanan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStudents.map((s) => (
-                  <tr key={s.student_id} className="hover:bg-slate-50/60 transition">
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-0.5">
-                        <p className="font-bold text-slate-800 text-[13px]">{s.student_name}</p>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {s.cohort_name && s.cohort_name !== '-' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/60 text-indigo-700 font-semibold text-[10px]">
-                              <GraduationCap className="w-3 h-3 text-indigo-500" />
-                              <span>{s.cohort_name}</span>
-                            </span>
+                {filteredStudents.map((s) => {
+                  const isSelected = selectedStudentIds.has(s.student_id);
+                  return (
+                    <tr
+                      key={s.student_id}
+                      className={`transition ${
+                        isSelected ? 'bg-emerald-50/40 hover:bg-emerald-50/60' : 'hover:bg-slate-50/60'
+                      }`}
+                    >
+                      {/* Checkbox Kolom */}
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelectStudent(s.student_id)}
+                          className="p-1 rounded-md transition cursor-pointer"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-300 hover:text-slate-500" />
                           )}
-                          {(s.nipd || s.nis) && (
-                            <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
-                              NIPD: {s.nipd || s.nis}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                        </button>
+                      </td>
 
-                    {/* Kolom Rombel / Kelas dengan penanda Tahun Ajaran Aktif & Alumni/Pindah */}
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1 items-start">
-                        {s.is_active_ta ? (
-                          <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md text-[11px]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span>{s.class_group_name || '-'}</span>
-                          </span>
-                        ) : s.academic_status === 'lulus' ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[11px]">
-                              <span>{s.class_group_name || 'Alumni'}</span>
-                            </span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60 w-fit">
-                              Lulus / Alumni
-                            </span>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <p className="font-bold text-slate-800 text-[13px]">{s.student_name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {s.cohort_name && s.cohort_name !== '-' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/60 text-indigo-700 font-semibold text-[10px]">
+                                <GraduationCap className="w-3 h-3 text-indigo-500" />
+                                <span>{s.cohort_name}</span>
+                              </span>
+                            )}
+                            {(s.nipd || s.nis) && (
+                              <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
+                                NIPD: {s.nipd || s.nis}
+                              </span>
+                            )}
                           </div>
-                        ) : s.academic_status === 'pindah' || s.academic_status === 'keluar' ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 font-semibold text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-md text-[11px]">
-                              <span>{s.class_group_name || 'Mutasi'}</span>
-                            </span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 w-fit">
-                              Pindah / Keluar
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                        </div>
+                      </td>
+
+                      {/* Kolom Rombel / Kelas dengan penanda Tahun Ajaran Aktif & Alumni/Pindah */}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1 items-start">
+                          {s.is_active_ta ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md text-[11px]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                               <span>{s.class_group_name || '-'}</span>
                             </span>
-                            <span className="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60 w-fit">
-                              Di luar Rombel TA Aktif
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Gambar & Kode QR Kasir */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {s.qr_code ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedStudentQr(s)}
-                              className="font-mono text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-300 flex items-center gap-1.5 transition shadow-2xs group cursor-pointer"
-                              title="Klik untuk membuka Kartu Digital & Gambar QR"
-                            >
-                              <QrCode className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-                              <span>{s.qr_code}</span>
-                              <span className="text-[10px] font-sans font-medium text-emerald-700 bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200">
-                                Buka Kartu
+                          ) : s.academic_status === 'lulus' ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1 font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[11px]">
+                                <span>{s.class_group_name || 'Alumni'}</span>
                               </span>
-                            </button>
+                              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60 w-fit">
+                                Lulus / Alumni
+                              </span>
+                            </div>
+                          ) : s.academic_status === 'pindah' || s.academic_status === 'keluar' ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1 font-semibold text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-md text-[11px]">
+                                <span>{s.class_group_name || 'Mutasi'}</span>
+                              </span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 w-fit">
+                                Pindah / Keluar
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1 font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                                <span>{s.class_group_name || '-'}</span>
+                              </span>
+                              <span className="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60 w-fit">
+                                Di luar Rombel TA Aktif
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Gambar & Kode QR Kasir */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {s.qr_code ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStudentQr(s)}
+                                className="font-mono text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-300 flex items-center gap-1.5 transition shadow-2xs group cursor-pointer"
+                                title="Klik untuk membuka Kartu Digital & Gambar QR"
+                              >
+                                <QrCode className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                <span>{s.qr_code}</span>
+                                <span className="text-[10px] font-sans font-medium text-emerald-700 bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  Buka Kartu
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateQr(s.student_id)}
+                                disabled={generatingSingleId === s.student_id}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition cursor-pointer"
+                                title="Generate ulang file gambar QR"
+                              >
+                                {generatingSingleId === s.student_id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                                ) : (
+                                  <RotateCw className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
                               onClick={() => handleGenerateQr(s.student_id)}
                               disabled={generatingSingleId === s.student_id}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition cursor-pointer"
-                              title="Generate ulang file gambar QR"
+                              className="text-xs text-white font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
+                              title="Buat dan simpan gambar QR santri ke folder penyimpanan server"
                             >
                               {generatingSingleId === s.student_id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                               ) : (
-                                <RotateCw className="w-3.5 h-3.5" />
+                                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                               )}
+                              <span>+ Buat Gambar QR</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Kolom PIN Kasir */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-bold text-emerald-950 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200 tracking-wider">
+                            {showPinOnTable ? (s.child_pin || '123456') : '••••••'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Saldo Dompet & Tombol Mutasi Cepat */}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="font-mono font-extrabold text-emerald-700 text-[12px]">
+                            Rp{s.wallet_balance.toLocaleString('id-ID')}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setHistoryModalStudent(s)}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition cursor-pointer"
+                              title="Lihat seluruh riwayat mutasi dompet santri"
+                            >
+                              <History className="w-3 h-3 text-emerald-600" />
+                              <span>Mutasi</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenOpeningBalance(s)}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition cursor-pointer"
+                              title="Set Saldo Awal Migrasi Sistem Lama (Cutover)"
+                            >
+                              <Sparkles className="w-3 h-3 text-indigo-600" />
+                              <span>+ Saldo Awal</span>
                             </button>
                           </div>
-                        ) : (
+                        </div>
+                      </td>
+
+                      {/* Limit Harian */}
+                      <td className="px-4 py-3 text-slate-600 font-mono text-[11px]">
+                        {s.custom_daily_limit ? `Rp${s.custom_daily_limit.toLocaleString('id-ID')}` : (
+                          <span className="text-slate-400 italic">Standar Unit</span>
+                        )}
+                      </td>
+
+                      {/* Status Kasir */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleGenerateQr(s.student_id)}
-                            disabled={generatingSingleId === s.student_id}
-                            className="text-xs text-white font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
-                            title="Buat dan simpan gambar QR santri ke folder penyimpanan server"
+                            onClick={() => handleToggleStatus(s.student_id, s.status)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize transition cursor-pointer ${
+                              s.status === 'active'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                            }`}
                           >
-                            {generatingSingleId === s.student_id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                            ) : (
-                              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                            )}
-                            <span>+ Buat Gambar QR</span>
+                            {s.status === 'active' ? 'Aktif' : 'Non-Aktif'}
                           </button>
-                        )}
-                      </div>
-                    </td>
+                          {s.is_blocked_by_parent && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              Blokir Ortu
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    {/* Saldo Dompet & Tombol Mutasi Cepat */}
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="font-mono font-extrabold text-emerald-700 text-[12px]">
-                          Rp{s.wallet_balance.toLocaleString('id-ID')}
-                        </span>
-                        <div className="flex items-center gap-1">
+                      {/* Aksi Cetak Kartu, Keamanan PIN & Histori */}
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          {/* Tombol Cetak Slip Label Individual */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPrintModal(s)}
+                            title="Cetak slip label PIN santri format PDF"
+                            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                          >
+                            <Scissors className="w-3 h-3 text-emerald-400" />
+                            <span>Cetak Slip</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => setHistoryModalStudent(s)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition cursor-pointer"
-                            title="Lihat seluruh riwayat mutasi dompet santri"
+                            title="Lihat riwayat transaksi top up, tarik tunai & jajan POS"
+                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
                           >
                             <History className="w-3 h-3 text-emerald-600" />
                             <span>Mutasi</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleOpenOpeningBalance(s)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition cursor-pointer"
-                            title="Set Saldo Awal Migrasi Sistem Lama (Cutover)"
+                            onClick={() => handleResetChildPin(s.student_id)}
+                            title="Reset PIN Santri Kasir"
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
                           >
-                            <Sparkles className="w-3 h-3 text-indigo-600" />
-                            <span>+ Saldo Awal</span>
+                            PIN Santri
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetParentPin(s.student_id)}
+                            title="Reset PIN Akses Orangtua"
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                          >
+                            PIN Ortu
                           </button>
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Limit Harian */}
-                    <td className="px-4 py-3 text-slate-600 font-mono text-[11px]">
-                      {s.custom_daily_limit ? `Rp${s.custom_daily_limit.toLocaleString('id-ID')}` : (
-                        <span className="text-slate-400 italic">Standar Unit</span>
-                      )}
-                    </td>
-
-                    {/* Status Kasir */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(s.student_id, s.status)}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize transition cursor-pointer ${
-                            s.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
-                          }`}
-                        >
-                          {s.status === 'active' ? 'Aktif' : 'Non-Aktif'}
-                        </button>
-                        {s.is_blocked_by_parent && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                            Blokir Ortu
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Aksi Keamanan PIN & Histori */}
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setHistoryModalStudent(s)}
-                          title="Lihat riwayat transaksi top up, tarik tunai & jajan POS"
-                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                        >
-                          <History className="w-3 h-3 text-emerald-600" />
-                          <span>Mutasi</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleResetChildPin(s.student_id)}
-                          title="Reset PIN Santri Kasir"
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
-                        >
-                          PIN Santri
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleResetParentPin(s.student_id)}
-                          title="Reset PIN Akses Orangtua"
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition cursor-pointer"
-                        >
-                          PIN Ortu
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {filteredStudents.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-slate-400 italic">
+                    <td colSpan="9" className="py-12 text-center text-slate-400 italic">
                       Tidak ada data santri yang cocok dengan filter status atau pencarian
                     </td>
                   </tr>
@@ -1086,7 +1376,7 @@ export default function DataSiswaKantin() {
 
               <button
                 type="button"
-                onClick={() => handlePrintCard(selectedStudentQr)}
+                onClick={() => handleOpenPrintModal(selectedStudentQr)}
                 className="py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -1295,6 +1585,576 @@ export default function DataSiswaKantin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Bulk Action Bar */}
+      {selectedStudentIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className="bg-slate-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 backdrop-blur-md flex items-center gap-4">
+            <div className="flex items-center gap-2 pr-2 border-r border-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold font-mono text-emerald-400">
+                {selectedStudentIds.size} Santri Terpilih
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenPrintModal()}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-xs shadow-lg hover:shadow-emerald-500/25 transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Scissors className="w-4 h-4" />
+              <span>Cetak Label PIN &amp; Kartu ({selectedStudentIds.size})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearAllSelected}
+              className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2 py-1 rounded-lg transition cursor-pointer"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cetak Label PIN & Kartu PDF Terintegrasi */}
+      {printModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-100 overflow-hidden my-auto flex flex-col max-h-[94vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                  <Scissors className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <span>Cetak Label PIN &amp; Kartu Santri (Format PDF)</span>
+                    <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      Siap Gunting &amp; Distribusi
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Menghasilkan lembar PDF berisi label PIN, nama, NIPD, dan QR santri yang siap digunting untuk dibagikan ke siswa.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPrintModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body: 2 Kolom Layout */}
+            <div className="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Kolom Kiri: Pengaturan Template & Kertas (7 cols) */}
+              <div className="lg:col-span-7 space-y-4">
+                {/* Mode Pilihan Cepat: Slip Label vs ID Card */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrintConfig(prev => ({
+                        ...prev,
+                        card_size: 'label_standard',
+                        show_pin: true,
+                        show_qr: true,
+                        show_class: true,
+                        show_cutting_lines: true
+                      }));
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                      printConfig.card_size.startsWith('label_')
+                        ? 'bg-white text-emerald-900 shadow-xs border border-emerald-300 font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Scissors className="w-4 h-4 text-emerald-600" />
+                    <span>Mode Slip Label Gunting</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrintConfig(prev => ({
+                        ...prev,
+                        card_size: 'cr80',
+                        show_pin: false
+                      }));
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                      !printConfig.card_size.startsWith('label_')
+                        ? 'bg-white text-emerald-900 shadow-xs border border-emerald-300 font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    <span>Mode Kartu ID Card (PVC)</span>
+                  </button>
+                </div>
+
+                {/* 1. Pengaturan Template & Dimensi Slip / Kartu */}
+                <div className="p-4 bg-emerald-50/40 rounded-2xl border border-emerald-200/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>1. Template &amp; Dimensi Label</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      Ukuran: {printLayoutEstimate.cW} × {printLayoutEstimate.cH} mm
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Preset Template Label / Kartu</label>
+                    <select
+                      value={printConfig.card_size}
+                      onChange={(e) => setPrintConfig(prev => ({ ...prev, card_size: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                    >
+                      {CARD_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Custom Ukuran Kartu jika dipilih */}
+                  {printConfig.card_size === 'custom' && (
+                    <div className="grid grid-cols-2 gap-3 pt-1 border-t border-emerald-200/50">
+                      <div>
+                        <label className="block text-[10.5px] font-medium text-slate-500 mb-0.5">Lebar Label (mm)</label>
+                        <input
+                          type="number"
+                          min={20}
+                          max={300}
+                          step={1}
+                          value={printConfig.custom_card_width_mm}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, custom_card_width_mm: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-medium text-slate-500 mb-0.5">Tinggi Label (mm)</label>
+                        <input
+                          type="number"
+                          min={20}
+                          max={300}
+                          step={1}
+                          value={printConfig.custom_card_height_mm}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, custom_card_height_mm: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pilihan Elemen Data yang Ditampilkan */}
+                  <div className="pt-2 border-t border-emerald-200/60 space-y-2">
+                    <span className="block text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+                      Elemen Data pada Slip Label:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={printConfig.show_pin}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, show_pin: e.target.checked }))}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span>Sertakan PIN Transaksi</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={printConfig.show_qr}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, show_qr: e.target.checked }))}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span>Sertakan Kode QR NIPD</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={printConfig.show_class}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, show_class: e.target.checked }))}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span>Sertakan Info Kelas / Rombel</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={printConfig.show_cutting_lines}
+                          onChange={(e) => setPrintConfig(prev => ({ ...prev, show_cutting_lines: e.target.checked }))}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span>Garis Potong Putus-putus (✂)</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Opsi Regenerasi PIN Masal Sebelum Cetak */}
+                <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="regenerate_pins_checkbox"
+                      checked={printConfig.regenerate_pins}
+                      onChange={(e) => setPrintConfig(prev => ({ ...prev, regenerate_pins: e.target.checked }))}
+                      className="mt-0.5 rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="regenerate_pins_checkbox" className="text-xs cursor-pointer select-none">
+                      <span className="font-bold text-slate-900 block">
+                        Generate PIN Baru (6-Digit Acak) untuk Santri Terpilih
+                      </span>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        Jika diaktifkan, PIN transaksi dari {selectedStudentIds.size} santri terpilih akan di-reset dengan PIN baru dan langsung tersimpan otomatis ke sistem saat file PDF dibuat.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 3. Pengaturan Kertas & Tata Letak */}
+                <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-600" />
+                    <span>2. Ukuran &amp; Orientasi Kertas</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Ukuran Kertas</label>
+                      <select
+                        value={printConfig.paper_size}
+                        onChange={(e) => setPrintConfig(prev => ({ ...prev, paper_size: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                      >
+                        {PAPER_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Orientasi Lembar Kertas</label>
+                      <div className="grid grid-cols-2 gap-1.5 bg-slate-200/60 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setPrintConfig(prev => ({ ...prev, paper_orientation: 'portrait' }))}
+                          className={`py-1 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                            printConfig.paper_orientation === 'portrait'
+                              ? 'bg-white text-slate-900 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Portrait
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPrintConfig(prev => ({ ...prev, paper_orientation: 'landscape' }))}
+                          className={`py-1 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                            printConfig.paper_orientation === 'landscape'
+                              ? 'bg-white text-slate-900 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Landscape
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Margin & Gap */}
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+                    <div>
+                      <label className="block text-[10.5px] font-medium text-slate-500 mb-0.5">Margin Tepi Kertas (mm)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={50}
+                        step={1}
+                        value={printConfig.margin_mm}
+                        onChange={(e) => setPrintConfig(prev => ({ ...prev, margin_mm: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10.5px] font-medium text-slate-500 mb-0.5">Jarak Antar Label / Gap (mm)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={30}
+                        step={1}
+                        value={printConfig.gap_mm}
+                        onChange={(e) => setPrintConfig(prev => ({ ...prev, gap_mm: e.target.value }))}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Live Auto-Layout Calculation Badge */}
+                <div className="p-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl shadow-sm space-y-2">
+                  <div className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider font-bold">
+                    📐 Estimasi Tata Letak Halaman PDF
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div className="p-2 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-[10px] text-slate-400">Muat Per Lembar</div>
+                      <div className="text-base font-extrabold text-emerald-400 font-mono">
+                        {printLayoutEstimate.cardsPerPage} Label
+                      </div>
+                      <div className="text-[9px] text-slate-400">({printLayoutEstimate.cols} kol × {printLayoutEstimate.rows} baris)</div>
+                    </div>
+
+                    <div className="p-2 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-[10px] text-slate-400">Santri Terpilih</div>
+                      <div className="text-base font-extrabold text-white font-mono">
+                        {selectedStudentIds.size} Santri
+                      </div>
+                      <div className="text-[9px] text-slate-400">Siap dicetak</div>
+                    </div>
+
+                    <div className="p-2 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-[10px] text-slate-400">Total Lembar PDF</div>
+                      <div className="text-base font-extrabold text-amber-300 font-mono">
+                        {printLayoutEstimate.totalPages} Halaman
+                      </div>
+                      <div className="text-[9px] text-slate-400">File gabungan</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Live Visual Preview Label & Daftar Siswa Terpilih (5 cols) */}
+              <div className="lg:col-span-5 space-y-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Live Preview Slip Label Gunting</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                      {printConfig.show_pin ? 'PIN + NIPD + QR' : 'NIPD + QR'}
+                    </span>
+                  </div>
+
+                  {/* Live Visual Card / Slip Preview Box */}
+                  <div className="p-3.5 bg-slate-100/90 rounded-2xl border border-slate-200 flex items-center justify-center">
+                    <div
+                      className={`w-full bg-white rounded-xl shadow-md p-3 flex flex-col justify-between select-none relative overflow-hidden ${
+                        printConfig.show_cutting_lines ? 'border-2 border-dashed border-slate-400' : 'border border-slate-200'
+                      }`}
+                      style={{ minHeight: '135px' }}
+                    >
+                      {/* Tanda Gunting */}
+                      {printConfig.show_cutting_lines && (
+                        <div className="absolute top-1 right-2 text-[9px] font-mono text-slate-400 flex items-center gap-1">
+                          <Scissors className="w-3 h-3" />
+                          <span>potong</span>
+                        </div>
+                      )}
+
+                      {/* Header Slip */}
+                      <div className="pb-1.5 border-b border-emerald-100 flex items-center justify-between">
+                        <div>
+                          <div className="text-[9.5px] font-extrabold text-emerald-900 tracking-wider">
+                            ALDEPOS BOARDING SCHOOL
+                          </div>
+                          <div className="text-[8px] font-bold text-emerald-700 tracking-wide">
+                            SLIP PIN KANTIN SANTRI
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Body Content */}
+                      <div className="flex items-center gap-3 py-2">
+                        {/* QR Code */}
+                        {printConfig.show_qr && (
+                          <div className="w-16 h-16 shrink-0 bg-white p-1 border border-slate-800 rounded-lg flex items-center justify-center shadow-2xs">
+                            {sampleStudentForPreview?.svg_content ? (
+                              <div
+                                className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                                dangerouslySetInnerHTML={{ __html: sampleStudentForPreview.svg_content }}
+                              />
+                            ) : sampleStudentForPreview?.qr_image_url ? (
+                              <img
+                                src={sampleStudentForPreview.qr_image_url}
+                                alt="QR"
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <QrCode className="w-12 h-12 text-slate-900" />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Details */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="font-extrabold text-slate-900 text-xs leading-tight truncate" title={sampleStudentForPreview?.student_name}>
+                            {sampleStudentForPreview?.student_name || 'AHMAD DAFI FAKHRUDIN'}
+                          </div>
+                          <div className="text-[10px] text-slate-600 font-medium">
+                            <span className="font-bold">NIPD:</span> {sampleStudentForPreview?.nipd || sampleStudentForPreview?.nis || '2024001'}
+                            {printConfig.show_class && (
+                              <span> • <span className="font-bold">Kls:</span> {sampleStudentForPreview?.class_group_name || '10 IPA 1'}</span>
+                            )}
+                          </div>
+
+                          {/* Highlight PIN Box */}
+                          {printConfig.show_pin && (
+                            <div className="p-1.5 bg-emerald-50 rounded-lg border border-emerald-400 space-y-0.5">
+                              <div className="text-[8px] font-extrabold text-emerald-800 uppercase tracking-wider leading-none">
+                                PIN KASIR KANTIN
+                              </div>
+                              <div className="font-mono text-sm font-black text-emerald-950 tracking-widest leading-none">
+                                {sampleStudentForPreview?.child_pin || '123456'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer Info */}
+                      <div className="text-[8px] text-slate-400 italic pt-1 border-t border-slate-100 flex items-center justify-between">
+                        <span>*Gunakan NIPD/QR &amp; PIN saat jajan di kasir</span>
+                        <span className="font-bold text-emerald-700">Rahasia</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* List Siswa Terpilih & Pencarian Cepat */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Daftar Siswa Terpilih ({selectedStudentIds.size})</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllFiltered(filteredStudents)}
+                      className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 transition cursor-pointer"
+                    >
+                      Pilih Semua ({filteredStudents.length})
+                    </button>
+                  </div>
+
+                  {/* Input Search Siswa di Modal */}
+                  <div className="relative">
+                    <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari dalam santri terpilih..."
+                      value={printSearch}
+                      onChange={(e) => setPrintSearch(e.target.value)}
+                      className="w-full pl-7 pr-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:border-emerald-500"
+                    />
+                  </div>
+
+                  {/* Mini List Siswa Terpilih */}
+                  <div className="max-h-36 overflow-y-auto space-y-1 pr-1 flex-1">
+                    {students
+                      .filter(s => selectedStudentIds.has(s.student_id))
+                      .filter(s => {
+                        if (!printSearch) return true;
+                        const q = printSearch.toLowerCase();
+                        return (
+                          s.student_name?.toLowerCase().includes(q) ||
+                          s.nipd?.toLowerCase().includes(q) ||
+                          s.nis?.toLowerCase().includes(q)
+                        );
+                      })
+                      .map(s => (
+                        <div
+                          key={s.student_id}
+                          className="px-2.5 py-1.5 bg-white rounded-lg border border-slate-200 text-xs flex items-center justify-between gap-2 shadow-2xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-slate-800 text-[11px] truncate">{s.student_name}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">
+                              NIPD: {s.nipd || s.nis || '-'} • PIN: {s.child_pin || '123456'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSelectStudent(s.student_id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded transition cursor-pointer"
+                            title="Keluarkan dari cetakan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                    {selectedStudentIds.size === 0 && (
+                      <div className="py-6 text-center text-xs text-rose-500 font-medium">
+                        Belum ada santri yang dipilih. Silakan centang minimal 1 santri.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer: Action Buttons */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPrintModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Tutup
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={generatingPdf || selectedStudentIds.size === 0}
+                  onClick={() => handleExecutePrintPdf('download')}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  title="Unduh file PDF label PIN santri"
+                >
+                  {generatingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    <Download className="w-4 h-4 text-emerald-400" />
+                  )}
+                  <span>Unduh File PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={generatingPdf || selectedStudentIds.size === 0}
+                  onClick={() => handleExecutePrintPdf('open')}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-emerald-600/25 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  title="Buka PDF di tab baru dan langsung cetak"
+                >
+                  {generatingPdf ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Memproses PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="w-4 h-4" />
+                      <span>Buka &amp; Cetak PDF ({selectedStudentIds.size} Label)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
