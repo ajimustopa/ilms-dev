@@ -1,0 +1,481 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<meta content="mobile_tab" name="shell-type">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#047857",
+            "primary-dark": "#065f46",
+            "primary-container": "#ecfdf5",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#064e3b",
+            "surface": "#f8fafc",
+            "surface-card": "#ffffff",
+            "accent-gold": "#d97706",
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', sans-serif;
+        font-feature-settings: "tnum";
+        font-variant-numeric: tabular-nums;
+        background-color: #F1F5F9;
+        color: #0F172A;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 12px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.85); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.85); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased flex flex-col min-h-screen">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 pt-safe bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+<div class="h-16 max-w-[420px] mx-auto px-4 flex items-center justify-between gap-2">
+<!-- Left: Logo & School Identity -->
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-700/20">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">mosque</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[10px] font-extrabold tracking-wider text-emerald-800 uppercase flex items-center gap-1">
+            SMP ALDEPOS
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+</span>
+<h1 class="text-sm font-bold text-slate-900 truncate leading-tight">Portal Guru</h1>
+</div>
+</div>
+<!-- Right: Academic Year Filter & Teacher Profile -->
+<div class="flex items-center gap-2">
+<button class="h-8 px-2.5 flex items-center gap-1 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-full text-slate-700 transition-colors shadow-2xs" type="button">
+<span class="text-[11px] font-semibold text-slate-700">2026/27 Ganjil</span>
+<span class="material-symbols-outlined text-[15px] text-slate-400">expand_more</span>
+</button>
+<!-- Avatar with Active Green Dot -->
+<div class="relative flex-shrink-0">
+<img alt="Ust. Ahmad Fauzi" class="w-8 h-8 rounded-full object-cover ring-2 ring-emerald-500/30" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwfbfXq-NzuuWMKuhw3joqfp6CVwjdR7l1AjD3J3x-nkI998c3rDh-8mZmFyMQTooW3zQR43DB0tHbkk5UZja72FFSOIGTxeUJna9AvaaeJg3B10FAt01ubBccs5qmmK5cS-sOFMTBmyFzERnylGKz0Wr7YS8SFfiyPKdxTfMdwzINTwfS6q7Hfvh21fZKQZL8HqXYbbz2TCGLeMzT6ZScC_xSzvXZSbkzyTcXE4BPOyFK5ujhBDLuhg">
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Container -->
+<main class="flex-1 flex flex-col w-full max-w-[420px] mx-auto px-3.5 pt-[72px] pb-24 space-y-3.5">
+<!-- Top Segmented Tabs: Presensi vs Pengajuan Izin -->
+<div class="bg-slate-200/70 p-1 rounded-xl flex items-center shadow-inner">
+<button class="flex-1 py-2 rounded-lg bg-white text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all" type="button">
+<span class="material-symbols-outlined text-[17px] text-emerald-600" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>Presensi Saya</span>
+</button>
+<button class="flex-1 py-2 rounded-lg text-slate-500 hover:text-slate-800 font-medium text-xs flex items-center justify-center gap-1.5 transition-all" type="button">
+<span class="material-symbols-outlined text-[17px] text-slate-400">assignment_turned_in</span>
+<span>Pengajuan Izin</span>
+</button>
+</div>
+<!-- Hero Card: Server Live Time & Dual Date -->
+<div class="bg-gradient-to-b from-white via-white to-emerald-50/40 rounded-2xl p-4 border border-emerald-100/80 shadow-sm relative overflow-hidden">
+<!-- Background subtle Islamic motif glow -->
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Top Row: Server Status & GPS Indicator -->
+<div class="flex items-center justify-between pb-2 border-b border-slate-100">
+<div class="flex items-center gap-1.5">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+</span>
+<span class="text-[11px] font-bold tracking-wider uppercase text-emerald-900">Waktu Server Presensi</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 text-[10px] font-bold">
+<span class="material-symbols-outlined text-[12px] text-emerald-700">satellite_alt</span>
+<span>GPS Terhubung</span>
+</div>
+</div>
+<!-- Tabular Clock -->
+<div class="pt-3 pb-1 text-center">
+<div class="text-[34px] font-black tracking-tight text-slate-900 leading-none font-sans" id="liveClock">21:20:34 <span class="text-base font-semibold text-emerald-700 tracking-normal">WIB</span></div>
+<div class="mt-2 flex flex-col items-center">
+<span class="text-xs font-semibold text-slate-800">Senin, 13 Oktober 2026</span>
+<span class="text-[11px] text-amber-700 font-medium flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[13px] text-amber-600">dark_mode</span>
+            24 Rabiul Akhir 1448 H
+          </span>
+</div>
+</div>
+<!-- Countdown/Status Chip -->
+<div class="mt-3 py-1.5 px-3 rounded-xl bg-emerald-600/10 border border-emerald-600/20 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-emerald-700 text-[16px]">alarm</span>
+<span class="text-[11px] text-emerald-950 font-medium">
+          Batas Masuk: <strong class="font-bold text-emerald-800">07:30 WIB</strong> • Sisa <strong class="font-bold text-emerald-700">16 Menit</strong> (Tepat Waktu)
+        </span>
+</div>
+</div>
+<!-- Modern Geofence Radar Card -->
+<div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-3">
+<!-- Header of Geofence -->
+<div class="flex items-start justify-between">
+<div class="flex items-start gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]">pin_drop</span>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-900 leading-snug">SMP Pondok Pesantren Aldepos</h3>
+<p class="text-[11px] text-slate-500 font-medium">Kampus 1 • Radius Toleransi Geofence 150m</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1 flex-shrink-0">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+          42 m
+        </span>
+</div>
+<!-- Interactive Stylized Geofence Map Graphic -->
+<div class="relative w-full h-44 rounded-xl bg-gradient-to-b from-slate-50 to-emerald-50/50 border border-slate-200/70 overflow-hidden flex items-center justify-center">
+<!-- Map Grid Lines -->
+<svg class="absolute inset-0 w-full h-full opacity-35" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern height="20" id="mapGrid" patternUnits="userSpaceOnUse" width="20">
+<path d="M 20 0 L 0 0 0 20" fill="none" stroke="#94A3B8" stroke-width="0.7"></path>
+</pattern>
+</defs>
+<rect fill="url(#mapGrid)" height="100%" width="100%"></rect>
+</svg>
+<!-- Simulated Road Layout / Campus Outline -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
+<path d="M-20 60 Q 120 70 200 40 T 420 50" fill="none" stroke="#047857" stroke-width="6"></path>
+<path d="M80 180 Q 140 100 240 120 T 380 180" fill="none" stroke="#047857" stroke-width="4"></path>
+</svg>
+<!-- Geofence 150m Outer Perimeter Circle -->
+<div class="absolute w-40 h-40 rounded-full border-2 border-dashed border-emerald-500/70 bg-emerald-500/10 flex items-center justify-center animate-pulse-ring"></div>
+<div class="absolute w-28 h-28 rounded-full border border-emerald-500/30 bg-emerald-500/15 flex items-center justify-center"></div>
+<!-- Center Anchor: School Compound Icon & Pill -->
+<div class="absolute flex flex-col items-center z-10 -translate-y-2">
+<div class="w-8 h-8 rounded-xl bg-white text-emerald-800 shadow-md border border-emerald-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[19px]" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<span class="mt-1 px-1.5 py-0.5 rounded-md bg-white/95 text-slate-800 text-[9px] shadow-xs font-bold border border-slate-200">
+            Gedung Utama
+          </span>
+</div>
+<!-- User Live GPS Position Pin -->
+<div class="absolute translate-x-12 translate-y-7 flex items-center gap-1.5 z-20">
+<div class="relative flex items-center justify-center">
+<span class="absolute w-7 h-7 rounded-full bg-emerald-500 animate-ping opacity-35"></span>
+<div class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md ring-2 ring-white">
+<span class="material-symbols-outlined text-[13px]">person</span>
+</div>
+</div>
+<div class="px-2 py-0.5 rounded-full bg-slate-900/90 text-white text-[9px] shadow-sm font-semibold tracking-wide">
+            Posisi Anda (42m)
+          </div>
+</div>
+<!-- Compass Rose -->
+<div class="absolute top-2.5 right-2.5 flex flex-col items-center bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded-md shadow-2xs border border-slate-200">
+<span class="text-[9px] text-rose-600 font-extrabold leading-none">U</span>
+<span class="material-symbols-outlined text-[13px] text-slate-500">navigation</span>
+</div>
+<!-- Status Safe Zone Badge -->
+<div class="absolute bottom-2 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[9px] font-semibold shadow-xs">
+<span class="material-symbols-outlined text-[11px]">check_circle</span>
+<span>Dalam Radius Aman Presensi</span>
+</div>
+</div>
+<!-- GPS Accuracy & Coordinates Footer -->
+<div class="flex items-center justify-between text-[11px] text-slate-600 pt-1">
+<div class="flex items-center gap-1 text-emerald-800 font-medium">
+<span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+<span>Akurasi GPS: <strong class="font-bold text-slate-800">±5m (Sangat Baik)</strong></span>
+</div>
+<span class="font-mono text-[10px] text-slate-400">-6.5971, 106.7994</span>
+</div>
+</div>
+<!-- Big Primary Action Button (Thumb Friendly) -->
+<div class="space-y-1.5 pt-0.5">
+<button class="w-full h-14 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 hover:from-emerald-800 hover:to-teal-700 active:scale-[0.99] text-white rounded-2xl flex items-center justify-center gap-2.5 font-bold text-sm shadow-lg shadow-emerald-700/25 transition-all" id="checkInBtn" type="button">
+<span class="material-symbols-outlined text-[24px]">photo_camera_front</span>
+<span>Catat Kehadiran Masuk</span>
+</button>
+<div class="flex items-center justify-center gap-1 text-center text-slate-500 text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emerald-600">verified_user</span>
+<span>Kamera akan memverifikasi swafoto &amp; biometrik instan</span>
+</div>
+</div>
+<!-- Monthly Attendance Summary & Heatmap Mini-Calendar -->
+<div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-900 leading-tight">Presensi Oktober 2026</h3>
+<span class="text-[10px] text-slate-400">Total 21 Hari Kerja Efektif</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
+          95.2% Kehadiran
+        </span>
+</div>
+<!-- Modern Stat Grid -->
+<div class="grid grid-cols-4 gap-2">
+<div class="bg-emerald-50/80 border border-emerald-100/90 rounded-xl p-2 text-center">
+<span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Hadir</span>
+<span class="text-lg font-black text-emerald-700">20</span>
+<span class="text-[9px] text-emerald-600 font-medium block">Tepat Waktu</span>
+</div>
+<div class="bg-amber-50/80 border border-amber-100 rounded-xl p-2 text-center">
+<span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Izin</span>
+<span class="text-lg font-black text-amber-700">1</span>
+<span class="text-[9px] text-amber-600 font-medium block">Dinas Luar</span>
+</div>
+<div class="bg-sky-50/70 border border-sky-100 rounded-xl p-2 text-center">
+<span class="text-[10px] font-bold uppercase tracking-wider text-sky-800 block">Sakit</span>
+<span class="text-lg font-black text-slate-600">0</span>
+<span class="text-[9px] text-slate-400 font-medium block">Hari</span>
+</div>
+<div class="bg-rose-50/70 border border-rose-100 rounded-xl p-2 text-center">
+<span class="text-[10px] font-bold uppercase tracking-wider text-rose-800 block">Telat</span>
+<span class="text-lg font-black text-slate-600">0</span>
+<span class="text-[9px] text-slate-400 font-medium block">Hari</span>
+</div>
+</div>
+<!-- Mini Attendance Strip / Calendar Heatmap representation -->
+<div class="pt-2 border-t border-slate-100 space-y-1.5">
+<div class="flex justify-between items-center text-slate-400 text-[9px] font-bold uppercase tracking-wider px-1">
+<span>S</span><span>S</span><span>R</span><span>K</span><span>J</span>
+<span>S</span><span>S</span><span>R</span><span>K</span><span>J</span>
+<span>S</span><span>S</span><span>R</span><span>K</span><span>J</span>
+<span>S</span><span>S</span><span>R</span><span>K</span><span>J</span>
+</div>
+<div class="grid grid-cols-20 gap-1">
+<!-- 20 Working Days Strip with clean status markers -->
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 1 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 2 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 3 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 4 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 5 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-amber-500 flex items-center justify-center text-white" title="Izin Dinas: 6 Okt"><span class="material-symbols-outlined text-[9px]">description</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 7 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 8 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 flex items-center justify-center text-white" title="Hadir: 9 Okt"><span class="material-symbols-outlined text-[9px]">check</span></div>
+<div class="h-4 rounded bg-emerald-500 ring-2 ring-emerald-600 ring-offset-1 flex items-center justify-center text-white animate-pulse" title="Hari Ini (Proses)">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+</div>
+<!-- Upcoming Days -->
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+<div class="h-4 rounded bg-slate-100" title="Akan Datang"></div>
+</div>
+<div class="flex items-center justify-end gap-3 pt-1 text-[10px] text-slate-500">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-emerald-500"></span> Hadir Tepat</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-amber-500"></span> Izin Tugas</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-slate-200"></span> Jadwal Belum</span>
+</div>
+</div>
+</div>
+<!-- Recent Attendance Log -->
+<div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-3">
+<div class="flex items-center justify-between">
+<h3 class="text-xs font-bold text-slate-900">Riwayat Presensi Terkini</h3>
+<button class="text-emerald-700 hover:text-emerald-800 text-xs font-bold flex items-center gap-0.5" type="button">
+          Lihat Semua
+          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+<div class="divide-y divide-slate-100">
+<!-- Item 1: Hari Ini -->
+<div class="py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-[18px]">event</span>
+</div>
+<div>
+<span class="text-xs font-bold text-slate-900 block leading-tight">Senin, 13 Okt 2026</span>
+<span class="text-[11px] text-slate-400 font-medium">Masuk: --:-- • Pulang: --:--</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+            Hari Ini
+          </span>
+</div>
+<!-- Item 2: Jumat, 10 Okt -->
+<div class="py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<span class="text-xs font-bold text-slate-900 block leading-tight">Jumat, 10 Okt 2026</span>
+<span class="text-[11px] text-slate-600 font-medium">
+                Masuk <strong class="text-slate-800">07:10 WIB</strong> • Pulang <strong class="text-slate-800">16:05 WIB</strong>
+</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+            Tepat Waktu
+          </span>
+</div>
+<!-- Item 3: Kamis, 9 Okt -->
+<div class="py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<span class="text-xs font-bold text-slate-900 block leading-tight">Kamis, 9 Okt 2026</span>
+<span class="text-[11px] text-slate-600 font-medium">
+                Masuk <strong class="text-slate-800">07:18 WIB</strong> • Pulang <strong class="text-slate-800">16:00 WIB</strong>
+</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+            Tepat Waktu
+          </span>
+</div>
+<!-- Item 4: Rabu, 8 Okt -->
+<div class="py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<span class="text-xs font-bold text-slate-900 block leading-tight">Rabu, 8 Okt 2026</span>
+<span class="text-[11px] text-slate-600 font-medium">
+                Masuk <strong class="text-slate-800">07:12 WIB</strong> • Pulang <strong class="text-slate-800">16:15 WIB</strong>
+</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+            Tepat Waktu
+          </span>
+</div>
+<!-- Item 5: Selasa, 7 Okt (Izin) -->
+<div class="py-2.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-xs">
+<span class="material-symbols-outlined text-[18px]">assignment</span>
+</div>
+<div>
+<span class="text-xs font-bold text-slate-900 block leading-tight">Selasa, 7 Okt 2026</span>
+<span class="text-[11px] text-amber-800 font-medium truncate max-w-[190px] block">Rakor Wilayah Kemenag</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+            Surat Tugas
+          </span>
+</div>
+</div>
+</div>
+<!-- Attendance Policy Banner -->
+<div class="bg-gradient-to-r from-slate-50 to-emerald-50/60 rounded-xl p-3 border border-slate-200/80 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-emerald-700 text-[20px] flex-shrink-0 mt-0.5">verified_user</span>
+<div class="text-[11px] text-slate-600 leading-relaxed">
+<strong class="text-slate-900 font-bold block mb-0.5">Ketentuan Kehadiran Pendidik &amp; Tenaga Kependidikan:</strong>
+        Presensi pulang dibuka mulai pukul <span class="font-bold text-emerald-800">15:30 WIB</span>. Jika mengalami kendala GPS/jaringan, hubungi bagian Tata Usaha (TU) sekolah.
+      </div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (5 Items: Beranda, Absen [Active], Jadwal, Nilai, Profil) -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+<div class="h-16 max-w-[420px] mx-auto flex items-center justify-around px-2">
+<!-- Item 1: Beranda -->
+<a class="min-w-[48px] flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-700 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">home</span>
+<span class="text-[10px] font-medium leading-none">Beranda</span>
+</a>
+<!-- Item 2: Absen (Active Pill with emerald indicator) -->
+<a class="min-w-[48px] flex-1 flex flex-col items-center justify-center gap-1 text-emerald-700 transition-colors" href="#">
+<div class="w-12 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 shadow-xs">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-800 leading-none">Absen</span>
+</a>
+<!-- Item 3: Jadwal -->
+<a class="min-w-[48px] flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-700 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">calendar_today</span>
+<span class="text-[10px] font-medium leading-none">Jadwal</span>
+</a>
+<!-- Item 4: Nilai -->
+<a class="min-w-[48px] flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-700 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">edit_note</span>
+<span class="text-[10px] font-medium leading-none">Nilai</span>
+</a>
+<!-- Item 5: Profil -->
+<a class="min-w-[48px] flex-1 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-700 transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">account_circle</span>
+<span class="text-[10px] font-medium leading-none">Profil</span>
+</a>
+</div>
+</nav>
+<script>
+    // Live tabular clock update
+    function updateLiveClock() {
+      const clockEl = document.getElementById('liveClock');
+      if (!clockEl) return;
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      clockEl.innerHTML = `${hours}:${minutes}:${seconds} <span class="text-base font-semibold text-emerald-700 tracking-normal">WIB</span>`;
+    }
+    setInterval(updateLiveClock, 1000);
+
+    // Micro-interaction for attendance check-in button
+    const checkBtn = document.getElementById('checkInBtn');
+    if (checkBtn) {
+      checkBtn.addEventListener('click', () => {
+        checkBtn.disabled = true;
+        checkBtn.innerHTML = `
+          <span class="material-symbols-outlined text-[22px] animate-spin">sync</span>
+          <span>Memverifikasi Wajah & GPS...</span>
+        `;
+        setTimeout(() => {
+          checkBtn.className = "w-full h-14 bg-emerald-800 text-white rounded-2xl flex items-center justify-center gap-2.5 font-bold text-sm shadow-md";
+          checkBtn.innerHTML = `
+            <span class="material-symbols-outlined text-[24px]">verified</span>
+            <span>Berhasil Presensi Masuk (07:15 WIB)</span>
+          `;
+        }, 1500);
+      });
+    }
+  </script>
+</body></html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_tab" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "inverse-primary": "#7bd8b1", "on-primary-fixed-variant": "#00513a", "on-surface-variant": "#3e4943", "primary-fixed-dim": "#7bd8b1", "error": "#ba1a1a", "secondary-fixed-dim": "#c3c0ff", "on-tertiary": "#ffffff", "surface": "#faf8ff", "tertiary-container": "#a45049", "on-secondary-container": "#fffbff", "surface-bright": "#faf8ff", "secondary": "#4e45d5", "on-background": "#131b2e", "on-error-container": "#93000a", "on-primary-container": "#9ffdd3", "on-secondary-fixed-variant": "#372abf", "surface-container": "#eaedff", "outline-variant": "#bdc9c1", "on-error": "#ffffff", "primary-container": "#047857", "on-tertiary-fixed": "#3e0405", "on-surface": "#131b2e", "secondary-fixed": "#e3dfff", "on-secondary-fixed": "#100069", "surface-variant": "#dae2fd", "error-container": "#ffdad6", "background": "#faf8ff", "tertiary": "#863933", "surface-container-highest": "#dae2fd", "tertiary-fixed-dim": "#ffb4ac", "surface-tint": "#006c4e", "surface-container-low": "#f2f3ff", "tertiary-fixed": "#ffdad6", "on-primary-fixed": "#002115", "inverse-surface": "#283044", "outline": "#6e7a73", "on-tertiary-fixed-variant": "#792f2a", "on-primary": "#ffffff", "inverse-on-surface": "#eef0ff", "on-secondary": "#ffffff", "surface-dim": "#d2d9f4", "surface-container-high": "#e2e7ff", "on-tertiary-container": "#ffe4e0", "primary-fixed": "#97f5cc", "primary": "#005d42", "secondary-container": "#6860ef", "surface-container-lowest": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter-desktop": "1.5rem", "space-xl": "1.5rem", "gutter": "1rem", "margin-desktop": "2rem", "margin": "1rem", "space-2xl": "2rem", "space-lg": "1rem", "space-md": "0.75rem" }, fontFamily: { "label-md": ["Inter"], "body-sm": ["Inter"], "label-lg": ["Inter"], "headline-sm": ["Inter"], "tabular-stat-lg": ["Inter"], "headline-lg": ["Inter"], "tabular-stat-md": ["Inter"], "body-md": ["Inter"], "label-sm": ["Inter"], "body-lg": ["Inter"], "headline-md": ["Inter"] }, fontSize: { "label-md": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-sm": ["0.8125rem", { "lineHeight": "1.25rem", "fontWeight": "400" }], "label-lg": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "600" }], "headline-sm": ["1.125rem", { "lineHeight": "1.625rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "tabular-stat-lg": ["1.875rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "tabular-stat-md": ["1.25rem", { "lineHeight": "1.625rem", "fontWeight": "600" }], "body-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }], "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.03em", "fontWeight": "500" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "headline-md": ["1.375rem", { "lineHeight": "1.875rem", "letterSpacing": "-0.015em", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#faf8ff;}body{overscroll-behavior:none;font-family:'Inter',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex flex-col justify-center"><div class="flex items-center gap-1.5 text-primary"><span class="w-1.5 h-1.5 rounded-full bg-primary-container inline-block"></span><span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-semibold">SMP ALDEPOS</span></div><h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none mt-0.5">Siswa</h1></div><div class="flex items-center gap-space-sm"><button class="min-h-[44px] px-space-sm flex items-center gap-1 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface text-label-sm font-label-sm transition-colors" type="button"><span class="material-symbols-outlined text-[14px] text-primary">calendar_today</span><span>2026/27 Ganjil</span><span class="material-symbols-outlined text-[16px] text-outline">arrow_drop_down</span></button><div class="relative flex items-center justify-center"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-2 ring-surface"></span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 px-gutter bg-surface"><div class="flex flex-col w-full">
+<!-- Top Section: Category Badge & Module Heading -->
+<div class="flex flex-col gap-space-xs mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm uppercase tracking-wide">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+        MODUL KESISWAAN &amp; AKADEMIK
+      </span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Data Siswa &amp; Rombel</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Direktori santri aktif, kontak wali &amp; informasi asrama</p>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container-lowest shadow-sm flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">school</span>
+</div>
+</div>
+</div>
+<!-- Quick Stat Ribbon (High Density) -->
+<div class="grid grid-cols-3 gap-space-xs mb-space-lg">
+<!-- Stat 1: Total Santri -->
+<div class="bg-surface-container-lowest p-3 rounded-lg flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Santri</span>
+<div class="my-1">
+<span class="font-tabular-stat-lg text-tabular-stat-md text-on-surface leading-none font-bold">32</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-0.5">Santri</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold truncate">Kelas 8-A Aktif</span>
+</div>
+<!-- Stat 2: Mukim -->
+<div class="bg-surface-container-lowest p-3 rounded-lg flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-secondary"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Mukim</span>
+<div class="my-1">
+<span class="font-tabular-stat-lg text-tabular-stat-md text-on-surface leading-none font-bold">26</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold ml-0.5">(81%)</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">Asrama Pesantren</span>
+</div>
+<!-- Stat 3: Non-Mukim -->
+<div class="bg-surface-container-lowest p-3 rounded-lg flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-tertiary"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Non-Mukim</span>
+<div class="my-1">
+<span class="font-tabular-stat-lg text-tabular-stat-md text-on-surface leading-none font-bold">6</span>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold ml-0.5">(19%)</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">Pulang-Pergi</span>
+</div>
+</div>
+<!-- Search, Filter & Quick Export Panel -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm mb-space-lg flex flex-col gap-space-sm">
+<!-- Search Bar -->
+<div class="relative w-full flex items-center">
+<span class="material-symbols-outlined text-[20px] text-outline absolute left-3 pointer-events-none">search</span>
+<input class="w-full h-11 pl-10 pr-9 bg-surface rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-low transition-colors" id="searchSantriInput" placeholder="Cari nama santri, panggilan, atau NISN..." type="text">
+<button class="absolute right-2.5 w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center hover:bg-surface-container transition-colors hidden" id="clearSearchBtn" title="Bersihkan pencarian" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<!-- Rombel Selector & Export Button Row -->
+<div class="flex items-center justify-between gap-space-sm">
+<button class="min-h-[44px] flex-1 px-3 py-2 bg-surface-container-low hover:bg-surface-container rounded-lg flex items-center justify-between text-left transition-colors" type="button">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="material-symbols-outlined text-[18px] text-primary">groups</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Kelas 8-A (Ikhwan)</span>
+<span class="px-1.5 py-0.2 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm">32</span>
+</div>
+<span class="material-symbols-outlined text-[18px] text-outline">expand_more</span>
+</button>
+<button class="min-h-[44px] px-3.5 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary flex items-center gap-1.5 font-label-md text-label-md transition-colors shadow-sm active:scale-95" id="btnExportXls" type="button">
+<span class="material-symbols-outlined text-[18px]">table_view</span>
+<span class="hidden xs:inline">Unduh</span>
+<span>.xlsx</span>
+</button>
+</div>
+<!-- Horizontal Scrollable Filter Chips -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 -mx-1 px-1">
+<button class="filter-chip min-h-[34px] px-3.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm flex items-center gap-1 shrink-0 transition-all" data-filter="all" type="button">
+<span>Semua (32)</span>
+</button>
+<button class="filter-chip min-h-[34px] px-3.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-sm text-label-sm flex items-center gap-1 shrink-0 transition-all" data-filter="mukim" type="button">
+<span class="material-symbols-outlined text-[14px] text-secondary">hotel</span>
+<span>Mukim (26)</span>
+</button>
+<button class="filter-chip min-h-[34px] px-3.5 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface font-label-sm text-label-sm flex items-center gap-1 shrink-0 transition-all" data-filter="non-mukim" type="button">
+<span class="material-symbols-outlined text-[14px] text-tertiary">directions_bus</span>
+<span>Non-Mukim (6)</span>
+</button>
+<button class="min-h-[34px] px-3 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1 shrink-0 transition-all" type="button">
+<span>Kamar Santri</span>
+<span class="material-symbols-outlined text-[16px] text-outline">arrow_drop_down</span>
+</button>
+</div>
+</div>
+<!-- Students List -->
+<div class="flex flex-col gap-space-md" id="santriListContainer">
+<!-- Card 1: Santri Mukim (Rayhan) -->
+<div class="santri-item bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm" data-category="mukim" data-name="muhammad rayhan al-fatih rayhan 0092182741">
+<!-- Header Row: Avatar, Identity, and Nickname -->
+<div class="flex items-start gap-space-md">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container-high shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Close up portrait photograph of an Indonesian Muslim male student aged 13 with gentle smile, wearing a white songkok peci hat and neat white islamic school uniform collar, bathed in natural morning courtyard light with clean neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOgyUcAzeHCWLrrfobZCg4ubXNTBQvLm1PHucaPUw0NWfQRTT7exS46AVHBitIDmgCzJ6xwBRfeAVQsJWUgflypVxzZ28eKhSy-E6BmGsLgvBdK_zh9F-aRgHSgzIvvPyQsiDLGqe7fjfQOydtC3MvZNp40aDqvjBWZ4nP8LN7sNmJauneULQrvjcP5Sm8Ehu7ts4wbqh6sFayoxXEVypnyqo1AJnUR0mnNBOes2SA">
+</div>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest" title="Santri Aktif"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h3 class="font-headline-sm text-label-lg text-on-surface font-semibold tracking-tight truncate">Muhammad Rayhan Al-Fatih</h3>
+<span class="px-2 py-0.5 rounded-full bg-on-primary-container text-on-primary-fixed-variant font-label-sm text-label-sm font-bold shrink-0">Rayhan</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+<span class="font-semibold text-on-surface">NISN:</span> 0092182741 • <span class="font-semibold text-on-surface">NIPD:</span> 222308012
+          </p>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px] text-primary">meeting_room</span>
+              Kelas 8-A • Ust. Hamdan
+            </span>
+</div>
+</div>
+</div>
+<!-- Detail Badges & Attributes -->
+<div class="bg-surface-container-low p-2.5 rounded-lg flex flex-col gap-1.5 text-on-surface">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">cake</span>
+<span class="truncate">Bogor, 14 Mei 2011 (<strong class="text-on-surface font-medium">13 Thn</strong>)</span>
+</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary shrink-0">apartment</span>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold">
+              Mukim • Asrama Umar bin Khattab
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Kamar 204</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">supervisor_account</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">H. Ir. Bambang Sugiarto</strong> (Ayah)</span>
+</div>
+</div>
+<!-- Action Buttons (Touch targets >= 44px) -->
+<div class="flex items-center gap-space-xs pt-1">
+<a class="flex-1 min-h-[44px] px-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-sm" href="https://wa.me/6281234567890" target="_blank">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1 transition-colors active:scale-95" href="tel:081234567890" title="Telepon Wali">
+<span class="material-symbols-outlined text-[18px] text-primary">call</span>
+<span class="hidden xs:inline">Telepon</span>
+</a>
+<button class="min-h-[44px] min-w-[44px] rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-95" title="Lihat Profil Santri" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Santri Mukim with note (Zaki) -->
+<div class="santri-item bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm" data-category="mukim" data-name="ahmad zaki mubarak zaki 0092182805">
+<div class="flex items-start gap-space-md">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container-high shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Portrait photography of a focused cheerful junior high school Indonesian Muslim student, black songkok peci, clean white madrasah uniform, high contrast friendly portrait, bright indoor lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmpvKgG8WWgt7xIJMSz-lOc5U6XN4063-AS8Qc9ZqfdrNOHEgxdxxJzlgkAT2-7dzJ8l8zTVtfTLWiaTOZ1u9-e0rahc2tERJlKdtSlDkXUIxa4-uVD9SdY6Nh0M9OX4j4uolpKML_3R9jzPXDegYjYCpGLPSc8ryZWduKEMhKIqJ_frgSg2SKiERnD_7369hmdZciitvrStva-bp8mNDfhcItnB-7Hk89HH58EN1B">
+</div>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest" title="Santri Aktif"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h3 class="font-headline-sm text-label-lg text-on-surface font-semibold tracking-tight truncate">Ahmad Zaki Mubarak</h3>
+<span class="px-2 py-0.5 rounded-full bg-on-primary-container text-on-primary-fixed-variant font-label-sm text-label-sm font-bold shrink-0">Zaki</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+<span class="font-semibold text-on-surface">NISN:</span> 0092182805 • <span class="font-semibold text-on-surface">NIPD:</span> 222308019
+          </p>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px] text-primary">meeting_room</span>
+              Kelas 8-A
+            </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-tertiary-fixed-dim bg-opacity-30 font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-tertiary">star</span>
+              Ketua Kamar
+            </span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-lg flex flex-col gap-1.5 text-on-surface">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">cake</span>
+<span class="truncate">Jakarta, 22 Agustus 2011 (<strong class="text-on-surface font-medium">13 Thn</strong>)</span>
+</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-secondary shrink-0">apartment</span>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm font-semibold">
+              Mukim • Asrama Umar bin Khattab
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Kamar 201</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">supervisor_account</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Ibu Dra. Siti Aminah</strong> (Ibu)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pt-1">
+<a class="flex-1 min-h-[44px] px-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-sm" href="https://wa.me/6281298765432" target="_blank">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1 transition-colors active:scale-95" href="tel:081298765432" title="Telepon Wali">
+<span class="material-symbols-outlined text-[18px] text-primary">call</span>
+<span class="hidden xs:inline">Telepon</span>
+</a>
+<button class="min-h-[44px] min-w-[44px] rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-95" title="Lihat Profil Santri" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Santri Non-Mukim (Faris) -->
+<div class="santri-item bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm" data-category="non-mukim" data-name="faris naufal hidayat faris 0092182890">
+<div class="flex items-start gap-space-md">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container-high shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Realistic portrait photo of a smart 12-year-old Indonesian male student smiling with eyes bright, wearing a clean Islamic school dark green batik uniform with neat white collar, natural daytime ambient lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWiR9qP4Y8auEsc2E_2Uj5y35q-8CjdgtcW4d3dWlWUvJt9Ic2O8dfh5Vuv-Om9SyVaqPKS-kzJjk_2qkjwkaqTUSoMFgU-1Ki4SJOTEaScA4uSFXjv9V7GZf9ngxpi0PT8TQ3oVDqjJCyrUntjm-RNdlYQA6MWX9k0WpXbCFBEAPMWdblyne2DmSMNyJeOU6likYzHq7eeOeGLtu7oySwQjDJ6OfYn1GwjM4AHzX6">
+</div>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest" title="Santri Aktif"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h3 class="font-headline-sm text-label-lg text-on-surface font-semibold tracking-tight truncate">Faris Naufal Hidayat</h3>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-bold shrink-0">Faris</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+<span class="font-semibold text-on-surface">NISN:</span> 0092182890 • <span class="font-semibold text-on-surface">NIPD:</span> 222308035
+          </p>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px] text-primary">meeting_room</span>
+              Kelas 8-A
+            </span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-lg flex flex-col gap-1.5 text-on-surface">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">cake</span>
+<span class="truncate">Depok, 03 Januari 2012 (<strong class="text-on-surface font-medium">12 Thn</strong>)</span>
+</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">directions_bus</span>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+              Non-Mukim • Reguler
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Jemputan Rute Ciawi</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">supervisor_account</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Bpk. Kurniawan Prasetyo, M.T.</strong></span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pt-1">
+<a class="flex-1 min-h-[44px] px-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-sm" href="https://wa.me/6281311223344" target="_blank">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1 transition-colors active:scale-95" href="tel:081311223344" title="Telepon Wali">
+<span class="material-symbols-outlined text-[18px] text-primary">call</span>
+<span class="hidden xs:inline">Telepon</span>
+</a>
+<button class="min-h-[44px] min-w-[44px] rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-95" title="Lihat Profil Santri" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Card 4: Santri Mukim Asrama Utsman (Bilal) -->
+<div class="santri-item bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm" data-category="mukim" data-name="bilal al-ghifari bilal 0092182755">
+<div class="flex items-start gap-space-md">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-container-high shadow-inner">
+<img class="w-full h-full object-cover" data-alt="Portrait photography of an Indonesian teenage boy aged 14 wearing dark prayer peci and olive green school blazer over a white shirt, serene and polite expression, subtle studio backlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYbvpyhV7DvapouBZe_c5HmBzsGE24nXHJC6i-CSJEjbmQBPRvwFYTurZgFQkZu1DuWOknf3dgSRNkXkFKnBDqo0ej0MDZEP57zusJw8G_-HAA-1ReJ3XVCLqQEAPvqe0-kvciYcMqL0G3DUdgZYiihEBLlzVhwGpHh-VZpa8QKv5Cwa-envmIetcQiLsBHxeL8hUoDXpK4hwJYoqp7VLioPUp3WUfaP2nfAJXtvca">
+</div>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest" title="Santri Aktif"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<h3 class="font-headline-sm text-label-lg text-on-surface font-semibold tracking-tight truncate">Bilal Al-Ghifari</h3>
+<span class="px-2 py-0.5 rounded-full bg-on-primary-container text-on-primary-fixed-variant font-label-sm text-label-sm font-bold shrink-0">Bilal</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+<span class="font-semibold text-on-surface">NISN:</span> 0092182755 • <span class="font-semibold text-on-surface">NIPD:</span> 222308008
+          </p>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px] text-primary">meeting_room</span>
+              Kelas 8-A
+            </span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-2.5 rounded-lg flex flex-col gap-1.5 text-on-surface">
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">cake</span>
+<span class="truncate">Bandung, 19 Oktober 2010 (<strong class="text-on-surface font-medium">14 Thn</strong>)</span>
+</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary shrink-0">apartment</span>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold">
+              Mukim • Asrama Utsman bin Affan
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Kamar 108</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline shrink-0">supervisor_account</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">H. Dedi Supriyadi</strong> (Paman / Kuasa Asuh)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pt-1">
+<a class="flex-1 min-h-[44px] px-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-sm" href="https://wa.me/6281555667788" target="_blank">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1 transition-colors active:scale-95" href="tel:081555667788" title="Telepon Wali">
+<span class="material-symbols-outlined text-[18px] text-primary">call</span>
+<span class="hidden xs:inline">Telepon</span>
+</a>
+<button class="min-h-[44px] min-w-[44px] rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-95" title="Lihat Profil Santri" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Empty State (Hidden by default, triggered by JS search filter) -->
+<div class="hidden bg-surface-container-lowest p-space-xl rounded-xl shadow-sm flex flex-col items-center justify-center text-center gap-2" id="noResultsState">
+<div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-[28px]">search_off</span>
+</div>
+<h4 class="font-headline-sm text-label-lg text-on-surface font-semibold">Santri Tidak Ditemukan</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">Periksa kembali kata kunci pencarian nama atau nomor NISN/NIPD.</p>
+</div>
+</div>
+<!-- Bottom Pagination / Status Indicator -->
+<div class="mt-space-lg flex flex-col items-center gap-space-sm pb-space-lg text-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant" id="countDisplay">
+      Menampilkan <strong class="text-on-surface font-semibold">4</strong> dari <strong class="text-on-surface font-semibold">32</strong> santri di Kelas 8-A
+    </span>
+<button class="min-h-[44px] w-full max-w-xs px-space-lg py-2.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container-low text-primary font-label-md text-label-md shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95" id="btnLoadMore" type="button">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+<span>Muat Lebih Banyak (28 Lainnya)</span>
+</button>
+</div>
+</div>
+<script>
+  (function initSantriDirectory() {
+    const searchInput = document.getElementById('searchSantriInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const items = document.querySelectorAll('.santri-item');
+    const noResults = document.getElementById('noResultsState');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const exportBtn = document.getElementById('btnExportXls');
+    const countDisplay = document.getElementById('countDisplay');
+
+    let currentFilter = 'all';
+
+    function applyFilters() {
+      const term = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      items.forEach(item => {
+        const itemCat = item.getAttribute('data-category');
+        const itemName = item.getAttribute('data-name');
+
+        const matchesCat = (currentFilter === 'all' || itemCat === currentFilter);
+        const matchesSearch = (!term || itemName.includes(term));
+
+        if (matchesCat && matchesSearch) {
+          item.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+
+      if (noResults) {
+        if (visibleCount === 0) {
+          noResults.classList.remove('hidden');
+        } else {
+          noResults.classList.add('hidden');
+        }
+      }
+
+      if (countDisplay) {
+        countDisplay.innerHTML = `Menampilkan <strong class="text-on-surface font-semibold">${visibleCount}</strong> dari <strong class="text-on-surface font-semibold">32</strong> santri di Kelas 8-A`;
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        if (searchInput.value.length > 0) {
+          clearBtn.classList.remove('hidden');
+        } else {
+          clearBtn.classList.add('hidden');
+        }
+        applyFilters();
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        applyFilters();
+        searchInput.focus();
+      });
+    }
+
+    filterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach(c => {
+          c.classList.remove('bg-primary', 'text-on-primary');
+          c.classList.add('bg-surface-container-low', 'text-on-surface');
+        });
+        chip.classList.remove('bg-surface-container-low', 'text-on-surface');
+        chip.classList.add('bg-primary', 'text-on-primary');
+
+        currentFilter = chip.getAttribute('data-filter') || 'all';
+        applyFilters();
+      });
+    });
+
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        const origText = exportBtn.innerHTML;
+        exportBtn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Mengunduh...</span>`;
+        exportBtn.classList.add('opacity-80');
+        setTimeout(() => {
+          exportBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>Selesai!</span>`;
+          setTimeout(() => {
+            exportBtn.innerHTML = origText;
+            exportBtn.classList.remove('opacity-80');
+          }, 1800);
+        }, 1200);
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.03)]" data-active-classes="text-primary font-semibold"><div class="h-16 px-space-xs flex items-center justify-around"><a class="min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="beranda" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-label-sm leading-none">Beranda</span></a><a class="min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="absen" href="#"><span class="material-symbols-outlined text-[22px]">fact_check</span><span class="font-label-sm text-label-sm leading-none">Absen</span></a><a class="min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="jadwal" href="#"><span class="material-symbols-outlined text-[22px]">calendar_month</span><span class="font-label-sm text-label-sm leading-none">Jadwal</span></a><a class="min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-on-surface transition-colors" data-path="nilai" href="#"><span class="material-symbols-outlined text-[22px]">analytics</span><span class="font-label-sm text-label-sm leading-none">Nilai</span></a><a aria-current="page" class="min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors text-primary font-semibold" data-path="siswa" href="#"><span class="material-symbols-outlined text-[22px]">school</span><span class="font-label-sm text-label-sm leading-none">Siswa</span></a></div></nav></body></html>

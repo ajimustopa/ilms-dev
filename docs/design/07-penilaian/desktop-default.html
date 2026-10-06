@@ -1,0 +1,727 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "outline-variant": "#bdc9c1", "primary": "#005d42", "outline": "#6e7a73", "primary-fixed": "#97f5cc", "on-tertiary": "#ffffff", "inverse-surface": "#283044", "tertiary-fixed": "#ffdad6", "background": "#faf8ff", "surface-tint": "#006c4e", "inverse-primary": "#7bd8b1", "surface-variant": "#dae2fd", "tertiary": "#863933", "error": "#ba1a1a", "on-secondary-fixed": "#100069", "surface-container-lowest": "#ffffff", "secondary-container": "#6860ef", "on-primary-fixed": "#002115", "on-error": "#ffffff", "surface-container": "#eaedff", "surface-bright": "#faf8ff", "on-tertiary-fixed-variant": "#792f2a", "primary-container": "#047857", "on-secondary": "#ffffff", "secondary": "#4e45d5", "secondary-fixed": "#e3dfff", "surface-dim": "#d2d9f4", "on-primary-fixed-variant": "#00513a", "on-tertiary-container": "#ffe4e0", "on-primary-container": "#9ffdd3", "primary-fixed-dim": "#7bd8b1", "inverse-on-surface": "#eef0ff", "on-surface-variant": "#3e4943", "on-background": "#131b2e", "on-error-container": "#93000a", "on-tertiary-fixed": "#3e0405", "on-surface": "#131b2e", "surface-container-highest": "#dae2fd", "tertiary-container": "#a45049", "surface": "#faf8ff", "on-secondary-container": "#fffbff", "surface-container-high": "#e2e7ff", "on-secondary-fixed-variant": "#372abf", "surface-container-low": "#f2f3ff", "on-primary": "#ffffff", "tertiary-fixed-dim": "#ffb4ac", "secondary-fixed-dim": "#c3c0ff", "error-container": "#ffdad6" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1rem", "gutter": "1rem", "space-md": "0.75rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "space-2xl": "2rem", "gutter-desktop": "1.5rem", "space-lg": "1rem", "margin-desktop": "2rem", "space-xl": "1.5rem" }, "fontFamily": { "body-lg": ["Inter"], "body-sm": ["Inter"], "headline-md": ["Inter"], "tabular-stat-lg": ["Inter"], "label-sm": ["Inter"], "headline-sm": ["Inter"], "label-lg": ["Inter"], "headline-lg": ["Inter"], "tabular-stat-md": ["Inter"], "label-md": ["Inter"], "body-md": ["Inter"] }, "fontSize": { "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "body-sm": ["0.8125rem", { "lineHeight": "1.25rem", "fontWeight": "400" }], "headline-md": ["1.375rem", { "lineHeight": "1.875rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "tabular-stat-lg": ["1.875rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "label-sm": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.03em", "fontWeight": "500" }], "headline-sm": ["1.125rem", { "lineHeight": "1.625rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-lg": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "600" }], "headline-lg": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }], "tabular-stat-md": ["1.25rem", { "lineHeight": "1.625rem", "fontWeight": "600" }], "label-md": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }] } } } };</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-64 bg-surface-container-lowest border-r border-outline-variant/30 z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 flex items-center px-space-xl border-b border-outline-variant/20 gap-space-md"><div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-sm text-headline-sm font-bold shadow-none">A</div><div class="flex flex-col"><span class="font-label-lg text-label-lg text-on-surface leading-tight">Aldepos Teacher</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">SMP IT ALDEPOS</span></div></div><div class="px-space-md pt-space-xl pb-space-sm"><span class="px-space-sm font-label-sm text-label-sm text-on-surface-variant/80 tracking-wider uppercase">MENU UTAMA</span></div><nav class="px-space-sm space-y-1" data-active-classes="bg-primary-container text-on-primary font-semibold"><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="beranda" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">home</span><span class="font-body-md text-body-md">Beranda</span></div></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="presensi-mandiri" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">person_check</span><span class="font-body-md text-body-md">Presensi Mandiri</span></div></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="jadwal-mengajar" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span class="font-body-md text-body-md">Jadwal Mengajar</span></div></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="presensi-kbm-dan-jurnal" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">assignment_turned_in</span><span class="font-body-md text-body-md">Presensi KBM &amp; Jurnal</span></div><span class="w-2 h-2 rounded-full bg-primary-container"></span></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="perencanaan-dan-tp" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">article</span><span class="font-body-md text-body-md">Perencanaan &amp; TP</span></div></a><a aria-current="page" class="flex items-center justify-between px-space-md py-2 rounded-lg transition-colors bg-primary-container text-on-primary font-semibold" data-path="penilaian-siswa" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">grade</span><span class="font-body-md text-body-md">Penilaian Siswa</span></div><span class="px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed font-bold">1</span></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="data-siswa-dan-kelas" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">groups</span><span class="font-body-md text-body-md">Data Siswa &amp; Kelas</span></div></a><a class="flex items-center justify-between px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="kejadian-dan-konseling" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">chat_bubble</span><span class="font-body-md text-body-md">Kejadian &amp; Konseling</span></div><span class="px-2 py-0.5 rounded-full font-label-sm text-label-sm bg-error-container text-on-error-container font-bold">1 BK</span></a></nav><div class="px-space-md pt-space-xl pb-space-sm"><span class="px-space-sm font-label-sm text-label-sm text-on-surface-variant/80 tracking-wider uppercase">LAINNYA</span></div><nav class="px-space-sm space-y-1" data-active-classes="bg-primary-container text-on-primary font-semibold"><a class="flex items-center px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="pengumuman" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">campaign</span><span class="font-body-md text-body-md">Pengumuman</span></div></a><a class="flex items-center px-space-md py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="profil-dan-pengaturan" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">settings</span><span class="font-body-md text-body-md">Profil &amp; Pengaturan</span></div></a></nav></div><div class="p-space-md border-t border-outline-variant/20 bg-surface-container-lowest"><div class="flex items-center gap-space-md p-space-sm rounded-lg border border-outline-variant/30 bg-surface-container-low/50"><div class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-label-lg text-label-lg font-bold shrink-0">HS</div><div class="flex flex-col overflow-hidden"><span class="font-label-md text-label-md text-on-surface font-semibold truncate leading-tight">Ust. Hamdan Syafi'i, M.Pd</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">NIP. 198804122011</span></div></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest border-b border-outline-variant/30 z-40 flex items-center justify-between px-space-xl"><div class="flex items-center gap-space-md"><div class="inline-flex items-center gap-space-sm px-space-md py-1 rounded-full bg-surface-container-low border border-outline-variant/40"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">SMP Aldepos • Semester Ganjil 2026/2027 • T.A 1448 H</span></div></div><div class="flex items-center gap-space-lg"><div class="relative flex items-center"><div class="flex items-center w-80 h-9 pl-space-md pr-space-sm rounded-lg bg-surface-container-low border border-outline-variant/40 focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-fixed"><span class="material-symbols-outlined text-[18px] text-on-surface-variant mr-space-sm">search</span><input class="w-full bg-transparent border-none outline-none font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant/70" placeholder="Cari siswa, nilai, asesmen..." type="text"><kbd class="ml-space-xs px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-lowest border border-outline-variant/40 text-on-surface-variant font-mono">⌘K</kbd></div></div><div class="flex items-center gap-space-md pl-space-xs border-l border-outline-variant/20"><button aria-label="Notifikasi" class="relative p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="flex items-center gap-space-md ml-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface font-semibold leading-tight">Ust. Hamdan Syafi'i, M.Pd</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Guru Mapel IPA &amp; Matematika</span></div></div></div></div></header><main class="relative pt-16 min-h-screen bg-surface w-full max-w-[1440px] mx-auto px-margin-desktop py-space-xl"><div class="flex flex-col w-full space-y-space-xl">
+<!-- BREADCRUMB & PAGE HEADER -->
+<div class="flex flex-col gap-space-sm">
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
+<span class="hover:text-primary cursor-pointer transition-colors">Akademik &amp; KBM</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="hover:text-primary cursor-pointer transition-colors">Asesmen Pembelajaran</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-on-surface font-semibold">Penilaian Siswa (STS Ganjil)</span>
+</nav>
+<!-- Title & Primary Top Actions -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg pt-space-xs">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-md flex-wrap">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Penilaian Siswa - STS Semester Ganjil</h1>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md border border-primary/20 shadow-sm">
+<span>🎯</span>
+<span class="font-bold tracking-tight">KKTP: 75.0</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm border border-outline-variant/30">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>Status: Aktif • Bobot: 30%</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          Pengisian nilai sumatif berbasis Kriteria Ketercapaian Tujuan Pembelajaran (KKTP) dan sinkronisasi e-Rapor Kurikulum Merdeka.
+        </p>
+</div>
+<!-- Action Group -->
+<div class="flex items-center gap-space-sm shrink-0">
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">upload_file</span>
+<span>Impor Excel</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">analytics</span>
+<span>Rekap Statistik</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary hover:bg-primary transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Kirim ke Kurikulum</span>
+</button>
+</div>
+</div>
+</div>
+<!-- METRIC CARDS ROW -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-lg">
+<!-- Card 1: Rata-Rata Kelas -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-space-lg flex flex-col justify-between overflow-hidden shadow-sm">
+<div class="absolute top-0 left-0 right-0 h-[3px] bg-primary-container"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Rata-Rata Nilai Kelas</span>
+<div class="flex items-baseline gap-space-sm mt-1">
+<span class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface tabular-nums">78.4</span>
+<span class="font-label-sm text-label-sm text-primary-container font-semibold inline-flex items-center">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>+2.1 vs STS-1
+            </span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">trending_up</span>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-outline-variant/20 flex items-center justify-between font-body-sm text-body-sm text-on-surface-variant">
+<span>Ambang Batas Minimum</span>
+<span class="font-semibold text-primary font-mono">KKTP 75.0</span>
+</div>
+</div>
+<!-- Card 2: Ketuntasan (>= KKTP) -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-space-lg flex flex-col justify-between overflow-hidden shadow-sm">
+<div class="absolute top-0 left-0 right-0 h-[3px] bg-primary-container"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Tingkat Ketuntasan</span>
+<div class="flex items-baseline gap-space-sm mt-1">
+<span class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface tabular-nums">27</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Santri</span>
+<span class="font-label-md text-label-md px-1.5 py-0.5 rounded bg-primary-fixed/60 text-on-primary-fixed font-bold">84%</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">verified</span>
+</div>
+</div>
+<div class="mt-3 space-y-1">
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 84%;"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span>Memenuhi Standar</span>
+<span>Target Kurikulum: 80%</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Perlu Remedial -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-space-lg flex flex-col justify-between overflow-hidden shadow-sm">
+<div class="absolute top-0 left-0 right-0 h-[3px] bg-tertiary-container"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Perlu Remedial</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-semibold">Tindakan</span>
+</div>
+<div class="flex items-baseline gap-space-sm mt-1">
+<span class="font-tabular-stat-lg text-tabular-stat-lg text-tertiary tabular-nums">5</span>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Santri</span>
+<span class="font-label-md text-label-md px-1.5 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed-variant font-bold">16%</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-tertiary-fixed/60 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[22px]">warning_amber</span>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-outline-variant/20 flex items-center justify-between font-body-sm text-body-sm text-on-surface-variant">
+<span>Batas waktu tindak lanjut</span>
+<span class="text-tertiary font-semibold">H-4 Penguncian</span>
+</div>
+</div>
+<!-- Card 4: Progres Kelengkapan Nilai -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-space-lg flex flex-col justify-between overflow-hidden shadow-sm">
+<div class="absolute top-0 left-0 right-0 h-[3px] bg-secondary"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Progres Input Nilai</span>
+<div class="flex items-baseline gap-space-sm mt-1">
+<span class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface tabular-nums">30</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ 32 Santri</span>
+<span class="font-label-md text-label-md px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed font-bold">93%</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-secondary-fixed/50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-3 space-y-1">
+<div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 93%;"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span class="text-secondary font-medium">2 Santri Belum Lengkap</span>
+<span>Draft Disimpan</span>
+</div>
+</div>
+</div>
+</div>
+<!-- CONTEXT ALERT BANNER -->
+<div class="rounded-lg border border-tertiary-fixed-dim bg-tertiary-fixed/30 p-space-md flex items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0 text-tertiary">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-x-2 gap-y-0.5 font-body-sm text-body-sm text-on-surface">
+<span class="font-bold text-tertiary">Sesi Penilaian Aktif:</span>
+<span>Batas Penguncian Nilai Kurikulum Ganjil adalah <strong>20 Oktober 2026 (Pukul 23:59 WIB)</strong>. Mode Input Cepat (Spreadsheet Grid) Aktif.</span>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors">
+        Panduan Skema KKTP
+      </button>
+</div>
+</div>
+<!-- SINGLE-ROW STICKY FILTER BAR & GRID TOOLBAR -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-space-md space-y-space-md shadow-sm">
+<div class="flex flex-wrap items-center justify-between gap-space-md">
+<!-- Left Filter Controls -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-container-low border border-outline-variant/50 font-label-md text-label-md text-on-surface appearance-none focus:outline-none focus:border-primary-container cursor-pointer">
+<option>SMP Aldepos (Putra)</option>
+<option>SMA Aldepos (Putra)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-container-low border border-outline-variant/50 font-label-md text-label-md text-on-surface appearance-none focus:outline-none focus:border-primary-container cursor-pointer">
+<option>2026/2027 Ganjil</option>
+<option>2025/2026 Genap</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-container-low border border-outline-variant/50 font-label-md text-label-md text-on-surface appearance-none focus:outline-none focus:border-primary-container cursor-pointer">
+<option>Matematika Wajib</option>
+<option>IPA Terpadu</option>
+<option>Tahfidz Al-Qur'an</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-surface-container-low border border-outline-variant/50 font-label-md text-label-md text-on-surface font-semibold appearance-none focus:outline-none focus:border-primary-container cursor-pointer">
+<option>Kelas 8-A (Ikhwan)</option>
+<option>Kelas 8-B (Ikhwan)</option>
+<option>Kelas 9-A (Ikhwan)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="h-9 pl-3 pr-8 rounded-lg bg-primary-fixed/40 border border-primary/30 font-label-md text-label-md text-on-primary-fixed-variant font-bold appearance-none focus:outline-none cursor-pointer">
+<option>STS (Sumatif Tengah Semester)</option>
+<option>SAS (Sumatif Akhir Semester)</option>
+<option>Formatif Harian Rombel</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-on-primary-fixed-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Right Search & Quick View -->
+<div class="flex items-center gap-space-sm flex-grow sm:flex-grow-0">
+<div class="relative w-full sm:w-64">
+<span class="material-symbols-outlined absolute left-2.5 top-2 text-[18px] text-on-surface-variant">search</span>
+<input class="w-full h-9 pl-9 pr-8 rounded-lg bg-surface-container-low border border-outline-variant/40 font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary-container" placeholder="Cari nama / NISN (Tekan /)..." type="text">
+<kbd class="absolute right-2 top-2 text-[10px] px-1.5 py-0.5 rounded bg-surface-container-lowest border border-outline-variant/40 text-on-surface-variant font-mono">/</kbd>
+</div>
+</div>
+</div>
+<!-- Filter Pills & Keyboard Hint Sub-row -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm pt-space-xs border-t border-outline-variant/20">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">Tampilkan:</span>
+<button class="px-2.5 py-1 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm font-semibold transition-colors">Semua (32)</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Tuntas (27)</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Remedial (5)</button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Belum Lengkap (2)</button>
+</div>
+<div class="hidden xl:flex items-center gap-2 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2.5 py-1 rounded-md border border-outline-variant/20">
+<span class="text-primary-container">⌨️ Pintasan Grid:</span>
+<span><kbd class="px-1 py-0.2 bg-surface-container-lowest rounded border border-outline-variant/40 font-mono text-[11px]">Enter</kbd> / <kbd class="px-1 py-0.2 bg-surface-container-lowest rounded border border-outline-variant/40 font-mono text-[11px]">↓</kbd> Santri Berikutnya</span>
+<span>•</span>
+<span><kbd class="px-1 py-0.2 bg-surface-container-lowest rounded border border-outline-variant/40 font-mono text-[11px]">Tab</kbd> Geser Kolom TP</span>
+</div>
+</div>
+</div>
+<!-- SPREADSHEET-LIKE GRADING GRID -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-lg overflow-hidden shadow-sm flex flex-col">
+<!-- Responsive Table Scroll Container -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse min-w-[1240px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/30 text-on-surface font-label-md text-label-md">
+<th class="py-3 px-3 w-16 text-center">NO</th>
+<th class="py-3 px-3 w-32">NISN</th>
+<th class="py-3 px-4 min-w-[200px]">NAMA SANTRI &amp; ASRAMA</th>
+<th class="py-3 px-2 w-28 text-center bg-surface-container-high/60">
+<div class="flex flex-col items-center">
+<span class="font-bold">TP 8.1</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant leading-none">Bilangan [25%]</span>
+</div>
+</th>
+<th class="py-3 px-2 w-28 text-center bg-surface-container-high/60">
+<div class="flex flex-col items-center">
+<span class="font-bold">TP 8.2</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant leading-none">Aljabar [25%]</span>
+</div>
+</th>
+<th class="py-3 px-2 w-28 text-center bg-surface-container-high/60">
+<div class="flex flex-col items-center">
+<span class="font-bold">TP 8.3</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant leading-none">Pythagoras [30%]</span>
+</div>
+</th>
+<th class="py-3 px-2 w-28 text-center bg-surface-container-high/60">
+<div class="flex flex-col items-center">
+<span class="font-bold">Tes STS</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant leading-none">Teori [20%]</span>
+</div>
+</th>
+<th class="py-3 px-3 w-32 text-center bg-primary-fixed/30">
+<div class="flex flex-col items-center">
+<span class="font-bold text-on-primary-fixed">NILAI AKHIR</span>
+<span class="font-label-sm text-[10px] text-primary-container font-semibold leading-none">Formula Otomatis</span>
+</div>
+</th>
+<th class="py-3 px-3 w-36 text-center">STATUS KKTP</th>
+<th class="py-3 px-4 min-w-[240px]">DESKRIPSI CAPAIAN (E-RAPOR)</th>
+<th class="py-3 px-3 w-28 text-center">AKSI</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20 font-body-sm text-body-sm">
+<!-- Row 1: Ahmad Fauzan Rabbani -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">01</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182741</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Ahmad Fauzan Rabbani</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 204 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none" type="text" value="85">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none" type="text" value="88">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none" type="text" value="90">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none" type="text" value="88">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-primary-fixed/10">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-on-surface tabular-nums">88.0</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold">
+<span>✓</span> Tuntas (+13.0)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface-variant font-body-sm text-body-sm line-clamp-1 truncate max-w-xs" title="Menunjukkan penguasaan sangat baik pada penerapan Teorema Pythagoras dan persamaan linier sederhana.">
+              Menunjukkan penguasaan sangat baik pada penerapan Teorema Pythagoras dan persamaan linier...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-low transition-colors">
+                Edit Catatan
+              </button>
+</td>
+</tr>
+<!-- Row 2: Bilal Al-Ghifari (Remedial) -->
+<tr class="bg-tertiary-fixed/10 hover:bg-tertiary-fixed/20 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">02</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182755</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Bilal Al-Ghifari</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 201 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="70">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="65">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="70">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="68">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-tertiary-fixed/20">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-tertiary tabular-nums">68.0</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold">
+<span>⚠️</span> Remedial (-7.0)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-tertiary font-body-sm text-body-sm truncate max-w-xs" title="Perlu pendampingan intensif dalam penyederhanaan aljabar linier dan pemahaman dalil segitiga.">
+              Perlu pendampingan intensif dalam penyederhanaan aljabar linier...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold rounded hover:bg-tertiary-fixed-dim transition-colors">
+                Atur Remedial
+              </button>
+</td>
+</tr>
+<!-- Row 3: Dimas Arya Pratama -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">03</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182780</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Dimas Arya Pratama</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Non-Mukim • Santri Pulang-Pergi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="82">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="80">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="85">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="83">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-primary-fixed/10">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-on-surface tabular-nums">82.5</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold">
+<span>✓</span> Tuntas (+7.5)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface-variant font-body-sm text-body-sm truncate max-w-xs" title="Mampu menganalisis relasi geometri dengan cermat serta tuntas mengerjakan persoalan bertingkat.">
+              Mampu menganalisis relasi geometri dengan cermat serta tuntas...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-low transition-colors">
+                Edit Catatan
+              </button>
+</td>
+</tr>
+<!-- Row 4: Farhan Maulana Malik (ACTIVE CELL HIGHLIGHT FOCUS DEMO) -->
+<tr class="bg-primary-fixed/20 hover:bg-primary-fixed/25 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-primary font-bold">04</td>
+<td class="py-2.5 px-3 font-mono text-on-surface">0092182744</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface font-bold">Farhan Maulana Malik</span>
+<span class="px-1.5 py-0.2 rounded bg-primary-container text-on-primary font-label-sm text-[10px] font-bold">Terbaik</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 202 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="95">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="92">
+</td>
+<!-- Active Cell Highlight -->
+<td class="py-2 px-2 text-center relative">
+<input class="w-16 h-8 text-center font-mono font-bold bg-surface-container-lowest border-2 border-primary-container text-primary-container rounded shadow-sm focus:outline-none" type="text" value="96">
+<div class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-primary-container text-on-primary text-[9px] px-1 rounded font-mono font-bold pointer-events-none">AKTIF</div>
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="94">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-primary-fixed/40">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-primary tabular-nums">94.2</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-semibold">
+<span>★</span> Tuntas (+19.2)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface font-body-sm text-body-sm truncate max-w-xs" title="Sangat mahir memecahkan soal cerita pembagian ransum logistik dan aljabar majemuk secara mandiri.">
+              Sangat mahir memecahkan soal cerita pembagian ransum logistik...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm text-primary font-bold rounded hover:bg-surface-container-low transition-colors">
+                Edit Catatan
+              </button>
+</td>
+</tr>
+<!-- Row 5: Fikri Haikal Kurniawan (Remedial) -->
+<tr class="bg-tertiary-fixed/10 hover:bg-tertiary-fixed/20 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">05</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182745</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Fikri Haikal Kurniawan</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 204 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="72">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="70">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="74">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold text-tertiary bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-tertiary-container focus:outline-none" type="text" value="72">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-tertiary-fixed/20">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-tertiary tabular-nums">72.0</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-semibold">
+<span>⚠️</span> Remedial (-3.0)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-tertiary font-body-sm text-body-sm truncate max-w-xs" title="Perlu penguatan konsep dasar segitiga siku-siku dan perkalian suku aljabar.">
+              Perlu penguatan konsep dasar segitiga siku-siku dan perkalian...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold rounded hover:bg-tertiary-fixed-dim transition-colors">
+                Atur Remedial
+              </button>
+</td>
+</tr>
+<!-- Row 6: Hafidz Al-Ayyubi -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">06</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182746</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Hafidz Al-Ayyubi</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 201 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="88">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="86">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="90">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="88">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-primary-fixed/10">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-on-surface tabular-nums">88.2</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold">
+<span>✓</span> Tuntas (+13.2)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface-variant font-body-sm text-body-sm truncate max-w-xs" title="Memahami konsep bilangan bulat dan operasi hitung dengan konsisten serta teliti.">
+              Memahami konsep bilangan bulat dan operasi hitung dengan...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-low transition-colors">
+                Edit Catatan
+              </button>
+</td>
+</tr>
+<!-- Row 7: Ibrahim Zulkarnain -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">07</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182747</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Ibrahim Zulkarnain</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 203 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="78">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="80">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="76">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-semibold bg-surface-container-lowest border border-outline-variant/40 rounded focus:border-primary-container focus:outline-none" type="text" value="78">
+</td>
+<!-- Final Calc -->
+<td class="py-2.5 px-3 text-center bg-primary-fixed/10">
+<span class="font-tabular-stat-md text-tabular-stat-md font-bold text-on-surface tabular-nums">77.8</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-semibold">
+<span>✓</span> Tuntas (+2.8)
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface-variant font-body-sm text-body-sm truncate max-w-xs" title="Cukup baik dalam memahami dalil pythagoras dan mampu menyelesaikan soal rutin.">
+              Cukup baik dalam memahami dalil pythagoras dan mampu menyelesaikan...
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm text-on-surface-variant hover:text-primary rounded hover:bg-surface-container-low transition-colors">
+                Edit Catatan
+              </button>
+</td>
+</tr>
+<!-- Row 8: Jafar Shadiq (DRAFT / SUSULAN) -->
+<tr class="bg-surface-container-low/20 hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 text-center font-mono text-on-surface-variant font-semibold">08</td>
+<td class="py-2.5 px-3 font-mono text-on-surface-variant">0092182748</td>
+<td class="py-2.5 px-4">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Jafar Shadiq</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Kamar 205 • Shalahuddin Al-Ayyubi</span>
+</div>
+</td>
+<!-- Inputs Empty -->
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-medium bg-surface-container-high/40 border border-dashed border-outline-variant/60 rounded focus:border-primary-container focus:outline-none" placeholder="--" type="text">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-medium bg-surface-container-high/40 border border-dashed border-outline-variant/60 rounded focus:border-primary-container focus:outline-none" placeholder="--" type="text">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-medium bg-surface-container-high/40 border border-dashed border-outline-variant/60 rounded focus:border-primary-container focus:outline-none" placeholder="--" type="text">
+</td>
+<td class="py-2 px-2 text-center">
+<input class="w-16 h-8 text-center font-mono font-medium bg-surface-container-high/40 border border-dashed border-outline-variant/60 rounded focus:border-primary-container focus:outline-none" placeholder="--" type="text">
+</td>
+<!-- Final Calc Empty -->
+<td class="py-2.5 px-3 text-center bg-surface-container-high/30">
+<span class="font-mono text-body-sm text-on-surface-variant">--</span>
+</td>
+<!-- Status Badge -->
+<td class="py-2.5 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md font-medium">
+<span>⏳</span> Draf / Belum Diisi
+              </span>
+</td>
+<!-- Deskripsi -->
+<td class="py-2.5 px-4 text-on-surface-variant font-body-sm text-body-sm italic truncate max-w-xs">
+              Menunggu susulan ujian sakit di UKS (Dispensasi s/d 18 Okt)
+            </td>
+<!-- Aksi -->
+<td class="py-2.5 px-3 text-center">
+<button class="px-2 py-1 text-label-sm font-label-sm bg-surface-container-high text-on-surface font-semibold rounded hover:bg-surface-container-highest transition-colors">
+                Input Susulan
+              </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Status Bar & Pagination -->
+<div class="p-space-md border-t border-outline-variant/20 bg-surface-container-low flex flex-col md:flex-row items-center justify-between gap-space-sm font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center gap-space-md">
+<span>Menampilkan <strong>1 - 8</strong> dari <strong>32</strong> santri (Kelas 8-A)</span>
+<span class="hidden sm:inline text-outline-variant">•</span>
+<span class="hidden sm:inline-flex items-center gap-1 text-primary-container font-medium">
+<span class="material-symbols-outlined text-[16px]">cloud_done</span>
+<span>Semua perubahan tersimpan otomatis di cloud pesantren (2 detik lalu)</span>
+</span>
+</div>
+<!-- Pagination Buttons -->
+<div class="flex items-center gap-1">
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 bg-surface-container-lowest text-on-surface disabled:opacity-40" disabled="">
+<span class="material-symbols-outlined text-[16px] align-middle">chevron_left</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-primary-container text-on-primary font-bold text-label-sm">1</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high text-label-sm">2</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high text-label-sm">3</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high text-label-sm">4</button>
+<button class="px-2.5 py-1 rounded border border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-[16px] align-middle">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- STICKY BOTTOM ACTION BAR (PERSISTENT SUMMARY & FINAL SUBMIT) -->
+<div class="sticky bottom-4 z-30 bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-space-md shadow-md flex flex-col lg:flex-row items-center justify-between gap-space-md">
+<!-- Left Sync Status Summary -->
+<div class="flex items-center gap-space-md w-full lg:w-auto">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed/40 flex items-center justify-center text-primary-container shrink-0">
+<span class="material-symbols-outlined text-[24px]">sync</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">Status: 30 / 32 Nilai Terinput</span>
+<span class="px-2 py-0.5 rounded text-label-sm font-label-sm bg-tertiary-fixed text-on-tertiary-fixed font-semibold">2 Perlu Perhatian / Susulan</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Terkoneksi langsung ke modul e-Rapor Kurikulum Merdeka (Server Aldepos Pusat).</span>
+</div>
+</div>
+<!-- Right Action Buttons -->
+<div class="flex items-center gap-space-sm w-full lg:w-auto justify-end flex-wrap">
+<button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">save</span>
+<span>Simpan Draf</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">print</span>
+<span>Cetak Leger (PDF)</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">table_chart</span>
+<span>Ekspor Excel</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary hover:bg-primary transition-colors font-label-md text-label-md font-semibold shadow-sm">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+<span>Submit ke Kurikulum &amp; Kunci Nilai</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction for table input grid navigation simulation
+  document.addEventListener('DOMContentLoaded', () => {
+    const inputs = document.querySelectorAll('table input[type="text"]');
+    inputs.forEach((input) => {
+      input.addEventListener('focus', function() {
+        this.select();
+      });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          // Find next row input
+          const currentTd = this.closest('td');
+          const currentTr = this.closest('tr');
+          const cellIndex = Array.from(currentTr.children).indexOf(currentTd);
+          const nextTr = currentTr.nextElementSibling;
+          if (nextTr) {
+            const targetInput = nextTr.children[cellIndex]?.querySelector('input');
+            if (targetInput) targetInput.focus();
+          }
+        }
+      });
+    });
+  });
+</script></main></div></body></html>

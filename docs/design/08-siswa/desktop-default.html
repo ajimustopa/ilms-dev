@@ -1,0 +1,915 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary":"#ffffff","on-primary-container":"#9ffdd3","on-primary-fixed-variant":"#00513a","on-secondary-container":"#fffbff","on-tertiary-fixed":"#3e0405","on-background":"#131b2e","surface-container-low":"#f2f3ff","outline":"#6e7a73","inverse-primary":"#7bd8b1","outline-variant":"#bdc9c1","surface":"#faf8ff","on-secondary-fixed-variant":"#372abf","inverse-surface":"#283044","tertiary-fixed":"#ffdad6","on-surface-variant":"#3e4943","on-primary":"#ffffff","error-container":"#ffdad6","surface-tint":"#006c4e","surface-container":"#eaedff","on-primary-fixed":"#002115","tertiary-fixed-dim":"#ffb4ac","tertiary-container":"#a45049","on-error-container":"#93000a","surface-container-highest":"#dae2fd","secondary-fixed":"#e3dfff","primary-container":"#047857","inverse-on-surface":"#eef0ff","surface-bright":"#faf8ff","on-secondary-fixed":"#100069","on-tertiary":"#ffffff","secondary-container":"#6860ef","secondary":"#4e45d5","on-tertiary-fixed-variant":"#792f2a","tertiary":"#863933","background":"#faf8ff","surface-container-high":"#e2e7ff","surface-variant":"#dae2fd","secondary-fixed-dim":"#c3c0ff","surface-container-lowest":"#ffffff","primary":"#005d42","primary-fixed":"#97f5cc","primary-fixed-dim":"#7bd8b1","on-error":"#ffffff","on-surface":"#131b2e","on-tertiary-container":"#ffe4e0","surface-dim":"#d2d9f4","error":"#ba1a1a"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"margin-desktop":"2rem","gutter-desktop":"1.5rem","space-2xl":"2rem","space-lg":"1rem","space-xs":"0.25rem","space-sm":"0.5rem","space-md":"0.75rem","margin":"1rem","space-xl":"1.5rem","gutter":"1rem"},fontFamily:{"body-lg":["Inter"],"headline-md":["Inter"],"tabular-stat-md":["Inter"],"body-sm":["Inter"],"label-lg":["Inter"],"headline-sm":["Inter"],"label-sm":["Inter"],"body-md":["Inter"],"headline-lg":["Inter"],"label-md":["Inter"],"tabular-stat-lg":["Inter"]},fontSize:{"body-lg":["1rem",{"lineHeight":"1.5rem","fontWeight":"400"}],"headline-md":["1.375rem",{"lineHeight":"1.875rem","letterSpacing":"-0.015em","fontWeight":"600"}],"tabular-stat-md":["1.25rem",{"lineHeight":"1.625rem","fontWeight":"600"}],"body-sm":["0.8125rem",{"lineHeight":"1.25rem","fontWeight":"400"}],"label-lg":["0.875rem",{"lineHeight":"1.25rem","fontWeight":"600"}],"headline-sm":["1.125rem",{"lineHeight":"1.625rem","letterSpacing":"-0.01em","fontWeight":"600"}],"label-sm":["0.6875rem",{"lineHeight":"0.875rem","letterSpacing":"0.03em","fontWeight":"500"}],"body-md":["0.875rem",{"lineHeight":"1.375rem","fontWeight":"400"}],"headline-lg":["1.75rem",{"lineHeight":"2.25rem","letterSpacing":"-0.02em","fontWeight":"700"}],"label-md":["0.75rem",{"lineHeight":"1rem","letterSpacing":"0.02em","fontWeight":"600"}],"tabular-stat-lg":["1.875rem",{"lineHeight":"2.25rem","letterSpacing":"-0.02em","fontWeight":"700"}]}}}}</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-64 bg-surface-container-lowest flex flex-col justify-between z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="h-16 px-space-lg flex items-center gap-space-md"><div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-md text-headline-md font-bold">A</div><div class="flex flex-col"><span class="font-label-lg text-label-lg font-bold text-on-surface tracking-tight leading-none">PORTAL GURU</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium tracking-wide">SMP IT ALDEPOS</span></div></div><div class="px-space-md py-space-sm"><div class="px-space-sm py-space-xs font-label-sm text-label-sm font-semibold uppercase text-on-surface-variant tracking-wider">Menu Utama</div><nav class="flex flex-col gap-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="beranda" href="#"><span class="material-symbols-outlined text-[20px]">home</span><span>Beranda</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="presensi-mandiri" href="#"><span class="material-symbols-outlined text-[20px]">fingerprint</span><span>Presensi Mandiri</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="jadwal-mengajar" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Jadwal Mengajar</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="presensi-kbm-jurnal" href="#"><span class="material-symbols-outlined text-[20px]">fact_check</span><span>Presensi KBM &amp; Jurnal</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="perencanaan-tp" href="#"><span class="material-symbols-outlined text-[20px]">assignment</span><span>Perencanaan &amp; TP</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="penilaian-siswa" href="#"><span class="material-symbols-outlined text-[20px]">grade</span><span>Penilaian Siswa</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="data-siswa-kelas" href="#"><span class="material-symbols-outlined text-[20px]">groups</span><span>Data Siswa &amp; Kelas</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="kejadian-konseling" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">psychology</span><span>Kejadian &amp; Konseling</span></div><span class="px-space-xs py-[2px] rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">1 BK</span></a></nav></div><div class="px-space-md py-space-sm"><div class="px-space-sm py-space-xs font-label-sm text-label-sm font-semibold uppercase text-on-surface-variant tracking-wider">Lainnya</div><nav class="flex flex-col gap-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="pengumuman" href="#"><span class="material-symbols-outlined text-[20px]">campaign</span><span>Pengumuman</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="profil-pengaturan" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Profil &amp; Pengaturan</span></a></nav></div></div><div class="p-space-md"><div class="p-space-md rounded-xl bg-surface-container-low flex items-center gap-space-md"><div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-on-primary font-label-lg text-label-lg font-bold">HS</div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md font-bold text-on-surface truncate">Ust. Hamdan Syafi'i, M.Pd</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">NIP 198804122011</span></div></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl"><div class="flex items-center gap-space-lg"><div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-label-md"><span class="w-2 h-2 rounded-full bg-primary"></span><span>SMP Aldepos • Semester Ganjil 2026/2027 • T.A 1448 H</span></div><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">search</span><input class="w-72 pl-9 pr-space-md py-1.5 rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest transition-all" placeholder="Cari siswa, kelas, TP... (Cmd+K)" readonly="" type="text"></div></div><div class="flex items-center gap-space-md"><button class="relative p-space-sm rounded-lg hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error ring-2 ring-surface-container-lowest"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface min-h-screen"><div class="w-full max-w-[1440px] mx-auto px-space-xl py-space-xl"><div class="flex flex-col w-full">
+<!-- BREADCRUMBS & MAIN ACTIONS HEADER -->
+<div class="flex flex-col gap-space-md mb-space-xl">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+<span class="hover:text-primary transition-colors cursor-pointer">Kesiswaan &amp; Akademik</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-on-surface font-semibold">Data Siswa &amp; Rombel</span>
+</div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Data Siswa &amp; Rombongan Belajar</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-primary font-semibold">Kelas 8-A (Ikhwan)</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Direktori santri aktif, kontak wali santri, informasi asrama, dan status kesiswaan SMP IT Aldepos.</p>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap">
+<button class="inline-flex items-center gap-space-xs px-3.5 py-2 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container-low font-label-lg text-label-lg transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">print</span>
+<span>Cetak Buku Induk (PDF)</span>
+</button>
+<button class="inline-flex items-center gap-space-xs px-3.5 py-2 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container-low font-label-lg text-label-lg transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">file_upload</span>
+<span>Impor Data Siswa</span>
+</button>
+<button class="inline-flex items-center gap-space-xs px-4 py-2 rounded-lg bg-primary-container text-on-primary hover:bg-primary font-label-lg text-label-lg transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">person_add</span>
+<span>+ Tambah Santri Baru</span>
+</button>
+</div>
+</div>
+</div>
+<!-- KPI METRIC RIBBON CARDS (4 in a row) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-lg mb-space-xl">
+<!-- Card 1 -->
+<div class="relative bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md uppercase text-on-surface-variant font-semibold tracking-wider">Total Santri Aktif</span>
+<div class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface mt-1">32 <span class="font-label-md text-label-md font-normal text-on-surface-variant">Santri</span></div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">groups</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs">
+<div class="flex justify-between items-center text-label-sm font-label-sm text-on-surface-variant mb-1">
+<span>Kelengkapan Berkas</span>
+<span class="font-semibold text-primary">100% Terverifikasi</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+<div class="h-full bg-primary-container rounded-full w-full"></div>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="relative bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-secondary"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md uppercase text-on-surface-variant font-semibold tracking-wider">Status Mukim</span>
+<div class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface mt-1">26 <span class="font-label-md text-label-md font-semibold text-secondary">(81%)</span></div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[22px]">hotel</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center gap-space-xs text-body-sm font-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-secondary">domain</span>
+<span class="truncate">Asrama Umar &amp; Utsman</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="relative bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-tertiary-container"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md uppercase text-on-surface-variant font-semibold tracking-wider">Non-Mukim (PP)</span>
+<div class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface mt-1">6 <span class="font-label-md text-label-md font-semibold text-tertiary">(19%)</span></div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[22px]">directions_bus</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center gap-space-xs text-body-sm font-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-tertiary">near_me</span>
+<span class="truncate">Rute Ciawi &amp; Bogor Kota</span>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="relative bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary-container"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md uppercase text-on-surface-variant font-semibold tracking-wider">Kelengkapan Data Wali</span>
+<div class="font-tabular-stat-lg text-tabular-stat-lg text-on-surface mt-1">32 / 32 <span class="font-label-md text-label-md font-medium text-primary">Lengkap</span></div>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[22px]">mark_chat_read</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center gap-space-xs text-body-sm font-body-sm text-primary">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>WhatsApp Terhubung &amp; Sinkron</span>
+</div>
+</div>
+</div>
+<!-- STICKY FILTER BAR -->
+<div class="sticky top-16 z-30 bg-surface-container-lowest rounded-lg p-space-md mb-space-xl shadow-sm">
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-space-md">
+<!-- Search Input -->
+<div class="relative flex-1 min-w-[260px] max-w-lg">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full h-[38px] pl-9 pr-9 rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container transition-all" id="studentSearchInput" placeholder="Cari nama santri, panggilan, atau NISN... (/)" type="text">
+<div class="absolute right-3 top-2.5 px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-[10px] uppercase font-bold tracking-tight">/</div>
+</div>
+<!-- Filters & Actions -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<!-- Filter Kelas -->
+<div class="relative">
+<select class="h-[38px] pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-label-md text-label-md focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container cursor-pointer appearance-none">
+<option>Kelas 8-A (Ikhwan) - 32</option>
+<option>Kelas 8-B (Ikhwan) - 30</option>
+<option>Kelas 7-A (Ikhwan) - 31</option>
+<option>Kelas 9-A (Ikhwan) - 29</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant text-[16px] pointer-events-none">expand_more</span>
+</div>
+<!-- Filter Status Tinggal -->
+<div class="relative">
+<select class="h-[38px] pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-label-md text-label-md focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container cursor-pointer appearance-none" id="statusFilter">
+<option value="all">Semua Status (32)</option>
+<option value="mukim">Mukim Asrama (26)</option>
+<option value="non-mukim">Non-Mukim / PP (6)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant text-[16px] pointer-events-none">expand_more</span>
+</div>
+<!-- Filter Asrama -->
+<div class="relative">
+<select class="h-[38px] pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-label-md text-label-md focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container cursor-pointer appearance-none">
+<option>Semua Gedung Asrama</option>
+<option>Gedung Umar bin Khattab</option>
+<option>Gedung Utsman bin Affan</option>
+<option>Rute Jemputan Ciawi</option>
+<option>Rute Jemputan Cigombong</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant text-[16px] pointer-events-none">expand_more</span>
+</div>
+<!-- Urutkan -->
+<div class="relative">
+<select class="h-[38px] pl-3 pr-8 rounded-lg bg-surface-container-low text-on-surface font-label-md text-label-md focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary-container cursor-pointer appearance-none">
+<option>No. Absen (01 - 32)</option>
+<option>Nama Santri (A - Z)</option>
+<option>Nama Santri (Z - A)</option>
+<option>Kamar Asrama</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-on-surface-variant text-[16px] pointer-events-none">swap_vert</span>
+</div>
+<div class="h-6 w-px bg-surface-container mx-1"></div>
+<!-- View Switch Buttons -->
+<div class="inline-flex rounded-lg bg-surface-container-low p-1 gap-1">
+<button class="w-8 h-7 rounded flex items-center justify-center bg-surface-container-lowest text-primary shadow-sm transition-all" id="viewGridBtn" title="Mode Kartu (Grid)" type="button">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</button>
+<button class="w-8 h-7 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all" id="viewTableBtn" title="Mode Tabel Lengkap" type="button">
+<span class="material-symbols-outlined text-[18px]">table_rows</span>
+</button>
+</div>
+<!-- Export Excel -->
+<button class="inline-flex items-center gap-space-xs h-[38px] px-3.5 rounded-lg bg-surface-container-low text-primary hover:bg-surface-container font-label-md text-label-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span>Ekspor Excel (.xlsx)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SECTION: 3-COLUMN STUDENT CARD GRID -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-lg mb-space-2xl" id="gridSection">
+<!-- CARD 1: Rayhan -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="muhammad rayhan al-fatih rayhan 0092182741" data-status="mukim">
+<div class="flex flex-col gap-space-md">
+<!-- Card Top Bar: Photo, Absen & Basic Data -->
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Close-up portrait of an Indonesian junior high school male student wearing a white uniform and black songkok peci with confident polite expression inside Islamic pesantren classroom." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLkgrFH4ThPVzMDflJMu2XEW5UZ5fwUyiJX3V_DfvisPmyEQ07VNuC1NX4-c00wsFUMJJraSj6IZoqTCLEBhHDZ5brYcoGBBayiCmV0Cv4tW6bDIPa6TX6HBoTaPAxyV3VnzcgUL_8gfJfh87kC2beCMYQmmz3TIod9_QMyaTU4A2Z3cIqvhzh3yVwFUdvJFB-IBWBvPFQckgXkoDksBSd-0dK3P4w2gU1wVjxbuZww_nf7km2zREz7Q">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest" title="Santri Aktif"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #01</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-[11px] font-semibold text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Muhammad Rayhan Al-Fatih</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Rayhan</strong></p>
+</div>
+</div>
+<!-- Identifiers Badge Strip -->
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182741</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308012</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<!-- Data Attributes Grid -->
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">apartment</span>
+<span class="truncate">Asrama Umar bin Khattab • <strong class="text-on-surface font-medium">Kamar 204</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Bogor, 14 Mei 2011 (13 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">H. Ir. Bambang Sugiarto</strong> (Ayah)</span>
+</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/6281234567890" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+6281234567890" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" title="Lihat Profil Santri" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- CARD 2: Zaki (Ketua Kamar) -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="ahmad zaki mubarak zaki 0092182805" data-status="mukim">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Young Southeast Asian teenager boy student with clean neat hair and friendly smile wearing Islamic school collar shirt in bright library environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLN02pxZ009pDoYpcBOG3QxlR2jCj_vNYybfTttMTF5JZizHiEaRDa03lj7NqmBIKP_Z7klOJkLt8i3wkG4u3ktvRN7IWEuA8aRSC_3rYbtwSR_yXiB8IdDjnFVTo-6Ubm2eNzygXeRxuVtdzK76Ad7Mr9jmDsDvTVPsHIcCZbqYn3On5tcK9V65M6wJHC7nvUs73aVXI8PbuMQHPCDGar8UE3CHYwG3k1rz5cfFY2Q7LSoaevmPLpJg">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #02</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-label-sm font-bold bg-secondary-fixed text-on-secondary-fixed-variant">Ketua Kamar</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-[11px] font-semibold text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Ahmad Zaki Mubarak</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Zaki</strong></p>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182805</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308019</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">apartment</span>
+<span class="truncate">Asrama Umar bin Khattab • <strong class="text-on-surface font-medium">Kamar 201</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Jakarta, 22 Agustus 2011 (13 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Ibu Dra. Siti Aminah</strong> (Ibu)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/6281399887766" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+6281399887766" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- CARD 3: Faris Naufal (Non-Mukim) -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="faris naufal hidayat faris 0092182890" data-status="non-mukim">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Front portrait of an Indonesian male student with spectacles and neat Islamic school uniform, holding notebooks in modern pesantren courtyard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJBGqsOH0zrmI7c_LKdgGFwjIy756J-8UCl6FCUsKzT70NYN2Uo0pcp1kUIgwCivyqiRbLF69vjfayNegPcE3A0F-t5Qvvmz_Tzt_Ht-m3-Jc7qn0IXeieV86QO7TjMGjp8gPChEdJILpx8hy57LL4t4OnHXajjeBT4RDDooSfT2bwvvzugf0xxlphaeJfgyxvMTKuqiPa9dqhKv64vljMStGaf_vn1PR0vHUNETJZVi4ABy1Y0fVcAQ">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest" title="Santri Non-Mukim / PP"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #03</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container/60 font-label-sm text-[11px] font-semibold text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Non-Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Faris Naufal Hidayat</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Faris</strong></p>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182890</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308035</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-tertiary flex-shrink-0 mt-0.5">directions_bus</span>
+<span class="truncate">Jemputan Rutin: <strong class="text-on-surface font-medium">Rute Ciawi</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Depok, 03 Januari 2012 (12 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Bpk. Kurniawan Prasetyo, M.T.</strong> (Ayah)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/6281122334455" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+6281122334455" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- CARD 4: Bilal Al-Ghifari (Atlet Tahfidz) -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="bilal al-ghifari bilal 0092182755" data-status="mukim">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Young Islamic boarding school student looking gently towards camera wearing neat green bordered uniform, soft morning lighting in Islamic campus garden." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJzblE04lnsW4KZi-cxRvW0I67h3fDBkCPvMiyHlItQErkkUz0LtVz9MAw93qDNL9fITctpA_XR4_fx7Zk3nqlph34OfhX9-CbK2S6PCZ_YE-tBgD8LQ-GxtuYxB0ZGYsH5qkLq5Ws_pDGHsPMJ5z0DR9myXX-Vyh93Pdy9qUqYROxeAOfenpBgjtoWfSKgggkVvsRXTMY3D69NzEIfv9uXqO8ax-xUowxmTAxGOz1daFOmU02k5EJEA">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #04</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-label-sm font-bold bg-primary-fixed text-on-primary-fixed-variant">5 Juz Mutqin</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-[11px] font-semibold text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Bilal Al-Ghifari</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Bilal</strong></p>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182755</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308008</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">apartment</span>
+<span class="truncate">Asrama Utsman bin Affan • <strong class="text-on-surface font-medium">Kamar 108</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Bandung, 19 Oktober 2010 (14 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">H. Dedi Supriyadi</strong> (Paman)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/628176543219" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+628176543219" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- CARD 5: Dimas Arya Pratama (Non-Mukim Cigombong) -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="dimas arya pratama dimas 0092182780" data-status="non-mukim">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Portrait of an active Indonesian junior high school male student smiling gently in classroom environment, neat uniform with Aldepos school badge." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTuFHHTyMHL-6OXCmckMZXzSoFo0JaPsyEIk4agLwTxkc_96sGXoQYFoSlEIili0YUBJRIC-AhrnZ2BH2iY4buAkN9lwLp1iInmMG-16Dr-8nYMqndUaEakyRNym-qviUqO6EcYNSUHhxV-yvQc-NviV2fvc-IZ-RYcLI2FeyMf0ZhzmOa2mtfkbcGrmO7lrziaSJLVHKsGzIKJW4SZqwTMhdSexG90oJAUXeXOSTbagMBXQBp8ge-UQ">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #05</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container/60 font-label-sm text-[11px] font-semibold text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Non-Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Dimas Arya Pratama</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Dimas</strong></p>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182780</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308027</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-tertiary flex-shrink-0 mt-0.5">directions_car</span>
+<span class="truncate">Santri Pulang-Pergi: <strong class="text-on-surface font-medium">Cigombong</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Bogor, 05 Juli 2011 (13 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Bpk. Hendra Pratama</strong> (Ayah)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/6285890123456" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+6285890123456" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- CARD 6: Farhan Maulana Malik (Bintang Kelas) -->
+<div class="student-card bg-surface-container-lowest rounded-lg p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden" data-name="farhan maulana malik farhan 0092182744" data-status="mukim">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="relative flex-shrink-0">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-container-low" data-alt="Profile portrait of high achieving Indonesian teenage male pesantren student with sharp focused eyes and gentle demeanor in academic laboratory setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG7KZf5d0aElAIOrg1zN9O_rtcrKCejqrSzilDQ1inFDJdEyC3KC30F6slorkLjpfFBnvn7i2dA-sTqw0ypCL2qLFnfI3m7Vgp2tCCKyx3lRSGOaO86i1B8m9zI2f_CuBj_Vye8nWrQzyqaB8ny7aKjMoBaj4mRDQuNCqCkWwNUEHiRZOctlivn--i2Mgdx0pp-rqkVJzzt1Tzc2amvWSBKuBwDPgxgRXHrfBoxOX_6AP804TVozFt1Q">
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary-container ring-2 ring-surface-container-lowest"></span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between gap-space-xs">
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm font-semibold text-primary uppercase tracking-wide">Absen #06</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-label-sm font-bold bg-primary-fixed text-on-primary-fixed-variant">Bintang Kelas</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-[11px] font-semibold text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate mt-0.5">Farhan Maulana Malik</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Panggilan: <strong class="text-on-surface font-semibold">Farhan</strong></p>
+</div>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-surface-container-low text-label-sm font-label-sm text-on-surface-variant">
+<span class="font-tabular-stat-md text-label-sm text-on-surface">NISN: <span class="font-semibold">0092182744</span></span>
+<span class="text-surface-dim">•</span>
+<span>NIPD: <span class="text-on-surface font-semibold">222308015</span></span>
+<span class="text-surface-dim">•</span>
+<span class="text-primary font-semibold">Kelas 8-A</span>
+</div>
+<div class="grid grid-cols-1 gap-2 pt-1 font-body-sm text-body-sm">
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">apartment</span>
+<span class="truncate">Asrama Umar bin Khattab • <strong class="text-on-surface font-medium">Kamar 202</strong></span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">cake</span>
+<span class="truncate">Sukabumi, 11 Maret 2011 (13 Thn)</span>
+</div>
+<div class="flex items-start gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant flex-shrink-0 mt-0.5">person</span>
+<span class="truncate">Wali: <strong class="text-on-surface font-medium">Dr. H. Mulyadi Malik</strong> (Ayah)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-md mt-space-md border-t-0 bg-surface-container-low -mx-space-lg -mb-space-lg p-space-md rounded-b-lg">
+<a class="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors" href="https://wa.me/6282112233889" target="_blank">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>WhatsApp Wali</span>
+</a>
+<a class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" href="tel:+6282112233889" title="Telepon Wali">
+<span class="material-symbols-outlined text-[16px]">call</span>
+</a>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-primary flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SECTION: COMFORTABLE-DENSITY DATA TABLE (40px Rows) -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm overflow-hidden mb-space-lg">
+<div class="p-space-lg flex items-center justify-between bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">table_chart</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Tabel Lengkap Santri Kelas 8-A (40px Comfortable Rows)</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Diperbarui: Hari ini, 08:30 WIB</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-sm text-body-sm text-on-surface">
+<thead class="bg-surface-container text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<tr>
+<th class="py-2.5 px-space-md w-12 text-center">No</th>
+<th class="py-2.5 px-space-md w-36">NISN / NIPD</th>
+<th class="py-2.5 px-space-md">Nama Lengkap Santri</th>
+<th class="py-2.5 px-space-md w-32">Status Tinggal</th>
+<th class="py-2.5 px-space-md">Kamar Asrama / Rute</th>
+<th class="py-2.5 px-space-md">Kontak Wali Santri</th>
+<th class="py-2.5 px-space-md w-32 text-center">Status Berkas</th>
+<th class="py-2.5 px-space-md w-28 text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- Row 1 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">01</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182741</span>
+<span class="block text-[11px] text-on-surface-variant">222308012</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Muhammad Rayhan Al-Fatih</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Rayhan)</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-[11px] font-label-sm font-semibold text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Umar bin Khattab</span> • <strong class="text-on-surface font-medium">Kmr 204</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">H. Bambang Sugiarto</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/6281234567890" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" title="Edit Data" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" title="Detail" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">02</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182805</span>
+<span class="block text-[11px] text-on-surface-variant">222308019</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Ahmad Zaki Mubarak</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Zaki)</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-sm font-bold bg-secondary-fixed text-on-secondary-fixed-variant">K.Kamar</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-[11px] font-label-sm font-semibold text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Umar bin Khattab</span> • <strong class="text-on-surface font-medium">Kmr 201</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">Ibu Dra. Siti Aminah</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/6281399887766" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">03</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182890</span>
+<span class="block text-[11px] text-on-surface-variant">222308035</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Faris Naufal Hidayat</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Faris)</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error-container/60 text-[11px] font-label-sm font-semibold text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Non-Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Jemputan Bus</span> • <strong class="text-on-surface font-medium">Rute Ciawi</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">Bpk. Kurniawan Prasetyo</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/6281122334455" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">04</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182755</span>
+<span class="block text-[11px] text-on-surface-variant">222308008</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Bilal Al-Ghifari</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Bilal)</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-sm font-bold bg-primary-fixed text-on-primary-fixed-variant">Tahfidz</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-[11px] font-label-sm font-semibold text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Utsman bin Affan</span> • <strong class="text-on-surface font-medium">Kmr 108</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">H. Dedi Supriyadi (Paman)</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/628176543219" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">05</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182780</span>
+<span class="block text-[11px] text-on-surface-variant">222308027</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Dimas Arya Pratama</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Dimas)</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error-container/60 text-[11px] font-label-sm font-semibold text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Non-Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Mandiri</span> • <strong class="text-on-surface font-medium">Cigombong</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">Bpk. Hendra Pratama</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/6285890123456" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="h-10 hover:bg-surface-container-low/70 transition-colors">
+<td class="px-space-md text-center font-tabular-stat-md text-label-md text-on-surface-variant font-medium">06</td>
+<td class="px-space-md font-tabular-stat-md text-body-sm">
+<span class="font-medium text-on-surface">0092182744</span>
+<span class="block text-[11px] text-on-surface-variant">222308015</span>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-on-surface">Farhan Maulana Malik</span>
+<span class="text-on-surface-variant font-normal text-body-sm">(Farhan)</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-sm font-bold bg-primary-fixed text-on-primary-fixed-variant">Bintang</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-[11px] font-label-sm font-semibold text-primary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> Mukim
+              </span>
+</td>
+<td class="px-space-md text-on-surface-variant">
+<span>Umar bin Khattab</span> • <strong class="text-on-surface font-medium">Kmr 202</strong>
+</td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="text-on-surface truncate">Dr. H. Mulyadi Malik</span>
+<a class="text-primary hover:text-primary-container p-0.5" href="https://wa.me/6282112233889" target="_blank" title="WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</td>
+<td class="px-space-md text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] font-label-sm font-semibold">Lengkap</span>
+</td>
+<td class="px-space-md text-right">
+<div class="inline-flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-primary flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- PAGINATION & DAPODIK SYNC FOOTER -->
+<div class="p-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<span class="font-body-sm text-body-sm text-on-surface-variant">
+          Menampilkan <strong class="text-on-surface font-semibold font-tabular-stat-md">1-6</strong> dari <strong class="text-on-surface font-semibold font-tabular-stat-md">32</strong> santri (Kelas 8-A)
+        </span>
+<div class="hidden md:flex items-center gap-1.5 text-label-sm font-label-sm text-primary">
+<span class="material-symbols-outlined text-[14px]">cloud_sync</span>
+<span>Tersinkron Dapodik &amp; EMIS 1448 H</span>
+</div>
+</div>
+<div class="flex items-center gap-1 font-label-md text-label-md">
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest text-on-surface-variant hover:text-on-surface text-body-sm font-medium transition-colors" disabled="" type="button">
+          Sebelumnya
+        </button>
+<button class="w-8 h-8 rounded bg-primary-container text-on-primary font-semibold flex items-center justify-center" type="button">
+          1
+        </button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-medium flex items-center justify-center transition-colors" type="button">
+          2
+        </button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-medium flex items-center justify-center transition-colors" type="button">
+          3
+        </button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-medium flex items-center justify-center transition-colors" type="button">
+          4
+        </button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-medium flex items-center justify-center transition-colors" type="button">
+          5
+        </button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-medium flex items-center justify-center transition-colors" type="button">
+          6
+        </button>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-on-surface text-body-sm font-medium transition-colors" type="button">
+          Selanjutnya
+        </button>
+</div>
+</div>
+</div>
+<!-- FLOATING QUICK STATS / SYSTEM REMINDER CALLOUT -->
+<div class="flex items-center justify-between p-space-md rounded-lg bg-surface-container-low text-on-surface">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Ketentuan Buku Induk Digital Pesantren Aldepos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Pastikan NIK, Nomor KK, dan NISN telah sesuai dokumen akta kelahiran sebelum periode Ujian Penilaian Akhir Semester (PAS).</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="text-primary hover:underline font-label-md text-label-md font-semibold" type="button">Panduan Sinkronisasi</button>
+</div>
+</div>
+</div>
+<script>
+  // Quick Search & Filter Micro-interactions
+  const searchInput = document.getElementById('studentSearchInput');
+  const statusFilter = document.getElementById('statusFilter');
+  const cards = document.querySelectorAll('.student-card');
+  const viewGridBtn = document.getElementById('viewGridBtn');
+  const viewTableBtn = document.getElementById('viewTableBtn');
+  const gridSection = document.getElementById('gridSection');
+
+  // Shortcut key "/" to focus search
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
+
+  function applyFilter() {
+    const query = searchInput.value.toLowerCase().trim();
+    const status = statusFilter.value;
+
+    cards.forEach(card => {
+      const cardText = card.getAttribute('data-name');
+      const cardStatus = card.getAttribute('data-status');
+
+      const matchesSearch = !query || cardText.includes(query);
+      const matchesStatus = (status === 'all') || (cardStatus === status);
+
+      if (matchesSearch && matchesStatus) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  if (searchInput) searchInput.addEventListener('input', applyFilter);
+  if (statusFilter) statusFilter.addEventListener('change', applyFilter);
+
+  // View switch toggle handling
+  if (viewGridBtn && viewTableBtn && gridSection) {
+    viewGridBtn.addEventListener('click', () => {
+      gridSection.style.display = 'grid';
+      viewGridBtn.className = 'w-8 h-7 rounded flex items-center justify-center bg-surface-container-lowest text-primary shadow-sm transition-all';
+      viewTableBtn.className = 'w-8 h-7 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all';
+    });
+
+    viewTableBtn.addEventListener('click', () => {
+      gridSection.style.display = 'none';
+      viewTableBtn.className = 'w-8 h-7 rounded flex items-center justify-center bg-surface-container-lowest text-primary shadow-sm transition-all';
+      viewGridBtn.className = 'w-8 h-7 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all';
+    });
+  }
+</script></div></main></div></body></html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#005d42",
+            "primary-container": "#047857",
+            "primary-fixed": "#d1fae5",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#064e3b",
+            secondary: "#4e45d5",
+            "secondary-container": "#6860ef",
+            "secondary-fixed": "#e3dfff",
+            surface: "#faf8ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f8fafc",
+            "surface-container": "#f1f5f9",
+            "surface-container-high": "#e2e8f0",
+            "on-surface": "#0f172a",
+            "on-surface-variant": "#475569",
+            outline: "#64748b",
+            "outline-variant": "#e2e8f0",
+            background: "#f8fafc",
+            error: "#ba1a1a",
+            "error-container": "#fee2e2",
+            "on-error-container": "#991b1b"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#f8fafc] font-sans text-slate-900 antialiased selection:bg-emerald-100 selection:text-emerald-800">
+<!-- Fixed Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 z-40 flex flex-col justify-between select-none">
+<div class="flex flex-col">
+<!-- App Brand -->
+<div class="h-16 px-5 flex items-center gap-3 border-b border-slate-100">
+<div class="w-9 h-9 rounded-lg bg-[#047857] flex items-center justify-center text-white font-bold text-base shadow-sm">
+          A
+        </div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-800 leading-tight">Aldepos Teacher</span>
+<span class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">SMP IT ALDEPOS</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="p-3 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="beranda" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">home</span>
+<span>Beranda</span>
+</a>
+<div>
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" type="button">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400">how_to_reg</span>
+<span>Presensi Mandiri</span>
+</div>
+<span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+</button>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="jadwal-mengajar" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">calendar_today</span>
+<span>Jadwal Mengajar</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="presensi-kbm-dan-jurnal" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">edit_calendar</span>
+<span>Presensi KBM &amp; Jurnal</span>
+</a>
+<!-- Active Page: Perencanaan & TP -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors bg-[#047857] text-white font-medium shadow-sm text-sm" data-path="perencanaan-dan-tp" href="#">
+<span class="material-symbols-outlined text-[20px]">assignment</span>
+<span>Perencanaan &amp; TP</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="penilaian-siswa" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400">grade</span>
+<span>Penilaian Siswa</span>
+</div>
+<span class="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold text-[11px]">1</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="data-siswa-dan-kelas" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">groups</span>
+<span>Data Siswa &amp; Kelas</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="kejadian-dan-konseling" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400">psychology_alt</span>
+<span>Kejadian &amp; Konseling</span>
+</div>
+<span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold text-[11px]">1 BK</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="pengumuman" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">campaign</span>
+<span>Pengumuman</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm font-medium" data-path="profil-dan-pengaturan" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400">settings</span>
+<span>Profil &amp; Pengaturan</span>
+</a>
+</nav>
+</div>
+<!-- User Profile Footer in Sidebar -->
+<div class="p-3 border-t border-slate-100 bg-white">
+<div class="flex items-center gap-3 p-2 rounded-lg bg-slate-50 border border-slate-200/70">
+<div class="w-8 h-8 rounded-lg bg-[#047857] text-white font-semibold text-xs flex items-center justify-center shrink-0 shadow-sm">
+          HS
+        </div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="text-xs font-semibold text-slate-800 truncate">Ust. Hamdan Syafi'i, M.Pd</span>
+<span class="text-[11px] text-slate-400 truncate">NIP 198804122011</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper with 64 (16rem) Left Padding -->
+<div class="pl-64 flex flex-col min-h-screen">
+<!-- Fixed Top Bar -->
+<header class="fixed top-0 left-64 right-0 h-16 bg-white/95 backdrop-blur-sm border-b border-slate-200 z-30 flex items-center justify-between px-8">
+<div class="flex items-center gap-3">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium">
+<span class="font-semibold text-slate-800">SMP Aldepos</span>
+<span class="text-slate-300">•</span>
+<span>Semester Ganjil 2026/2027</span>
+<span class="text-slate-300">•</span>
+<span class="text-[#047857] font-semibold">T.A 1448 H</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Global Search Input -->
+<div class="relative flex items-center w-80">
+<span class="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">search</span>
+<input class="w-full h-9 pl-9 pr-12 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#047857] focus:ring-1 focus:ring-[#047857] transition-all outline-none" placeholder="Cari TP, lingkup materi, atau capaian..." type="text">
+<kbd class="absolute right-2 px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-400 text-[10px] font-medium font-mono shadow-xs">⌘K</kbd>
+</div>
+<!-- Notification Bell -->
+<button aria-label="Notifikasi" class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+</button>
+<div class="h-5 w-px bg-slate-200"></div>
+<!-- Right User Pill -->
+<div class="flex items-center gap-2.5 pl-1">
+<div class="flex flex-col text-right">
+<span class="text-xs font-semibold text-slate-800 leading-tight">Ust. Hamdan Syafi'i</span>
+<span class="text-[11px] text-slate-400">Guru Mapel IPA &amp; Matematika</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-emerald-100 text-[#047857] border border-emerald-200 flex items-center justify-center font-semibold text-xs">
+            HS
+          </div>
+</div>
+</div>
+</header>
+<!-- Main Content Body -->
+<main class="w-full pt-16 bg-[#f8fafc] flex-1 pb-12">
+<div class="max-w-[1440px] mx-auto px-8 py-7">
+<!-- Page Header & Action Controls -->
+<div class="flex flex-col gap-2 mb-6">
+<div class="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+<span class="hover:text-slate-700 transition-colors cursor-pointer">Akademik &amp; KBM</span>
+<span class="text-slate-300">/</span>
+<span class="hover:text-slate-700 transition-colors cursor-pointer">Perencanaan Pembelajaran</span>
+<span class="text-slate-300">/</span>
+<span class="text-[#047857] font-semibold">Tujuan Pembelajaran (TP)</span>
+</div>
+<div class="flex flex-wrap items-center justify-between gap-4 mt-0.5">
+<div>
+<h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tujuan Pembelajaran (TP)</h1>
+<p class="text-sm text-slate-500 mt-0.5">Target capaian kompetensi per lingkup materi untuk pengolahan nilai e-Rapor santri SMP IT Aldepos.</p>
+</div>
+<div class="flex items-center gap-2.5">
+<button class="h-9 px-3.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 text-xs font-semibold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-slate-500">menu_book</span>
+<span>Panduan Kurikulum Merdeka</span>
+</button>
+<button class="h-9 px-3.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 text-xs font-semibold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-slate-500">sync</span>
+<span>Sinkronisasi e-Rapor Kemenag</span>
+</button>
+<button class="h-9 px-4 rounded-lg bg-[#047857] hover:bg-[#036246] text-white transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Tambah TP Baru</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 3 Stat Ribbon Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+<!-- Card 1: Total TP Terdata -->
+<div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Total TP Terdata</span>
+<div class="mt-1 flex items-baseline gap-2">
+<span class="text-3xl font-bold text-slate-900 font-sans tracking-tight">12</span>
+<span class="text-xs font-medium text-slate-500">TP</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Target aktif semester ini</p>
+</div>
+<div class="w-10 h-10 rounded-xl bg-emerald-50 text-[#047857] border border-emerald-100 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">filter_center_focus</span>
+</div>
+</div>
+<div class="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+<span class="text-xs text-emerald-700 font-semibold flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                100% Terstruktur
+              </span>
+<div class="w-28 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full bg-[#047857] rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Di Rapor (Terpakai) -->
+<div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Di Rapor (Terpakai)</span>
+<div class="mt-1 flex items-baseline gap-2">
+<span class="text-3xl font-bold text-slate-900 font-sans tracking-tight">8</span>
+<span class="text-xs font-medium text-slate-500">TP</span>
+</div>
+<p class="text-xs text-emerald-700 font-semibold mt-1">67% terpakai pada asesmen</p>
+</div>
+<div class="w-10 h-10 rounded-xl bg-emerald-50 text-[#047857] border border-emerald-100 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+</div>
+</div>
+<div class="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+<span class="text-xs text-slate-500 font-medium">Formatif 1-4 &amp; STS</span>
+<span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold text-[11px]">4 Rombel</span>
+</div>
+</div>
+<!-- Card 3: Draf / Belum Diuji -->
+<div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Draf / Belum Diuji</span>
+<div class="mt-1 flex items-baseline gap-2">
+<span class="text-3xl font-bold text-slate-900 font-sans tracking-tight">4</span>
+<span class="text-xs font-medium text-slate-500">TP</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Menunggu asesmen sumatif</p>
+</div>
+<div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+<span class="text-xs text-slate-500 font-medium">Jadwal SAS Desember</span>
+<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[11px]">33% Tertunda</span>
+</div>
+</div>
+</div>
+<!-- 2-Column Split Layout: Table (~65%) & Inspector Form (~35%) -->
+<div class="grid grid-cols-12 gap-6 items-start">
+<!-- Left Column: Table & Filters (8 of 12 cols, ~65%) -->
+<div class="col-span-12 xl:col-span-8 flex flex-col gap-4">
+<!-- Filter Bar Box -->
+<div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+<!-- Row 1: Dropdown Selects -->
+<div class="flex flex-wrap items-center gap-2">
+<!-- Unit -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700">
+<span class="text-slate-400">Unit:</span>
+<span class="font-semibold text-slate-900">SMP Aldepos (Putra)</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400 cursor-pointer">expand_more</span>
+</div>
+<!-- Mapel -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700">
+<span class="text-slate-400">Mapel:</span>
+<span class="font-semibold text-[#047857]">Matematika</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400 cursor-pointer">expand_more</span>
+</div>
+<!-- Fase -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700">
+<span class="text-slate-400">Fase:</span>
+<span class="font-semibold text-slate-900">Fase D (Kls 7-8)</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400 cursor-pointer">expand_more</span>
+</div>
+<!-- Semester -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700">
+<span class="text-slate-400">Semester:</span>
+<span class="font-semibold text-slate-900">Ganjil 26/27</span>
+<span class="material-symbols-outlined text-[16px] text-slate-400 cursor-pointer">expand_more</span>
+</div>
+<!-- Export Excel Button -->
+<button class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span>Ekspor Excel</span>
+</button>
+</div>
+<!-- Row 2: Search Bar & Segmented Filter Tabs -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+<div class="relative flex-1 min-w-[240px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="w-full h-8 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#047857] outline-none transition-all" placeholder="Cari kode TP atau deskripsi materi..." type="text">
+</div>
+<!-- Segmented Tabs -->
+<div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200/80">
+<button class="px-3 py-1 rounded-md bg-white text-slate-900 font-semibold text-xs shadow-xs transition-colors" type="button">Semua (12)</button>
+<button class="px-3 py-1 rounded-md text-slate-500 hover:text-slate-900 font-medium text-xs transition-colors" type="button">Aktif di Rapor (8)</button>
+<button class="px-3 py-1 rounded-md text-slate-500 hover:text-slate-900 font-medium text-xs transition-colors" type="button">Draf (4)</button>
+</div>
+</div>
+</div>
+<!-- Main Data Table Container -->
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/90 border-b border-slate-200">
+<th class="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-24">Kode</th>
+<th class="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Deskripsi Capaian Kompetensi</th>
+<th class="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-40">Lingkup Materi</th>
+<th class="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-28 text-center">Status</th>
+<th class="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-20 text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-4 align-top">
+<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200">TP-7.1.1</span>
+</td>
+<td class="py-3 px-4 align-top">
+<p class="text-slate-800 leading-snug line-clamp-2">Memahami konsep bilangan bulat dan sifat operasinya dalam kehidupan sehari-hari serta menyelesaikan masalah kontekstual.</p>
+<span class="text-slate-400 font-medium text-[11px] mt-1 block">Formatif 1 • 32 Teruji</span>
+</td>
+<td class="py-3 px-4 align-top">
+<span class="inline-flex px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium text-[11px] border border-slate-200">Bilangan Bulat</span>
+</td>
+<td class="py-3 px-4 align-top text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                          Di Rapor
+                        </span>
+</td>
+<td class="py-3 px-4 align-top text-right">
+<div class="flex items-center justify-end gap-1">
+<button aria-label="Edit TP" class="p-1 rounded-md text-slate-400 hover:text-[#047857] hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button aria-label="Duplikasi" class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-4 align-top">
+<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200">TP-7.1.2</span>
+</td>
+<td class="py-3 px-4 align-top">
+<p class="text-slate-800 leading-snug line-clamp-2">Mengidentifikasi faktor bilangan bulat prima, faktorisasi prima, serta menerapkan FPB dan KPK dalam pembagian giliran santri.</p>
+<span class="text-slate-400 font-medium text-[11px] mt-1 block">Formatif 2 • 32 Teruji</span>
+</td>
+<td class="py-3 px-4 align-top">
+<span class="inline-flex px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium text-[11px] border border-slate-200">Bilangan Bulat</span>
+</td>
+<td class="py-3 px-4 align-top text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                          Di Rapor
+                        </span>
+</td>
+<td class="py-3 px-4 align-top text-right">
+<div class="flex items-center justify-end gap-1">
+<button aria-label="Edit TP" class="p-1 rounded-md text-slate-400 hover:text-[#047857] hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button aria-label="Duplikasi" class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-4 align-top">
+<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200">TP-7.2.1</span>
+</td>
+<td class="py-3 px-4 align-top">
+<p class="text-slate-800 leading-snug line-clamp-2">Menyederhanakan bentuk aljabar linear satu variabel serta melakukan manipulasi aljabar untuk penyelesaian persamaan.</p>
+<span class="text-slate-400 font-medium text-[11px] mt-1 block">Formatif 3 • 32 Teruji</span>
+</td>
+<td class="py-3 px-4 align-top">
+<span class="inline-flex px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-medium text-[11px] border border-indigo-100">Aljabar &amp; Relasi</span>
+</td>
+<td class="py-3 px-4 align-top text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                          Di Rapor
+                        </span>
+</td>
+<td class="py-3 px-4 align-top text-right">
+<div class="flex items-center justify-end gap-1">
+<button aria-label="Edit TP" class="p-1 rounded-md text-slate-400 hover:text-[#047857] hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button aria-label="Duplikasi" class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: ACTIVE SELECTED ROW (TP-7.2.3) -->
+<tr class="bg-emerald-50/40 border-l-[3px] border-l-[#047857] transition-colors">
+<td class="py-3 px-4 align-top">
+<span class="inline-block px-2 py-0.5 rounded bg-emerald-100 text-[#047857] font-mono text-[11px] font-bold border border-emerald-300">TP-7.2.3</span>
+</td>
+<td class="py-3 px-4 align-top">
+<p class="font-medium text-slate-900 leading-snug">Menerapkan perbandingan senilai dan berbalik nilai dalam konteks distribusi ransum dan logistik asrama pesantren.</p>
+<div class="flex items-center gap-2 mt-1.5">
+<span class="text-[11px] font-semibold text-[#047857] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+                            Sedang Diedit di Panel Kanan
+                          </span>
+<span class="text-slate-300">•</span>
+<span class="text-slate-400 text-[11px]">STS Ganjil</span>
+</div>
+</td>
+<td class="py-3 px-4 align-top">
+<span class="inline-flex px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-medium text-[11px] border border-indigo-100">Aljabar &amp; Relasi</span>
+</td>
+<td class="py-3 px-4 align-top text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#047857]"></span>
+                          Di Rapor
+                        </span>
+</td>
+<td class="py-3 px-4 align-top text-right">
+<div class="flex items-center justify-end gap-1">
+<button aria-label="Edit TP" class="p-1 rounded-md bg-[#047857] text-white shadow-xs" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button aria-label="Hapus TP" class="p-1 rounded-md text-rose-500 hover:bg-rose-50 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50/70 transition-colors">
+<td class="py-3 px-4 align-top">
+<span class="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200">TP-7.3.1</span>
+</td>
+<td class="py-3 px-4 align-top">
+<p class="text-slate-800 leading-snug line-clamp-2">Menganalisis hubungan sudut-sudut pada dua garis sejajar yang dipotong oleh garis transversal pada struktur kubah masjid.</p>
+<span class="text-slate-400 font-medium text-[11px] mt-1 block">Draf • Belum ada penilaian masuk</span>
+</td>
+<td class="py-3 px-4 align-top">
+<span class="inline-flex px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 font-medium text-[11px] border border-sky-100">Geometri</span>
+</td>
+<td class="py-3 px-4 align-top text-center">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium text-[11px] border border-slate-200">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                          Draf
+                        </span>
+</td>
+<td class="py-3 px-4 align-top text-right">
+<div class="flex items-center justify-end gap-1">
+<button aria-label="Edit TP" class="p-1 rounded-md text-slate-400 hover:text-[#047857] hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button aria-label="Duplikasi" class="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination -->
+<div class="px-4 py-3 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+<span>Menampilkan 1-5 dari 12 Tujuan Pembelajaran</span>
+<div class="flex items-center gap-1">
+<button class="h-7 px-2.5 rounded-md bg-white border border-slate-200 text-slate-400 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium" disabled="" type="button">Sebelumnya</button>
+<button class="h-7 w-7 rounded-md bg-[#047857] text-white font-semibold text-xs shadow-xs" type="button">1</button>
+<button class="h-7 w-7 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium transition-colors" type="button">2</button>
+<button class="h-7 w-7 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium transition-colors" type="button">3</button>
+<button class="h-7 px-2.5 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium transition-colors" type="button">Berikutnya</button>
+</div>
+</div>
+</div>
+<!-- Pesantren Guidance Flat Alert Banner -->
+<div class="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 flex items-start gap-3 shadow-xs">
+<div class="w-8 h-8 rounded-lg bg-emerald-100 text-[#047857] flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]">school</span>
+</div>
+<div class="text-xs leading-relaxed text-slate-700">
+<h4 class="font-bold text-[#047857] mb-0.5">Petunjuk Kurikulum Merdeka Pesantren:</h4>
+<p class="text-slate-600">
+                  Setiap Lingkup Materi minimal memiliki 2 Tujuan Pembelajaran (TP) yang diujikan dalam Asesmen Formatif sebelum dimasukkan ke dalam pembobotan e-Rapor dan perumusan deskripsi capaian otomatis santri.
+                </p>
+</div>
+</div>
+</div>
+<!-- Right Column: Sticky Slide-Over Form Panel (4 of 12 cols, ~35%) -->
+<div class="col-span-12 xl:col-span-4 sticky top-20">
+<div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+<!-- Panel Header -->
+<div class="flex items-start justify-between pb-3.5 border-b border-slate-100">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="text-base font-bold text-slate-900">Edit Tujuan Pembelajaran</h2>
+<span class="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold text-[11px]">Terpilih</span>
+</div>
+<span class="text-xs text-slate-400 mt-0.5 block">Kurikulum Merdeka • Kelas 7 Matematika</span>
+</div>
+<button aria-label="Tutup panel" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Form Body -->
+<form class="space-y-4" onsubmit="event.preventDefault();">
+<!-- Field 1: Kode TP -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<label class="text-xs font-semibold text-slate-700" for="kode_tp">
+                      Kode TP <span class="text-rose-500">*</span>
+</label>
+<span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Kode tersedia
+                    </span>
+</div>
+<input class="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs font-semibold text-slate-800 focus:bg-white focus:border-[#047857] focus:ring-1 focus:ring-[#047857] transition-all outline-none" id="kode_tp" type="text" value="TP-7.2.3">
+<p class="text-[11px] text-slate-400 mt-1">Format unik per fase: TP-[Kelas].[Bab].[Urutan]</p>
+</div>
+<!-- Field 2: Lingkup Materi Select -->
+<div>
+<label class="block text-xs font-semibold text-slate-700 mb-1.5" for="lingkup_materi">
+                    Lingkup Materi <span class="text-rose-500">*</span>
+</label>
+<div class="relative">
+<select class="w-full h-9 pl-3 pr-8 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:bg-white focus:border-[#047857] focus:ring-1 focus:ring-[#047857] transition-all outline-none appearance-none" id="lingkup_materi">
+<option value="bilangan_bulat">Bilangan Bulat &amp; Pola</option>
+<option selected="" value="aljabar">Aljabar &amp; Relasi Fungsi</option>
+<option value="geometri">Geometri Pengukuran</option>
+<option value="statistika">Statistika Data Santri</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+</div>
+</div>
+<!-- Field 3: Deskripsi Capaian Kompetensi -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<label class="text-xs font-semibold text-slate-700" for="deskripsi_tp">
+                      Deskripsi Capaian Kompetensi <span class="text-rose-500">*</span>
+</label>
+<span class="text-[11px] text-slate-400 font-mono">114 / 250</span>
+</div>
+<textarea class="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:bg-white focus:border-[#047857] focus:ring-1 focus:ring-[#047857] transition-all outline-none resize-none leading-relaxed" id="deskripsi_tp" rows="4">Menerapkan perbandingan senilai dan berbalik nilai dalam konteks distribusi ransum dan logistik asrama pesantren.</textarea>
+<p class="text-[11px] text-slate-400 mt-1">Deskripsi ini akan muncul pada deskripsi capaian rapor bila TP dinilai.</p>
+</div>
+<!-- Checkbox Module Container -->
+<div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+<input checked="" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#047857] focus:ring-[#047857] cursor-pointer" id="rapor_otomatis" type="checkbox">
+<label class="cursor-pointer" for="rapor_otomatis">
+<span class="block text-xs font-semibold text-slate-800 leading-tight">Sertakan pada deskripsi rapor otomatis</span>
+<span class="block text-[11px] text-slate-500 mt-0.5 leading-snug">Sistem akan memformat kalimat predikat capaian tertinggi dan terendah santri secara otomatis.</span>
+</label>
+</div>
+<!-- Assessment Association Tag -->
+<div class="p-3 rounded-lg bg-indigo-50/60 border border-indigo-100 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-indigo-600">link</span>
+<span class="text-xs text-slate-800 font-medium">Tautan Asesmen: Formatif 1 &amp; STS Ganjil</span>
+</div>
+<span class="text-xs text-indigo-700 font-semibold">32 Santri</span>
+</div>
+<!-- Panel Action Buttons -->
+<div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+<div class="flex items-center gap-1.5">
+<button class="h-9 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-xs font-semibold shadow-xs" type="button">
+                      Batal
+                    </button>
+<button class="h-9 px-2.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors text-xs font-semibold flex items-center gap-1 shadow-xs" type="button">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+<span>Hapus</span>
+</button>
+</div>
+<button class="h-9 px-4 rounded-lg bg-[#047857] hover:bg-[#036246] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm" type="submit">
+<span class="material-symbols-outlined text-[18px]">check</span>
+<span>Simpan TP</span>
+</button>
+</div>
+</form>
+<!-- Form Micro Footer Note -->
+<div class="pt-1 text-center border-t border-slate-100">
+<p class="text-[11px] text-slate-400">Perubahan akan segera disinkronkan ke buku nilai harian asatidz.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

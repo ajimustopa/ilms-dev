@@ -1,0 +1,832 @@
+<!DOCTYPE html><html lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body { margin:0; padding:0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#00513a",
+            "on-secondary-fixed": "#100069",
+            "tertiary": "#863933",
+            "primary-fixed-dim": "#7bd8b1",
+            "tertiary-container": "#a45049",
+            "on-primary-fixed": "#002115",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            "primary-container": "#047857",
+            "on-surface-variant": "#3e4943",
+            "on-tertiary": "#ffffff",
+            "surface": "#faf8ff",
+            "on-secondary-fixed-variant": "#372abf",
+            "primary-fixed": "#97f5cc",
+            "surface-bright": "#faf8ff",
+            "on-error": "#ffffff",
+            "surface-variant": "#dae2fd",
+            "outline": "#6e7a73",
+            "primary": "#005d42",
+            "on-secondary-container": "#fffbff",
+            "surface-tint": "#006c4e",
+            "on-surface": "#131b2e",
+            "surface-container-low": "#f6f8fb",
+            "inverse-primary": "#7bd8b1",
+            "on-tertiary-fixed-variant": "#792f2a",
+            "background": "#f8fafc",
+            "on-secondary": "#ffffff",
+            "inverse-on-surface": "#eef0ff",
+            "inverse-surface": "#283044",
+            "surface-dim": "#d2d9f4",
+            "on-tertiary-container": "#ffe4e0",
+            "on-primary-container": "#9ffdd3",
+            "tertiary-fixed-dim": "#ffb4ac",
+            "secondary": "#4e45d5",
+            "error": "#ba1a1a",
+            "tertiary-fixed": "#ffdad6",
+            "outline-variant": "#bdc9c1",
+            "on-background": "#131b2e",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#c3c0ff",
+            "secondary-container": "#6860ef",
+            "secondary-fixed": "#e3dfff",
+            "surface-container-highest": "#e2e8f0",
+            "surface-container-high": "#eef2f6",
+            "surface-container": "#eaedff",
+            "on-tertiary-fixed": "#3e0405"
+          },
+          borderRadius: {
+            "DEFAULT": "0.375rem",
+            "lg": "0.625rem",
+            "xl": "0.875rem",
+            "2xl": "1.125rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "margin-desktop": "2rem",
+            "gutter": "1rem",
+            "space-sm": "0.5rem",
+            "gutter-desktop": "1.75rem",
+            "space-md": "0.75rem",
+            "margin": "1rem",
+            "space-xl": "1.5rem",
+            "space-2xl": "2rem",
+            "space-xs": "0.25rem",
+            "space-lg": "1rem"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            "body-md": ["Inter"],
+            "label-lg": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "tabular-stat-md": ["Inter"],
+            "tabular-stat-lg": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "body-sm": ["Inter"]
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#f8fafc] font-sans text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+<!-- LEFT SIDEBAR -->
+<aside class="fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200/80 flex flex-col z-50 shadow-[1px_0_12px_rgba(15,23,42,0.03)]">
+<!-- Brand Header -->
+<div class="h-16 px-5 flex items-center justify-between border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white shadow-sm shadow-emerald-700/20 ring-1 ring-white/20">
+<span class="material-symbols-outlined text-[22px]">mosque</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-bold text-[14px] text-slate-900 leading-tight tracking-tight">Aldepos Teacher</span>
+</div>
+<span class="text-[11px] font-medium text-emerald-700 uppercase tracking-wider font-mono">SMP IT ALDEPOS</span>
+</div>
+</div>
+</div>
+<!-- Navigation List -->
+<nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto" data-active-classes="bg-emerald-700 text-white font-semibold rounded-xl shadow-sm">
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="beranda" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+<span>Beranda</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
+</a>
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="presensi-mandiri" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">co_present</span>
+<span>Presensi Mandiri</span>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/60">Hadir</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="jadwal-mengajar" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">calendar_month</span>
+<span>Jadwal Mengajar</span>
+</a>
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="presensi-kbm-dan-jurnal" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">edit_calendar</span>
+<span>Presensi KBM &amp; Jurnal</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="perencanaan-dan-tp" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">menu_book</span>
+<span>Perencanaan &amp; TP</span>
+</a>
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="penilaian-siswa" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">fact_check</span>
+<span>Penilaian Siswa</span>
+</div>
+<span class="text-[10.5px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">1</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="data-siswa-dan-kelas" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">groups</span>
+<span>Data Siswa &amp; Kelas</span>
+</a>
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="kejadian-dan-konseling" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">warning</span>
+<span>Kejadian &amp; Konseling</span>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold border border-amber-200">1 BK</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="pengumuman" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">campaign</span>
+<span>Pengumuman</span>
+</a>
+<a class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 text-[13.5px] font-medium transition-all group" data-path="profil-dan-pengaturan" href="#">
+<span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-emerald-700 transition-colors">settings</span>
+<span>Profil &amp; Pengaturan</span>
+</a>
+</nav>
+<!-- Sidebar Mini Profile -->
+<div class="p-3 border-t border-slate-100 bg-slate-50/70">
+<div class="flex items-center gap-3 p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+<div class="relative shrink-0">
+<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-700 to-teal-500 text-white flex items-center justify-center font-semibold text-sm shadow-xs">
+            HS
+          </div>
+<span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="text-[12.5px] font-semibold text-slate-900 truncate">Ust. Hamdan Syafi'i, M.Pd</div>
+<div class="text-[10.5px] text-slate-500 truncate flex items-center gap-1 font-mono">
+<span>NIP. 198804122011</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTAINER WITH FIXED TOPBAR -->
+<div class="pl-64 min-h-screen flex flex-col">
+<!-- Topbar -->
+<header class="fixed top-0 left-64 right-0 h-16 bg-white/95 backdrop-blur-md z-40 px-8 flex items-center justify-between border-b border-slate-200/80 shadow-[0_1px_4px_rgba(15,23,42,0.03)]">
+<!-- Semester Pill & Badge -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-900 text-xs font-semibold">
+<span class="material-symbols-outlined text-[16px] text-emerald-700">school</span>
+<span>SMP Aldepos • Semester Ganjil 2026/2027</span>
+<span class="w-1 h-1 rounded-full bg-emerald-400"></span>
+<span class="text-emerald-700 font-mono text-[11px]">T.A 1448 H</span>
+</div>
+</div>
+<!-- Right Toolbar: Search, Notification, Quick Profile Status -->
+<div class="flex items-center gap-3.5">
+<!-- Search bar with keyboard shortcut -->
+<div class="relative w-72">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="w-full h-9 pl-9 pr-14 rounded-lg bg-slate-100/90 border border-transparent font-sans text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 transition-all" placeholder="Cari santri, materi, TP..." type="text">
+<kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-500 bg-white border border-slate-200 rounded shadow-2xs">⌘K</kbd>
+</div>
+<!-- Notification Button with badge -->
+<div class="relative">
+<button class="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<span class="absolute top-1.5 right-1.5 flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+</span>
+</div>
+<div class="h-6 w-px bg-slate-200"></div>
+<!-- Current Teacher Mini Badge -->
+<div class="flex items-center gap-2.5 pl-1">
+<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-700 to-teal-500 text-white font-semibold text-xs flex items-center justify-center shadow-xs">
+            HS
+          </div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-slate-900 leading-tight">Ust. Hamdan Syafi'i</span>
+<span class="text-[11px] text-emerald-700 font-medium">Guru PAI &amp; Al-Qur'an</span>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN DASHBOARD CONTENT -->
+<main class="pt-16 w-full flex-1 px-8 py-6"><div class="flex flex-col w-full">
+<!-- Top Secondary Tab Navigation (Presensi Mandiri vs Pengajuan Cuti/Izin) -->
+<div class="flex items-center justify-between border-b border-slate-200/80 mb-6 pb-2">
+<div class="flex items-center gap-2">
+<button class="relative px-4 py-2.5 text-xs font-semibold text-emerald-800 bg-emerald-50 rounded-lg flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px] text-emerald-700">co_present</span>
+<span>Presensi Mandiri (Presensi Saya)</span>
+<span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>
+</button>
+<button class="px-4 py-2.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px] text-slate-400">assignment_late</span>
+<span>Pengajuan Cuti / Izin</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 text-slate-600 font-mono">0 Pending</span>
+</button>
+<button class="px-4 py-2.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[18px] text-slate-400">history_toggle_off</span>
+<span>Koreksi &amp; Log Biometrik</span>
+</button>
+</div>
+<!-- Quick Status summary pill -->
+<div class="hidden xl:flex items-center gap-3 text-xs text-slate-500">
+<div class="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200/80 rounded-lg">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="font-medium text-slate-700">Mesin Geofence: Aktif</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200/80 rounded-lg">
+<span class="material-symbols-outlined text-[15px] text-slate-400">wifi_tethering</span>
+<span class="font-mono text-slate-600">IP: 103.144.12.8</span>
+</div>
+</div>
+</div>
+<!-- MAIN 2-COLUMN WORKSPACE (Desktop 1440px) -->
+<div class="grid grid-cols-12 gap-6 items-start">
+<!-- LEFT COLUMN: CLOCK, RADAR, GEOFENCING, CTA (~420-460px on desktop) -->
+<div class="col-span-12 lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
+<!-- 1. TIME & SERVER STATUS CARD -->
+<div class="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs relative overflow-hidden">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500"></div>
+<!-- Header Status Indicator -->
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+<span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span>Waktu Server Presensi</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70">
+<span class="material-symbols-outlined text-[13px] text-emerald-600">my_location</span>
+            GPS Terhubung (±5m)
+          </span>
+</div>
+<!-- Giant High-Precision Clock -->
+<div class="my-2 text-center py-2 bg-slate-50/80 rounded-xl border border-slate-100">
+<div class="font-sans font-bold text-4xl text-slate-900 tracking-tight tabular-nums select-none" id="liveClock">21:20:34 <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider ml-1">WIB</span></div>
+<div class="text-xs font-medium text-slate-600 mt-1">
+            Senin, 13 Oktober 2026 • <span class="text-emerald-700 font-mono">24 Rabiul Akhir 1448 H</span>
+</div>
+</div>
+<!-- Countdown / Punctuality Banner -->
+<div class="mt-3.5 flex items-center justify-between p-2.5 rounded-lg bg-emerald-50/70 border border-emerald-200/60 text-emerald-950 text-xs">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-700 text-[18px]">alarm_on</span>
+<div>
+<span class="font-semibold text-emerald-900">Batas Masuk: 07:30 WIB</span>
+<div class="text-[11px] text-emerald-800 font-normal">Sisa 1 Jam 37 Menit</div>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10.5px] uppercase tracking-wide">
+            Tepat Waktu
+          </span>
+</div>
+</div>
+<!-- 2. RADAR & GEOFENCING CARD -->
+<div class="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs flex flex-col">
+<!-- Card Header with Distance Pill -->
+<div class="flex items-start justify-between mb-4">
+<div>
+<h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+<span>SMP Pondok Pesantren Aldepos</span>
+</h3>
+<p class="text-xs text-slate-500 mt-0.5">Kampus 1 • Radius Toleransi Geofence 150m</p>
+</div>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-300/50">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            42 m (Radius Aman)
+          </span>
+</div>
+<!-- Visual Radar Map Representation -->
+<div class="relative w-full h-56 rounded-xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
+<!-- Ambient Map Grid Texture -->
+<div class="absolute inset-0 opacity-20 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px]"></div>
+<!-- Compass Needle Overlay -->
+<div class="absolute top-2.5 right-2.5 z-10 flex flex-col items-center bg-slate-900/80 backdrop-blur-xs px-1.5 py-1 rounded border border-slate-700/60 text-[9px] font-mono text-emerald-400">
+<span class="font-bold text-emerald-300">U</span>
+<span class="material-symbols-outlined text-[12px] text-emerald-400">navigation</span>
+</div>
+<!-- Concentric Geofence Radar Rings -->
+<div class="absolute w-52 h-52 rounded-full border border-emerald-500/20 animate-pulse"></div>
+<div class="absolute w-40 h-40 rounded-full border border-emerald-500/30"></div>
+<div class="absolute w-24 h-24 rounded-full border border-dashed border-emerald-400/40"></div>
+<div class="absolute w-12 h-12 rounded-full bg-emerald-950/60 border border-emerald-400/60"></div>
+<!-- Rotating Radar Sweep Line -->
+<div class="absolute w-44 h-44 rounded-full origin-center animate-[spin_6s_linear_infinite] pointer-events-none opacity-40">
+<div class="w-1/2 h-1/2 bg-gradient-to-br from-emerald-400/40 to-transparent"></div>
+</div>
+<!-- School Base Center Point (Gedung Utama & Masjid Aldepos) -->
+<div class="absolute flex flex-col items-center pointer-events-none z-10">
+<div class="w-6 h-6 rounded-full bg-emerald-700/90 text-white flex items-center justify-center ring-2 ring-emerald-300/40 shadow-xs">
+<span class="material-symbols-outlined text-[14px]">school</span>
+</div>
+<span class="text-[9.5px] font-mono font-medium text-emerald-200 mt-1 bg-slate-900/80 px-1 rounded border border-emerald-900/50">Masjid &amp; KBM</span>
+</div>
+<!-- User Realtime Location Pin (42m Offset) -->
+<div class="absolute top-14 left-24 flex flex-col items-center z-20 group cursor-pointer transition-transform hover:scale-105">
+<div class="relative">
+<span class="absolute -inset-1 rounded-full bg-teal-400/30 animate-ping"></span>
+<div class="w-5 h-5 rounded-full bg-white text-emerald-700 flex items-center justify-center font-bold text-[10px] shadow-sm ring-2 ring-emerald-500">
+<span class="material-symbols-outlined text-[13px]">person_pin_circle</span>
+</div>
+</div>
+<div class="mt-1 bg-slate-900/95 text-white text-[9.5px] px-2 py-0.5 rounded shadow-sm border border-slate-700 whitespace-nowrap flex items-center gap-1 font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              Posisi Anda (42m)
+            </div>
+</div>
+<!-- GPS Coordinates HUD Footer inside Radar -->
+<div class="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-slate-400 bg-slate-900/85 backdrop-blur-xs px-2.5 py-1 rounded border border-slate-800">
+<span class="flex items-center gap-1 text-slate-300">
+<span class="material-symbols-outlined text-[12px] text-emerald-400">satellite_alt</span>
+              -6.597112, 106.799435
+            </span>
+<span class="text-emerald-400 font-semibold">Toleransi 150m OK</span>
+</div>
+</div>
+<!-- Prominent Check-in CTA Button -->
+<button class="mt-4 w-full h-[52px] bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2.5 transition-all shadow-md shadow-emerald-900/15 group" id="btnCheckIn">
+<span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">photo_camera_front</span>
+<span class="tracking-wide">Catat Kehadiran Masuk</span>
+</button>
+<p class="text-center text-[11px] text-slate-500 mt-2 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-slate-400">verified_user</span>
+          Kamera akan memverifikasi swafoto &amp; biometrik instan
+        </p>
+</div>
+<!-- 3. KETENTUAN PRESENSI INFO BANNER -->
+<div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-slate-600 text-xs flex gap-3 items-start">
+<span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">info</span>
+<div class="space-y-1">
+<div class="font-semibold text-slate-800">Ketentuan Kehadiran Tenaga Pendidik:</div>
+<p class="text-[11.5px] leading-relaxed text-slate-600">
+            Presensi kepulangan dibuka pukul <strong class="text-slate-800 font-medium">15:30 WIB</strong>. Jika mengalami kendala akurasi GPS / jaringan, segera lakukan lapor manual ke petugas <strong class="text-slate-800 font-medium">Tata Usaha (TU)</strong> sekolah.
+          </p>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: MONTHLY SUMMARY STATS, MINI CALENDAR, FILTER BAR & LOG TABLE -->
+<div class="col-span-12 lg:col-span-7 xl:col-span-8 flex flex-col gap-5">
+<!-- TOP METRIC CARDS & ATTENDANCE RATE -->
+<div class="bg-white border border-slate-200/80 rounded-xl p-5 shadow-xs">
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+<div>
+<h2 class="text-sm font-bold text-slate-900 tracking-tight">Presensi Oktober 2026</h2>
+<p class="text-xs text-slate-500 mt-0.5">Total 21 Hari Kerja Efektif Kalender Akademik</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1 font-mono">
+<span class="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+              95.2% Tingkat Kehadiran
+            </span>
+</div>
+</div>
+<!-- 4 Metric Cards Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+<!-- Card 1: Hadir -->
+<div class="p-3 rounded-lg bg-emerald-50/50 border border-emerald-100 relative">
+<div class="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider">Hadir Tepat Waktu</div>
+<div class="mt-1 flex items-baseline gap-1.5">
+<span class="text-2xl font-bold text-emerald-950 font-mono">20</span>
+<span class="text-xs text-emerald-700">Hari</span>
+</div>
+<div class="text-[10px] text-emerald-600 mt-1 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">trending_up</span>
+              100% disiplin
+            </div>
+</div>
+<!-- Card 2: Izin -->
+<div class="p-3 rounded-lg bg-amber-50/50 border border-amber-100 relative">
+<div class="text-[11px] font-semibold text-amber-800 uppercase tracking-wider">Izin / Dinas Luar</div>
+<div class="mt-1 flex items-baseline gap-1.5">
+<span class="text-2xl font-bold text-amber-950 font-mono">1</span>
+<span class="text-xs text-amber-700">Hari</span>
+</div>
+<div class="text-[10px] text-amber-700 mt-1 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">assignment</span>
+              Surat Kemenag
+            </div>
+</div>
+<!-- Card 3: Sakit -->
+<div class="p-3 rounded-lg bg-slate-50 border border-slate-200/70 relative">
+<div class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">Sakit</div>
+<div class="mt-1 flex items-baseline gap-1.5">
+<span class="text-2xl font-bold text-slate-800 font-mono">0</span>
+<span class="text-xs text-slate-500">Hari</span>
+</div>
+<div class="text-[10px] text-slate-500 mt-1">Kondisi Fit</div>
+</div>
+<!-- Card 4: Terlambat -->
+<div class="p-3 rounded-lg bg-rose-50/40 border border-rose-100 relative">
+<div class="text-[11px] font-semibold text-rose-800 uppercase tracking-wider">Terlambat</div>
+<div class="mt-1 flex items-baseline gap-1.5">
+<span class="text-2xl font-bold text-rose-950 font-mono">0</span>
+<span class="text-xs text-rose-700">Hari</span>
+</div>
+<div class="text-[10px] text-emerald-600 mt-1 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">done_all</span>
+              Nir-keterlambatan
+            </div>
+</div>
+</div>
+<!-- MINI INTERACTIVE MONTHLY CALENDAR GRID -->
+<div class="mt-4 pt-3 border-t border-slate-100">
+<div class="flex items-center justify-between mb-2 text-xs">
+<span class="font-semibold text-slate-700">Matriks Kehadiran Oktober 2026:</span>
+<div class="flex items-center gap-3 text-[11px] text-slate-500">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Hadir</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Dinas/Izin</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Akhir Pekan</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-emerald-200"></span> Hari Ini (13)</span>
+</div>
+</div>
+<!-- Quick Day Grid (1 - 31) -->
+<div class="grid grid-cols-7 sm:grid-cols-14 md:grid-cols-16 lg:grid-cols-16 gap-1.5 text-center text-[10.5px]">
+<!-- Sample Days 1 to 15 visualization -->
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="1 Okt: Hadir">1</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="2 Okt: Hadir">2</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="3 Okt: Hadir">3</div>
+<div class="p-1 rounded bg-slate-100 text-slate-400 font-normal" title="4 Okt: Sabtu">4</div>
+<div class="p-1 rounded bg-slate-100 text-slate-400 font-normal" title="5 Okt: Ahad">5</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="6 Okt: Hadir">6</div>
+<div class="p-1 rounded bg-amber-100 text-amber-900 font-semibold" title="7 Okt: Dinas Luar">7</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="8 Okt: Hadir">8</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="9 Okt: Hadir">9</div>
+<div class="p-1 rounded bg-emerald-100 text-emerald-900 font-semibold" title="10 Okt: Hadir">10</div>
+<div class="p-1 rounded bg-slate-100 text-slate-400 font-normal" title="11 Okt: Sabtu">11</div>
+<div class="p-1 rounded bg-slate-100 text-slate-400 font-normal" title="12 Okt: Ahad">12</div>
+<div class="p-1 rounded bg-emerald-600 text-white font-bold ring-2 ring-emerald-300 shadow-xs" title="13 Okt: Hari Ini (Belum Check-In)">13</div>
+<div class="p-1 rounded bg-slate-50 text-slate-400 border border-slate-200/60 font-normal">14</div>
+<div class="p-1 rounded bg-slate-50 text-slate-400 border border-slate-200/60 font-normal">15</div>
+<div class="p-1 rounded bg-slate-50 text-slate-400 border border-slate-200/60 font-normal">16</div>
+</div>
+</div>
+</div>
+<!-- SINGLE-ROW STICKY FILTER BAR -->
+<div class="bg-white border border-slate-200/80 rounded-xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+<!-- Segmented chips -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+<button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white shadow-xs">
+            Semua Riwayat (21)
+          </button>
+<button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+            Bulan Ini (Okt)
+          </button>
+<button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+            Bulan Lalu (Sep)
+          </button>
+<button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+            Izin / Dinas
+          </button>
+</div>
+<!-- Filter Dropdown & Search & Export Button -->
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<!-- Dropdown Status -->
+<div class="relative">
+<select class="h-8 pl-2.5 pr-7 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium focus:ring-1 focus:ring-emerald-600 focus:outline-none appearance-none cursor-pointer">
+<option>Semua Status</option>
+<option>Hadir</option>
+<option>Izin / Dinas</option>
+<option>Sakit</option>
+<option>Terlambat</option>
+</select>
+<span class="material-symbols-outlined text-[16px] text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">expand_more</span>
+</div>
+<!-- Quick Search -->
+<div class="relative flex-1 sm:w-44">
+<span class="material-symbols-outlined text-[16px] text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+<input class="w-full h-8 pl-7 pr-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-600 focus:outline-none" placeholder="Cari tanggal..." type="text">
+</div>
+<!-- Download Button -->
+<button class="h-8 px-3 rounded-lg text-xs font-medium bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 flex items-center gap-1.5 transition-colors shrink-0">
+<span class="material-symbols-outlined text-[16px] text-slate-500">download</span>
+<span class="hidden md:inline">Unduh Rekap</span>
+</button>
+</div>
+</div>
+<!-- COMFORTABLE DENSITY ATTENDANCE LOG TABLE (40px/44px rows) -->
+<div class="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-xs">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+<th class="py-3 px-4">Tanggal &amp; Hari</th>
+<th class="py-3 px-3">Jam Masuk</th>
+<th class="py-3 px-3">Jam Pulang</th>
+<th class="py-3 px-3">Metode &amp; Lokasi</th>
+<th class="py-3 px-3">Status</th>
+<th class="py-3 px-3">Catatan / Tugas</th>
+<th class="py-3 px-4 text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+<!-- Row 1: Today (Menunggu Masuk) -->
+<tr class="bg-emerald-50/30 hover:bg-emerald-50/50 transition-colors">
+<td class="py-3 px-4">
+<div class="font-bold text-slate-900">Senin, 13 Okt 2026</div>
+<div class="text-[10.5px] text-emerald-700 font-medium">Hari Ini • KBM Aktif</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-400">--:-- WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-400">--:-- WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-emerald-600">near_me</span>
+                    Geofence Kampus 1
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Menunggu Masuk
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-500 italic text-[11.5px]">-</td>
+<td class="py-3 px-4 text-right">
+<button class="px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100/60 rounded-md transition-colors">
+                    Presensi Sekarang
+                  </button>
+</td>
+</tr>
+<!-- Row 2: Jumat, 10 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Jumat, 10 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">21 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:10 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:05 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 35m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">KBM Normal &amp; Shalat Jumat</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Kamis, 9 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Kamis, 9 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">20 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:18 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:00 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 42m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">Piket Pagi &amp; Tahsin</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Rabu, 8 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Rabu, 8 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">19 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:12 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:15 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 28m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">Rapat Mapel PAI &amp; TP</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Selasa, 7 Okt 2026 (Izin Dinas Luar) -->
+<tr class="bg-amber-50/20 hover:bg-amber-50/40 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Selasa, 7 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">18 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono text-slate-400">--:-- WIB</td>
+<td class="py-3 px-3 font-mono text-slate-400">--:-- WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-amber-800 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-amber-600">description</span>
+                    Surat Tugas Resmi
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Izin Dinas Luar
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-700 text-[11.5px]">Rakor Wilayah Kemenag Kab. Bogor</td>
+<td class="py-3 px-4 text-right">
+<button class="px-2 py-0.5 text-[10.5px] font-semibold bg-white border border-amber-300 text-amber-800 rounded hover:bg-amber-50 transition-colors">
+                    Lihat Surat
+                  </button>
+</td>
+</tr>
+<!-- Row 6: Senin, 6 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Senin, 6 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">17 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:08 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:10 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 50m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">Pembina Upacara Bendera</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 7: Jumat, 3 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Jumat, 3 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">14 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:15 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:00 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 40m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">KBM Normal</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 8: Kamis, 2 Okt 2026 -->
+<tr class="hover:bg-slate-50/80 transition-colors">
+<td class="py-3 px-4">
+<div class="font-semibold text-slate-800">Kamis, 2 Okt 2026</div>
+<div class="text-[10.5px] text-slate-400 font-mono">13 R. Akhir 1448 H</div>
+</td>
+<td class="py-3 px-3 font-mono font-medium text-emerald-700">07:20 WIB</td>
+<td class="py-3 px-3 font-mono font-medium text-slate-700">16:05 WIB</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-1 text-slate-600 text-[11.5px]">
+<span class="material-symbols-outlined text-[14px] text-slate-400">fingerprint</span>
+                    Biometrik (Radius 30m)
+                  </div>
+</td>
+<td class="py-3 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Hadir Tepat Waktu
+                  </span>
+</td>
+<td class="py-3 px-3 text-slate-600 text-[11.5px]">Halaqah Dhuha &amp; Muraja'ah</td>
+<td class="py-3 px-4 text-right">
+<button class="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Lihat Log Lengkap">
+<span class="material-symbols-outlined text-[17px]">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination Footer -->
+<div class="px-4 py-3 bg-slate-50/80 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
+<div>Menampilkan <span class="font-semibold text-slate-800">1-8</span> dari <span class="font-semibold text-slate-800">21</span> catatan presensi</div>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 rounded border border-slate-200 bg-white text-slate-400 cursor-not-allowed text-xs">Sebelumnya</button>
+<button class="px-2.5 py-1 rounded bg-emerald-700 text-white font-semibold text-xs">1</button>
+<button class="px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 text-xs">2</button>
+<button class="px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 text-xs">3</button>
+<button class="px-2 py-1 rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 text-xs">Selanjutnya</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- INTERACTIVE LIVE CLOCK & BUTTON BEHAVIOR SCRIPT -->
+<script>
+    (function initAttendanceDesk() {
+      // Live Tabular Clock updater
+      function updateClock() {
+        const el = document.getElementById('liveClock');
+        if (!el) return;
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const sec = String(now.getSeconds()).padStart(2, '0');
+        el.innerHTML = `${hrs}:${min}:${sec} <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider ml-1">WIB</span>`;
+      }
+      setInterval(updateClock, 1000);
+
+      // Check-in button quick feedback interaction
+      const btn = document.getElementById('btnCheckIn');
+      if (btn) {
+        btn.addEventListener('click', function() {
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = `
+            <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+            <span>Memverifikasi Biometrik & GPS...</span>
+          `;
+          btn.classList.remove('bg-emerald-700', 'hover:bg-emerald-800');
+          btn.classList.add('bg-slate-800');
+          setTimeout(() => {
+            btn.innerHTML = `
+              <span class="material-symbols-outlined text-[22px]">check_circle</span>
+              <span>Presensi Berhasil Dicatat! (05:52 WIB)</span>
+            `;
+            btn.classList.remove('bg-slate-800');
+            btn.classList.add('bg-emerald-600');
+          }, 1400);
+        });
+      }
+    })();
+  </script>
+</div></main>
+</div>
+</body></html>
