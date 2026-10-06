@@ -213,6 +213,7 @@ class PpdbBillingService {
     let feeTypeId = data.fee_type_id ? Number(data.fee_type_id) : null;
     const isRegFee = feeTypeId === 2;
     const billingPhase = data.billing_phase || (isRegFee ? 'registration_fee' : 'enrollment_fee');
+    const baseAmount = parseFloat(data.base_amount !== undefined ? data.base_amount : (data.amount !== undefined ? data.amount : 0));
 
     if (!registrantRefId || isNaN(baseAmount) || baseAmount <= 0) {
       const err = new Error('Data calon santri dan nominal tagihan PPDB valid wajib diisi');
