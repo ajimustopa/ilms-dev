@@ -36,7 +36,9 @@ router.post('/school-life', kontenGuard, adminController.createSchoolLife);
 router.put('/school-life/:id', kontenGuard, adminController.updateSchoolLife);
 router.delete('/school-life/:id', kontenGuard, adminController.deleteSchoolLife);
 
-// #18 Berita & Pengumuman
+// #18 Berita & Pengumuman (Portal Guru & CMS)
+router.get('/news/teacher-announcements', adminController.listTeacherAnnouncements);
+router.get('/news/teacher-announcements/:id', adminController.getTeacherAnnouncementById);
 router.get('/news', kontenGuard, adminController.listNews);
 router.post('/news', kontenGuard, adminController.createNews);
 router.put('/news/:id', kontenGuard, adminController.updateNews);

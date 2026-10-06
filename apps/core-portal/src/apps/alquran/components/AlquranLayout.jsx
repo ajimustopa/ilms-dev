@@ -83,13 +83,33 @@ export default function AlquranLayout() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-56 overflow-y-auto">
+                  {/* Opsi Semua Satuan (Data Gabungan) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      changeActiveSchoolUnit(null);
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs transition flex items-center justify-between border-b border-slate-700/60 ${
+                      !activeSchoolUnit || activeSchoolUnit.id === 'all'
+                        ? 'bg-blue-600/20 text-blue-300 font-semibold'
+                        : 'text-slate-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <span className="truncate font-semibold">Semua Satuan (Gabungan)</span>
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-blue-900/60 text-blue-300 font-mono">
+                      ALL
+                    </span>
+                  </button>
+
                   {schoolUnits?.length > 0 ? (
                     schoolUnits.map((u) => (
                       <button
                         key={u.id}
+                        type="button"
                         onClick={() => {
-                          changeActiveSchoolUnit(u.id);
+                          changeActiveSchoolUnit(u);
                           setDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-1.5 text-xs transition flex items-center justify-between ${

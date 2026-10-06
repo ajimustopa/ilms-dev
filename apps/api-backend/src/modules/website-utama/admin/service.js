@@ -116,11 +116,13 @@ class AdminWebsiteService {
     return db('school_life_items').where({ id }).del();
   }
 
-  // #18 Berita & Pengumuman
+  // #18 Berita & Pengumuman (CMS Admin & Internal Guru)
   async listNews(params = {}) {
     let q = db('news_posts');
     if (params.school_unit_id) q = q.where({ school_unit_id: params.school_unit_id });
     if (params.status) q = q.where({ status: params.status });
+    if (params.target_audience) q = q.where({ target_audience: params.target_audience });
+    if (params.category) q = q.where({ category: params.category });
     if (params.search) {
       q = q.where(b => {
         b.where('title', 'like', `%${params.search}%`).orWhere('content', 'like', `%${params.search}%`);
@@ -129,9 +131,72 @@ class AdminWebsiteService {
     return q.orderBy('created_at', 'desc');
   }
 
+  // Khusus Pengumuman / Berita Internal Guru (Portal Guru)
+  async listTeacherAnnouncements(params = {}, user = null) {
+    const page = Math.max(1, parseInt(params.page, 10) || 1);
+    const limit = Math.max(1, parseInt(params.limit, 10) || 10);
+    const offset = (page - 1) * limit;
+
+    let baseQuery = db('news_posts')
+      .where({ status: 'published' })
+      .whereIn('target_audience', ['teachers', 'all_internal', 'public']);
+
+    if (params.school_unit_id) {
+      baseQuery = baseQuery.where({ school_unit_id: Number(params.school_unit_id) });
+    }
+    if (params.target_audience && ['teachers', 'all_internal', 'public'].includes(params.target_audience)) {
+      baseQuery = baseQuery.where({ target_audience: params.target_audience });
+    }
+    if (params.category) {
+      baseQuery = baseQuery.where({ category: params.category });
+    }
+    if (params.search) {
+      baseQuery = baseQuery.where(b => {
+        b.where('title', 'like', `%${params.search}%`)
+         .orWhere('content', 'like', `%${params.search}%`);
+      });
+    }
+
+    const [{ total }] = await baseQuery.clone().count('id as total');
+    const rows = await baseQuery.orderBy('published_at', 'desc').limit(limit).offset(offset);
+
+    return {
+      items: rows,
+      pagination: {
+        page,
+        limit,
+        total: parseInt(total, 10),
+        total_pages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async getTeacherAnnouncementById(id, user = null) {
+    const item = await db('news_posts')
+      .where({ id, status: 'published' })
+      .whereIn('target_audience', ['teachers', 'all_internal', 'public'])
+      .first();
+
+    if (!item) {
+      const error = new Error('Pengumuman guru tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+    return item;
+  }
+
   async createNews(payload, userId) {
+    const targetAudience = payload.target_audience || 'public';
     const [id] = await db('news_posts').insert({
-      ...payload,
+      school_unit_id: payload.school_unit_id,
+      title: payload.title,
+      slug: payload.slug,
+      content: payload.content,
+      category: payload.category || null,
+      target_audience: targetAudience,
+      cover_image_url: payload.cover_image_url || null,
+      status: payload.status || 'draft',
+      published_at: payload.status === 'published' ? (payload.published_at || db.fn.now()) : null,
       created_by: userId,
       created_at: db.fn.now(),
       updated_at: db.fn.now()
@@ -140,10 +205,14 @@ class AdminWebsiteService {
   }
 
   async updateNews(id, payload) {
-    await db('news_posts').where({ id }).update({
+    const updateData = {
       ...payload,
       updated_at: db.fn.now()
-    });
+    };
+    if (payload.status === 'published' && !payload.published_at) {
+      updateData.published_at = db.fn.now();
+    }
+    await db('news_posts').where({ id }).update(updateData);
     return db('news_posts').where({ id }).first();
   }
 

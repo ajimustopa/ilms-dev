@@ -45,9 +45,9 @@ class PublicWebsiteService {
       totalStaff = 15;
     }
 
-    // 4. Berita terbaru
+    // 4. Berita terbaru (Hanya target publik)
     const latestNews = await db('news_posts')
-      .where({ school_unit_id: unitId, status: 'published' })
+      .where({ school_unit_id: unitId, status: 'published', target_audience: 'public' })
       .orderBy('published_at', 'desc')
       .limit(3);
 
@@ -122,13 +122,17 @@ class PublicWebsiteService {
     return query.orderBy('created_at', 'desc');
   }
 
-  // #18 Berita & Pengumuman
+  // #18 Berita & Pengumuman (Publik Only)
   async getNews(params = {}) {
     const page = Math.max(1, parseInt(params.page, 10) || 1);
     const limit = Math.max(1, parseInt(params.limit, 10) || 10);
     const offset = (page - 1) * limit;
 
-    let baseQuery = db('news_posts').where({ status: 'published' });
+    // Ketat: HANYA status published dan target_audience public
+    let baseQuery = db('news_posts').where({
+      status: 'published',
+      target_audience: 'public'
+    });
 
     if (params.school_unit_id) {
       baseQuery = baseQuery.where({ school_unit_id: Number(params.school_unit_id) });
@@ -158,7 +162,12 @@ class PublicWebsiteService {
   }
 
   async getNewsBySlug(slug) {
-    const item = await db('news_posts').where({ slug, status: 'published' }).first();
+    const item = await db('news_posts').where({
+      slug,
+      status: 'published',
+      target_audience: 'public'
+    }).first();
+
     if (!item) {
       const error = new Error('Berita tidak ditemukan');
       error.statusCode = 404;

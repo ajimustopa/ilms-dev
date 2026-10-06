@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../shared/services/api';
-import StatusPill from '../../../shared/components/StatusPill';
-import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import api from '../../../../shared/services/api';
+import StatusPill from '../../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../../shared/components/FlatAlertBanner';
 import {
   BellRing,
   Search,

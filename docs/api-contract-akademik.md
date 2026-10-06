@@ -507,13 +507,23 @@ Sama seperti `api-contract-coreservice.md` §1.4 (`200`, `201`, `400`, `401`, `4
 | `GET` / `POST` | `/leave-requests` | List/ajukan izin-sakit siswa | JWT (Orang Tua/Wali Kelas) |
 | `PUT` | `/leave-requests/:id/approve` | Setujui/tolak pengajuan izin | JWT (Wali Kelas) |
 
-### 3.6 Kesiswaan
+### 3.6 Kesiswaan & Kejadian Siswa Terpadu
 
 | Method | Path | Deskripsi | Auth |
 |---|---|---|---|
-| `GET` / `POST` | `/disciplinary-records` | List/catat pelanggaran, filter `student_id` | JWT (Guru BK/Wali Kelas) |
-| `GET` / `POST` | `/achievements` | List/catat prestasi, filter `student_id` | JWT (Guru/Wali Kelas) |
-| `GET` / `POST` | `/counseling-records` | List/catat sesi BK — response difilter `visibility_level` sesuai role pemanggil | JWT (Guru BK) |
+| `GET` | `/incident-categories` | List master kategori kejadian (pelanggaran, prestasi, adab) per `satuan_pendidikan_id` | JWT |
+| `POST` | `/incident-categories` | Tambah kategori baru (`code`, `name`, `type`, `severity_level`, `default_points`) | JWT (`akademik.disciplinary.manage`) |
+| `PUT` | `/incident-categories/:id` | Update master kategori kejadian | JWT (`akademik.disciplinary.manage`) |
+| `GET` | `/incidents` | List buku catatan kejadian siswa terpadu (filter unit, type, student, status, date, search) — Server menegakkan `visibility_level` (`public_school`, `teachers_only`, `homeroom_and_bk`, `bk_only`) | JWT |
+| `GET` | `/incidents/:id` | Detail kejadian + data siswa, pelapor, penangan, verifikator & sesi BK terkait | JWT (terproteksi visibilitas) |
+| `POST` | `/incidents` | Catat kejadian/prestasi baru (otomatis rekam `reported_by_employee_id`) | JWT |
+| `PUT` | `/incidents/:id` | Update rincian kejadian (hanya pelapor sebelum status selesai, atau Kesiswaan/Admin) | JWT |
+| `PATCH` | `/incidents/:id/handling-status` | Update status alur penanganan (`reported`, `in_progress`, `resolved`, `cancelled`) & tindakan pembinaan | JWT |
+| `PATCH` | `/incidents/:id/verify-points` | Verifikasi poin & penetapan sanksi/reward resmi | JWT (`akademik.disciplinary.manage`) |
+| `GET` | `/incidents/students/:student_id/summary` | Rekap poin total (+/-) dan skor perilaku bersih santri | JWT |
+| `GET` / `POST` | `/disciplinary-records` | List/catat pelanggaran (Legacy compatibility wrapper) | JWT (Guru BK/Wali Kelas) |
+| `GET` / `POST` | `/achievements` | List/catat prestasi (Legacy compatibility wrapper) | JWT (Guru/Wali Kelas) |
+| `GET` / `POST` | `/counseling-records` | List/catat sesi BK (terhubung ke `incident_id` dan `satuan_pendidikan_id`) | JWT (Guru BK) |
 | `GET` / `POST` | `/extracurriculars` | List/buat ekskul | JWT (Admin/Pembina) |
 | `POST` | `/extracurriculars/:id/members` | Daftarkan siswa ke ekskul | JWT (Admin/Pembina) |
 | `GET` / `POST` | `/calendar-events` | List/buat agenda kalender akademik | JWT (Admin) |

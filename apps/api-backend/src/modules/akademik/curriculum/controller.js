@@ -641,6 +641,11 @@ class CurriculumController {
         message: 'Riwayat perubahan jadwal berhasil dimuat',
         errors: null
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getMySchedules(req, res, next) {
     try {
       const data = await curriculumService.getMySchedules(req.user, req.query);

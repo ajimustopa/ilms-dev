@@ -1111,14 +1111,10 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 15. Portal Guru Login & Module
+  // 15. Portal Guru Baru (Mobile-First Modular Architecture)
   {
     path: '/guru/login',
     element: lazyLoad(() => import('./apps/guru/pages/Login')),
-  },
-  {
-    path: '/guru/_design',
-    element: lazyLoad(() => import('./apps/guru/pages/DesignTokensPreview')),
   },
   {
     path: '/guru',
@@ -1136,52 +1132,189 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/guru/pages/Dashboard')),
           },
           {
-            path: 'jadwal',
-            element: lazyLoad(() => import('./apps/guru/pages/JadwalMengajar')),
+            path: 'lainnya',
+            element: lazyLoad(() => import('./apps/guru/pages/Lainnya')),
           },
+          // F1. Presensi Guru (Masuk/Pulang GPS)
           {
             path: 'absensi',
-            element: lazyLoad(() => import('./apps/guru/pages/AbsensiDiri')),
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
           },
           {
             path: 'presensi',
-            element: lazyLoad(() => import('./apps/guru/pages/AbsensiDiri')),
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
+          },
+          // F2. Pengajuan Izin / Cuti
+          {
+            path: 'izin',
+            element: lazyLoad(() => import('./apps/guru/pages/IzinPage')),
           },
           {
-            path: 'absensi-kelas',
-            element: lazyLoad(() => import('./apps/guru/pages/AbsensiKelas')),
+            path: 'cuti',
+            element: lazyLoad(() => import('./apps/guru/pages/IzinPage')),
           },
+          // F3. Jadwal Mengajar & Roster KBM
           {
-            path: 'nilai',
-            element: lazyLoad(() => import('./apps/guru/pages/InputNilai')),
+            path: 'jadwal',
+            element: lazyLoad(() => import('./apps/guru/pages/JadwalPage')),
           },
+          // F4. Perencanaan Pembelajaran / TP & Silabus
           {
-            path: 'penilaian',
-            element: lazyLoad(() => import('./apps/guru/pages/InputNilai')),
+            path: 'perencanaan',
+            element: lazyLoad(() => import('./apps/guru/pages/PerencanaanPage')),
           },
           {
             path: 'tujuan-pembelajaran',
-            element: lazyLoad(() => import('./apps/guru/pages/TujuanPembelajaran')),
+            element: lazyLoad(() => import('./apps/guru/pages/PerencanaanPage')),
           },
           {
             path: 'tp',
-            element: lazyLoad(() => import('./apps/guru/pages/TujuanPembelajaran')),
+            element: lazyLoad(() => import('./apps/guru/pages/PerencanaanPage')),
+          },
+          // F5. Presensi Santri (Jam KBM & Harian)
+          {
+            path: 'presensi-siswa',
+            element: lazyLoad(() => import('./apps/guru/pages/PresensiSiswaPage')),
+          },
+          {
+            path: 'absensi-kelas',
+            element: lazyLoad(() => import('./apps/guru/pages/PresensiSiswaPage')),
+          },
+          // F6. Jurnal Mengajar Harian
+          {
+            path: 'jurnal-mengajar',
+            element: lazyLoad(() => import('./apps/guru/pages/JurnalPage')),
+          },
+          {
+            path: 'jurnal',
+            element: lazyLoad(() => import('./apps/guru/pages/JurnalPage')),
+          },
+          // F7. Penilaian Siswa Terpadu
+          {
+            path: 'nilai',
+            element: lazyLoad(() => import('./apps/guru/pages/NilaiPage')),
+          },
+          {
+            path: 'penilaian',
+            element: lazyLoad(() => import('./apps/guru/pages/NilaiPage')),
+          },
+          // F8. Direktori Santri & Kontak Wali
+          {
+            path: 'santri',
+            element: lazyLoad(() => import('./apps/guru/pages/SantriPage')),
           },
           {
             path: 'siswa',
-            element: lazyLoad(() => import('./apps/guru/pages/InformasiSiswa')),
+            element: lazyLoad(() => import('./apps/guru/pages/SantriPage')),
           },
+          // F9. Pengumuman & Berita Guru
           {
             path: 'pengumuman',
-            element: lazyLoad(() => import('./apps/guru/pages/Pengumuman')),
+            element: lazyLoad(() => import('./apps/guru/pages/PengumumanPage')),
+          },
+          // F9. Pencatatan Kejadian & Prestasi Santri
+          {
+            path: 'kejadian-siswa',
+            element: lazyLoad(() => import('./apps/guru/pages/KejadianPage')),
           },
           {
+            path: 'kejadian',
+            element: lazyLoad(() => import('./apps/guru/pages/KejadianPage')),
+          },
+          {
+            path: 'disiplin',
+            element: lazyLoad(() => import('./apps/guru/pages/KejadianPage')),
+          },
+          // Layanan Bimbingan & Konseling Santri (BK / Wali Kelas)
+          {
+            path: 'konseling',
+            element: lazyLoad(() => import('./apps/guru/pages/KonselingPage')),
+          },
+          // Profil Saya & Pengaturan Akun
+          {
             path: 'profil',
-            element: lazyLoad(() => import('./apps/guru/pages/ProfilSaya')),
+            element: lazyLoad(() => import('./apps/guru/pages/ProfilPage')),
           },
           {
             path: 'profile',
-            element: lazyLoad(() => import('./apps/guru/pages/ProfilSaya')),
+            element: lazyLoad(() => import('./apps/guru/pages/ProfilPage')),
+          },
+        ],
+      },
+    ],
+  },
+
+  // 15b. Portal Guru Versi Lama (Legacy Reroute)
+  {
+    path: '/guru-lama/login',
+    element: lazyLoad(() => import('./apps/guru/_legacy/pages/Login')),
+  },
+  {
+    path: '/guru-lama/_design',
+    element: lazyLoad(() => import('./apps/guru/_legacy/pages/DesignTokensPreview')),
+  },
+  {
+    path: '/guru-lama',
+    element: <ProtectedRoute redirectTo="/guru-lama/login" />,
+    children: [
+      {
+        element: lazyLoad(() => import('./apps/guru/_legacy/components/GuruLayout')),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/guru-lama/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/Dashboard')),
+          },
+          {
+            path: 'jadwal',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/JadwalMengajar')),
+          },
+          {
+            path: 'absensi',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiDiri')),
+          },
+          {
+            path: 'presensi',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiDiri')),
+          },
+          {
+            path: 'absensi-kelas',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiKelas')),
+          },
+          {
+            path: 'nilai',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InputNilai')),
+          },
+          {
+            path: 'penilaian',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InputNilai')),
+          },
+          {
+            path: 'tujuan-pembelajaran',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/TujuanPembelajaran')),
+          },
+          {
+            path: 'tp',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/TujuanPembelajaran')),
+          },
+          {
+            path: 'siswa',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InformasiSiswa')),
+          },
+          {
+            path: 'pengumuman',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/Pengumuman')),
+          },
+          {
+            path: 'profil',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/ProfilSaya')),
+          },
+          {
+            path: 'profile',
+            element: lazyLoad(() => import('./apps/guru/_legacy/pages/ProfilSaya')),
           },
         ],
       },

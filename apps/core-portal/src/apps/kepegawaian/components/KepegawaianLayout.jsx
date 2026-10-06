@@ -18,7 +18,9 @@ import {
   HelpCircle,
   Sparkles,
   Tag,
-  MapPin
+  MapPin,
+  Building2,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function KepegawaianLayout() {
@@ -180,36 +182,102 @@ export default function KepegawaianLayout() {
                 <button
                   type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-medium text-slate-700 transition"
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition shadow-2xs ${
+                    !activeSchoolUnit || activeSchoolUnit.id === 'all'
+                      ? 'border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-800'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                  }`}
+                  title="Ganti Konteks Satuan Pendidikan / Data Gabungan"
                 >
-                  <School className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="max-w-[140px] truncate">
-                    {activeSchoolUnit ? activeSchoolUnit.name : 'Pilih Satuan'}
+                  {!activeSchoolUnit || activeSchoolUnit.id === 'all' ? (
+                    <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  ) : (
+                    <School className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  )}
+                  <span className="max-w-[170px] truncate font-semibold">
+                    {!activeSchoolUnit || activeSchoolUnit.id === 'all'
+                      ? 'Semua Satuan (Gabungan)'
+                      : activeSchoolUnit.name}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50">
-                    <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                      Pilih Satuan Pendidikan Aktif
+                  <div className="absolute right-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                      <span>Konteks Data Aktif</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                        {schoolUnits.length} Unit
+                      </span>
                     </div>
-                    {schoolUnits.map((unit) => (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        onClick={() => {
-                          changeActiveSchoolUnit(unit);
-                          setDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs flex flex-col hover:bg-slate-50 transition ${
-                          activeSchoolUnit?.id === unit.id ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-slate-700'
-                        }`}
-                      >
-                        <span>{unit.name}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">NPSN: {unit.npsn || '-'}</span>
-                      </button>
-                    ))}
+
+                    {/* Pilihan 1: Semua Satuan Pendidikan (Data Gabungan) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        changeActiveSchoolUnit(null);
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 text-xs flex items-center justify-between hover:bg-blue-50/60 transition border-b border-slate-100 ${
+                        !activeSchoolUnit || activeSchoolUnit.id === 'all'
+                          ? 'bg-blue-50 text-blue-800 font-bold'
+                          : 'text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate">Semua Satuan (Data Gabungan)</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Pusat Yayasan &bull; Rekap Lintas Seluruh Unit
+                          </span>
+                        </div>
+                      </div>
+                      {(!activeSchoolUnit || activeSchoolUnit.id === 'all') && (
+                        <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 ml-2" />
+                      )}
+                    </button>
+
+                    {/* Pilihan 2: Masing-masing Satuan Pendidikan */}
+                    <div className="max-h-60 overflow-y-auto divide-y divide-slate-50 py-1">
+                      {schoolUnits.map((unit) => {
+                        const isSelected = activeSchoolUnit?.id === unit.id;
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => {
+                              changeActiveSchoolUnit(unit);
+                              setDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition ${
+                              isSelected
+                                ? 'bg-emerald-50 text-emerald-800 font-bold'
+                                : 'text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2 min-w-0">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isSelected ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                <School className="w-4 h-4" />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="truncate">{unit.name}</span>
+                                <span className="text-[10px] text-slate-400 font-normal">
+                                  Jenjang: {unit.level || unit.school_level || '-'} &bull; NPSN: {unit.npsn || '-'}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

@@ -13,6 +13,7 @@ export default function BeritaPengumuman() {
     title: '',
     slug: '',
     category: 'Pengumuman',
+    target_audience: 'public',
     content: '',
     cover_image_url: '',
     status: 'draft'
@@ -98,6 +99,19 @@ export default function BeritaPengumuman() {
     }
   };
 
+  const getAudienceBadge = (aud) => {
+    switch (aud) {
+      case 'teachers':
+        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800">Khusus Guru</span>;
+      case 'all_internal':
+        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-800">Internal Yayasan</span>;
+      case 'students':
+        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">Santri / Siswa</span>;
+      default:
+        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">Publik</span>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -108,7 +122,7 @@ export default function BeritaPengumuman() {
         <button
           onClick={() => {
             setEditingItem(null);
-            setForm({ title: '', slug: '', category: 'Pengumuman', content: '', cover_image_url: '', status: 'draft' });
+            setForm({ title: '', slug: '', category: 'Pengumuman', target_audience: 'public', content: '', cover_image_url: '', status: 'draft' });
             setShowModal(true);
           }}
           className="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm transition-colors"
@@ -123,6 +137,7 @@ export default function BeritaPengumuman() {
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[10px]">
               <th className="py-3 px-4">Judul & Kategori</th>
+              <th className="py-3 px-4">Target Audiens</th>
               <th className="py-3 px-4">Slug</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Tanggal Publikasi</th>
@@ -135,6 +150,9 @@ export default function BeritaPengumuman() {
                 <td className="py-3 px-4">
                   <p className="font-bold text-slate-800">{item.title}</p>
                   <span className="text-[10px] text-emerald-600 font-semibold">{item.category || 'Berita'}</span>
+                </td>
+                <td className="py-3 px-4">
+                  {getAudienceBadge(item.target_audience)}
                 </td>
                 <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">{item.slug}</td>
                 <td className="py-3 px-4">
@@ -176,7 +194,15 @@ export default function BeritaPengumuman() {
                     <button
                       onClick={() => {
                         setEditingItem(item);
-                        setForm(item);
+                        setForm({
+                          title: item.title,
+                          slug: item.slug,
+                          category: item.category || 'Pengumuman',
+                          target_audience: item.target_audience || 'public',
+                          content: item.content,
+                          cover_image_url: item.cover_image_url || '',
+                          status: item.status
+                        });
                         setShowModal(true);
                       }}
                       className="p-1 text-slate-400 hover:text-emerald-600 rounded"
@@ -202,11 +228,11 @@ export default function BeritaPengumuman() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl">
             <h3 className="text-sm font-bold text-slate-800 mb-4">
-              {editingItem ? 'Edit Berita' : 'Tulis Berita Baru'}
+              {editingItem ? 'Edit Berita & Pengumuman' : 'Tulis Berita / Pengumuman Baru'}
             </h3>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Judul Berita</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Judul Berita / Pengumuman</label>
                 <input
                   type="text"
                   value={form.title}
@@ -215,7 +241,20 @@ export default function BeritaPengumuman() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Target Audiens *</label>
+                  <select
+                    value={form.target_audience}
+                    onChange={(e) => setForm({ ...form, target_audience: e.target.value })}
+                    className="w-full text-xs rounded-lg border border-slate-300 p-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-white font-semibold text-slate-700"
+                  >
+                    <option value="public">Publik Umum (Website)</option>
+                    <option value="all_internal">Seluruh Internal Yayasan</option>
+                    <option value="teachers">Khusus Dewan Guru & Staf</option>
+                    <option value="students">Khusus Santri & Siswa</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
                   <input
@@ -244,7 +283,7 @@ export default function BeritaPengumuman() {
                   value={form.content}
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
                   className="w-full text-xs rounded-lg border border-slate-300 p-2 focus:ring-1 focus:ring-emerald-500 focus:outline-none font-mono"
-                  placeholder="Tulis artikel berita..."
+                  placeholder="Tulis artikel berita atau rincian pengumuman..."
                   required
                 />
               </div>

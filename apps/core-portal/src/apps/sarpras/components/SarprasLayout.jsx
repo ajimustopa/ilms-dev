@@ -88,9 +88,29 @@ export default function SarprasLayout() {
 
               {dropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50">
+                  {/* Opsi Semua Satuan (Data Gabungan) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      changeActiveSchoolUnit(null);
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs transition flex items-center justify-between border-b border-slate-700/60 ${
+                      !activeSchoolUnit || activeSchoolUnit.id === 'all'
+                        ? 'bg-blue-600/20 text-blue-300 font-semibold'
+                        : 'text-slate-300 hover:bg-slate-700/60'
+                    }`}
+                  >
+                    <span className="truncate font-semibold">Semua Satuan (Gabungan)</span>
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-blue-900/60 text-blue-300 font-mono">
+                      ALL
+                    </span>
+                  </button>
+
                   {schoolUnits?.map((unit) => (
                     <button
                       key={unit.id}
+                      type="button"
                       onClick={() => {
                         changeActiveSchoolUnit(unit);
                         setDropdownOpen(false);
@@ -103,7 +123,7 @@ export default function SarprasLayout() {
                     >
                       <span className="truncate">{unit.name}</span>
                       <span className="text-[10px] px-1 py-0.2 rounded bg-slate-900 text-slate-400 font-mono">
-                        {unit.code}
+                        {unit.code || unit.id}
                       </span>
                     </button>
                   ))}

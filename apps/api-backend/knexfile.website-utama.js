@@ -5,14 +5,14 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 function getDbHost() {
-  const h = process.env.WEBSITEUTAMA_DB_HOST || process.env.DB_HOST || '127.0.0.1';
+  const h = process.env.WEBSITE_UTAMA_DB_HOST || process.env.WEBSITEUTAMA_DB_HOST || process.env.DB_HOST || '127.0.0.1';
   return (h === 'localhost') ? '127.0.0.1' : h;
 }
 
-const dbUser = process.env.WEBSITEUTAMA_DB_USER || 'websiteutama_local';
-const dbPassword = process.env.WEBSITEUTAMA_DB_PASSWORD || '';
-const dbName = process.env.WEBSITEUTAMA_DB_NAME || 'websiteutama_local';
-const dbPort = Number(process.env.WEBSITEUTAMA_PORT || process.env.WEBSITEUTAMA_DB_PORT || 3306);
+const dbUser = process.env.WEBSITE_UTAMA_DB_USER || process.env.WEBSITEUTAMA_DB_USER || process.env.DB_USER || 'websiteutama_local';
+const dbPassword = process.env.WEBSITE_UTAMA_DB_PASSWORD || process.env.WEBSITEUTAMA_DB_PASSWORD || process.env.DB_PASSWORD || '';
+const dbName = process.env.WEBSITE_UTAMA_DB_NAME || process.env.WEBSITEUTAMA_DB_NAME || process.env.DB_NAME || 'websiteutama_local';
+const dbPort = Number(process.env.WEBSITE_UTAMA_DB_PORT || process.env.WEBSITEUTAMA_DB_PORT || process.env.DB_PORT || 3306);
 
 module.exports = {
   development: {

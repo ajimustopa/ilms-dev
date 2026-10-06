@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../shared/store/AuthContext';
-import api from '../../../shared/services/api';
-import StatusPill from '../../../shared/components/StatusPill';
-import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { useAuth } from '../../../../shared/store/AuthContext';
+import api from '../../../../shared/services/api';
+import StatusPill from '../../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../../shared/components/FlatAlertBanner';
 import {
   UserCircle,
   Lock,

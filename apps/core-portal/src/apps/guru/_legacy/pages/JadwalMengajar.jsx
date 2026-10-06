@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../shared/store/AuthContext';
-import api from '../../../shared/services/api';
-import StatusPill from '../../../shared/components/StatusPill';
-import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
+import { useAuth } from '../../../../shared/store/AuthContext';
+import api from '../../../../shared/services/api';
+import StatusPill from '../../../../shared/components/StatusPill';
+import FlatAlertBanner from '../../../../shared/components/FlatAlertBanner';
 import {
   CalendarDays,
   Clock,

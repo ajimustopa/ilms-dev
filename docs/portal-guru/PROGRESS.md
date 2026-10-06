@@ -15,10 +15,10 @@ Dokumen pelacak status pengerjaan tahapan pembangunan ulang Portal Guru Core Ald
 | **8** | Lampiran izin | [x] | 2026-10-06 | Migrasi 20261006140004, upload base64/disk (PDF/JPG/PNG/WEBP maks 5MB), endpoint my/attachment terproteksi, test 100% |
 | **9** | Jadwal dan penugasan guru | [x] | 2026-10-06 | Endpoint my-schedules & my-teaching-assignments (filter guru dari ref_id, rombel wali kelas, test 100%) |
 | **10** | Jurnal mengajar | [x] | 2026-10-06 | Migrasi teaching_journals (20261006140005), CRUD & today-status endpoint, verifikasi guru vs admin, test 100% |
-| **11** | Rancangan kejadian siswa | [ ] | | |
-| **12** | Implementasi kejadian siswa | [ ] | | |
-| **13** | Target audiens pengumuman | [ ] | | |
-| **14** | Shell dan navigasi | [ ] | | |
+| **11** | Rancangan kejadian siswa | [x] | 2026-10-06 | Analisis tabel eksisting & usulan 2 opsi skema (A & B) di rancangan-kejadian-siswa.md |
+| **12** | Implementasi kejadian siswa | [x] | 2026-10-06 | Migrasi 20261006150001 (incident_categories & student_incidents), CRUD + handling-status + verify-points + summary endpoints, server-side visibility enforcement, 15 tests 100% |
+| **13** | Target audiens pengumuman | [x] | 2026-10-06 | Migrasi 20261006160001 (target_audience di news_posts), isolasi ketat endpoint publik, endpoint internal teacher-announcements, form CMS target selector, test 100% |
+| **14** | Shell dan navigasi | [x] | 2026-10-06 | Pindah kode lama ke _legacy (/guru-lama/*), struktur baru pages/components/services/hooks/utils, shell mobile-first (header, bottom nav 5 slot, drawer), placeholder F1-F9, build verified |
 | **15** | Komponen dasar | [ ] | | |
 | **16** | Dashboard | [ ] | | |
 | **17** | Absensi guru | [ ] | | |

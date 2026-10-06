@@ -59,8 +59,8 @@ Sama seperti `api-contract-coreservice.md` §1.4 (200/201/400/401/403/404/409/42
 | GET | `/public/school-profile` | #15 Profil sekolah | Proxy ke Core Service `school_units` |
 | GET | `/public/staff-profiles` | #16 | Filter `?school_unit_id=` |
 | GET | `/public/school-life?category=` | #17 | `category` = facility/extracurricular/school_rule/achievement |
-| GET | `/public/news` | #18 | Query: `page`, `limit`, `category`, `search` — hanya status `published` |
-| GET | `/public/news/:slug` | #18 | Detail berita |
+| GET | `/public/news` | #18 | Query: `page`, `limit`, `category`, `search` — **HANYA status `published` dan `target_audience = 'public'` (terisolasi dari konten internal)** |
+| GET | `/public/news/:slug` | #18 | Detail berita publik (hanya `target_audience = 'public'`) |
 | GET | `/public/galleries` | #19 | List album |
 | GET | `/public/galleries/:id` | #19 | Detail album + item |
 | GET | `/public/faqs` | #20 | Filter `?category=` |
@@ -101,17 +101,19 @@ Sama seperti `api-contract-coreservice.md` §1.4 (200/201/400/401/403/404/409/42
 
 ---
 
-## 3. Endpoint Admin (`/admin/...`) — Wajib JWT
+## 3. Endpoint Admin & Portal Guru (`/admin/...`) — Wajib JWT
 
-### 3.1 Konten Publik (CRUD Admin)
+### 3.1 Konten Publik & Pengumuman Guru (CRUD CMS)
 
-| Method | Endpoint | Fitur |
-|---|---|---|
-| GET, PUT | `/admin/home/hero` | #14 |
-| GET, POST, PUT, DELETE | `/admin/home/highlights` / `/:id` | #14 |
-| GET, POST, PUT, DELETE | `/admin/staff-profiles` / `/:id` | #16 |
-| GET, POST, PUT, DELETE | `/admin/school-life` / `/:id` | #17 |
-| GET, POST, PUT, DELETE, PATCH | `/admin/news` / `/:id` / `/:id/publish` / `/:id/archive` | #18 |
+| Method | Endpoint | Fitur | Keterangan |
+|---|---|---|---|
+| GET | `/admin/news/teacher-announcements` | #18 | Pengumuman internal guru & yayasan (`target_audience IN ('teachers', 'all_internal', 'public')`) dengan paginasi & pencarian untuk Portal Guru |
+| GET | `/admin/news/teacher-announcements/:id` | #18 | Detail pengumuman internal guru |
+| GET, PUT | `/admin/home/hero` | #14 | |
+| GET, POST, PUT, DELETE | `/admin/home/highlights` / `/:id` | #14 | |
+| GET, POST, PUT, DELETE | `/admin/staff-profiles` / `/:id` | #16 | |
+| GET, POST, PUT, DELETE | `/admin/school-life` / `/:id` | #17 | |
+| GET, POST, PUT, DELETE, PATCH | `/admin/news` / `/:id` / `/:id/publish` / `/:id/archive` | #18 | Manajemen Berita & Pengumuman CMS (dukung `target_audience: public, all_internal, teachers, students`) |
 | GET, POST, PUT, DELETE | `/admin/galleries` / `/:id` | #19 |
 | POST, DELETE | `/admin/galleries/:id/items` / `/items/:itemId` | #19 |
 | GET, POST, PUT, DELETE | `/admin/faqs` / `/:id` | #20 |

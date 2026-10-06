@@ -24,17 +24,12 @@ import {
 } from 'lucide-react';
 
 export default function WebsiteUtamaLayout() {
-  const { user, logout, selectedSchoolUnit, setSelectedSchoolUnit } = useAuth();
+  const { user, logout, activeSchoolUnit, schoolUnits: authSchoolUnits, changeActiveSchoolUnit } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const schoolUnits = user?.school_units || [
-    { id: 1, name: 'SD Aldepos Islamic School' },
-    { id: 2, name: 'SMP Aldepos Islamic Boarding School' },
-    { id: 3, name: 'SMA Aldepos Islamic Boarding School' }
-  ];
-
-  const currentUnit = selectedSchoolUnit || schoolUnits[0];
+  const schoolUnits = (authSchoolUnits && authSchoolUnits.length > 0) ? authSchoolUnits : (user?.school_units || []);
+  const currentUnit = activeSchoolUnit || schoolUnits[0];
 
   const handleLogout = async () => {
     await logout();
@@ -79,13 +74,18 @@ export default function WebsiteUtamaLayout() {
           </label>
           <div className="relative">
             <select
-              value={currentUnit?.id || ''}
+              value={activeSchoolUnit?.id || 'all'}
               onChange={(e) => {
-                const u = schoolUnits.find(unit => String(unit.id) === e.target.value);
-                if (u && setSelectedSchoolUnit) setSelectedSchoolUnit(u);
+                if (e.target.value === 'all') {
+                  if (changeActiveSchoolUnit) changeActiveSchoolUnit(null);
+                } else {
+                  const u = schoolUnits.find(unit => String(unit.id) === e.target.value);
+                  if (u && changeActiveSchoolUnit) changeActiveSchoolUnit(u);
+                }
               }}
-              className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1.5 pr-8 focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-none font-medium"
+              className="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1.5 pr-8 focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-none font-medium cursor-pointer"
             >
+              <option value="all">Semua Satuan (Data Gabungan)</option>
               {schoolUnits.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}

@@ -113,6 +113,20 @@ class AdminWebsiteController {
     } catch (err) { next(err); }
   }
 
+  async listTeacherAnnouncements(req, res, next) {
+    try {
+      const data = await adminService.listTeacherAnnouncements({ school_unit_id: req.schoolUnitId || req.query.school_unit_id, ...req.query }, req.user);
+      res.status(200).json({ success: true, data, message: 'Daftar pengumuman guru berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  }
+
+  async getTeacherAnnouncementById(req, res, next) {
+    try {
+      const data = await adminService.getTeacherAnnouncementById(req.params.id, req.user);
+      res.status(200).json({ success: true, data, message: 'Detail pengumuman guru berhasil diambil', errors: null });
+    } catch (err) { next(err); }
+  }
+
   async createNews(req, res, next) {
     try {
       const data = await adminService.createNews({ ...req.body, school_unit_id: req.schoolUnitId }, req.user.id);

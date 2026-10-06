@@ -401,6 +401,46 @@ asumsi #3).
 | `approval_status` | ENUM('menunggu','disetujui','ditolak') | default `menunggu` |
 | `approved_by_employee_id` | BIGINT UNSIGNED NULLABLE | |
 
+### 2.17A `incident_categories`
+*(Fitur "Master Kategori Tata Tertib & Apresiasi")*
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | BIGINT UNSIGNED PK | |
+| `satuan_pendidikan_id` | BIGINT UNSIGNED | ID unit sekolah di Core Service |
+| `code` | VARCHAR(50) | Kode unik per unit (mis. `TATIB-01`, `PRES-01`, `ADAB-01`) |
+| `name` | VARCHAR(150) | Nama kategori / jenis tata tertib / prestasi |
+| `type` | ENUM('positive', 'negative', 'neutral') | Tipe kejadian |
+| `severity_level` | ENUM('low', 'medium', 'high', 'critical') | Bobot tingkat kejadian, default `'low'` |
+| `default_points` | SMALLINT | Poin default insiden |
+| `is_active` | BOOLEAN | Status aktif, default `true` |
+
+### 2.17B `student_incidents`
+*(Fitur "Buku Catatan Kejadian Siswa Terpadu" / Student Conduct Ledger)*
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | BIGINT UNSIGNED PK | |
+| `satuan_pendidikan_id` | BIGINT UNSIGNED | |
+| `student_id` | BIGINT UNSIGNED FK → `students.id` | |
+| `academic_year_id` | BIGINT UNSIGNED NULLABLE | |
+| `category_id` | BIGINT UNSIGNED FK → `incident_categories.id` NULLABLE | |
+| `type` | ENUM('positive', 'negative', 'neutral') | |
+| `title` | VARCHAR(200) | Judul kejadian / prestasi |
+| `description` | TEXT | Uraian kronologi kejadian |
+| `points` | SMALLINT | Bobot poin (+/-) |
+| `incident_date` | DATE | Tanggal kejadian |
+| `incident_time` | TIME NULLABLE | Waktu kejadian |
+| `location` | VARCHAR(150) NULLABLE | Lokasi kejadian (Kelas, Asrama, Masjid, dsb) |
+| `reported_by_employee_id` | BIGINT UNSIGNED NULLABLE | ID pegawai pelapor kejadian |
+| `handled_by_employee_id` | BIGINT UNSIGNED NULLABLE | ID pegawai yang menangani/wali kelas |
+| `handling_status` | ENUM('reported', 'in_progress', 'resolved', 'cancelled') | Default `'reported'` |
+| `handling_action` | TEXT NULLABLE | Catatan tindakan pembinaan / sanksi / apresiasi |
+| `resolution_date` | DATE NULLABLE | Tanggal penyelesaian kasus |
+| `visibility_level` | ENUM('public_school', 'teachers_only', 'homeroom_and_bk', 'bk_only') | Level hak akses server-side, default `'teachers_only'` |
+| `verified_by_employee_id` | BIGINT UNSIGNED NULLABLE | ID staf kesiswaan pemverifikasi poin |
+| `verified_at` | DATETIME NULLABLE | Waktu verifikasi poin resmi |
+
 ### 2.17 `student_disciplinary_records`
 *(Fitur "Pencatatan pelanggaran/poin disiplin")*
 
