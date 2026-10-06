@@ -49,6 +49,8 @@ Diperbarui: 2026-08-24
 | Organisasi | `employee_position_history` | Tidak langsung (ikut `employees`) |
 | Organisasi | `employee_mutations` | Tidak langsung |
 | Kehadiran | `employee_attendances` | **Ya** |
+| Kehadiran | `attendance_locations` | **Ya** |
+| Kehadiran | `attendance_work_schedules` | **Ya** |
 | Kehadiran | `employee_leave_requests` | **Ya** |
 | Kehadiran | `employee_overtimes` | **Ya** |
 | Penggajian | `payroll_periods` | Ya (nullable = periode payroll yayasan-wide) |
@@ -331,10 +333,57 @@ Jadi basis perhitungan **DUK Pangkat** (Bagian 0 Keputusan #3) bersama `employee
 | school_unit_id | BIGINT UNSIGNED | NOT NULL |
 | attendance_date | DATE | NOT NULL |
 | check_in_time | TIME | NULLABLE |
+| check_in_latitude | DECIMAL(10,8) | NULLABLE — Titik koordinat lintang saat check-in |
+| check_in_longitude | DECIMAL(11,8) | NULLABLE — Titik koordinat bujur saat check-in |
+| check_in_distance_meters | DECIMAL(10,2) | NULLABLE — Jarak kalkulasi ke titik sekolah (meter) |
+| check_in_accuracy_meters | DECIMAL(10,2) | NULLABLE — Tingkat akurasi GPS perangkat (meter) |
+| check_in_device_info | TEXT | NULLABLE — Metadata perangkat / browser |
+| check_in_notes | TEXT | NULLABLE — Catatan presensi masuk |
 | check_out_time | TIME | NULLABLE |
+| check_out_latitude | DECIMAL(10,8) | NULLABLE — Titik koordinat lintang saat check-out |
+| check_out_longitude | DECIMAL(11,8) | NULLABLE — Titik koordinat bujur saat check-out |
+| check_out_distance_meters | DECIMAL(10,2) | NULLABLE — Jarak kalkulasi check-out (meter) |
+| check_out_accuracy_meters | DECIMAL(10,2) | NULLABLE — Tingkat akurasi GPS check-out (meter) |
+| check_out_device_info | TEXT | NULLABLE — Metadata perangkat check-out |
+| check_out_notes | TEXT | NULLABLE — Catatan presensi pulang |
 | status | ENUM('present','sick','permitted','absent') | NOT NULL |
 
 `UNIQUE (employee_id, attendance_date)`.
+
+### 2.10B `attendance_locations`
+*(Fitur "Master Multi-Titik Lokasi Absensi GPS")*
+
+Master titik-titik koordinat resmi per Satuan Pendidikan untuk validasi radius geofencing presensi mandiri pegawai.
+
+| Kolom | Tipe | Constraint |
+|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| satuan_pendidikan_id | BIGINT UNSIGNED | NOT NULL, INDEX — referensi ke Core Service `school_units.id` |
+| name | VARCHAR(150) | NOT NULL — nama titik lokasi (mis. "Kampus Utama", "Area Asrama", "GOR") |
+| latitude | DECIMAL(10,8) | NOT NULL — titik garis lintang |
+| longitude | DECIMAL(11,8) | NOT NULL — titik garis bujur |
+| radius_meters | DECIMAL(10,2) | NOT NULL, DEFAULT 100.00 — radius toleransi (meter) |
+| address | TEXT | NULLABLE — alamat fisik |
+| notes | TEXT | NULLABLE — catatan |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE, INDEX |
+
+### 2.10C `attendance_work_schedules`
+*(Fitur "Pengaturan Jam Kerja & Toleransi Shift")*
+
+Pengaturan jam operasional kedatangan, kepulangan, serta toleransi menit keterlambatan/pulang cepat per hari atau global per unit sekolah.
+
+| Kolom | Tipe | Constraint |
+|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
+| satuan_pendidikan_id | BIGINT UNSIGNED | NOT NULL, INDEX |
+| name | VARCHAR(100) | NOT NULL — nama shift (mis. "Shift Reguler Senin-Kamis", "Shift Jumat") |
+| day_of_week | ENUM('all','monday','tuesday','wednesday','thursday','friday','saturday','sunday') | NOT NULL, DEFAULT 'all', INDEX |
+| start_time | TIME | NOT NULL — jam masuk resmi |
+| end_time | TIME | NOT NULL — jam pulang resmi |
+| late_tolerance_minutes | INT UNSIGNED | NOT NULL, DEFAULT 15 — toleransi menit sebelum dianggap terlambat |
+| early_departure_tolerance_minutes | INT UNSIGNED | NOT NULL, DEFAULT 0 — toleransi menit pulang lebih awal |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE, INDEX |
+| notes | TEXT | NULLABLE |
 
 ### 2.11 `employee_leave_requests`
 *(Fitur "Cuti & izin")*
@@ -344,13 +393,18 @@ Jadi basis perhitungan **DUK Pangkat** (Bagian 0 Keputusan #3) bersama `employee
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT |
 | employee_id | BIGINT UNSIGNED | FK → `employees.id`, NOT NULL |
 | school_unit_id | BIGINT UNSIGNED | NOT NULL |
-| leave_type | VARCHAR(100) | NOT NULL — jenis cuti |
+| leave_type | VARCHAR(100) | NOT NULL — jenis izin/cuti (`sakit`, `izin_pribadi`, `cuti_tahunan`, `cuti_melahirkan`, `cuti_khusus`, `dinas_luar`, `lainnya`) |
 | start_date | DATE | NOT NULL |
 | end_date | DATE | NOT NULL |
-| reason | TEXT | NULLABLE |
+| reason | TEXT | NULLABLE — alasan pengajuan |
+| attachment_url | VARCHAR(255) | NULLABLE — path berkas lampiran / surat dokter |
+| attachment_name | VARCHAR(255) | NULLABLE — nama asli berkas lampiran |
+| attachment_mime_type | VARCHAR(100) | NULLABLE — MIME type dokumen (PDF, JPG, PNG, WEBP) |
+| attachment_size_bytes | BIGINT UNSIGNED | NULLABLE — ukuran berkas dalam byte (maks 5MB) |
 | status | ENUM('pending','approved','rejected') | NOT NULL, DEFAULT 'pending' |
-| approved_by | BIGINT UNSIGNED | NULLABLE — FK → `employees.id` (atasan yang memproses) |
+| approved_by | BIGINT UNSIGNED | NULLABLE — FK → `employees.id` (atasan/HRD yang memproses) |
 | approved_at | TIMESTAMP | NULLABLE |
+| rejection_reason | TEXT | NULLABLE — alasan penolakan jika status ditolak |
 
 ### 2.12 `employee_overtimes`
 *(Fitur "Lembur")*

@@ -389,34 +389,231 @@ Sama seperti `api-contract-coreservice.md` §1.4 — `200`, `201`, `400`, `401`,
 
 ### MODUL 3: KEHADIRAN
 
-#### 3.1 Fitur: Presensi/Absensi Pegawai
+#### 3.1 Fitur: Presensi/Absensi Pegawai & Validasi GPS Server-Side
 
 ##### `GET /api/v1/kepegawaian/attendances`
 - **Aktor:** `hrd` (🏢), `pegawai` (👤)
 - **Status HTTP:** `200 OK`
 - **Query params:** `employee_id`, `school_unit_id`, `date_from`, `date_to`
 
+##### `GET /api/v1/kepegawaian/attendances/today-status`
+- **Aktor:** `pegawai` (👤 - otomatis dari token JWT `ref_id`), `hrd`
+- **Status HTTP:** `200 OK`, `400 Bad Request`, `404 Not Found`
+- **Query params:** `employee_id` (opsional untuk HRD/Admin), `date` (default hari ini `YYYY-MM-DD`)
+- **Deskripsi:** Mengambil status presensi hari ini untuk portal guru, mencakup status check-in/out, jadwal shift aktif, dan daftar titik lokasi absensi resmi kampus beserta radiusnya.
+
+**Response Sukses (`200 OK`):**
+```json
+{
+  "success": true,
+  "data": {
+    "date": "2026-10-06",
+    "day_of_week": "tuesday",
+    "employee": {
+      "id": 1,
+      "employee_number": "PEG-0001",
+      "full_name": "Ahmad Fauzi, S.Pd",
+      "school_unit_id": 1
+    },
+    "has_checked_in": true,
+    "has_checked_out": false,
+    "attendance": {
+      "id": 1,
+      "attendance_date": "2026-10-06",
+      "check_in_time": "07:20:00",
+      "check_out_time": null,
+      "is_within_radius": 1,
+      "is_late": 0,
+      "late_minutes": 0,
+      "is_early_departure": 0,
+      "early_departure_minutes": 0,
+      "matched_location_id": 1,
+      "matched_schedule_id": 1
+    },
+    "schedule": {
+      "id": 1,
+      "name": "Shift Reguler Senin-Kamis",
+      "day_of_week": "all",
+      "start_time": "07:15:00",
+      "end_time": "16:00:00",
+      "late_tolerance_minutes": 20,
+      "early_departure_tolerance_minutes": 0
+    },
+    "locations": [
+      {
+        "id": 1,
+        "name": "Kampus Utama SMA Aldepos",
+        "latitude": "-6.65210000",
+        "longitude": "106.81230000",
+        "radius_meters": "100.00",
+        "address": "Jl. Raya Cijeruk No. 10"
+      }
+    ]
+  },
+  "message": "Status presensi hari ini berhasil diambil",
+  "errors": null
+}
+```
+
 ##### `POST /api/v1/kepegawaian/attendances/check-in`
 - **Aktor:** `pegawai` (👤), `hrd` (untuk input manual)
-- **Status HTTP:** `201 Created`, `409 Conflict` (sudah check-in hari itu)
+- **Status HTTP:** `201 Created`, `409 Conflict` (sudah check-in hari itu), `422 Unprocessable Entity` (koordinat hilang / akurasi GPS > 250m / belum ada master lokasi)
+- **Deskripsi:** Mencatat kehadiran masuk pegawai beserta metadata koordinat GPS riil, jarak ke titik sekolah terdekat, akurasi perangkat, evaluasi keterlambatan server-side terhadap master jadwal kerja, dan catatan luar radius otomatis jika di luar area.
+
+**Request Body:**
+```json
+{
+  "employee_id": 1,
+  "attendance_date": "2026-10-06",
+  "check_in_time": "07:20:00",
+  "check_in_latitude": -6.65215000,
+  "check_in_longitude": 106.81232000,
+  "check_in_accuracy_meters": 12.5,
+  "check_in_device_info": "Samsung Galaxy A54 (Chrome Mobile 128 / Android 14)",
+  "check_in_notes": "Presensi pagi guru"
+}
+```
+*(Catatan: Payload `latitude`, `longitude`, `accuracy_meters`, `device_info`, `notes` tetap didukung sebagai alias backward-compatible).*
+
+**Response Sukses (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "employee_id": 1,
+    "school_unit_id": 1,
+    "attendance_date": "2026-10-06",
+    "check_in_time": "07:20:00",
+    "check_in_latitude": -6.65215,
+    "check_in_longitude": 106.81232,
+    "check_in_distance_meters": 6,
+    "check_in_accuracy_meters": 12.5,
+    "check_in_device_info": "Samsung Galaxy A54 (Chrome Mobile 128 / Android 14)",
+    "check_in_notes": "Presensi pagi guru",
+    "is_within_radius": true,
+    "is_late": false,
+    "late_minutes": 0,
+    "is_early_departure": false,
+    "early_departure_minutes": 0,
+    "matched_location_id": 1,
+    "matched_location_name": "Kampus Utama SMA Aldepos",
+    "matched_schedule_id": 1,
+    "matched_schedule_name": "Shift Reguler Senin-Kamis",
+    "check_out_time": null,
+    "status": "present"
+  },
+  "message": "Presensi masuk (check-in) berhasil dicatat",
+  "errors": null
+}
+```
 
 ##### `PATCH /api/v1/kepegawaian/attendances/:id/check-out`
 - **Aktor:** `pegawai` (👤), `hrd`
-- **Status HTTP:** `200 OK`, `404 Not Found`
+- **Status HTTP:** `200 OK`, `404 Not Found`, `409 Conflict` (sudah check-out sebelumnya), `422 Unprocessable Entity`
+- **Deskripsi:** Memperbarui jam pulang serta mencatat koordinat GPS, jarak, akurasi, dan evaluasi otomatis status pulang cepat (`is_early_departure` & `early_departure_minutes`) server-side.
+
+**Request Body:**
+```json
+{
+  "check_out_time": "16:05:00",
+  "check_out_latitude": -6.65218000,
+  "check_out_longitude": 106.81235000,
+  "check_out_accuracy_meters": 8.0,
+  "check_out_device_info": "Samsung Galaxy A54 (Chrome Mobile 128 / Android 14)",
+  "check_out_notes": "KBM selesai"
+}
+```
 
 ##### `PATCH /api/v1/kepegawaian/attendances/:id`
-- **Aktor:** `hrd`
-- **Status HTTP:** `200 OK`, `404 Not Found`
-- **Deskripsi:** Koreksi manual oleh HRD (mis. status jadi `sick`/`permitted`).
+- **Aktor:** `hrd` (`kepegawaian.attendances.manage`)
+- **Status HTTP:** `200 OK`, `404 Not Found`, `422 Unprocessable Entity`
+- **Deskripsi:** Koreksi manual oleh HRD (mis. status jadi `sick`/`permitted`/`absent` atau koreksi jam).
 
-#### 3.2 Fitur: Cuti & Izin
+#### 3.2 Fitur: Cuti & Izin Pegawai (Self-Service Guru & Verifikasi HRD)
 
-| Method & Path | Aktor | Status HTTP | Deskripsi |
-|---|---|---|---|
-| `GET /leave-requests` | `hrd` (🏢), `atasan` (bawahannya), `pegawai` (👤) | `200` | Daftar pengajuan cuti/izin |
-| `POST /leave-requests` | `pegawai` (👤) | `201`, `422` | Ajukan cuti/izin |
-| `PATCH /leave-requests/:id/approve` | `atasan`, `hrd` | `200`, `404`, `409` (sudah diproses) | Setujui |
-| `PATCH /leave-requests/:id/reject` | `atasan`, `hrd` | `200`, `404`, `409` | Tolak (wajib `reason`) |
+**Daftar Nilai Jenis Izin (`leave_type`) Terdefinisi:**
+- `sakit` (Sakit / Istirahat Medis)
+- `izin_pribadi` (Izin Pribadi / Keperluan Mendesak)
+- `cuti_tahunan` (Cuti Tahunan)
+- `cuti_melahirkan` (Cuti Bersalin / Melahirkan)
+- `cuti_khusus` (Cuti Khusus / Duka Cita / Menikah)
+- `dinas_luar` (Tugas / Perjalanan Dinas Luar Kampus)
+- `lainnya` (Izin Lainnya)
+
+##### `GET /api/v1/kepegawaian/leave-requests`
+- **Aktor:** `hrd` (`kepegawaian.leave_requests.manage`), `atasan`
+- **Status HTTP:** `200 OK`
+- **Query params:** `school_unit_id`, `employee_id`, `status` (`pending`/`approved`/`rejected`), `leave_type`
+- **Deskripsi:** Daftar seluruh pengajuan izin untuk kebutuhan approval HRD.
+
+##### `GET /api/v1/kepegawaian/leave-requests/my`
+- **Aktor:** `pegawai` (👤 - otomatis dari token JWT `ref_id`)
+- **Status HTTP:** `200 OK`, `403 Forbidden` (jika bukan sesi staff)
+- **Query params:** `status`, `leave_type`, `year`
+- **Deskripsi:** Daftar riwayat pengajuan izin milik guru/pegawai yang sedang login di Portal Guru beserta status verifikasi, approver, dan berkas lampiran.
+
+##### `GET /api/v1/kepegawaian/leave-requests/:id/attachment`
+- **Aktor:** `pegawai` (👤 - pemilik pengajuan), `hrd` (`kepegawaian.leave_requests.manage`)
+- **Status HTTP:** `200 OK`, `403 Forbidden` (pegawai lain), `404 Not Found` (tanpa lampiran)
+- **Query params:** `download=true` (untuk mengunduh langsung file fisik), `raw=true`
+- **Deskripsi:** Mengambil info atau mengunduh berkas surat dokter / lampiran izin dengan proteksi hak akses terisolasi.
+
+##### `POST /api/v1/kepegawaian/leave-requests`
+- **Aktor:** `pegawai` (👤), `hrd`
+- **Status HTTP:** `201 Created`, `422 Unprocessable Entity` (leave_type tidak valid, ukuran file > 5MB, format MIME tidak didukung)
+- **Deskripsi:** Mengajukan permohonan cuti/izin baru dengan lampiran berkas opsional. Format file didukung: PDF, JPG, JPEG, PNG, WEBP (maks 5MB).
+
+**Request Body:**
+```json
+{
+  "leave_type": "sakit",
+  "start_date": "2026-10-12",
+  "end_date": "2026-10-14",
+  "reason": "Demam tinggi dan flu berat, istirahat atas rekomendasi dokter",
+  "attachment": {
+    "filename": "surat_keterangan_dokter.pdf",
+    "base64": "data:application/pdf;base64,JVBERi0xLjQK..."
+  }
+}
+```
+
+**Response Sukses (`201 Created`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 10,
+    "employee_id": 1,
+    "school_unit_id": 1,
+    "leave_type": "sakit",
+    "start_date": "2026-10-12",
+    "end_date": "2026-10-14",
+    "reason": "Demam tinggi dan flu berat, istirahat atas rekomendasi dokter",
+    "attachment_url": "/uploads/leave-attachments/izin_1_1791268775290_surat_keterangan_dokter.pdf",
+    "attachment_name": "surat_keterangan_dokter.pdf",
+    "attachment_mime_type": "application/pdf",
+    "attachment_size_bytes": 1048576,
+    "status": "pending",
+    "approved_by": null,
+    "approved_at": null,
+    "rejection_reason": null
+  },
+  "message": "Pengajuan cuti/izin berhasil dikirim",
+  "errors": null
+}
+```
+
+##### `PATCH /api/v1/kepegawaian/leave-requests/:id/approve`
+- **Aktor:** `hrd` (`kepegawaian.leave_requests.manage`), `atasan`
+- **Status HTTP:** `200 OK`, `404 Not Found`, `409 Conflict` (sudah diproses)
+- **Deskripsi:** Menyetujui pengajuan izin/cuti pegawai.
+
+##### `PATCH /api/v1/kepegawaian/leave-requests/:id/reject`
+- **Aktor:** `hrd` (`kepegawaian.leave_requests.manage`), `atasan`
+- **Status HTTP:** `200 OK`, `404 Not Found`, `409 Conflict`, `422 Unprocessable Entity` (alasan wajib diisi)
+- **Request Body:** `{ "rejection_reason": "Surat dokter belum mencantumkan cap basah klinik" }`
+- **Deskripsi:** Menolak pengajuan izin dengan menyertakan alasan penolakan yang jelas.
 
 #### 3.3 Fitur: Lembur
 
@@ -426,6 +623,26 @@ Sama seperti `api-contract-coreservice.md` §1.4 — `200`, `201`, `400`, `401`,
 | `POST /overtimes` | `pegawai` (👤) | `201`, `422` | Catat lembur |
 | `PATCH /overtimes/:id/approve` | `atasan`, `hrd` | `200`, `404`, `409` | Setujui |
 | `PATCH /overtimes/:id/reject` | `atasan`, `hrd` | `200`, `404`, `409` | Tolak |
+
+#### 3.4 Fitur: Master Lokasi Absensi GPS (Multi-Titik)
+
+| Method & Path | Aktor | Status HTTP | Deskripsi |
+|---|---|---|---|
+| `GET /locations` | `pengguna_terautentikasi` | `200` | Daftar titik lokasi absensi (opsional query: `satuan_pendidikan_id`, `is_active`, `search`) |
+| `GET /locations/:id` | `pengguna_terautentikasi` | `200`, `404` | Detail satu titik lokasi absensi |
+| `POST /locations` | `hrd` (`kepegawaian.attendance_locations.manage`) | `201`, `422` | Tambah titik lokasi baru (`satuan_pendidikan_id`, `name`, `latitude`, `longitude`, `radius_meters`, `address`, `notes`, `is_active`) |
+| `PUT /locations/:id` | `hrd` (`kepegawaian.attendance_locations.manage`) | `200`, `404`, `422` | Perbarui titik koordinat / radius lokasi |
+| `DELETE /locations/:id` | `hrd` (`kepegawaian.attendance_locations.manage`) | `200`, `404` | Hapus titik lokasi |
+
+#### 3.5 Fitur: Pengaturan Jam Kerja & Toleransi Shift
+
+| Method & Path | Aktor | Status HTTP | Deskripsi |
+|---|---|---|---|
+| `GET /work-schedules` | `pengguna_terautentikasi` | `200` | Daftar pengaturan jam kerja (opsional query: `satuan_pendidikan_id`, `day_of_week`, `is_active`) |
+| `GET /work-schedules/:id` | `pengguna_terautentikasi` | `200`, `404` | Detail satu pengaturan shift / jam kerja |
+| `POST /work-schedules` | `hrd` (`kepegawaian.work_schedules.manage`) | `201`, `422` | Tambah pengaturan jam kerja (`satuan_pendidikan_id`, `name`, `day_of_week`, `start_time`, `end_time`, `late_tolerance_minutes`, `early_departure_tolerance_minutes`, `is_active`, `notes`) |
+| `PUT /work-schedules/:id` | `hrd` (`kepegawaian.work_schedules.manage`) | `200`, `404`, `422` | Perbarui pengaturan jam kerja / toleransi shift |
+| `DELETE /work-schedules/:id` | `hrd` (`kepegawaian.work_schedules.manage`) | `200`, `404` | Hapus pengaturan shift |
 
 ---
 

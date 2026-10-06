@@ -58,6 +58,7 @@ router.put('/subjects/:id/toggle-status', authenticate, requirePermission('akade
 router.delete('/subjects/:id', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.deleteSubject);
 
 // 7. Pembagian Tugas Mengajar & Ekskul (Multi-Teacher & Audit Logs)
+router.get('/my-teaching-assignments', authenticate, curriculumController.getMyTeachingAssignments);
 router.get('/teaching-duties', authenticate, curriculumController.listTeachingDuties);
 router.post('/teaching-duties', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.assignTeacherDuty);
 router.delete('/teaching-duties/:id', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.removeTeacherDuty);
@@ -71,6 +72,7 @@ router.put('/schedule-presets/:id/activate', authenticate, requirePermission('ak
 router.delete('/schedule-presets/:id', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.deleteSchedulePreset);
 
 // 9. Jadwal Pelajaran (Schedules & Anti-Bentrok & Audit Logs)
+router.get('/my-schedules', authenticate, curriculumController.getMySchedules);
 router.get('/schedules/logs', authenticate, curriculumController.listScheduleLogs);
 router.get('/schedules', authenticate, curriculumController.listSchedules);
 router.post('/schedules', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.createSchedule);
@@ -99,6 +101,14 @@ router.delete('/subject-grade-kkms/:id', authenticate, requirePermission('akadem
 // 12. Struktur Kurikulum (Alokasi JP per Mapel per Jenjang Kelas per Pekan)
 router.get('/curriculum-structures', authenticate, curriculumController.listCurriculumStructures);
 router.post('/curriculum-structures', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.saveCurriculumStructures);
+
+// 13. Jurnal Mengajar Guru (Teaching Journals)
+router.get('/teaching-journals/today-status', authenticate, curriculumController.getTeachingJournalTodayStatus);
+router.get('/teaching-journals', authenticate, curriculumController.listTeachingJournals);
+router.get('/teaching-journals/:id', authenticate, curriculumController.getTeachingJournalById);
+router.post('/teaching-journals', authenticate, curriculumController.createTeachingJournal);
+router.put('/teaching-journals/:id', authenticate, curriculumController.updateTeachingJournal);
+router.delete('/teaching-journals/:id', authenticate, curriculumController.deleteTeachingJournal);
 
 module.exports = router;
 

@@ -17,7 +17,8 @@ import {
   BrainCircuit,
   HelpCircle,
   Sparkles,
-  Tag
+  Tag,
+  MapPin
 } from 'lucide-react';
 
 export default function KepegawaianLayout() {
@@ -71,6 +72,11 @@ export default function KepegawaianLayout() {
       label: 'Presensi / Absensi',
       path: '/kepegawaian/attendance',
       icon: Clock,
+    },
+    {
+      label: 'Pengaturan Absensi',
+      path: '/kepegawaian/attendance-settings',
+      icon: MapPin,
     },
     {
       label: 'Cuti & Lembur',

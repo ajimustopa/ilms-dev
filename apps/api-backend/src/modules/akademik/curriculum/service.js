@@ -1795,6 +1795,175 @@ class CurriculumService {
     return baseQuery.orderBy('created_at', 'desc').limit(query.limit || 150);
   }
 
+  // ==========================================
+  // Jadwal & Penugasan Mengajar Khusus Guru Login (Portal Guru)
+  // ==========================================
+  async getMySchedules(user, query = {}) {
+    let employeeId = null;
+    if (user && user.ref_type === 'staff') {
+      employeeId = user.ref_id;
+    } else if (query.employee_id || query.teacher_employee_id) {
+      employeeId = query.employee_id || query.teacher_employee_id;
+    }
+
+    if (!employeeId) {
+      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const scheduleQuery = {
+      ...query,
+      teacher_employee_id: employeeId
+    };
+
+    const scheduleData = await this.listSchedules(scheduleQuery);
+    const scheduleItems = scheduleData && scheduleData.schedules ? scheduleData.schedules : (Array.isArray(scheduleData) ? scheduleData : []);
+
+    let teacherInfo = null;
+    try {
+      teacherInfo = await employeesService.getEmployeeById(employeeId);
+    } catch (_) {}
+
+    return {
+      teacher: {
+        id: employeeId,
+        full_name: teacherInfo?.full_name || null,
+        employee_number: teacherInfo?.employee_number || null,
+        school_unit_id: teacherInfo?.school_unit_id || null
+      },
+      schedules: scheduleItems
+    };
+  }
+
+  async getMyTeachingAssignments(user, query = {}) {
+    let employeeId = null;
+    if (user && user.ref_type === 'staff') {
+      employeeId = user.ref_id;
+    } else if (query.employee_id || query.teacher_employee_id) {
+      employeeId = query.employee_id || query.teacher_employee_id;
+    }
+
+    if (!employeeId) {
+      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // 1. Penugasan mengajar di rombel dari subject_teacher_assignments
+    let dutiesQuery = db('subject_teacher_assignments')
+      .leftJoin('subjects', 'subject_teacher_assignments.subject_id', 'subjects.id')
+      .leftJoin('extracurriculars', 'subject_teacher_assignments.extracurricular_id', 'extracurriculars.id')
+      .leftJoin('class_groups', 'subject_teacher_assignments.class_group_id', 'class_groups.id')
+      .leftJoin('academic_years', 'subject_teacher_assignments.academic_year_id', 'academic_years.id')
+      .where('subject_teacher_assignments.teacher_employee_id', employeeId)
+      .select(
+        'subject_teacher_assignments.*',
+        'subjects.name as subject_name',
+        'subjects.code as subject_code',
+        'extracurriculars.name as extracurricular_name',
+        'class_groups.name as class_group_name',
+        'class_groups.grade_level_id as class_group_grade_level_id',
+        'academic_years.name as academic_year_name'
+      );
+
+    if (query.satuan_pendidikan_id) {
+      dutiesQuery = dutiesQuery.where('subject_teacher_assignments.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.academic_year_id) {
+      dutiesQuery = dutiesQuery.where('subject_teacher_assignments.academic_year_id', query.academic_year_id);
+    }
+
+    const assignments = await dutiesQuery.orderBy('class_groups.name', 'asc');
+
+    // 2. Data Rombel di mana guru ini adalah Wali Kelas (homeroom_teacher_employee_id)
+    let homeroomQuery = db('class_groups')
+      .leftJoin('academic_years', 'class_groups.academic_year_id', 'academic_years.id')
+      .leftJoin('grade_levels', 'class_groups.grade_level_id', 'grade_levels.id')
+      .where('class_groups.homeroom_teacher_employee_id', employeeId)
+      .select(
+        'class_groups.*',
+        'academic_years.name as academic_year_name',
+        'grade_levels.name as grade_level_name'
+      );
+
+    if (query.satuan_pendidikan_id) {
+      homeroomQuery = homeroomQuery.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.academic_year_id) {
+      homeroomQuery = homeroomQuery.where('class_groups.academic_year_id', query.academic_year_id);
+    }
+
+    const homeroomClassGroups = await homeroomQuery.orderBy('class_groups.name', 'asc');
+    const homeroomClassGroupIds = new Set(homeroomClassGroups.map(c => Number(c.id)));
+
+    // 3. Format penugasan dan tambahkan penanda is_homeroom_for_this_class
+    const formattedAssignments = assignments.map(a => ({
+      ...a,
+      is_homeroom_for_this_class: a.class_group_id ? homeroomClassGroupIds.has(Number(a.class_group_id)) : false
+    }));
+
+    // 4. Buat agregasi ringkas kelas-kelas yang diampu guru beserta mapelnya
+    const classMap = {};
+    for (const a of assignments) {
+      if (a.class_group_id) {
+        if (!classMap[a.class_group_id]) {
+          classMap[a.class_group_id] = {
+            id: a.class_group_id,
+            name: a.class_group_name,
+            grade_level_id: a.class_group_grade_level_id,
+            satuan_pendidikan_id: a.satuan_pendidikan_id,
+            academic_year_id: a.academic_year_id,
+            is_homeroom: homeroomClassGroupIds.has(Number(a.class_group_id)),
+            subjects: []
+          };
+        }
+        if (a.subject_id && !classMap[a.class_group_id].subjects.some(s => s.id === a.subject_id)) {
+          classMap[a.class_group_id].subjects.push({
+            id: a.subject_id,
+            name: a.subject_name,
+            code: a.subject_code,
+            allocated_hours: a.allocated_hours
+          });
+        }
+      }
+    }
+
+    for (const hcg of homeroomClassGroups) {
+      if (!classMap[hcg.id]) {
+        classMap[hcg.id] = {
+          id: hcg.id,
+          name: hcg.name,
+          grade_level_id: hcg.grade_level_id,
+          satuan_pendidikan_id: hcg.satuan_pendidikan_id,
+          academic_year_id: hcg.academic_year_id,
+          is_homeroom: true,
+          subjects: []
+        };
+      }
+    }
+
+    const classesList = Object.values(classMap).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    let teacherInfo = null;
+    try {
+      teacherInfo = await employeesService.getEmployeeById(employeeId);
+    } catch (_) {}
+
+    return {
+      teacher: {
+        id: employeeId,
+        full_name: teacherInfo?.full_name || null,
+        employee_number: teacherInfo?.employee_number || null,
+        school_unit_id: teacherInfo?.school_unit_id || null
+      },
+      is_homeroom_teacher: homeroomClassGroups.length > 0,
+      homeroom_class_groups: homeroomClassGroups,
+      teaching_assignments: formattedAssignments,
+      classes: classesList
+    };
+  }
+
   async listSchedules(query = {}) {
     // Pastikan preset tersedia untuk satuan pendidikan dan tahun ajaran
     let activePreset = null;
@@ -1860,8 +2029,25 @@ class CurriculumService {
     if (targetPresetId) {
       baseQuery = baseQuery.where('subject_schedules.preset_id', targetPresetId);
     }
-    if (query.day_of_week) {
-      baseQuery = baseQuery.where('subject_schedules.day_of_week', query.day_of_week);
+    if (query.teacher_employee_id || query.teacher_id || query.employee_id) {
+      const teacherId = query.teacher_employee_id || query.teacher_id || query.employee_id;
+      baseQuery = baseQuery.where('subject_schedules.teacher_employee_id', teacherId);
+    }
+    if (query.day_of_week !== undefined && query.day_of_week !== null && query.day_of_week !== '') {
+      const dayStr = String(query.day_of_week).toLowerCase().trim();
+      const dayMap = {
+        'monday': 1, 'senin': 1,
+        'tuesday': 2, 'selasa': 2,
+        'wednesday': 3, 'rabu': 3,
+        'thursday': 4, 'kamis': 4,
+        'friday': 5, 'jumat': 5,
+        'saturday': 6, 'sabtu': 6,
+        'sunday': 7, 'ahad': 7, 'minggu': 7
+      };
+      const dayVal = dayMap[dayStr] !== undefined ? dayMap[dayStr] : parseInt(dayStr, 10);
+      if (!isNaN(dayVal)) {
+        baseQuery = baseQuery.where('subject_schedules.day_of_week', dayVal);
+      }
     }
     if (query.schedule_type) {
       baseQuery = baseQuery.where('subject_schedules.schedule_type', query.schedule_type);
@@ -1920,10 +2106,15 @@ class CurriculumService {
       const assigned_classes = classGroupMap[r.id] || [];
       const class_group_names = assigned_classes.map(c => c.name).join(', ');
 
+      const dayNamesEn = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday', 7: 'sunday' };
+      const dayNamesId = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu', 7: 'Ahad' };
+
       enriched.push({
         ...r,
         teacher_name,
         teacher_nip,
+        day_name: dayNamesEn[r.day_of_week] || String(r.day_of_week),
+        day_label_id: dayNamesId[r.day_of_week] || String(r.day_of_week),
         class_groups: assigned_classes,
         class_group_names: class_group_names || '-'
       });
@@ -2947,8 +3138,353 @@ class CurriculumService {
       count: results.length
     };
   }
+
+  // ==========================================
+  // 13. Jurnal Mengajar Guru (Teaching Journals)
+  // ==========================================
+  async listTeachingJournals(query = {}, user = null) {
+    let baseQuery = db('teaching_journals')
+      .join('subject_schedules', 'teaching_journals.schedule_id', 'subject_schedules.id')
+      .leftJoin('subjects', 'subject_schedules.subject_id', 'subjects.id')
+      .leftJoin('extracurriculars', 'subject_schedules.extracurricular_id', 'extracurriculars.id')
+      .leftJoin('learning_objectives', 'teaching_journals.learning_objective_id', 'learning_objectives.id')
+      .leftJoin('academic_years', 'subject_schedules.academic_year_id', 'academic_years.id')
+      .select(
+        'teaching_journals.*',
+        'subject_schedules.satuan_pendidikan_id',
+        'subject_schedules.academic_year_id',
+        'subject_schedules.day_of_week',
+        'subject_schedules.start_time',
+        'subject_schedules.end_time',
+        'subject_schedules.room_name',
+        'subject_schedules.schedule_type',
+        'subjects.name as subject_name',
+        'subjects.code as subject_code',
+        'extracurriculars.name as extracurricular_name',
+        'learning_objectives.code as learning_objective_code',
+        'learning_objectives.description as learning_objective_description',
+        'academic_years.name as academic_year_name'
+      );
+
+    // Filter guru: jika guru login dan bukan admin, batasi jurnal miliknya
+    if (query.teacher_employee_id) {
+      baseQuery = baseQuery.where('teaching_journals.teacher_employee_id', query.teacher_employee_id);
+    } else if (user && user.ref_type === 'staff' && !user.is_admin && !user.permissions?.includes('akademik.curriculum.manage')) {
+      baseQuery = baseQuery.where('teaching_journals.teacher_employee_id', user.ref_id);
+    }
+
+    if (query.schedule_id) {
+      baseQuery = baseQuery.where('teaching_journals.schedule_id', query.schedule_id);
+    }
+    if (query.satuan_pendidikan_id) {
+      baseQuery = baseQuery.where('subject_schedules.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+    if (query.academic_year_id) {
+      baseQuery = baseQuery.where('subject_schedules.academic_year_id', query.academic_year_id);
+    }
+    if (query.date || query.teaching_date) {
+      baseQuery = baseQuery.where('teaching_journals.teaching_date', query.date || query.teaching_date);
+    }
+    if (query.start_date && query.end_date) {
+      baseQuery = baseQuery.whereBetween('teaching_journals.teaching_date', [query.start_date, query.end_date]);
+    }
+
+    const rows = await baseQuery.orderBy('teaching_journals.teaching_date', 'desc').orderBy('subject_schedules.start_time', 'asc');
+
+    // Ambil rombel yang berelasi untuk setiap schedule_id
+    const scheduleIds = [...new Set(rows.map(r => r.schedule_id))];
+    let classGroupMap = {};
+    if (scheduleIds.length > 0) {
+      const relRows = await db('subject_schedule_class_groups')
+        .join('class_groups', 'subject_schedule_class_groups.class_group_id', 'class_groups.id')
+        .whereIn('subject_schedule_class_groups.schedule_id', scheduleIds)
+        .select(
+          'subject_schedule_class_groups.schedule_id',
+          'class_groups.id as class_group_id',
+          'class_groups.name as class_group_name'
+        );
+
+      relRows.forEach(rel => {
+        if (!classGroupMap[rel.schedule_id]) classGroupMap[rel.schedule_id] = [];
+        classGroupMap[rel.schedule_id].push({
+          id: rel.class_group_id,
+          name: rel.class_group_name
+        });
+      });
+    }
+
+    const dayNamesEn = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday', 7: 'sunday' };
+    const dayNamesId = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu', 7: 'Ahad' };
+
+    const enriched = [];
+    for (const r of rows) {
+      let teacher_name = null;
+      if (r.teacher_employee_id) {
+        try {
+          const emp = await employeesService.getEmployeeById(r.teacher_employee_id);
+          teacher_name = emp?.full_name || null;
+        } catch (_) {}
+      }
+
+      const assignedClasses = classGroupMap[r.schedule_id] || [];
+      enriched.push({
+        ...r,
+        teacher_name,
+        day_name: dayNamesEn[r.day_of_week] || String(r.day_of_week),
+        day_label_id: dayNamesId[r.day_of_week] || String(r.day_of_week),
+        class_groups: assignedClasses,
+        class_group_names: assignedClasses.map(c => c.name).join(', ') || '-'
+      });
+    }
+
+    return enriched;
+  }
+
+  async getTeachingJournalById(id, user = null) {
+    const journal = await db('teaching_journals')
+      .join('subject_schedules', 'teaching_journals.schedule_id', 'subject_schedules.id')
+      .leftJoin('subjects', 'subject_schedules.subject_id', 'subjects.id')
+      .leftJoin('extracurriculars', 'subject_schedules.extracurricular_id', 'extracurriculars.id')
+      .leftJoin('learning_objectives', 'teaching_journals.learning_objective_id', 'learning_objectives.id')
+      .where('teaching_journals.id', id)
+      .select(
+        'teaching_journals.*',
+        'subject_schedules.satuan_pendidikan_id',
+        'subject_schedules.academic_year_id',
+        'subject_schedules.day_of_week',
+        'subject_schedules.start_time',
+        'subject_schedules.end_time',
+        'subject_schedules.room_name',
+        'subject_schedules.schedule_type',
+        'subjects.name as subject_name',
+        'subjects.code as subject_code',
+        'extracurriculars.name as extracurricular_name',
+        'learning_objectives.code as learning_objective_code',
+        'learning_objectives.description as learning_objective_description'
+      )
+      .first();
+
+    if (!journal) {
+      const error = new Error('Jurnal mengajar tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const relRows = await db('subject_schedule_class_groups')
+      .join('class_groups', 'subject_schedule_class_groups.class_group_id', 'class_groups.id')
+      .where('subject_schedule_class_groups.schedule_id', journal.schedule_id)
+      .select('class_groups.id as class_group_id', 'class_groups.name as class_group_name');
+
+    let teacher_name = null;
+    if (journal.teacher_employee_id) {
+      try {
+        const emp = await employeesService.getEmployeeById(journal.teacher_employee_id);
+        teacher_name = emp?.full_name || null;
+      } catch (_) {}
+    }
+
+    return {
+      ...journal,
+      teacher_name,
+      class_groups: relRows.map(r => ({ id: r.class_group_id, name: r.class_group_name })),
+      class_group_names: relRows.map(r => r.class_group_name).join(', ') || '-'
+    };
+  }
+
+  async getTeachingJournalTodayStatus(user, query = {}) {
+    let employeeId = query.employee_id || query.teacher_employee_id;
+    if (!employeeId && user && user.ref_type === 'staff') {
+      employeeId = user.ref_id;
+    }
+
+    if (!employeeId) {
+      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const todayStr = query.date || new Date().toISOString().split('T')[0];
+    const dateObj = new Date(`${todayStr}T00:00:00`);
+    const dayOfWeekJs = dateObj.getDay(); // 0 = Sunday, 1 = Monday, ...
+    // Petakan ke 1 = Monday ... 7 = Sunday
+    const dayOfWeekDb = dayOfWeekJs === 0 ? 7 : dayOfWeekJs;
+
+    const mySchedulesData = await this.getMySchedules({ ref_type: 'staff', ref_id: employeeId }, {
+      day_of_week: dayOfWeekDb,
+      satuan_pendidikan_id: query.satuan_pendidikan_id,
+      academic_year_id: query.academic_year_id
+    });
+
+    const schedules = mySchedulesData.schedules || [];
+    const scheduleIds = schedules.map(s => s.id);
+
+    let journalsMap = {};
+    if (scheduleIds.length > 0) {
+      const existingJournals = await db('teaching_journals')
+        .whereIn('schedule_id', scheduleIds)
+        .where('teaching_date', todayStr);
+
+      existingJournals.forEach(j => {
+        journalsMap[j.schedule_id] = j;
+      });
+    }
+
+    let filledCount = 0;
+    const scheduleStatuses = schedules.map(s => {
+      const journal = journalsMap[s.id] || null;
+      if (journal) filledCount++;
+      return {
+        ...s,
+        has_journal_filled: !!journal,
+        journal: journal ? {
+          id: journal.id,
+          meeting_number: journal.meeting_number,
+          topic_material: journal.topic_material,
+          learning_objective_id: journal.learning_objective_id,
+          general_notes: journal.general_notes,
+          created_at: journal.created_at,
+          updated_at: journal.updated_at
+        } : null
+      };
+    });
+
+    return {
+      date: todayStr,
+      day_of_week: dayOfWeekDb,
+      teacher: mySchedulesData.teacher,
+      total_schedules: schedules.length,
+      filled_count: filledCount,
+      pending_count: schedules.length - filledCount,
+      schedules: scheduleStatuses
+    };
+  }
+
+  async createTeachingJournal(payload, user = null) {
+    const {
+      schedule_id,
+      teaching_date,
+      meeting_number,
+      topic_material,
+      learning_objective_id,
+      general_notes
+    } = payload;
+
+    if (!schedule_id || !teaching_date || !topic_material) {
+      const error = new Error('Field schedule_id, teaching_date, dan topic_material wajib diisi');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const schedule = await db('subject_schedules').where({ id: schedule_id }).first();
+    if (!schedule) {
+      const error = new Error('Jadwal pelajaran tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Cek hak akses: hanya guru pengampu jadwal atau admin kurikulum
+    const isOwner = user && user.ref_type === 'staff' && parseInt(user.ref_id, 10) === parseInt(schedule.teacher_employee_id, 10);
+    const isAdmin = user && (
+      user.is_admin ||
+      user.role === 'admin_yayasan' ||
+      user.permissions?.includes('akademik.curriculum.manage') ||
+      user.permissions?.includes('superadmin')
+    );
+
+    if (!isOwner && !isAdmin) {
+      const error = new Error('Anda hanya dapat mengisi jurnal mengajar untuk jadwal yang Anda ampu');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // Cek keunikan satu jurnal per jadwal per tanggal
+    const existing = await db('teaching_journals')
+      .where({ schedule_id, teaching_date })
+      .first();
+
+    if (existing) {
+      const error = new Error(`Jurnal mengajar untuk jadwal ini pada tanggal ${teaching_date} sudah pernah diisi`);
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const teacherEmployeeId = schedule.teacher_employee_id || (user?.ref_type === 'staff' ? user.ref_id : 1);
+
+    const [id] = await db('teaching_journals').insert({
+      schedule_id,
+      teaching_date,
+      meeting_number: meeting_number !== undefined && meeting_number !== null ? parseInt(meeting_number, 10) : 1,
+      topic_material: topic_material.trim(),
+      learning_objective_id: learning_objective_id || null,
+      general_notes: general_notes || null,
+      teacher_employee_id: teacherEmployeeId,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
+    });
+
+    return this.getTeachingJournalById(id, user);
+  }
+
+  async updateTeachingJournal(id, payload, user = null) {
+    const journal = await db('teaching_journals').where({ id }).first();
+    if (!journal) {
+      const error = new Error('Jurnal mengajar tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isOwner = user && user.ref_type === 'staff' && parseInt(user.ref_id, 10) === parseInt(journal.teacher_employee_id, 10);
+    const isAdmin = user && (
+      user.is_admin ||
+      user.role === 'admin_yayasan' ||
+      user.permissions?.includes('akademik.curriculum.manage') ||
+      user.permissions?.includes('superadmin')
+    );
+
+    if (!isOwner && !isAdmin) {
+      const error = new Error('Anda tidak memiliki hak akses untuk mengubah jurnal mengajar ini');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const updateData = { updated_at: db.fn.now() };
+    if (payload.meeting_number !== undefined) updateData.meeting_number = parseInt(payload.meeting_number, 10);
+    if (payload.topic_material !== undefined) updateData.topic_material = payload.topic_material.trim();
+    if (payload.learning_objective_id !== undefined) updateData.learning_objective_id = payload.learning_objective_id || null;
+    if (payload.general_notes !== undefined) updateData.general_notes = payload.general_notes;
+
+    await db('teaching_journals').where({ id }).update(updateData);
+    return this.getTeachingJournalById(id, user);
+  }
+
+  async deleteTeachingJournal(id, user = null) {
+    const journal = await db('teaching_journals').where({ id }).first();
+    if (!journal) {
+      const error = new Error('Jurnal mengajar tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isOwner = user && user.ref_type === 'staff' && parseInt(user.ref_id, 10) === parseInt(journal.teacher_employee_id, 10);
+    const isAdmin = user && (
+      user.is_admin ||
+      user.role === 'admin_yayasan' ||
+      user.permissions?.includes('akademik.curriculum.manage') ||
+      user.permissions?.includes('superadmin')
+    );
+
+    if (!isOwner && !isAdmin) {
+      const error = new Error('Anda tidak memiliki hak akses untuk menghapus jurnal mengajar ini');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    await db('teaching_journals').where({ id }).del();
+    return { id, message: 'Jurnal mengajar berhasil dihapus' };
+  }
 }
 
 module.exports = new CurriculumService();
+
 
 

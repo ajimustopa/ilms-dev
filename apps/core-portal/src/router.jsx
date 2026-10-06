@@ -207,6 +207,14 @@ export const router = createBrowserRouter([
             element: lazyLoad(() => import('./apps/kepegawaian/pages/Presensi')),
           },
           {
+            path: 'attendance-settings',
+            element: lazyLoad(() => import('./apps/kepegawaian/pages/PengaturanAbsensi')),
+          },
+          {
+            path: 'pengaturan-absensi',
+            element: lazyLoad(() => import('./apps/kepegawaian/pages/PengaturanAbsensi')),
+          },
+          {
             path: 'leaves-overtimes',
             element: lazyLoad(() => import('./apps/kepegawaian/pages/CutiLembur')),
           },
@@ -1107,6 +1115,10 @@ export const router = createBrowserRouter([
   {
     path: '/guru/login',
     element: lazyLoad(() => import('./apps/guru/pages/Login')),
+  },
+  {
+    path: '/guru/_design',
+    element: lazyLoad(() => import('./apps/guru/pages/DesignTokensPreview')),
   },
   {
     path: '/guru',

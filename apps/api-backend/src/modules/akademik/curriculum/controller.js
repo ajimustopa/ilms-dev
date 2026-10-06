@@ -641,6 +641,29 @@ class CurriculumController {
         message: 'Riwayat perubahan jadwal berhasil dimuat',
         errors: null
       });
+  async getMySchedules(req, res, next) {
+    try {
+      const data = await curriculumService.getMySchedules(req.user, req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Jadwal mengajar guru berhasil dimuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyTeachingAssignments(req, res, next) {
+    try {
+      const data = await curriculumService.getMyTeachingAssignments(req.user, req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar penugasan mengajar dan rombel perwalian guru berhasil dimuat',
+        errors: null
+      });
     } catch (err) {
       next(err);
     }
@@ -881,6 +904,91 @@ class CurriculumController {
   async saveCurriculumStructures(req, res, next) {
     try {
       const data = await curriculumService.saveCurriculumStructures(req.body);
+      res.status(200).json({
+        success: true,
+        data,
+        message: data.message,
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // 13. Jurnal Mengajar Guru (Teaching Journals)
+  async listTeachingJournals(req, res, next) {
+    try {
+      const data = await curriculumService.listTeachingJournals(req.query, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Daftar jurnal mengajar berhasil dimuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getTeachingJournalTodayStatus(req, res, next) {
+    try {
+      const data = await curriculumService.getTeachingJournalTodayStatus(req.user, req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Status pengisian jurnal mengajar hari ini berhasil dimuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getTeachingJournalById(req, res, next) {
+    try {
+      const data = await curriculumService.getTeachingJournalById(req.params.id, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Detail jurnal mengajar berhasil dimuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createTeachingJournal(req, res, next) {
+    try {
+      const data = await curriculumService.createTeachingJournal(req.body, req.user);
+      res.status(201).json({
+        success: true,
+        data,
+        message: 'Jurnal mengajar berhasil disimpan',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateTeachingJournal(req, res, next) {
+    try {
+      const data = await curriculumService.updateTeachingJournal(req.params.id, req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Jurnal mengajar berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteTeachingJournal(req, res, next) {
+    try {
+      const data = await curriculumService.deleteTeachingJournal(req.params.id, req.user);
       res.status(200).json({
         success: true,
         data,

@@ -358,7 +358,7 @@ Sama seperti `api-contract-coreservice.md` §1.4 (`200`, `201`, `400`, `401`, `4
 }
 ```
 
-### 3.2 Kurikulum
+### 3.2 Kurikulum & Jadwal Pembelajaran
 
 | Method | Path | Deskripsi | Auth |
 |---|---|---|---|
@@ -372,7 +372,110 @@ Sama seperti `api-contract-coreservice.md` §1.4 (`200`, `201`, `400`, `401`, `4
 | `POST` | `/enrollments` | Tempatkan siswa ke rombel | JWT (Admin/TU) |
 | `POST` | `/enrollments/promote` | Proses kenaikan kelas massal (input: daftar `student_id` + `class_group_id` tujuan) | JWT (Admin) |
 | `GET` / `POST` | `/subjects` | List/buat mata pelajaran, filter `satuan_pendidikan_id`, `grade_level_id` | JWT (Admin) |
-| `GET` / `POST` | `/teaching-assignments` | List/buat jadwal ajar, filter `class_group_id`, `teacher_employee_id` | JWT (Admin) |
+| `GET` | `/teaching-duties` | List pembagian tugas mengajar guru & ekskul (filter `satuan_pendidikan_id`, `academic_year_id`, `class_group_id`) | JWT |
+| `POST` | `/teaching-duties` | Tetapkan pembagian tugas mengajar | JWT (Admin) |
+| `GET` | `/my-teaching-assignments` | **Endpoint Guru:** Daftar penugasan mengajar & rombel perwalian wali kelas guru yang login | JWT (Guru) |
+| `GET` | `/schedules` | List jadwal KBM sekolah (filter `satuan_pendidikan_id`, `academic_year_id`, `preset_id`, `day_of_week`, `teacher_employee_id`, `class_group_id`) | JWT |
+| `GET` | `/my-schedules` | **Endpoint Guru:** Jadwal mengajar guru yang login (diambil dari token `ref_id`, filter `satuan_pendidikan_id`, `academic_year_id`, `day_of_week`) | JWT (Guru) |
+| `GET` | `/teaching-journals` | List jurnal mengajar (filter `schedule_id`, `teacher_employee_id`, `start_date`, `end_date`, `academic_year_id`) | JWT (Guru/Admin) |
+| `GET` | `/teaching-journals/today-status` | **Endpoint Guru:** Status pengisian jurnal hari ini untuk seluruh jadwal aktif guru yang login | JWT (Guru) |
+| `GET` | `/teaching-journals/:id` | Detail jurnal mengajar (termasuk data jadwal, rombel, & tujuan pembelajaran) | JWT (Guru/Admin) |
+| `POST` | `/teaching-journals` | Buat jurnal mengajar KBM (validasi kepemilikan jadwal & unique schedule_id + date) | JWT (Guru/Admin) |
+| `PUT` | `/teaching-journals/:id` | Perbarui materi/catatan/tujuan pembelajaran jurnal mengajar | JWT (Guru/Admin) |
+| `DELETE` | `/teaching-journals/:id` | Hapus jurnal mengajar | JWT (Guru/Admin) |
+
+#### 3.2.1 Contoh Response `GET /my-schedules`
+```json
+{
+  "success": true,
+  "data": {
+    "teacher": {
+      "id": 1,
+      "full_name": "Ahmad Fauzi, S.Pd",
+      "employee_number": "PEG-0001",
+      "school_unit_id": 1
+    },
+    "schedules": [
+      {
+        "id": 15,
+        "satuan_pendidikan_id": 1,
+        "academic_year_id": 1,
+        "preset_id": 1,
+        "subject_id": 2,
+        "subject_name": "Matematika",
+        "subject_code": "MAT-7",
+        "teacher_employee_id": 1,
+        "teacher_name": "Ahmad Fauzi, S.Pd",
+        "day_of_week": 1,
+        "day_name": "monday",
+        "day_label_id": "Senin",
+        "start_time": "07:30:00",
+        "end_time": "09:00:00",
+        "room_name": "Ruang Kelas 7A",
+        "schedule_type": "subject",
+        "class_groups": [
+          { "id": 5, "name": "Kelas 7A", "type": "regular" }
+        ],
+        "class_group_names": "Kelas 7A"
+      }
+    ]
+  },
+  "message": "Jadwal mengajar guru berhasil dimuat",
+  "errors": null
+}
+```
+
+#### 3.2.2 Contoh Response `GET /my-teaching-assignments`
+```json
+{
+  "success": true,
+  "data": {
+    "teacher": {
+      "id": 1,
+      "full_name": "Ahmad Fauzi, S.Pd",
+      "employee_number": "PEG-0001",
+      "school_unit_id": 1
+    },
+    "is_homeroom_teacher": true,
+    "homeroom_class_groups": [
+      {
+        "id": 5,
+        "name": "Kelas 7A",
+        "satuan_pendidikan_id": 1,
+        "academic_year_id": 1,
+        "grade_level_id": 1
+      }
+    ],
+    "teaching_assignments": [
+      {
+        "id": 10,
+        "subject_id": 2,
+        "subject_name": "Matematika",
+        "subject_code": "MAT-7",
+        "class_group_id": 5,
+        "class_group_name": "Kelas 7A",
+        "allocated_hours": 4,
+        "is_homeroom_for_this_class": true
+      }
+    ],
+    "classes": [
+      {
+        "id": 5,
+        "name": "Kelas 7A",
+        "grade_level_id": 1,
+        "satuan_pendidikan_id": 1,
+        "academic_year_id": 1,
+        "is_homeroom": true,
+        "subjects": [
+          { "id": 2, "name": "Matematika", "code": "MAT-7", "allocated_hours": 4 }
+        ]
+      }
+    ]
+  },
+  "message": "Daftar penugasan mengajar dan rombel perwalian guru berhasil dimuat",
+  "errors": null
+}
+```
 
 ### 3.3 Penilaian
 
@@ -480,6 +583,7 @@ Mengikuti standar global `ARSITEKTUR-SISTEM.md` §4:
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-10-06 | Penambahan endpoint kurikulum KBM Portal Guru: `/my-schedules`, `/my-teaching-assignments`, dan manajemen Jurnal Mengajar (`/teaching-journals` CRUD & `/teaching-journals/today-status`). |
 | 2026-08-19 | Redesain & perluasan skema Data Induk Siswa standar Dapodik: penambahan field pribadi komprehensif, relasi tabel 1:1 `student_addresses`, `student_physical_data`, `student_admissions`, `student_document_checklists`, endpoint derived `GET /students/:id/report-card-completeness`, serta spesifikasi perlindungan & masking PII (NIK, No. KK, penghasilan). |
 | 2026-08-17 | Draf awal, mencakup endpoint untuk 29 dari 36 fitur di `rancangan-akademik.md` §4. |
 

@@ -54,6 +54,7 @@ referensi di deskripsi tiap tabel, bukan jadi nama kolom.
 | Kurikulum | `student_class_enrollments` | **Ya** |
 | Kurikulum | `subjects` (mata pelajaran) | **Ya** |
 | Kurikulum | `teaching_assignments` (jadwal ajar) | **Ya** |
+| Kurikulum | `teaching_journals` (jurnal mengajar guru) | **Ya** (lewat `subject_schedules`) |
 | Penilaian & Rapor | `student_scores` | **Ya** (lewat `class_groups`) |
 | Penilaian & Rapor | `student_attitude_scores` | **Ya** |
 | Penilaian & Rapor | `report_cards` | **Ya** |
@@ -311,6 +312,21 @@ siswa per tahun ajaran.
 | `class_group_id` | BIGINT UNSIGNED FK → `class_groups.id` | |
 | `day_of_week` | TINYINT NULLABLE | 1=Senin..7=Minggu |
 | `period` | VARCHAR(20) NULLABLE | jam ke berapa |
+
+### 2.11B `teaching_journals` (jurnal mengajar harian guru)
+*(Fitur "Jurnal Mengajar & Log KBM Harian Guru")* Menyimpan catatan materi, pertemuan ke-N, dan rujukan tujuan pembelajaran yang diajarkan guru per jadwal per tanggal.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | BIGINT UNSIGNED PK | |
+| `schedule_id` | BIGINT UNSIGNED FK → `subject_schedules.id` | CASCADE on delete |
+| `teaching_date` | DATE | Tanggal pelaksanaan KBM |
+| `meeting_number` | INT UNSIGNED | Pertemuan tatap muka ke-N |
+| `topic_material` | TEXT | Materi pokok / topik pembelajaran |
+| `learning_objective_id` | BIGINT UNSIGNED NULLABLE FK → `learning_objectives.id` | SET NULL on delete. Rujukan TP |
+| `general_notes` | TEXT NULLABLE | Catatan umum jalannya KBM / hambatan kelas |
+| `teacher_employee_id` | BIGINT UNSIGNED | ID pegawai guru pengampu (Kepegawaian) |
+| *Constraint* | `UNIQUE(schedule_id, teaching_date)` | Mencegah duplikasi jurnal pada jadwal & tanggal yang sama |
 
 ### 2.12 `student_scores`
 *(Fitur "Input nilai harian/tugas", "Input nilai UTS/UAS", "Kalkulasi nilai akhir")*
