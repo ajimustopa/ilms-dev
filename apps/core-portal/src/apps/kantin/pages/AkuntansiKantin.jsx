@@ -722,6 +722,11 @@ export default function AkuntansiKantin() {
               <span className="font-mono font-bold text-slate-900">{formatCurrency(financialStatements?.statement_of_equity?.opening_capital || 0)}</span>
             </div>
 
+            <div className="flex justify-between py-2 border-b border-slate-100 text-indigo-700">
+              <span>(+) Setoran Modal Awal / Tambahan Modal Kerja (BKM)</span>
+              <span className="font-mono font-bold">{formatCurrency(financialStatements?.statement_of_equity?.additional_investment || 0)}</span>
+            </div>
+
             <div className="flex justify-between py-2 border-b border-slate-100 text-emerald-700">
               <span>(+) Laba Bersih Periode Berjalan</span>
               <span className="font-mono font-bold">{formatCurrency(financialStatements?.statement_of_equity?.net_income || 0)}</span>

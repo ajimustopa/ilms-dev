@@ -73,8 +73,10 @@ import {
   FileDown,
   FileCheck,
   Zap,
-  Save,
-  UploadCloud
+  RotateCcw,
+  Undo2,
+  Trash2,
+  Settings
 } from 'lucide-react';
 
 export function terbilang(nominal) {
@@ -760,6 +762,47 @@ export default function RegistrationBilling() {
   const [loadingIndividualLedger, setLoadingIndividualLedger] = useState(false);
   const [candidateSearchQuery, setCandidateSearchQuery] = useState('');
 
+  // ============================================================
+  // TAB 6: PENGEMBALIAN DANA (REFUND CALON SANTRI MUNDUR) STATES
+  // ============================================================
+  const [refundSubTab, setRefundSubTab] = useState('requests'); // 'requests' | 'rules'
+  const [refundFilterStatus, setRefundFilterStatus] = useState('all'); // 'all' | 'requested' | 'approved' | 'processed' | 'rejected' | 'eligible'
+  const [refundSearch, setRefundSearch] = useState('');
+  const [refundRules, setRefundRules] = useState([]);
+  const [loadingRefundRules, setLoadingRefundRules] = useState(false);
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+
+  // Modals for Refund
+  const [refundRequestModal, setRefundRequestModal] = useState({
+    isOpen: false,
+    bill: null,
+    bankAccountNo: '',
+    bankAccountHolder: '',
+    reason: ''
+  });
+  const [refundProcessModal, setRefundProcessModal] = useState({
+    isOpen: false,
+    bill: null,
+    cashAccountId: '',
+    deductionPct: 0,
+    netRefund: 0,
+    ruleApplied: null
+  });
+  const [refundRejectModal, setRefundRejectModal] = useState({
+    isOpen: false,
+    bill: null,
+    reason: ''
+  });
+  const [refundRuleModal, setRefundRuleModal] = useState({
+    isOpen: false,
+    rule: null,
+    feeComponent: 'enrollment_fee',
+    cutoffDate: '',
+    deductionPct: 0,
+    description: '',
+    isActive: true
+  });
+
   // Navigasi ke halaman Skema Biaya dengan konteks Tahun Ajaran Sasaran yang sama
   const handleNavigateToFeeSchemes = () => {
     try {
@@ -871,8 +914,24 @@ export default function RegistrationBilling() {
           fetchIndividualLedger(candId);
         }
       }
+    } else if (activeMainTab === 'refunds') {
+      fetchBillsHistory();
+      fetchRefundRules();
     }
-  }, [selectedTargetAyId, activeMainTab, billsSubTab, paymentsSubTab, ledgerSubTab, selectedCandidateIdForLedger, refreshTrigger, activeSchoolUnit]);
+  }, [selectedTargetAyId, activeMainTab, billsSubTab, paymentsSubTab, ledgerSubTab, refundSubTab, selectedCandidateIdForLedger, refreshTrigger, activeSchoolUnit]);
+
+  // Tab 6 Fetchers
+  const fetchRefundRules = async () => {
+    setLoadingRefundRules(true);
+    try {
+      const res = await api.get('/keuangan/ppdb-billing/refund-policy-rules');
+      setRefundRules(res.data?.data || []);
+    } catch (err) {
+      console.error('Error fetching refund rules:', err);
+    } finally {
+      setLoadingRefundRules(false);
+    }
+  };
 
   // Tab 5 Fetchers
   const fetchLedgerRecap = async () => {
@@ -3004,6 +3063,189 @@ export default function RegistrationBilling() {
     }
   };
 
+  // ============================================================
+  // TAB 6 ACTIONS: PENGEMBALIAN DANA (REFUND) PPDB
+  // ============================================================
+  const handleOpenRefundRequest = (bill) => {
+    setRefundRequestModal({
+      isOpen: true,
+      bill,
+      bankAccountNo: bill.refund_bank_account_number || '',
+      bankAccountHolder: bill.refund_bank_account_holder || bill.registrant_name_snapshot || '',
+      reason: bill.refund_reason || 'Permohonan pengunduran diri calon murid'
+    });
+  };
+
+  const handleSubmitRefundRequest = async (e) => {
+    e.preventDefault();
+    if (!refundRequestModal.bill) return;
+    setSubmittingRefund(true);
+    try {
+      await api.post(`/keuangan/ppdb-billing/registration-bills/${refundRequestModal.bill.id}/refund-request`, {
+        refund_bank_account_number: refundRequestModal.bankAccountNo,
+        refund_bank_account_holder: refundRequestModal.bankAccountHolder,
+        refund_reason: refundRequestModal.reason
+      });
+      alert('Permohonan pengembalian dana (refund) berhasil diajukan dan menunggu persetujuan Yayasan.');
+      setRefundRequestModal({ isOpen: false, bill: null, bankAccountNo: '', bankAccountHolder: '', reason: '' });
+      fetchBillsHistory();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal mengajukan refund');
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
+  const handleApproveRefund = async (bill) => {
+    if (!confirm(`Setujui permohonan pengembalian dana untuk santri ${bill.registrant_name_snapshot}?`)) return;
+    try {
+      await api.patch(`/keuangan/ppdb-billing/registration-bills/${bill.id}/refund-request/approve`);
+      alert(`Permohonan refund untuk ${bill.registrant_name_snapshot} telah disetujui Yayasan.`);
+      fetchBillsHistory();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyetujui refund');
+    }
+  };
+
+  const handleOpenRejectRefund = (bill) => {
+    setRefundRejectModal({
+      isOpen: true,
+      bill,
+      reason: ''
+    });
+  };
+
+  const handleSubmitRejectRefund = async (e) => {
+    e.preventDefault();
+    if (!refundRejectModal.bill) return;
+    setSubmittingRefund(true);
+    try {
+      await api.patch(`/keuangan/ppdb-billing/registration-bills/${refundRejectModal.bill.id}/refund-request/reject`, {
+        reason: refundRejectModal.reason
+      });
+      alert('Permohonan refund telah ditolak.');
+      setRefundRejectModal({ isOpen: false, bill: null, reason: '' });
+      fetchBillsHistory();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menolak refund');
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
+  const handleOpenProcessRefund = (bill) => {
+    const paidAmount = parseFloat(bill.paid_amount || bill.amount || 0);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const activeRules = (refundRules || []).filter(r => r.fee_component === bill.billing_phase && r.is_active);
+    let deductionPct = 0;
+    let ruleApplied = null;
+    for (const r of activeRules) {
+      if (!r.cutoff_date || todayStr <= String(r.cutoff_date).slice(0, 10)) {
+        deductionPct = parseFloat(r.deduction_percentage || 0);
+        ruleApplied = r;
+        break;
+      }
+    }
+    if (!ruleApplied && activeRules.length > 0) {
+      const lastRule = activeRules[activeRules.length - 1];
+      deductionPct = parseFloat(lastRule.deduction_percentage || 0);
+      ruleApplied = lastRule;
+    }
+    const netRefund = Math.max(0, paidAmount * (1 - (deductionPct / 100)));
+    const defaultCash = cashAccounts[0]?.id ? String(cashAccounts[0].id) : '';
+    setRefundProcessModal({
+      isOpen: true,
+      bill,
+      cashAccountId: defaultCash,
+      deductionPct,
+      netRefund,
+      ruleApplied
+    });
+  };
+
+  const handleSubmitProcessRefund = async (e) => {
+    e.preventDefault();
+    if (!refundProcessModal.bill || !refundProcessModal.cashAccountId) {
+      alert('Pilih rekening kas/bank pengeluaran pencairan');
+      return;
+    }
+    setSubmittingRefund(true);
+    try {
+      const res = await api.patch(`/keuangan/ppdb-billing/registration-bills/${refundProcessModal.bill.id}/refund-request/process`, {
+        cash_account_id: Number(refundProcessModal.cashAccountId)
+      });
+      alert(res.data?.message || 'Pengembalian dana (refund) berhasil dicairkan dan jurnal akuntansi telah dibukukan.');
+      setRefundProcessModal({ isOpen: false, bill: null, cashAccountId: '', deductionPct: 0, netRefund: 0, ruleApplied: null });
+      fetchBillsHistory();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal memproses pencairan refund');
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
+  const handleOpenAddRefundRule = () => {
+    setRefundRuleModal({
+      isOpen: true,
+      rule: null,
+      feeComponent: 'enrollment_fee',
+      cutoffDate: '',
+      deductionPct: 0,
+      description: '',
+      isActive: true
+    });
+  };
+
+  const handleOpenEditRefundRule = (rule) => {
+    setRefundRuleModal({
+      isOpen: true,
+      rule,
+      feeComponent: rule.fee_component || 'enrollment_fee',
+      cutoffDate: rule.cutoff_date ? String(rule.cutoff_date).slice(0, 10) : '',
+      deductionPct: rule.deduction_percentage || 0,
+      description: rule.description || '',
+      isActive: rule.is_active !== undefined ? rule.is_active : true
+    });
+  };
+
+  const handleSaveRefundRule = async (e) => {
+    e.preventDefault();
+    setSubmittingRefund(true);
+    try {
+      const payload = {
+        fee_component: refundRuleModal.feeComponent,
+        cutoff_date: refundRuleModal.cutoffDate || null,
+        deduction_percentage: parseFloat(refundRuleModal.deductionPct || 0),
+        description: refundRuleModal.description,
+        is_active: refundRuleModal.isActive
+      };
+      if (refundRuleModal.rule?.id) {
+        await api.put(`/keuangan/ppdb-billing/refund-policy-rules/${refundRuleModal.rule.id}`, payload);
+        alert('Aturan kebijakan refund berhasil diperbarui.');
+      } else {
+        await api.post('/keuangan/ppdb-billing/refund-policy-rules', payload);
+        alert('Aturan kebijakan refund berhasil ditambahkan.');
+      }
+      setRefundRuleModal({ isOpen: false, rule: null, feeComponent: 'enrollment_fee', cutoffDate: '', deductionPct: 0, description: '', isActive: true });
+      fetchRefundRules();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyimpan aturan refund');
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
+  const handleDeleteRefundRule = async (id) => {
+    if (!confirm('Yakin ingin menghapus aturan kebijakan refund ini?')) return;
+    try {
+      await api.delete(`/keuangan/ppdb-billing/refund-policy-rules/${id}`);
+      alert('Aturan kebijakan refund berhasil dihapus.');
+      fetchRefundRules();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus aturan refund');
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* ============================================================ */}
@@ -3102,9 +3344,9 @@ export default function RegistrationBilling() {
       </div>
 
       {/* ============================================================ */}
-      {/* 5 PRIMARY TABS NAVIGATION */}
+      {/* 6 PRIMARY TABS NAVIGATION */}
       {/* ============================================================ */}
-      <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1.5">
+      <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1.5">
         <button
           type="button"
           onClick={() => setActiveMainTab('assignments')}
@@ -3168,6 +3410,19 @@ export default function RegistrationBilling() {
         >
           <CreditCard className="w-4 h-4 shrink-0" />
           <span>5. Kartu Bayar PPDB</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('refunds')}
+          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeMainTab === 'refunds'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          }`}
+        >
+          <RotateCcw className="w-4 h-4 shrink-0" />
+          <span>6. Pengembalian Dana</span>
         </button>
       </div>
 
@@ -6140,9 +6395,522 @@ export default function RegistrationBilling() {
           )}
         </div>
       )}
+
       {/* ============================================================ */}
-      {/* MODAL 1: SINGLE ASSIGN (PER ORANGAN) */}
+      {/* TAB 6: PENGEMBALIAN DANA / REFUND SANTRI MENGUNDURKAN DIRI */}
       {/* ============================================================ */}
+      {activeMainTab === 'refunds' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Header & Sub-Tab Switcher */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                    <RotateCcw className="w-5 h-5" />
+                  </div>
+                  <h1 className="text-xl font-bold text-slate-800">Pengembalian Dana Siswa (PPDB Refund)</h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    Siswa Mengundurkan Diri
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Kelola permohonan pengembalian dana, persetujuan yayasan, pemotongan otomatis, dan pencairan kas keluar santri yang mengundurkan diri.
+                </p>
+              </div>
+
+              {/* Sub-tab Pill Switcher */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 self-start md:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setRefundSubTab('requests')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    refundSubTab === 'requests'
+                      ? 'bg-white text-indigo-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Daftar Pengajuan Refund</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRefundSubTab('rules');
+                    fetchRefundRules();
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    refundSubTab === 'rules'
+                      ? 'bg-white text-indigo-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Kebijakan Potongan</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Refund KPI Statistics Cards */}
+            {refundSubTab === 'requests' && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+                {(() => {
+                  const allBills = billsData.bills || [];
+                  const requestedCount = allBills.filter((b) => b.refund_status === 'requested').length;
+                  const approvedCount = allBills.filter((b) => b.refund_status === 'approved').length;
+                  const processedCount = allBills.filter((b) => b.refund_status === 'processed').length;
+                  const totalRefundProcessed = allBills
+                    .filter((b) => b.refund_status === 'processed')
+                    .reduce((sum, b) => sum + Number(b.refund_amount || 0), 0);
+                  const eligibleCount = allBills.filter((b) => Number(b.paid_amount || 0) > 0).length;
+
+                  return (
+                    <>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-500">Santri Telah Bayar</span>
+                          <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <Wallet className="w-4 h-4" />
+                          </span>
+                        </div>
+                        <div className="text-lg font-black text-slate-800 mt-1">{eligibleCount} Santri</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">Berpotensi jika mundur</div>
+                      </div>
+
+                      <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-amber-800">Menunggu Approval</span>
+                          <span className="p-1.5 bg-amber-100 text-amber-700 rounded-lg">
+                            <Clock className="w-4 h-4" />
+                          </span>
+                        </div>
+                        <div className="text-lg font-black text-amber-900 mt-1">{requestedCount} Santri</div>
+                        <div className="text-[11px] text-amber-700 mt-0.5">Perlu diverifikasi Keuangan/Yayasan</div>
+                      </div>
+
+                      <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-blue-800">Disetujui (Siap Cair)</span>
+                          <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </span>
+                        </div>
+                        <div className="text-lg font-black text-blue-900 mt-1">{approvedCount} Santri</div>
+                        <div className="text-[11px] text-blue-700 mt-0.5">Siap diterbitkan kas keluar</div>
+                      </div>
+
+                      <div className="bg-rose-50/60 border border-rose-200 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-rose-800">Selesai Dicairkan</span>
+                          <span className="p-1.5 bg-rose-100 text-rose-700 rounded-lg">
+                            <RotateCcw className="w-4 h-4" />
+                          </span>
+                        </div>
+                        <div className="text-lg font-black text-rose-900 mt-1">{formatCurrency(totalRefundProcessed)}</div>
+                        <div className="text-[11px] text-rose-700 mt-0.5">{processedCount} Santri telah cair</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* SUBTAB 1: DAFTAR PERMOHONAN & PENCAIRAN REFUND */}
+          {refundSubTab === 'requests' && (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              {/* Filter Bar */}
+              <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1 max-w-md">
+                  <div className="relative w-full">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari nama santri, no registrasi, atau bank..."
+                      value={refundSearch}
+                      onChange={(e) => setRefundSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-500">Filter Status:</span>
+                  <select
+                    value={refundFilterStatus}
+                    onChange={(e) => setRefundFilterStatus(e.target.value)}
+                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">Semua Status Refund / Berbayar</option>
+                    <option value="requested">Menunggu Persetujuan (Requested)</option>
+                    <option value="approved">Disetujui (Approved / Siap Cair)</option>
+                    <option value="processed">Sudah Dicairkan (Processed)</option>
+                    <option value="rejected">Ditolak (Rejected)</option>
+                    <option value="eligible">Santri Berbayar (Belum Mengajukan Refund)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table Data */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="p-3.5">No. Reg & Calon Santri</th>
+                      <th className="p-3.5">Jalur / Gelombang</th>
+                      <th className="p-3.5 text-right">Total Tagihan</th>
+                      <th className="p-3.5 text-right">Kas Terbayar</th>
+                      <th className="p-3.5 text-center">Status Refund</th>
+                      <th className="p-3.5">Rekening Pengembalian</th>
+                      <th className="p-3.5 text-right">Nominal Refund</th>
+                      <th className="p-3.5 text-center">Aksi / Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(() => {
+                      const allBills = billsData.bills || [];
+                      const filtered = allBills.filter((b) => {
+                        // Pastikan hanya santri yang memiliki riwayat bayar atau memiliki status refund
+                        const hasPayment = Number(b.paid_amount || 0) > 0;
+                        const hasRefund = b.refund_status && b.refund_status !== 'none';
+                        if (!hasPayment && !hasRefund) return false;
+
+                        // Status filter
+                        if (refundFilterStatus === 'requested' && b.refund_status !== 'requested') return false;
+                        if (refundFilterStatus === 'approved' && b.refund_status !== 'approved') return false;
+                        if (refundFilterStatus === 'processed' && b.refund_status !== 'processed') return false;
+                        if (refundFilterStatus === 'rejected' && b.refund_status !== 'rejected') return false;
+                        if (refundFilterStatus === 'eligible' && (b.refund_status && b.refund_status !== 'none')) return false;
+
+                        // Search query filter
+                        if (refundSearch.trim()) {
+                          const q = refundSearch.toLowerCase();
+                          const name = (b.student_name || b.registrant_name || '').toLowerCase();
+                          const regNo = (b.registration_number || '').toLowerCase();
+                          const bank = (b.refund_bank_name || '').toLowerCase();
+                          const accNo = (b.refund_bank_account_number || '').toLowerCase();
+                          if (!name.includes(q) && !regNo.includes(q) && !bank.includes(q) && !accNo.includes(q)) {
+                            return false;
+                          }
+                        }
+                        return true;
+                      });
+
+                      if (loadingBills) {
+                        return (
+                          <tr>
+                            <td colSpan="8" className="p-8 text-center text-slate-400">
+                              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
+                              <span>Memuat data tagihan dan refund...</span>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan="8" className="p-8 text-center text-slate-400">
+                              <RotateCcw className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                              <p className="font-semibold text-slate-600">Tidak ada data refund yang sesuai.</p>
+                              <p className="text-[11px] text-slate-400 mt-1">
+                                Pastikan santri telah melakukan pembayaran di Tab 3 untuk dapat diajukan permohonan refund.
+                              </p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map((b) => {
+                        const status = b.refund_status || 'none';
+
+                        return (
+                          <tr key={b.id} className="hover:bg-slate-50/70 transition">
+                            {/* Santri Info */}
+                            <td className="p-3.5">
+                              <div className="font-bold text-slate-800">{b.student_name || b.registrant_name || '-'}</div>
+                              <div className="text-[11px] font-mono text-indigo-600">{b.registration_number || '-'}</div>
+                            </td>
+
+                            {/* Jalur / Gelombang */}
+                            <td className="p-3.5 text-slate-600">
+                              <div>{b.admission_phase_name || '-'}</div>
+                              <div className="text-[10.5px] text-slate-400">{b.path_name || '-'}</div>
+                            </td>
+
+                            {/* Total Biaya */}
+                            <td className="p-3.5 text-right font-mono font-semibold text-slate-700">
+                              {formatCurrency(b.total_amount || 0)}
+                            </td>
+
+                            {/* Kas Terbayar */}
+                            <td className="p-3.5 text-right font-mono font-bold text-emerald-600">
+                              {formatCurrency(b.paid_amount || 0)}
+                            </td>
+
+                            {/* Status Refund */}
+                            <td className="p-3.5 text-center">
+                              {status === 'requested' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  <Clock className="w-3 h-3" />
+                                  Menunggu Approval
+                                </span>
+                              )}
+                              {status === 'approved' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Disetujui
+                                </span>
+                              )}
+                              {status === 'processed' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Check className="w-3 h-3" />
+                                  Sudah Dicairkan
+                                </span>
+                              )}
+                              {status === 'rejected' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <X className="w-3 h-3" />
+                                  Ditolak
+                                </span>
+                              )}
+                              {status === 'none' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-slate-100 text-slate-500">
+                                  Aktif (Belum Refund)
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Rekening Tujuan */}
+                            <td className="p-3.5">
+                              {b.refund_bank_account_number ? (
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-slate-800">
+                                    {b.refund_bank_name} - <span className="font-mono">{b.refund_bank_account_number}</span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-500">a.n. {b.refund_account_holder_name}</div>
+                                  {b.refund_reason && (
+                                    <div className="text-[10px] text-slate-400 italic truncate max-w-[180px]" title={b.refund_reason}>
+                                      Alasan: {b.refund_reason}
+                                    </div>
+                                  )}
+                                  {b.refund_rejection_reason && (
+                                    <div className="text-[10px] text-rose-500 font-semibold truncate max-w-[180px]" title={b.refund_rejection_reason}>
+                                      Ditolak: {b.refund_rejection_reason}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">-</span>
+                              )}
+                            </td>
+
+                            {/* Nominal Refund */}
+                            <td className="p-3.5 text-right font-mono font-bold text-rose-600">
+                              {status === 'processed' && b.refund_amount
+                                ? formatCurrency(b.refund_amount)
+                                : status === 'approved' || status === 'requested'
+                                ? <span className="text-slate-400 font-normal italic">Kalkulasi Otomatis</span>
+                                : '-'}
+                            </td>
+
+                            {/* Action Buttons */}
+                            <td className="p-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                {status === 'none' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRefundRequest(b)}
+                                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Ajukan Refund</span>
+                                  </button>
+                                )}
+
+                                {status === 'requested' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveRefund(b)}
+                                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Setujui</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenRejectRefund(b)}
+                                      className="px-2 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      <span>Tolak</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {status === 'approved' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenProcessRefund(b)}
+                                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer"
+                                    >
+                                      <CreditCard className="w-3.5 h-3.5" />
+                                      <span>Cairkan Dana</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenRejectRefund(b)}
+                                      className="px-2 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      <span>Batalkan</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {status === 'rejected' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRefundRequest(b)}
+                                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Ajukan Ulang</span>
+                                  </button>
+                                )}
+
+                                {status === 'processed' && (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Tuntas
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 2: KEBIJAKAN & ATURAN POTONGAN REFUND */}
+          {refundSubTab === 'rules' && (
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                  <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                    <span>Aturan Kebijakan Potongan Pengunduran Diri</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Konfigurasi persentase pengembalian dana berdasarkan batas tanggal santri mengajukan pengunduran diri.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddRefundRule}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm shadow-indigo-600/20 cursor-pointer self-start md:self-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Aturan Potongan</span>
+                </button>
+              </div>
+
+              {/* Rules Table */}
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="p-3.5">Nama Aturan</th>
+                      <th className="p-3.5">Batas Tanggal (Cutoff)</th>
+                      <th className="p-3.5 text-center">Pengembalian (%)</th>
+                      <th className="p-3.5 text-center">Potongan Yayasan (%)</th>
+                      <th className="p-3.5">Keterangan</th>
+                      <th className="p-3.5 text-center">Status</th>
+                      <th className="p-3.5 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loadingRefundRules ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-slate-400">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-500" />
+                          <span>Memuat aturan kebijakan...</span>
+                        </td>
+                      </tr>
+                    ) : refundRules.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-slate-400">
+                          <Settings className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                          <p className="font-semibold text-slate-600">Belum ada aturan kebijakan refund.</p>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            Jika tidak ada aturan tanggal, sistem akan mengembalikan 100% dari total yang telah disetor santri.
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      refundRules.map((r) => {
+                        const refPct = Number(r.refund_percentage || 0);
+                        const dedPct = Number(r.deduction_percentage || (100 - refPct));
+
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/70 transition">
+                            <td className="p-3.5 font-bold text-slate-800">{r.name}</td>
+                            <td className="p-3.5 font-mono text-slate-600">
+                              {r.cutoff_date ? String(r.cutoff_date).slice(0, 10) : 'Tanpa batas'}
+                            </td>
+                            <td className="p-3.5 text-center font-bold font-mono text-emerald-600">
+                              {refPct}%
+                            </td>
+                            <td className="p-3.5 text-center font-bold font-mono text-rose-600">
+                              {dedPct}%
+                            </td>
+                            <td className="p-3.5 text-slate-500">{r.description || '-'}</td>
+                            <td className="p-3.5 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                r.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {r.is_active ? 'Aktif' : 'Non-Aktif'}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditRefundRule(r)}
+                                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
+                                  title="Edit Aturan"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRefundRule(r.id)}
+                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition cursor-pointer"
+                                  title="Hapus Aturan"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {singleAssignModalOpen && targetCandidate && (
         <Drawer
           isOpen={singleAssignModalOpen && !!targetCandidate}
@@ -8650,6 +9418,420 @@ export default function RegistrationBilling() {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODAL REFUND 1: AJUKAN PENGEMBALIAN DANA (SISWA MUNDUR) */}
+      {/* ============================================================ */}
+      {refundRequestModal.open && (
+        <Drawer
+          isOpen={refundRequestModal.open}
+          onClose={() => setRefundRequestModal((prev) => ({ ...prev, open: false }))}
+          title={`Ajukan Pengembalian Dana (Refund)`}
+          subtitle={refundRequestModal.bill ? `${refundRequestModal.bill.student_name || refundRequestModal.bill.registrant_name} (${refundRequestModal.bill.registration_number})` : ''}
+          size="md"
+        >
+          <form onSubmit={handleSubmitRefundRequest} className="p-6 space-y-4">
+            {/* Info Calon Santri & Pembayaran */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Nama Calon Santri:</span>
+                <span className="font-bold text-slate-800">
+                  {refundRequestModal.bill?.student_name || refundRequestModal.bill?.registrant_name}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>No. Registrasi:</span>
+                <span className="font-mono font-semibold text-indigo-600">{refundRequestModal.bill?.registration_number}</span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Total Biaya Ditagihkan:</span>
+                <span className="font-mono">{formatCurrency(refundRequestModal.bill?.total_amount || 0)}</span>
+              </div>
+              <div className="border-t border-slate-200 pt-2 flex justify-between text-xs font-bold text-emerald-700">
+                <span>Total Kas Telah Dibayar:</span>
+                <span className="font-mono">{formatCurrency(refundRequestModal.bill?.paid_amount || 0)}</span>
+              </div>
+            </div>
+
+            {/* Form Rekening Tujuan */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Rekening Tujuan Transfer Wali</h4>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Bank Tujuan *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: BCA, Mandiri, BRI, BSI, BNI"
+                  value={refundRequestModal.bank_name}
+                  onChange={(e) => setRefundRequestModal((prev) => ({ ...prev, bank_name: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor Rekening *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: 1234567890"
+                    value={refundRequestModal.account_number}
+                    onChange={(e) => setRefundRequestModal((prev) => ({ ...prev, account_number: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Atas Nama Rekening *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nama pemilik rekening"
+                    value={refundRequestModal.account_holder_name}
+                    onChange={(e) => setRefundRequestModal((prev) => ({ ...prev, account_holder_name: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Alasan Santri Mengundurkan Diri *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Jelaskan alasan pengunduran diri siswa secara jelas untuk audit trail..."
+                  value={refundRequestModal.reason}
+                  onChange={(e) => setRefundRequestModal((prev) => ({ ...prev, reason: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800">
+              <span className="font-bold">Perhatian:</span> Pengajuan refund ini akan berstatus <em>Menunggu Persetujuan</em> dan perlu disetujui oleh Bagian Keuangan / Pimpinan sebelum kas keluar dicairkan.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setRefundRequestModal((prev) => ({ ...prev, open: false }))}
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-rose-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {submittingRefund ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                <span>{submittingRefund ? 'Mengirim...' : 'Kirim Pengajuan Refund'}</span>
+              </button>
+            </div>
+          </form>
+        </Drawer>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL REFUND 2: PROSES PENCAIRAN REFUND (KAS KELUAR) */}
+      {/* ============================================================ */}
+      {refundProcessModal.open && (
+        <Drawer
+          isOpen={refundProcessModal.open}
+          onClose={() => setRefundProcessModal((prev) => ({ ...prev, open: false }))}
+          title={`Pencairan Kas Keluar Refund`}
+          subtitle={refundProcessModal.bill ? `${refundProcessModal.bill.student_name || refundProcessModal.bill.registrant_name}` : ''}
+          size="md"
+        >
+          <form onSubmit={handleSubmitProcessRefund} className="p-6 space-y-4">
+            {/* Info Detail Tagihan & Rekening */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Calon Santri:</span>
+                <span className="font-bold text-slate-800">
+                  {refundProcessModal.bill?.student_name || refundProcessModal.bill?.registrant_name}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>Total Dana Diterima:</span>
+                <span className="font-mono font-bold text-emerald-600">
+                  {formatCurrency(refundProcessModal.bill?.paid_amount || 0)}
+                </span>
+              </div>
+              <div className="border-t border-slate-200 pt-2 flex justify-between text-xs text-slate-700">
+                <span>Rekening Tujuan:</span>
+                <span className="font-semibold text-right">
+                  {refundProcessModal.bill?.refund_bank_name} - {refundProcessModal.bill?.refund_bank_account_number}
+                  <br />
+                  <span className="text-[11px] text-slate-500 font-normal">a.n. {refundProcessModal.bill?.refund_account_holder_name}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Form Pilihan Akun Kas / Bank Pengeluaran */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Sumber Rekening Kas / Bank Pengeluaran *
+                </label>
+                <select
+                  required
+                  value={refundProcessModal.cash_account_id}
+                  onChange={(e) => setRefundProcessModal((prev) => ({ ...prev, cash_account_id: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">-- Pilih Akun Kas / Bank Pengeluaran --</option>
+                  {(cashAccounts || []).map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.account_name} ({acc.account_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Pencairan Kas *</label>
+                <input
+                  type="date"
+                  required
+                  value={refundProcessModal.processed_at}
+                  onChange={(e) => setRefundProcessModal((prev) => ({ ...prev, processed_at: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan / No. Bukti Transfer</label>
+                <textarea
+                  rows={2}
+                  placeholder="Masukkan nomor referensi transfer bank atau catatan transaksi..."
+                  value={refundProcessModal.notes}
+                  onChange={(e) => setRefundProcessModal((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-[11px] text-indigo-800">
+              <span className="font-bold">Otomasi Akuntansi:</span> Sistem akan otomatis menghitung potongan pengunduran diri sesuai tanggal pencairan vs batas kebijakan, memotong saldo kas/bank terkait, dan menerbitkan jurnal penyesuaian pendapatan PPDB.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setRefundProcessModal((prev) => ({ ...prev, open: false }))}
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {submittingRefund ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                <span>{submittingRefund ? 'Memproses...' : 'Konfirmasi & Cairkan Dana'}</span>
+              </button>
+            </div>
+          </form>
+        </Drawer>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL REFUND 3: TOLAK PENGAJUAN REFUND */}
+      {/* ============================================================ */}
+      {refundRejectModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 text-rose-600 rounded-xl">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Tolak Permohonan Refund</h3>
+                <p className="text-xs text-slate-500">
+                  {refundRejectModal.bill?.student_name || refundRejectModal.bill?.registrant_name}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Alasan Penolakan (Wajib Diisi) *
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Jelaskan alasan penolakan refund..."
+                value={refundRejectModal.reason}
+                onChange={(e) => setRefundRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setRefundRejectModal({ open: false, bill: null, reason: '' })}
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitRejectRefund}
+                disabled={submittingRefund || !refundRejectModal.reason.trim()}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-rose-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {submittingRefund ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                <span>{submittingRefund ? 'Memproses...' : 'Tolak Pengajuan'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL REFUND 4: TAMBAH / EDIT ATURAN KEBIJAKAN POTONGAN */}
+      {/* ============================================================ */}
+      {refundRuleModal.open && (
+        <Drawer
+          isOpen={refundRuleModal.open}
+          onClose={() => setRefundRuleModal((prev) => ({ ...prev, open: false }))}
+          title={refundRuleModal.isEditing ? 'Edit Aturan Potongan Refund' : 'Tambah Aturan Kebijakan Refund'}
+          subtitle="Kebijakan potongan pengembalian dana santri mengundurkan diri"
+          size="md"
+        >
+          <form onSubmit={handleSaveRefundRule} className="p-6 space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Aturan / Periode *</label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Pengunduran Diri Sebelum Tes Masuk"
+                value={refundRuleModal.form.name}
+                onChange={(e) =>
+                  setRefundRuleModal((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, name: e.target.value }
+                  }))
+                }
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Batas Tanggal (Cutoff Date)</label>
+              <input
+                type="date"
+                value={refundRuleModal.form.cutoff_date}
+                onChange={(e) =>
+                  setRefundRuleModal((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, cutoff_date: e.target.value }
+                  }))
+                }
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-[10.5px] text-slate-400 mt-1">
+                Kosongkan jika aturan ini berlaku sebagai aturan umum / tanpa batasan tanggal tertentu.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Persentase Pengembalian (%) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  required
+                  value={refundRuleModal.form.refund_percentage}
+                  onChange={(e) =>
+                    setRefundRuleModal((prev) => ({
+                      ...prev,
+                      form: { ...prev.form, refund_percentage: e.target.value }
+                    }))
+                  }
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-emerald-600 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[10.5px] text-slate-400 mt-1">Persen uang yang dikembalikan ke wali.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Potongan Yayasan (%)
+                </label>
+                <div className="px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-rose-600">
+                  {100 - Number(refundRuleModal.form.refund_percentage || 0)}%
+                </div>
+                <p className="text-[10.5px] text-slate-400 mt-1">Otomatis dihitung sisa 100%.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Keterangan / Dasar Kebijakan</label>
+              <textarea
+                rows={2}
+                placeholder="Penjelasan aturan atau SK yayasan..."
+                value={refundRuleModal.form.description}
+                onChange={(e) =>
+                  setRefundRuleModal((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, description: e.target.value }
+                  }))
+                }
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="is_active_rule"
+                checked={refundRuleModal.form.is_active}
+                onChange={(e) =>
+                  setRefundRuleModal((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, is_active: e.target.checked }
+                  }))
+                }
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+              />
+              <label htmlFor="is_active_rule" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                Aktifkan Aturan Ini
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setRefundRuleModal((prev) => ({ ...prev, open: false }))}
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={submittingRefund}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {submittingRefund ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>{submittingRefund ? 'Menyimpan...' : 'Simpan Aturan'}</span>
+              </button>
+            </div>
+          </form>
+        </Drawer>
+      )}
     </div>
   );
 }
+

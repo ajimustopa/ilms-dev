@@ -524,13 +524,18 @@ class CanteenAccountingService {
     const opRows = await opQ;
 
     let otherIncomeTotal = 0;
+    let capitalIncomeTotal = 0;
     let expenseTotal = 0;
     const expenseBreakdown = {};
 
     opRows.forEach(r => {
       const amt = parseFloat(r.amount || 0);
       if (r.type === 'income') {
-        otherIncomeTotal += amt;
+        if (r.category === 'modal_kantin') {
+          capitalIncomeTotal += amt;
+        } else {
+          otherIncomeTotal += amt;
+        }
       } else {
         expenseTotal += amt;
         const cat = r.category || 'operasional';
@@ -557,8 +562,8 @@ class CanteenAccountingService {
     };
 
     // 4. Susun LAPORAN PERUBAHAN MODAL (Changes in Equity)
-    const openingCapital = 5000000; // Modal Awal SBU
-    const additionalInvestment = 0;
+    const openingCapital = 0; // Modal Awal SBU (0 jika belum diinput)
+    const additionalInvestment = capitalIncomeTotal; // Setoran modal riil dari input user (BKM modal_kantin)
     const dividendPayout = 0; // Setoran bagi hasil ke yayasan
     const endingCapital = openingCapital + additionalInvestment + netIncome - dividendPayout;
 
@@ -574,6 +579,15 @@ class CanteenAccountingService {
     const cashInflowsOperating = cashPosSales + otherIncomeTotal;
     const cashOutflowsOperating = expenseTotal;
     const netCashFlowOperating = cashInflowsOperating - cashOutflowsOperating;
+
+    const financingInflows = capitalIncomeTotal > 0
+      ? [{ name: 'Penerimaan Setoran Modal Awal/Kerja SBU Kantin', amount: capitalIncomeTotal }]
+      : [];
+    const netCashFlowFinancing = capitalIncomeTotal;
+
+    const netIncreaseInCash = netCashFlowOperating + netCashFlowFinancing;
+    const openingCashBalance = openingCapital;
+    const closingCashBalance = openingCashBalance + netIncreaseInCash;
 
     const cashFlowStatement = {
       operating_activities: {
@@ -592,13 +606,13 @@ class CanteenAccountingService {
         net_cash: 0
       },
       financing_activities: {
-        inflows: [],
+        inflows: financingInflows,
         outflows: [],
-        net_cash: 0
+        net_cash: netCashFlowFinancing
       },
-      net_increase_in_cash: netCashFlowOperating,
-      opening_cash_balance: openingCapital,
-      closing_cash_balance: openingCapital + netCashFlowOperating
+      net_increase_in_cash: netIncreaseInCash,
+      opening_cash_balance: openingCashBalance,
+      closing_cash_balance: closingCashBalance
     };
 
     return {

@@ -31,6 +31,7 @@ import {
   Layers,
   Tag,
   Info,
+  ShieldCheck,
   ChevronDown,
   ChevronUp,
   X
@@ -79,6 +80,8 @@ export default function TopUpTarikTunai() {
   const [occurredDate, setOccurredDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [occurredTime, setOccurredTime] = useState(() => new Date().toTimeString().slice(0, 5));
   const [selectedCashAccountId, setSelectedCashAccountId] = useState('');
+  const [openingDebitCoaId, setOpeningDebitCoaId] = useState('');
+  const [openingCreditCoaId, setOpeningCreditCoaId] = useState('');
   const [selectedBankStatementId, setSelectedBankStatementId] = useState('');
   const [fundSourceName, setFundSourceName] = useState('Pos Dana Titipan Dompet Santri / SBU Kantin');
   const [notes, setNotes] = useState('');
@@ -483,18 +486,37 @@ export default function TopUpTarikTunai() {
         endpoint = '/kantin/wallet-transactions/opening-balance';
       }
 
-      const formattedTime = occurredTime ? (occurredTime.length === 5 ? `${occurredTime}:00` : occurredTime) : '12:00:00';
-      const combinedDateTime = occurredDate ? `${occurredDate}T${formattedTime}` : undefined;
+      let payload;
+      if (activeTab === 'opening_balance') {
+        const allCoas = accountingConfig?.coas?.all || [];
+        const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id;
+        const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id;
+        const debCoa = allCoas.find(c => String(c.id) === String(effectiveDebitId));
+        const credCoa = allCoas.find(c => String(c.id) === String(effectiveCreditId));
 
-      const payload = {
-        student_id: Number(selectedStudentId),
-        amount: parseFloat(amount),
-        occurred_at: combinedDateTime ? new Date(combinedDateTime).toISOString() : undefined,
-        payment_method: selectedCashAccount?.account_kind === 'bank' ? 'transfer' : 'cash',
-        cash_account_id: selectedCashAccountId ? Number(selectedCashAccountId) : null,
-        bank_statement_id: (activeTab === 'top_up' || activeTab === 'opening_balance') && selectedBankStatementId ? Number(selectedBankStatementId) : null,
-        notes: notes.trim() || (activeTab === 'opening_balance' ? 'Saldo Awal Migrasi Sistem Lama (Cutover)' : null)
-      };
+        payload = {
+          student_id: Number(selectedStudentId),
+          amount: parseFloat(amount),
+          occurred_at: combinedDateTime ? new Date(combinedDateTime).toISOString() : undefined,
+          debit_coa_id: debCoa?.id || null,
+          debit_coa_code: debCoa?.account_code || null,
+          debit_coa_name: debCoa?.account_name || null,
+          credit_coa_id: credCoa?.id || null,
+          credit_coa_code: credCoa?.account_code || null,
+          credit_coa_name: credCoa?.account_name || null,
+          notes: notes.trim() || 'Saldo Awal Migrasi Sistem Lama (Cutover)'
+        };
+      } else {
+        payload = {
+          student_id: Number(selectedStudentId),
+          amount: parseFloat(amount),
+          occurred_at: combinedDateTime ? new Date(combinedDateTime).toISOString() : undefined,
+          payment_method: selectedCashAccount?.account_kind === 'bank' ? 'transfer' : 'cash',
+          cash_account_id: selectedCashAccountId ? Number(selectedCashAccountId) : null,
+          bank_statement_id: activeTab === 'top_up' && selectedBankStatementId ? Number(selectedBankStatementId) : null,
+          notes: notes.trim() || null
+        };
+      }
 
       const res = await api.post(endpoint, payload);
       const resData = res.data?.data;
@@ -812,13 +834,29 @@ export default function TopUpTarikTunai() {
           </div>
 
           {activeTab === 'opening_balance' && (
-            <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs flex items-start gap-2.5 shadow-2xs">
-              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <p className="font-bold text-indigo-900">Mode Pencatatan Saldo Awal (Cutover Migrasi)</p>
-                <p className="text-[11px] text-indigo-800 leading-relaxed">
-                  Pencatatan ini murni mengisi saldo kartu digital santri dari data lama tanpa mendebit ulang kas/bank. Uang fisik/rekening sudah tersimpan pada Saldo Awal Kas BNI (Modul Keuangan), sehingga saldo kas Anda tetap aman dan tidak mengalami duplikasi.
+            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 via-sky-50/50 to-indigo-50/30 border border-indigo-200 text-indigo-950 text-xs flex items-start gap-3 shadow-xs animate-in fade-in duration-150">
+              <div className="p-2 bg-indigo-100/80 text-indigo-700 rounded-lg shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-indigo-900 text-xs">Pencatatan Saldo Awal Dompet Santri (Cutover / Migrasi)</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-200/70 text-indigo-900 border border-indigo-300/60">
+                    Tidak Mempengaruhi Saldo Kas
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-slate-700 leading-relaxed">
+                  Penginputan saldo awal ini <strong>hanya mencatat kondisi awal saldo dompet santri</strong> agar kartu santri dapat digunakan bertransaksi di POS Kantin.
                 </p>
+                <div className="p-2.5 rounded-lg bg-white/80 border border-indigo-200/70 text-[11px] text-indigo-950 space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-indigo-900">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Uang fisik/dana sudah ada di rekening &amp; akun kas terkait:</span>
+                  </div>
+                  <p className="text-slate-600 text-[10.5px] pl-5 leading-normal">
+                    Karena uang saldo awal santri sudah tercatat pada pembukuan kas/bank yayasan dari periode sebelumnya, penginputan saldo awal ini <strong>TIDAK AKAN memutasi / menambah saldo akun kas tersebut lagi</strong> (bebas dari duplikasi kas).
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -926,98 +964,163 @@ export default function TopUpTarikTunai() {
               </div>
             </div>
 
-            {/* Pilihan Rekening Kas / Bank Penerima */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  {activeTab === 'top_up' ? 'Rekening Kas / Bank Penerima' : 'Kas / Bank Sumber Penarikan'}
-                </label>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  {selectedCashAccount?.account_kind === 'bank' ? 'Transfer Bank' : 'Kas Tunai'}
-                </span>
-              </div>
-
-              <SearchableSelect
-                options={cashAccounts.map(c => ({
-                  value: String(c.id),
-                  label: c.account_kind === 'bank' && c.bank_account_number
-                    ? `${c.name} (${c.bank_name || 'Bank'} - ${c.bank_account_number})`
-                    : `${c.name} (Kas Tunai)`,
-                  sublabel: `${c.account_kind === 'bank' ? 'Transfer Bank' : 'Kas Tunai Langsung'}${c.coa_code ? ` • COA ${c.coa_code}` : ''}`,
-                  badge: c.coa_code ? `COA ${c.coa_code}` : (c.account_kind === 'bank' ? 'Bank' : 'Tunai')
-                }))}
-                value={String(selectedCashAccountId)}
-                onChange={(val) => handleCashAccountChange(val)}
-                placeholder="-- Cari & Pilih Rekening Kas / Bank --"
-                searchPlaceholder="Ketik nama akun, bank, atau no rekening..."
-                emptyText="Rekening kas/bank tidak ditemukan"
-                allowClear={false}
-              />
-            </div>
-
-            {/* Referensi Mutasi Rekening Koran */}
-            {activeTab === 'top_up' && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] font-bold text-slate-600 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Referensi Mutasi Rekening Koran</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal">(Multi-Transaksi / Parsial OK)</span>
-                  </label>
-                  {selectedBankStatementId && (
-                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                      <BadgeCheck className="w-3 h-3" />
-                      <span>Terkait Rekening Koran</span>
-                    </span>
-                  )}
+            {/* Pilihan Akun: Jika Saldo Awal pilih Debet & Kredit COA, Jika Top Up / Tarik pilih Rekening Kas/Bank */}
+            {activeTab === 'opening_balance' ? (
+              <div className="p-4 bg-gradient-to-br from-indigo-50/70 via-slate-50 to-indigo-50/40 border border-indigo-200/80 rounded-xl space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-indigo-200/60 pb-2">
+                  <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-indigo-600" />
+                    <span>Akun Akuntansi Terkait (COA)</span>
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded-full font-bold">
+                    Tanpa Input Kas Fisik
+                  </span>
                 </div>
 
-                <SearchableSelect
-                  options={bankStatementsOptions}
-                  value={String(selectedBankStatementId)}
-                  onChange={(val) => handleSelectBankStatement(val)}
-                  placeholder="-- Cari & Pilih Mutasi Rekening Koran (Ref, Nominal, Tgl) --"
-                  searchPlaceholder="Ketik no referensi, nominal transfer, bank, atau berita transfer..."
-                  accentColor="emerald"
-                  allowClear={true}
-                  isLoading={loadingBankStatements}
-                  emptyText={loadingBankStatements ? 'Memuat mutasi...' : 'Tidak ada mutasi rekening koran yang tersedia'}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">
+                      [Debet] Akun Aset / Penampung *
+                    </label>
+                    <SearchableSelect
+                      options={(accountingConfig?.coas?.all || []).map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`,
+                        badge: c.account_code
+                      }))}
+                      value={String(openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id || '')}
+                      onChange={(val) => setOpeningDebitCoaId(val)}
+                      placeholder="-- Pilih Akun Debet COA --"
+                      searchPlaceholder="Cari kode atau nama akun..."
+                      emptyText="Akun tidak ditemukan"
+                      allowClear={false}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      * Akun aset kas/bank tempat dana santri tercatat sebelumnya.
+                    </p>
+                  </div>
 
-                {(() => {
-                  const selectedOpt = bankStatementsOptions.find(o => String(o.value) === String(selectedBankStatementId));
-                  if (!selectedOpt) return null;
-                  return (
-                    <div className="p-2.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-[10.5px] space-y-2 text-slate-700 animate-in fade-in duration-150">
-                      <div className="flex items-center justify-between font-semibold gap-2">
-                        <span className="text-emerald-900 font-bold flex items-center gap-1 min-w-0">
-                          <span>🔗 RK Terpilih:</span>
-                          <span className="truncate">{selectedOpt.desc}</span>
-                        </span>
-                        <span className="tnum text-emerald-800 font-bold shrink-0">
-                          Plafon: {formatCurrency(selectedOpt.amount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-500 text-[10px] gap-2">
-                        <span>
-                          Tgl Mutasi Bank: <b className="text-slate-800 tnum">{selectedOpt.rawDate || '-'}</b> {selectedOpt.refNo ? `• Ref: ${selectedOpt.refNo}` : ''} • Teralokasi: <b>{formatCurrency(selectedOpt.allocated_amount || 0)}</b>
-                        </span>
-                        <span className="text-emerald-700 font-bold tnum shrink-0">
-                          Sisa Plafon: {formatCurrency(selectedOpt.remaining_amount !== undefined ? selectedOpt.remaining_amount : selectedOpt.amount)}
-                        </span>
-                      </div>
-                      <StatementMatchIndicator
-                        inputAmount={amount}
-                        statement={selectedOpt}
-                        onSyncAmount={(amt) => setAmount(String(amt))}
-                        isCompact={false}
-                      />
-                    </div>
-                  );
-                })()}
+                  <div>
+                    <label className="block text-xs font-bold text-rose-800 mb-1">
+                      [Kredit] Akun Kewajiban Dompet *
+                    </label>
+                    <SearchableSelect
+                      options={(accountingConfig?.coas?.all || []).map(c => ({
+                        value: String(c.id),
+                        label: `[${c.account_code}] ${c.account_name}`,
+                        sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`,
+                        badge: c.account_code
+                      }))}
+                      value={String(openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id || '')}
+                      onChange={(val) => setOpeningCreditCoaId(val)}
+                      placeholder="-- Pilih Akun Kredit COA --"
+                      searchPlaceholder="Cari kode atau nama akun..."
+                      emptyText="Akun tidak ditemukan"
+                      allowClear={false}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      * Akun kewajiban titipan/simpanan dompet santri.
+                    </p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Pilihan Rekening Kas / Bank Penerima / Penarikan */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      {activeTab === 'top_up' ? 'Rekening Kas / Bank Penerima' : 'Kas / Bank Sumber Penarikan'}
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {selectedCashAccount?.account_kind === 'bank' ? 'Transfer Bank' : 'Kas Tunai'}
+                    </span>
+                  </div>
+
+                  <SearchableSelect
+                    options={cashAccounts.map(c => ({
+                      value: String(c.id),
+                      label: c.account_kind === 'bank' && c.bank_account_number
+                        ? `${c.name} (${c.bank_name || 'Bank'} - ${c.bank_account_number})`
+                        : `${c.name} (Kas Tunai)`,
+                      sublabel: `${c.account_kind === 'bank' ? 'Transfer Bank' : 'Kas Tunai Langsung'}${c.coa_code ? ` • COA ${c.coa_code}` : ''}`,
+                      badge: c.coa_code ? `COA ${c.coa_code}` : (c.account_kind === 'bank' ? 'Bank' : 'Tunai')
+                    }))}
+                    value={String(selectedCashAccountId)}
+                    onChange={(val) => handleCashAccountChange(val)}
+                    placeholder="-- Cari & Pilih Rekening Kas / Bank --"
+                    searchPlaceholder="Ketik nama akun, bank, atau no rekening..."
+                    emptyText="Rekening kas/bank tidak ditemukan"
+                    allowClear={false}
+                  />
+                </div>
+
+                {/* Referensi Mutasi Rekening Koran (Khusus Top Up) */}
+                {activeTab === 'top_up' && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Referensi Mutasi Rekening Koran</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">(Multi-Transaksi / Parsial OK)</span>
+                      </label>
+                      {selectedBankStatementId && (
+                        <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                          <BadgeCheck className="w-3 h-3" />
+                          <span>Terkait Rekening Koran</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <SearchableSelect
+                      options={bankStatementsOptions}
+                      value={String(selectedBankStatementId)}
+                      onChange={(val) => handleSelectBankStatement(val)}
+                      placeholder="-- Cari & Pilih Mutasi Rekening Koran (Ref, Nominal, Tgl) --"
+                      searchPlaceholder="Ketik no referensi, nominal transfer, bank, atau berita transfer..."
+                      accentColor="emerald"
+                      allowClear={true}
+                      isLoading={loadingBankStatements}
+                      emptyText={loadingBankStatements ? 'Memuat mutasi...' : 'Tidak ada mutasi rekening koran yang tersedia'}
+                    />
+
+                    {(() => {
+                      const selectedOpt = bankStatementsOptions.find(o => String(o.value) === String(selectedBankStatementId));
+                      if (!selectedOpt) return null;
+                      return (
+                        <div className="p-2.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-[10.5px] space-y-2 text-slate-700 animate-in fade-in duration-150">
+                          <div className="flex items-center justify-between font-semibold gap-2">
+                            <span className="text-emerald-900 font-bold flex items-center gap-1 min-w-0">
+                              <span>🔗 RK Terpilih:</span>
+                              <span className="truncate">{selectedOpt.desc}</span>
+                            </span>
+                            <span className="tnum text-emerald-800 font-bold shrink-0">
+                              Plafon: {formatCurrency(selectedOpt.amount)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-500 text-[10px] gap-2">
+                            <span>
+                              Tgl Mutasi Bank: <b className="text-slate-800 tnum">{selectedOpt.rawDate || '-'}</b> {selectedOpt.refNo ? `• Ref: ${selectedOpt.refNo}` : ''} • Teralokasi: <b>{formatCurrency(selectedOpt.allocated_amount || 0)}</b>
+                            </span>
+                            <span className="text-emerald-700 font-bold tnum shrink-0">
+                              Sisa Plafon: {formatCurrency(selectedOpt.remaining_amount !== undefined ? selectedOpt.remaining_amount : selectedOpt.amount)}
+                            </span>
+                          </div>
+                          <StatementMatchIndicator
+                            inputAmount={amount}
+                            statement={selectedOpt}
+                            onSyncAmount={(amt) => setAmount(String(amt))}
+                            isCompact={false}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Catatan / Keterangan Transfer */}
@@ -1048,35 +1151,53 @@ export default function TopUpTarikTunai() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
-                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                    <span className="text-indigo-700 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                      [Sub-Ledger] Kartu Santri:
+                  <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-200/80 space-y-1">
+                    <span className="text-emerald-700 font-bold block uppercase text-[9px] tracking-wider">
+                      [Dr] Akun Debet (Aset/Kas):
                     </span>
-                    <span className="font-bold text-slate-900 block text-[11px]">
-                      {selectedStudent?.student_name || 'Kartu Santri'}
-                    </span>
-                    <span className="text-[10px] text-indigo-700 font-mono font-bold block mt-0.5">
-                      +Rp {amount ? parseFloat(amount || 0).toLocaleString('id-ID') : '0'}
-                    </span>
+                    {(() => {
+                      const allCoas = accountingConfig?.coas?.all || [];
+                      const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id;
+                      const debCoa = allCoas.find(c => String(c.id) === String(effectiveDebitId));
+                      return (
+                        <>
+                          <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                            {debCoa ? `[${debCoa.account_code}] ${debCoa.account_name}` : 'Kas Bank Penampung (10102)'}
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-mono font-bold block">
+                            +Rp {amount ? parseFloat(amount || 0).toLocaleString('id-ID') : '0'}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
 
-                  <div className="p-2 rounded-lg bg-white/80 border border-slate-200/80">
-                    <span className="text-slate-600 font-bold block uppercase text-[9px] tracking-wider mb-0.5">
-                      [Kas/Bank] Rekening Sumber:
+                  <div className="p-2.5 rounded-lg bg-white/90 border border-rose-200/80 space-y-1">
+                    <span className="text-rose-700 font-bold block uppercase text-[9px] tracking-wider">
+                      [Cr] Akun Kredit (Kewajiban):
                     </span>
-                    <span className="font-bold text-slate-900 block text-[11px]">
-                      {selectedCashAccount?.name || 'Kas/Bank BNI Kantin'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">
-                      Saldo sudah tercatat di Keuangan (tidak didebit ulang)
-                    </span>
+                    {(() => {
+                      const allCoas = accountingConfig?.coas?.all || [];
+                      const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id;
+                      const credCoa = allCoas.find(c => String(c.id) === String(effectiveCreditId));
+                      return (
+                        <>
+                          <span className="font-bold text-slate-900 block text-[11px] leading-tight">
+                            {credCoa ? `[${credCoa.account_code}] ${credCoa.account_name}` : 'Simpanan Dompet Santri (20101)'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            Kartu: <b>{selectedStudent?.student_name || 'Santri'}</b>
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
                 <div className="text-[10px] text-indigo-800 font-medium pt-1 flex items-center justify-between border-t border-indigo-200/60">
-                  <span>Keterangan Cutover:</span>
+                  <span>Status Kas Keuangan:</span>
                   <span className="font-semibold text-indigo-900">
-                    Murni aktivasi saldo kartu santri untuk POS Kantin
+                    Murni aktivasi saldo kartu santri (Kas fisik sudah ada di periode lalu)
                   </span>
                 </div>
               </div>

@@ -390,11 +390,14 @@ class WalletTransactionsService {
     const {
       student_id,
       amount,
-      payment_method = 'cash',
-      cash_account_id = null,
-      bank_statement_id = null,
       occurred_at = null,
-      notes = null
+      notes = null,
+      debit_coa_id = null,
+      debit_coa_code = null,
+      debit_coa_name = null,
+      credit_coa_id = null,
+      credit_coa_code = null,
+      credit_coa_name = null
     } = payload;
     const initialAmount = parseFloat(amount);
 
@@ -406,6 +409,17 @@ class WalletTransactionsService {
 
     const student = await canteenStudentsService.ensureCanteenStudentRecord(schoolUnitId, student_id);
     const effectiveUnitId = student.school_unit_id || (schoolUnitId && schoolUnitId !== 'all' && schoolUnitId !== 'foundation' ? schoolUnitId : 1);
+
+    const walletConfig = await this.getAccountingConfig(effectiveUnitId);
+    const conf = walletConfig.settings || {};
+
+    const finalDebitCoaId = debit_coa_id ? Number(debit_coa_id) : (conf.bank_coa_id || conf.cash_coa_id || null);
+    const finalDebitCoaCode = debit_coa_code || conf.bank_coa_code || conf.cash_coa_code || '10102';
+    const finalDebitCoaName = debit_coa_name || conf.bank_coa_name || conf.cash_coa_name || 'Kas Bank Penampung Saldo Awal';
+
+    const finalCreditCoaId = credit_coa_id ? Number(credit_coa_id) : (conf.wallet_liability_coa_id || null);
+    const finalCreditCoaCode = credit_coa_code || conf.wallet_liability_coa_code || '20101';
+    const finalCreditCoaName = credit_coa_name || conf.wallet_liability_coa_name || 'Simpanan Dompet Santri';
 
     const newBalance = parseFloat(student.wallet_balance || 0) + initialAmount;
     const transactionDate = occurred_at ? new Date(occurred_at) : new Date();
@@ -428,15 +442,17 @@ class WalletTransactionsService {
       transaction_type: 'opening_balance',
       amount: initialAmount,
       balance_after: newBalance,
-      payment_method: payment_method || 'transfer',
-      cash_account_id: cash_account_id ? Number(cash_account_id) : null,
+      payment_method: 'transfer',
+      cash_account_id: null,
       cash_account_name: 'Saldo Awal Cutover',
-      debit_coa_code: '10102',
-      debit_coa_name: 'Kas Bank Penampung',
-      credit_coa_code: '20101',
-      credit_coa_name: 'Simpanan Dompet Santri',
+      debit_coa_id: finalDebitCoaId,
+      debit_coa_code: finalDebitCoaCode,
+      debit_coa_name: finalDebitCoaName,
+      credit_coa_id: finalCreditCoaId,
+      credit_coa_code: finalCreditCoaCode,
+      credit_coa_name: finalCreditCoaName,
       fund_source_name: 'Pos Dana Titipan Dompet Santri (Cutover)',
-      bank_statement_id: bank_statement_id ? Number(bank_statement_id) : null,
+      bank_statement_id: null,
       journal_entry_id: null,
       journal_number: journalNumber,
       notes: notes || 'Saldo Awal Migrasi Sistem Lama (Cutover)',
@@ -465,7 +481,9 @@ class WalletTransactionsService {
       student_id: Number(student_id),
       amount: initialAmount,
       balance_after: newBalance,
-      journal_number: journalNumber
+      journal_number: journalNumber,
+      debit_coa_code: finalDebitCoaCode,
+      credit_coa_code: finalCreditCoaCode
     };
   }
 
