@@ -17,17 +17,17 @@ export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
   const isNilaiActive = location.pathname.startsWith('/guru/nilai') || location.pathname.startsWith('/guru/penilaian');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200">
-      <div className="max-w-md md:max-w-lg mx-auto h-[60px] px-2 flex items-center justify-around relative">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-100/90 dark:border-slate-800/80 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+      <div className="max-w-md md:max-w-lg mx-auto h-[64px] px-3 flex items-center justify-around relative">
         {/* 1. Beranda */}
         <NavLink
           to="/guru"
           end
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-lg transition text-center ${
+            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
               isHomeActive
-                ? 'text-emerald-700 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#5B61F4] font-extrabold scale-105'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
             }`
           }
         >
@@ -39,10 +39,10 @@ export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
         <NavLink
           to="/guru/jadwal"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-lg transition text-center ${
+            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
               isJadwalActive
-                ? 'text-emerald-700 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#5B61F4] font-extrabold scale-105'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
             }`
           }
         >
@@ -50,27 +50,27 @@ export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
           <span className="text-[10px] leading-tight">Jadwal</span>
         </NavLink>
 
-        {/* 3. Aksi Cepat Absen (Tengah) - Tombol Bulat Solid 44px Menonjol */}
-        <div className="flex flex-col items-center justify-center -mt-5">
+        {/* 3. Aksi Cepat Absen (Tengah) - Tombol Bulat Solid Menonjol (Mirip Swap/Action Badge di Gambar) */}
+        <div className="flex flex-col items-center justify-center -mt-6">
           <button
             type="button"
             onClick={onOpenQuickAttendance}
             aria-label="Absen Cepat GPS"
-            className="w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-transform active:scale-95 border-2 border-white focus:outline-none"
+            className="w-13 h-13 rounded-full bg-[#5B61F4] hover:bg-[#4E54E8] active:bg-[#4348D6] text-white flex items-center justify-center shadow-lg shadow-indigo-500/35 transition-all duration-200 active:scale-90 border-4 border-white dark:border-slate-900 focus:outline-none"
           >
             <Clock className="w-6 h-6" />
           </button>
-          <span className="text-[10px] font-semibold text-slate-700 mt-1">Absen</span>
+          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 mt-1">Absen</span>
         </div>
 
         {/* 4. Nilai Siswa */}
         <NavLink
           to="/guru/nilai"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-lg transition text-center ${
+            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
               isNilaiActive
-                ? 'text-emerald-700 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'text-[#5B61F4] font-extrabold scale-105'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
             }`
           }
         >
@@ -82,7 +82,7 @@ export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
         <button
           type="button"
           onClick={onOpenDrawer}
-          className="flex flex-col items-center justify-center w-14 h-12 rounded-lg transition text-center text-slate-500 hover:text-slate-800 focus:outline-none"
+          className="flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium focus:outline-none"
         >
           <Menu className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] leading-tight">Lainnya</span>

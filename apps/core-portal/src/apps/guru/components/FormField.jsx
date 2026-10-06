@@ -76,8 +76,8 @@ export const Input = forwardRef(({
   ...props
 }, ref) => {
   const errorStyles = error
-    ? 'border-rose-500 dark:border-rose-500 focus:border-rose-600 focus:ring-rose-500/20'
-    : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20';
+    ? 'border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+    : 'border-slate-200/90 dark:border-slate-700/80 focus:border-[#5B61F4] focus:ring-[#5B61F4]/20';
 
   const tnumClass = tabular || type === 'number' ? 'font-mono tabular-nums' : '';
 
@@ -92,7 +92,7 @@ export const Input = forwardRef(({
         ref={ref}
         type={type}
         disabled={disabled}
-        className={`w-full min-h-[44px] px-3.5 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg border transition-colors outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed ${leftIcon ? 'pl-10' : ''} ${rightIcon ? 'pr-10' : ''} ${errorStyles} ${tnumClass} ${className}`}
+        className={`w-full min-h-[46px] px-4 py-2.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl border shadow-2xs transition-all outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed ${leftIcon ? 'pl-10' : ''} ${rightIcon ? 'pr-10' : ''} ${errorStyles} ${tnumClass} ${className}`}
         {...props}
       />
       {rightIcon && (
@@ -117,15 +117,15 @@ export const Select = forwardRef(({
   ...props
 }, ref) => {
   const errorStyles = error
-    ? 'border-rose-500 dark:border-rose-500 focus:border-rose-600 focus:ring-rose-500/20'
-    : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20';
+    ? 'border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+    : 'border-slate-200/90 dark:border-slate-700/80 focus:border-[#5B61F4] focus:ring-[#5B61F4]/20';
 
   return (
     <div className="relative flex items-center w-full">
       <select
         ref={ref}
         disabled={disabled}
-        className={`w-full min-h-[44px] appearance-none pl-3.5 pr-10 py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg border transition-colors outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer ${errorStyles} ${className}`}
+        className={`w-full min-h-[46px] appearance-none pl-4 pr-10 py-2.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl border shadow-2xs transition-all outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer ${errorStyles} ${className}`}
         {...props}
       >
         {children}
@@ -149,8 +149,8 @@ export const Textarea = forwardRef(({
   ...props
 }, ref) => {
   const errorStyles = error
-    ? 'border-rose-500 dark:border-rose-500 focus:border-rose-600 focus:ring-rose-500/20'
-    : 'border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20';
+    ? 'border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+    : 'border-slate-200/90 dark:border-slate-700/80 focus:border-[#5B61F4] focus:ring-[#5B61F4]/20';
 
   const currentLength = typeof value === 'string' ? value.length : 0;
 
@@ -162,7 +162,7 @@ export const Textarea = forwardRef(({
         disabled={disabled}
         value={value}
         maxLength={maxLength}
-        className={`w-full p-3 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-lg border transition-colors outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed resize-y ${errorStyles} ${className}`}
+        className={`w-full p-3.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl border shadow-2xs transition-all outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 disabled:cursor-not-allowed resize-y ${errorStyles} ${className}`}
         {...props}
       />
       {maxLength && (

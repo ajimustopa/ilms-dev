@@ -155,136 +155,168 @@ export default function Dashboard() {
     return { label: 'Selesai', status: 'success' };
   };
 
-  // Pintasan Fitur Utama Portal Guru
+  // Pintasan Fitur Utama Portal Guru - 8 Colorful Squircles matching the reference style
   const quickActions = [
     {
-      title: 'Presensi Guru',
-      subtitle: 'Masuk & Pulang GPS',
+      title: 'Presensi',
+      subtitle: 'GPS Masuk & Pulang',
       icon: MapPin,
       to: '/guru/absensi',
-      color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+      bgClass: 'bg-[#5B61F4] text-white shadow-md shadow-indigo-500/20 hover:bg-[#4d53eb]'
     },
     {
-      title: 'Jadwal & KBM',
-      subtitle: 'Roster Tatap Muka',
+      title: 'Jadwal',
+      subtitle: 'Roster KBM',
       icon: CalendarDays,
       to: '/guru/jadwal',
-      color: 'text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800'
+      bgClass: 'bg-[#FF6433] text-white shadow-md shadow-orange-500/20 hover:bg-[#ea5525]'
     },
     {
-      title: 'Presensi Siswa',
-      subtitle: 'Absensi Rombel',
+      title: 'Absensi',
+      subtitle: 'Presensi Rombel',
       icon: UserCheck,
       to: '/guru/absensi-kelas',
-      color: 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800'
+      bgClass: 'bg-[#FFA826] text-white shadow-md shadow-amber-500/20 hover:bg-[#ee9715]'
     },
     {
-      title: 'Jurnal Mengajar',
-      subtitle: 'Materi & Catatan KBM',
+      title: 'Jurnal',
+      subtitle: 'Materi Mengajar',
       icon: BookOpen,
       to: '/guru/jurnal-mengajar',
-      color: 'text-teal-700 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800'
+      bgClass: 'bg-[#00B7FE] text-white shadow-md shadow-cyan-500/20 hover:bg-[#00a3e3]'
     },
     {
-      title: 'Penilaian Siswa',
-      subtitle: 'Sesi & Capaian TP',
+      title: 'Penilaian',
+      subtitle: 'Capaian & TP',
       icon: Award,
       to: '/guru/nilai',
-      color: 'text-purple-700 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800'
+      bgClass: 'bg-[#8B5CF6] text-white shadow-md shadow-purple-500/20 hover:bg-[#7c4ce7]'
     },
     {
-      title: 'Kejadian Santri',
-      subtitle: 'Pencatatan & Prestasi',
+      title: 'Kejadian',
+      subtitle: 'Catatan Santri',
       icon: ShieldAlert,
       to: '/guru/kejadian-siswa',
-      color: 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800'
+      bgClass: 'bg-[#FF4B72] text-white shadow-md shadow-rose-500/20 hover:bg-[#e63a60]'
     },
     {
-      title: 'Pengajuan Izin',
-      subtitle: 'Cuti & Surat Dokter',
+      title: 'Izin Guru',
+      subtitle: 'Cuti & Tugas',
       icon: FileText,
       to: '/guru/izin',
-      color: 'text-blue-700 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800'
+      bgClass: 'bg-[#3B82F6] text-white shadow-md shadow-blue-500/20 hover:bg-[#2563eb]'
     },
     {
-      title: 'Direktori Santri',
-      subtitle: 'Data & Kontak Wali',
+      title: 'Santri & Wali',
+      subtitle: 'Data & Kontak',
       icon: Users,
       to: '/guru/santri',
-      color: 'text-slate-700 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+      bgClass: 'bg-[#10B981] text-white shadow-md shadow-emerald-500/20 hover:bg-[#059669]'
     }
   ];
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-200">
-      {/* 1. Header Banner Sambutan & Selector Konteks */}
-      <Card className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status="success" size="sm">
-              {roleTitle || 'Guru Pengajar'}
-            </StatusBadge>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              {todayDateStr}
-            </span>
-          </div>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            {getGreetingByTime()}, {displayName}
+    <div className="space-y-6 animate-in fade-in duration-300 pb-8">
+      {/* 1. Header Banner / Greeting Area matching "Hi, Robert / Find Deals" */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <p className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-400">
+            {getGreetingByTime()}, Ust. {displayName.split(' ')[0]}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Portal Guru
           </h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            Selamat bertugas di <span className="font-semibold text-slate-800 dark:text-slate-200">{activeSchoolUnit?.name || 'Yayasan Aldepos'}</span>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            {activeSchoolUnit?.name || 'Yayasan Aldepos'} • {todayDateStr}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <SelectorKonteks />
         </div>
-      </Card>
+      </div>
 
       {/* ========================================================================= */}
       {/* Slot Pengingat Absen (Tahap 18 Placeholder)                               */}
-      {/* Slot ini dicadangkan untuk widget banner pengingat presensi otomatis        */}
       {/* ========================================================================= */}
       <div id="attendance-reminder-slot" />
 
-      {/* 2. Grid Utama: Presensi Hari Ini & Jadwal Mengajar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 2. Colorful Squircle Quick Action Tiles (Like Flight / Hotels / Taxi / More in reference) */}
+      <div>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+            Menu Cepat
+          </h2>
+          <Link
+            to="/guru/lainnya"
+            className="text-xs font-semibold text-[#5B61F4] hover:underline flex items-center gap-0.5"
+          >
+            <span>Semua Menu</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-4">
+          {quickActions.map((qa, idx) => {
+            const Icon = qa.icon;
+            return (
+              <Link
+                key={idx}
+                to={qa.to}
+                className="flex flex-col items-center text-center group focus-visible:outline-none"
+              >
+                <div
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-3xl flex items-center justify-center transition-all duration-200 group-hover:scale-105 active:scale-95 ${qa.bgClass}`}
+                >
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 block truncate w-full group-hover:text-[#5B61F4] transition-colors">
+                  {qa.title}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Grid Utama: Presensi Hari Ini & Jadwal Mengajar (Boarding Pass / Ticket Aesthetics) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* ========================================== */}
         {/* Seksi A: Status Presensi Hari Ini           */}
         {/* ========================================== */}
-        <Card
-          ribbon={hasCheckedIn ? (hasCheckedOut ? 'indigo' : 'emerald') : 'amber'}
-          className="flex flex-col justify-between"
-        >
+        <Card className="flex flex-col justify-between p-5 sm:p-6">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-                  <MapPin className="w-4 h-4" />
+            {/* Top Ticket Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#5B61F4]/10 text-[#5B61F4] flex items-center justify-center font-bold">
+                  <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Presensi Hari Ini</h2>
-                  {workSchedule?.shift_name && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {workSchedule.shift_name} ({formatShortTime(workSchedule.start_time)} - {formatShortTime(workSchedule.end_time)})
-                    </p>
-                  )}
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    Presensi Hari Ini
+                  </h2>
+                  <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">
+                    {workSchedule?.shift_name || 'Jam Kerja Guru'}
+                    {workSchedule?.start_time && ` (${formatShortTime(workSchedule.start_time)} - ${formatShortTime(workSchedule.end_time)})`}
+                  </p>
                 </div>
               </div>
 
               <Link
                 to="/guru/absensi"
-                className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+                className="text-xs font-bold text-[#5B61F4] hover:underline flex items-center gap-0.5 bg-indigo-50/70 dark:bg-indigo-950/40 px-3 py-1.5 rounded-full"
               >
                 <span>Riwayat</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="py-3">
+            {/* Middle Ticket Body: Masuk & Pulang Nodes */}
+            <div className="py-5">
               {loadingAttendance ? (
-                <div className="py-2 space-y-2">
-                  <Skeleton className="h-12 w-full rounded-lg" />
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full rounded-2xl" />
                 </div>
               ) : attendanceError ? (
                 <ErrorState
@@ -294,45 +326,47 @@ export default function Dashboard() {
                   onRetry={fetchAttendance}
                 />
               ) : (
-                <div className="grid grid-cols-2 gap-2.5">
-                  {/* Slot Masuk */}
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">
-                      Presensi Masuk
-                    </span>
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
-                      {attendanceData?.check_in_time ? formatShortTime(attendanceData.check_in_time) : '--:--'}
-                    </span>
-                    <div className="mt-1.5">
-                      {hasCheckedIn ? (
-                        <StatusBadge
-                          status={attendanceData?.status === 'late' || attendanceData?.late_minutes > 0 ? 'danger' : 'success'}
-                          size="sm"
-                        >
-                          {attendanceData?.status === 'late' || attendanceData?.late_minutes > 0
-                            ? `Terlambat ${attendanceData.late_minutes}m`
-                            : 'Tepat Waktu'}
-                        </StatusBadge>
-                      ) : (
-                        <StatusBadge status="warning" size="sm">Belum Masuk</StatusBadge>
-                      )}
+                <div className="bg-[#F8FAFD] dark:bg-slate-800/60 rounded-3xl p-4 border border-slate-100 dark:border-slate-700/60">
+                  <div className="grid grid-cols-2 gap-4 items-center">
+                    {/* Node Masuk */}
+                    <div className="text-left">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                        Presensi Masuk
+                      </span>
+                      <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 font-mono tracking-tight block mt-0.5">
+                        {attendanceData?.check_in_time ? formatShortTime(attendanceData.check_in_time) : '--:--'}
+                      </span>
+                      <div className="mt-2">
+                        {hasCheckedIn ? (
+                          <StatusBadge
+                            status={attendanceData?.status === 'late' || attendanceData?.late_minutes > 0 ? 'danger' : 'success'}
+                            size="sm"
+                          >
+                            {attendanceData?.status === 'late' || attendanceData?.late_minutes > 0
+                              ? `Terlambat ${attendanceData.late_minutes}m`
+                              : 'Tepat Waktu'}
+                          </StatusBadge>
+                        ) : (
+                          <StatusBadge status="warning" size="sm">Belum Masuk</StatusBadge>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Slot Pulang */}
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-0.5 font-medium">
-                      Presensi Pulang
-                    </span>
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono tabular-nums">
-                      {attendanceData?.check_out_time ? formatShortTime(attendanceData.check_out_time) : '--:--'}
-                    </span>
-                    <div className="mt-1.5">
-                      {hasCheckedOut ? (
-                        <StatusBadge status="info" size="sm">Tercatat</StatusBadge>
-                      ) : (
-                        <StatusBadge status="neutral" size="sm">Belum Pulang</StatusBadge>
-                      )}
+                    {/* Node Pulang */}
+                    <div className="text-right border-l border-dashed border-slate-200 dark:border-slate-700 pl-4">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                        Presensi Pulang
+                      </span>
+                      <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 font-mono tracking-tight block mt-0.5">
+                        {attendanceData?.check_out_time ? formatShortTime(attendanceData.check_out_time) : '--:--'}
+                      </span>
+                      <div className="mt-2 flex justify-end">
+                        {hasCheckedOut ? (
+                          <StatusBadge status="info" size="sm">Tercatat</StatusBadge>
+                        ) : (
+                          <StatusBadge status="neutral" size="sm">Belum Pulang</StatusBadge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -340,22 +374,24 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+          {/* Ticket Bottom CTA Button */}
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <Link
               to="/guru/izin"
-              className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 flex items-center gap-1 min-h-[44px]"
+              className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-[#5B61F4] dark:hover:text-[#5B61F4] flex items-center justify-center gap-1.5 py-2"
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Pengajuan Izin</span>
+              <FileText className="w-4 h-4" />
+              <span>Pengajuan Izin / Cuti</span>
             </Link>
 
             <Button
-              variant={hasCheckedIn && !hasCheckedOut ? 'primary' : (hasCheckedIn && hasCheckedOut ? 'secondary' : 'primary')}
-              size="sm"
+              variant="primary"
+              size="lg"
               onClick={() => navigate('/guru/absensi')}
               leftIcon={<Clock className="w-4 h-4" />}
+              className="rounded-2xl py-3.5 px-6 font-bold shadow-lg shadow-indigo-500/25"
             >
-              {!hasCheckedIn ? 'Presensi Masuk' : (!hasCheckedOut ? 'Presensi Pulang' : 'Detail Presensi')}
+              {!hasCheckedIn ? 'Presensi Masuk Sekarang' : (!hasCheckedOut ? 'Presensi Pulang Sekarang' : 'Buka Detail Presensi')}
             </Button>
           </div>
         </Card>
@@ -363,35 +399,37 @@ export default function Dashboard() {
         {/* ========================================== */}
         {/* Seksi B: Jadwal Mengajar Hari Ini           */}
         {/* ========================================== */}
-        <Card ribbon="indigo" className="flex flex-col justify-between">
+        <Card className="flex flex-col justify-between p-5 sm:p-6">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
-                  <CalendarDays className="w-4 h-4" />
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#FF6433]/10 text-[#FF6433] flex items-center justify-center font-bold">
+                  <CalendarDays className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Jadwal Mengajar Hari Ini</h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {todaySchedules.length} Sesi Tatap Muka Terjadwal
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    Jadwal Mengajar Hari Ini
+                  </h2>
+                  <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">
+                    {todaySchedules.length} Sesi Tatap Muka
                   </p>
                 </div>
               </div>
 
               <Link
                 to="/guru/jadwal"
-                className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                className="text-xs font-bold text-[#FF6433] hover:underline flex items-center gap-0.5 bg-orange-50/70 dark:bg-orange-950/40 px-3 py-1.5 rounded-full"
               >
                 <span>Roster</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="py-3">
+            <div className="py-4">
               {loadingSchedules ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-14 w-full rounded-lg" />
-                  <Skeleton className="h-14 w-full rounded-lg" />
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full rounded-2xl" />
+                  <Skeleton className="h-16 w-full rounded-2xl" />
                 </div>
               ) : schedulesError ? (
                 <ErrorState
@@ -403,8 +441,8 @@ export default function Dashboard() {
               ) : todaySchedules.length === 0 ? (
                 <EmptyState
                   compact
-                  icon={<CalendarDays className="w-5 h-5 text-slate-400" />}
-                  title="Tidak Ada Jadwal Mengajar Hari Ini"
+                  icon={<CalendarDays className="w-6 h-6 text-slate-400" />}
+                  title="Tidak Ada Jadwal Hari Ini"
                   description="Tidak ada roster tatap muka terjadwal untuk hari ini."
                   action={
                     <Button
@@ -412,13 +450,14 @@ export default function Dashboard() {
                       size="sm"
                       onClick={() => navigate('/guru/jadwal')}
                       leftIcon={<CalendarDays className="w-3.5 h-3.5" />}
+                      className="rounded-xl"
                     >
-                      Buka Roster Lengkap
+                      Lihat Roster Mingguan
                     </Button>
                   }
                 />
               ) : (
-                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-0.5">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                   {todaySchedules.map((item, idx) => {
                     const sessionStatus = getScheduleSessionStatus(item.start_time, item.end_time);
                     const classLabel = item.class_group_name || item.class_name || 'Rombel';
@@ -427,16 +466,16 @@ export default function Dashboard() {
                     return (
                       <div
                         key={item.id || idx}
-                        className={`p-3 rounded-lg border transition-all ${
+                        className={`p-4 rounded-3xl border transition-all ${
                           sessionStatus.status === 'info'
-                            ? 'bg-indigo-50/60 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800'
-                            : 'bg-slate-50/70 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60'
+                            ? 'bg-[#F4F6FC] dark:bg-indigo-950/20 border-indigo-200/90 dark:border-indigo-800'
+                            : 'bg-[#F8FAFD] dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/60'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                              <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate">
                                 {item.subject_name || item.subject_code || 'Mata Pelajaran'}
                               </h3>
                               <StatusBadge
@@ -447,34 +486,34 @@ export default function Dashboard() {
                                 {sessionStatus.label}
                               </StatusBadge>
                             </div>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 truncate">
-                              Kelas <span className="font-semibold text-slate-800 dark:text-slate-200">{classLabel}</span>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate font-medium">
+                              Kelas <span className="font-bold text-slate-800 dark:text-slate-200">{classLabel}</span>
                               {roomLabel && ` • Ruang ${roomLabel}`}
                             </p>
                           </div>
 
-                          <span className="text-xs font-mono font-bold text-indigo-700 dark:text-indigo-400 shrink-0 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs font-mono font-bold text-[#5B61F4] dark:text-indigo-400 shrink-0 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-700 shadow-2xs">
                             {formatShortTime(item.start_time)} - {formatShortTime(item.end_time)}
                           </span>
                         </div>
 
-                        {/* Action shortcuts per session */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2">
+                        {/* Action buttons inside ticket */}
+                        <div className="mt-3 pt-3 border-t border-dashed border-slate-200/80 dark:border-slate-700/60 flex items-center gap-2">
                           <Button
-                            variant="outline"
+                            variant="secondary"
                             size="sm"
                             onClick={() => navigate(`/guru/absensi-kelas?class_group_id=${item.class_group_id || ''}&schedule_id=${item.id || ''}`)}
                             leftIcon={<UserCheck className="w-3.5 h-3.5" />}
-                            className="text-xs min-h-[36px] py-1"
+                            className="text-xs rounded-xl flex-1 justify-center py-2"
                           >
                             Absensi Siswa
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => navigate(`/guru/jurnal-mengajar?schedule_id=${item.id || ''}`)}
                             leftIcon={<BookOpen className="w-3.5 h-3.5" />}
-                            className="text-xs min-h-[36px] py-1 text-slate-600 dark:text-slate-300"
+                            className="text-xs rounded-xl flex-1 justify-center py-2"
                           >
                             Isi Jurnal
                           </Button>
@@ -487,10 +526,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="pt-2">
             <Link
               to="/guru/jurnal-mengajar"
-              className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:underline flex items-center justify-between min-h-[44px]"
+              className="text-xs font-bold text-[#5B61F4] hover:underline flex items-center justify-between py-2"
             >
               <span>Buka Rekap Jurnal Mengajar</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -499,62 +538,25 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* 3. Pintasan Fitur Utama (Quick Shortcuts Grid) */}
-      <Card>
-        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
+      {/* 4. Pengumuman Internal Guru (Clean Modern Cards) */}
+      <Card className="p-5 sm:p-6">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#00B7FE]/10 text-[#00B7FE] flex items-center justify-center font-bold">
+              <BellRing className="w-5 h-5" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Pintasan Fitur Guru</h2>
-          </div>
-          <Link
-            to="/guru/lainnya"
-            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
-          >
-            <span>Semua Menu</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {quickActions.map((qa, idx) => {
-            const Icon = qa.icon;
-            return (
-              <Link
-                key={idx}
-                to={qa.to}
-                className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 active:bg-slate-100 dark:active:bg-slate-800 transition-all flex flex-col items-center text-center group min-h-[90px] justify-center focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 border ${qa.color} group-hover:scale-105 transition-transform shrink-0`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block truncate w-full">
-                  {qa.title}
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate w-full mt-0.5">
-                  {qa.subtitle}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* 4. Pengumuman Internal Guru */}
-      <Card>
-        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 flex items-center justify-center">
-              <BellRing className="w-4 h-4" />
+            <div>
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">
+                Pengumuman & Berita Guru
+              </h2>
+              <p className="text-xs text-slate-400 font-medium">Informasi resmi sekolah</p>
             </div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Pengumuman & Berita Guru</h2>
           </div>
           <Link
             to="/guru/pengumuman"
-            className="text-xs font-semibold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-0.5"
+            className="text-xs font-bold text-[#00B7FE] hover:underline flex items-center gap-0.5 bg-cyan-50/70 dark:bg-cyan-950/40 px-3 py-1.5 rounded-full"
           >
-            <span>Semua Pengumuman</span>
+            <span>Semua</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -572,30 +574,30 @@ export default function Dashboard() {
           ) : announcements.length === 0 ? (
             <EmptyState
               compact
-              icon={<BellRing className="w-5 h-5 text-slate-400" />}
-              title="Belum Ada Pengumuman Guru"
+              icon={<BellRing className="w-6 h-6 text-slate-400" />}
+              title="Belum Ada Pengumuman"
               description="Pengumuman resmi dari yayasan atau pimpinan sekolah akan tampil di sini."
             />
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {announcements.map((news) => (
                 <Link
                   key={news.id}
                   to={`/guru/pengumuman?id=${news.id}`}
-                  className="py-3 px-1 block hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors min-h-[44px]"
+                  className="p-4 rounded-3xl bg-[#F8FAFD] dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/60 hover:border-[#5B61F4]/40 hover:bg-white dark:hover:bg-slate-800 transition-all block group"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <StatusBadge status="info" size="sm">
-                      Pengumuman Internal
-                    </StatusBadge>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5B61F4] bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full">
+                      Pengumuman
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
                       {news.published_at ? formatIndonesianDate(news.published_at, false) : '-'}
                     </span>
                   </div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-[#5B61F4] transition-colors line-clamp-1">
                     {news.title}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 font-medium leading-relaxed">
                     {news.summary || news.excerpt || (news.content ? news.content.replace(/<[^>]*>?/gm, '').slice(0, 140) : '-')}
                   </p>
                 </Link>

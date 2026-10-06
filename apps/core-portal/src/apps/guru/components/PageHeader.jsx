@@ -33,7 +33,7 @@ export const PageHeader = ({
 
   return (
     <div
-      className={`flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 ${
+      className={`flex items-center justify-between gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-100/90 dark:border-slate-800/90 shadow-xs mb-4 ${
         compact ? 'py-2 px-3 sm:px-4' : 'py-3 px-3.5 sm:px-4'
       } ${className}`}
     >
@@ -43,20 +43,20 @@ export const PageHeader = ({
             type="button"
             onClick={handleBack}
             aria-label="Kembali"
-            className="w-10 h-10 min-w-[40px] flex items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="w-10 h-10 min-w-[40px] flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-100 dark:border-slate-700/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B61F4]"
           >
-            <ChevronLeft className="w-6 h-6" aria-hidden="true" />
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate leading-snug">
+            <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 truncate tracking-tight">
               {title}
             </h1>
             {badge && <span className="shrink-0">{badge}</span>}
           </div>
           {subtitle && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
               {subtitle}
             </p>
           )}
