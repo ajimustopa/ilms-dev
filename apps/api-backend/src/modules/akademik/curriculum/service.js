@@ -1837,16 +1837,27 @@ class CurriculumService {
   // ==========================================
   async getMySchedules(user, query = {}) {
     let employeeId = null;
-    if (user && user.ref_type === 'staff') {
-      employeeId = user.ref_id;
-    } else if (query.employee_id || query.teacher_employee_id) {
-      employeeId = query.employee_id || query.teacher_employee_id;
+    if (user) {
+      if (user.ref_type === 'staff') {
+        employeeId = user.ref_id;
+      } else if (query.employee_id || query.teacher_employee_id) {
+        employeeId = query.employee_id || query.teacher_employee_id;
+      } else if (user.ref_id) {
+        employeeId = user.ref_id;
+      } else if (user.email) {
+        const emp = await db('employees').where({ email: user.email }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      } else if (user.username) {
+        const emp = await db('employees').where({ employee_number: user.username }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      }
     }
 
     if (!employeeId) {
-      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
-      error.statusCode = 400;
-      throw error;
+      return {
+        teacher: null,
+        schedules: []
+      };
     }
 
     const scheduleQuery = {
@@ -1875,16 +1886,24 @@ class CurriculumService {
 
   async getMyTeachingAssignments(user, query = {}) {
     let employeeId = null;
-    if (user && user.ref_type === 'staff') {
-      employeeId = user.ref_id;
-    } else if (query.employee_id || query.teacher_employee_id) {
-      employeeId = query.employee_id || query.teacher_employee_id;
+    if (user) {
+      if (user.ref_type === 'staff') {
+        employeeId = user.ref_id;
+      } else if (query.employee_id || query.teacher_employee_id) {
+        employeeId = query.employee_id || query.teacher_employee_id;
+      } else if (user.ref_id) {
+        employeeId = user.ref_id;
+      } else if (user.email) {
+        const emp = await db('employees').where({ email: user.email }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      } else if (user.username) {
+        const emp = await db('employees').where({ employee_number: user.username }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      }
     }
 
     if (!employeeId) {
-      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
-      error.statusCode = 400;
-      throw error;
+      return [];
     }
 
     // 1. Penugasan mengajar di rombel dari subject_teacher_assignments
@@ -3364,17 +3383,32 @@ class CurriculumService {
 
   async getTeachingJournalTodayStatus(user, query = {}) {
     let employeeId = query.employee_id || query.teacher_employee_id;
-    if (!employeeId && user && user.ref_type === 'staff') {
-      employeeId = user.ref_id;
-    }
-
-    if (!employeeId) {
-      const error = new Error('Sesi login guru (staff) atau parameter employee_id diperlukan');
-      error.statusCode = 400;
-      throw error;
+    if (!employeeId && user) {
+      if (user.ref_type === 'staff') {
+        employeeId = user.ref_id;
+      } else if (user.ref_id) {
+        employeeId = user.ref_id;
+      } else if (user.email) {
+        const emp = await db('employees').where({ email: user.email }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      } else if (user.username) {
+        const emp = await db('employees').where({ employee_number: user.username }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      }
     }
 
     const todayStr = query.date || new Date().toISOString().split('T')[0];
+
+    if (!employeeId) {
+      return {
+        date: todayStr,
+        total_classes_today: 0,
+        filled_journals: 0,
+        pending_journals: 0,
+        schedules: []
+      };
+    }
+
     const dateObj = new Date(`${todayStr}T00:00:00`);
     const dayOfWeekJs = dateObj.getDay(); // 0 = Sunday, 1 = Monday, ...
     // Petakan ke 1 = Monday ... 7 = Sunday

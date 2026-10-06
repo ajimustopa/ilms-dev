@@ -375,21 +375,18 @@ class AttendanceService {
   // ==========================================
   async getTodayStatus(user, query = {}) {
     let employeeId = query.employee_id;
-    if (!employeeId && user && user.ref_type === 'staff') {
-      employeeId = user.ref_id;
-    }
-
-    if (!employeeId) {
-      const error = new Error('Field employee_id atau sesi login pegawai (staff) diperlukan');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const employee = await db('employees').where({ id: employeeId }).first();
-    if (!employee) {
-      const error = new Error('Pegawai tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+    if (!employeeId && user) {
+      if (user.ref_type === 'staff') {
+        employeeId = user.ref_id;
+      } else if (user.ref_id) {
+        employeeId = user.ref_id;
+      } else if (user.email) {
+        const emp = await db('employees').where({ email: user.email }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      } else if (user.username) {
+        const emp = await db('employees').where({ employee_number: user.username }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      }
     }
 
     const now = new Date();
@@ -397,6 +394,33 @@ class AttendanceService {
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const attendanceDateObj = new Date(`${today}T00:00:00`);
     const dayName = daysOfWeek[attendanceDateObj.getDay()];
+
+    if (!employeeId) {
+      return {
+        date: today,
+        day_of_week: dayName,
+        employee: null,
+        has_checked_in: false,
+        has_checked_out: false,
+        attendance: null,
+        work_schedule: null,
+        locations: []
+      };
+    }
+
+    const employee = await db('employees').where({ id: employeeId }).first();
+    if (!employee) {
+      return {
+        date: today,
+        day_of_week: dayName,
+        employee: null,
+        has_checked_in: false,
+        has_checked_out: false,
+        attendance: null,
+        work_schedule: null,
+        locations: []
+      };
+    }
 
     const attendance = await db('employee_attendances')
       .where({ employee_id: employeeId, attendance_date: today })
@@ -586,13 +610,25 @@ class AttendanceService {
   }
 
   async getMyLeaveRequests(user, query = {}) {
-    if (!user || user.ref_type !== 'staff' || !user.ref_id) {
-      const error = new Error('Sesi login pegawai (staff) diperlukan untuk mengakses daftar izin pribadi');
-      error.statusCode = 403;
-      throw error;
+    let employeeId = query.employee_id;
+    if (!employeeId && user) {
+      if (user.ref_type === 'staff') {
+        employeeId = user.ref_id;
+      } else if (user.ref_id) {
+        employeeId = user.ref_id;
+      } else if (user.email) {
+        const emp = await db('employees').where({ email: user.email }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      } else if (user.username) {
+        const emp = await db('employees').where({ employee_number: user.username }).first().catch(() => null);
+        if (emp) employeeId = emp.id;
+      }
     }
 
-    const employeeId = user.ref_id;
+    if (!employeeId) {
+      return [];
+    }
+
     let baseQuery = db('employee_leave_requests')
       .leftJoin('employees as e', 'employee_leave_requests.employee_id', 'e.id')
       .leftJoin('employees as approver', 'employee_leave_requests.approved_by', 'approver.id')
