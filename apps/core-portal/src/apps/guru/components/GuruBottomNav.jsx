@@ -1,92 +1,60 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  CalendarDays,
-  Award,
-  Menu,
-  Clock,
-  MapPin
-} from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { getBottomNavItems, isMenuItemActive } from '../utils/guruNavigation';
 
-export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
+/**
+ * GuruBottomNav Component - Fixed Mobile Bottom Navigation (5 Slot Kanonis)
+ * Beranda, Absen, Jadwal, Nilai, Profil (Touch target min 44x44px, rounded-lg/full icon pills).
+ * Sesuai PRD Bagian 3, 4, 6 dan mockup 01-dashboard mobile.
+ */
+export function GuruBottomNav() {
   const location = useLocation();
-
-  const isHomeActive = location.pathname === '/guru' || location.pathname === '/guru/dashboard';
-  const isJadwalActive = location.pathname.startsWith('/guru/jadwal');
-  const isNilaiActive = location.pathname.startsWith('/guru/nilai') || location.pathname.startsWith('/guru/penilaian');
+  const navItems = getBottomNavItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-100/90 dark:border-slate-800/80 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-      <div className="max-w-md md:max-w-lg mx-auto h-[64px] px-3 flex items-center justify-around relative">
-        {/* 1. Beranda */}
-        <NavLink
-          to="/guru"
-          end
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
-              isHomeActive
-                ? 'text-[#5B61F4] font-extrabold scale-105'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
-            }`
-          }
-        >
-          <LayoutDashboard className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] leading-tight">Beranda</span>
-        </NavLink>
+    <nav
+      aria-label="Navigasi Bawah Mobile"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 pb-safe bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-sm"
+    >
+      <div className="h-16 max-w-lg mx-auto flex items-center justify-around px-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = isMenuItemActive(item, location.pathname);
 
-        {/* 2. Jadwal / KBM */}
-        <NavLink
-          to="/guru/jadwal"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
-              isJadwalActive
-                ? 'text-[#5B61F4] font-extrabold scale-105'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
-            }`
-          }
-        >
-          <CalendarDays className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] leading-tight">Jadwal</span>
-        </NavLink>
-
-        {/* 3. Aksi Cepat Absen (Tengah) - Tombol Bulat Solid Menonjol (Mirip Swap/Action Badge di Gambar) */}
-        <div className="flex flex-col items-center justify-center -mt-6">
-          <button
-            type="button"
-            onClick={onOpenQuickAttendance}
-            aria-label="Absen Cepat GPS"
-            className="w-13 h-13 rounded-full bg-[#5B61F4] hover:bg-[#4E54E8] active:bg-[#4348D6] text-white flex items-center justify-center shadow-lg shadow-indigo-500/35 transition-all duration-200 active:scale-90 border-4 border-white dark:border-slate-900 focus:outline-none"
-          >
-            <Clock className="w-6 h-6" />
-          </button>
-          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 mt-1">Absen</span>
-        </div>
-
-        {/* 4. Nilai Siswa */}
-        <NavLink
-          to="/guru/nilai"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center ${
-              isNilaiActive
-                ? 'text-[#5B61F4] font-extrabold scale-105'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium'
-            }`
-          }
-        >
-          <Award className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] leading-tight">Nilai</span>
-        </NavLink>
-
-        {/* 5. Menu Lainnya (Membuka Drawer / Bottom Sheet) */}
-        <button
-          type="button"
-          onClick={onOpenDrawer}
-          className="flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all duration-200 text-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium focus:outline-none"
-        >
-          <Menu className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] leading-tight">Lainnya</span>
-        </button>
+          return (
+            <Link
+              key={item.id}
+              to={item.path}
+              aria-current={isActive ? 'page' : undefined}
+              className={`min-w-[48px] min-h-[48px] flex-1 flex flex-col items-center justify-center gap-1 transition-colors select-none ${
+                isActive ? 'text-emerald-800' : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <div
+                className={`w-12 h-7 rounded-full flex items-center justify-center transition-all ${
+                  isActive
+                    ? 'bg-emerald-100 border border-emerald-200 text-emerald-800 shadow-2xs'
+                    : 'hover:bg-slate-100 text-slate-400'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+              </div>
+              <span
+                className={`text-[11px] leading-none ${
+                  isActive ? 'font-bold text-emerald-800' : 'font-medium text-slate-500'
+                }`}
+              >
+                {item.id === 'absensi'
+                  ? 'Absen'
+                  : item.id === 'penilaian'
+                  ? 'Nilai'
+                  : item.id === 'profil'
+                  ? 'Profil'
+                  : item.label}
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

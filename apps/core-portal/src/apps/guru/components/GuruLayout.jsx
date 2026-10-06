@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import GuruSidebar from './GuruSidebar';
 import GuruHeader from './GuruHeader';
+import GuruHeaderStrip from './GuruHeaderStrip';
 import GuruBottomNav from './GuruBottomNav';
 import GuruMenuDrawer from './GuruMenuDrawer';
 import QuickAttendanceModal from './QuickAttendanceModal';
-import AttendanceReminderBanner from './AttendanceReminderBanner';
 import { ToastProvider } from './Toast';
 import { TeacherProvider } from '../context/TeacherContext';
 
+/**
+ * GuruLayout Component - Fondasi Shell Kanonis Portal Guru
+ * Sesuai PRD Bagian 3, 4, 6 dan DESIGN.md.
+ * - Desktop: Sidebar w-64 fixed kiri, Top bar fixed h-16, konten pl-64.
+ * - Mobile: Top bar fixed h-16, Bottom nav 5 slot, Drawer menu lengkap.
+ * - Single sticky strip pengingat absensi / sesi KBM terdekat tepat di bawah top bar.
+ */
 export default function GuruLayout() {
   const [isQuickAttendanceOpen, setIsQuickAttendanceOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -15,36 +23,39 @@ export default function GuruLayout() {
   return (
     <ToastProvider>
       <TeacherProvider>
-        <div className="min-h-screen bg-[#F4F6FC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-[#5B61F4] selection:text-white relative overflow-x-hidden">
-          {/* Ambient Soft Aura Blobs (Inspired by Modern App Design) */}
-          <div className="fixed top-0 left-0 w-96 h-96 bg-indigo-200/30 dark:bg-indigo-900/10 rounded-full blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-          <div className="fixed top-1/3 right-0 w-80 h-80 bg-pink-200/20 dark:bg-pink-900/10 rounded-full blur-3xl pointer-events-none translate-x-1/3" />
-          <div className="fixed bottom-0 left-1/3 w-96 h-96 bg-sky-200/25 dark:bg-sky-900/10 rounded-full blur-3xl pointer-events-none translate-y-1/2" />
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex antialiased selection:bg-emerald-100 selection:text-emerald-900 relative">
+          {/* 1. Sidebar Desktop (w-64, fixed left-0, border-r border-slate-200, z-50) */}
+          <GuruSidebar />
 
-          {/* 1. Header Atas */}
-          <GuruHeader />
+          {/* 2. Container Utama Layout (Desktop: pl-64, Mobile: w-full) */}
+          <div className="flex-1 min-h-screen lg:pl-64 flex flex-col w-full min-w-0">
+            {/* 2.1 Top App Bar Fixed (h-16, border-b border-slate-200, z-40) */}
+            <GuruHeader onOpenDrawer={() => setIsDrawerOpen(true)} />
 
-          {/* 2. Banner Pengingat Absensi Shift */}
-          <AttendanceReminderBanner />
+            {/* 2.2 Top Space Offset untuk Fixed Header (h-16 = 64px) */}
+            <div className="h-16 w-full shrink-0" aria-hidden="true" />
 
-          {/* 3. Area Konten Utama */}
-          <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 pb-28 relative z-10">
-            <Outlet />
-          </main>
+            {/* 2.3 Single Banner Strip Sticky Tepat di Bawah Topbar (Pengingat Absensi / Countdown Sesi) */}
+            <div className="sticky top-16 z-30 w-full">
+              <GuruHeaderStrip />
+            </div>
 
-          {/* 4. Bottom Navigation Mobile */}
-          <GuruBottomNav
-            onOpenQuickAttendance={() => setIsQuickAttendanceOpen(true)}
-            onOpenDrawer={() => setIsDrawerOpen(true)}
-          />
+            {/* 2.4 Area Konten Halaman Aktif */}
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-12 relative z-10">
+              <Outlet />
+            </main>
+          </div>
 
-          {/* 5. Modal Presensi Cepat */}
+          {/* 3. Bottom Navigation Mobile (5 Slot Kanonis) */}
+          <GuruBottomNav />
+
+          {/* 4. Modal Presensi Cepat GPS */}
           <QuickAttendanceModal
             isOpen={isQuickAttendanceOpen}
             onClose={() => setIsQuickAttendanceOpen(false)}
           />
 
-          {/* 6. Drawer Menu Lengkap */}
+          {/* 5. Drawer Menu Lengkap Mobile */}
           <GuruMenuDrawer
             isOpen={isDrawerOpen}
             onClose={() => setIsDrawerOpen(false)}
@@ -54,4 +65,3 @@ export default function GuruLayout() {
     </ToastProvider>
   );
 }
-

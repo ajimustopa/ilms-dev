@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 
 /**
  * Card Component - Design System Portal Guru
- * Menyediakan kontainer permukaan data modern dengan rounded-3xl, shadow diffused, dan opsi aksen.
+ * Menyediakan kontainer permukaan data modern dengan border-slate-200, rounded-xl, dan aksen semantik.
  */
 export const Card = forwardRef(({
   children,
@@ -22,8 +22,8 @@ export const Card = forwardRef(({
   };
 
   const ribbonColors = {
-    indigo: 'border-l-4 border-l-[#5B61F4]',
-    info: 'border-l-4 border-l-[#5B61F4]',
+    indigo: 'border-l-4 border-l-indigo-500',
+    info: 'border-l-4 border-l-indigo-500',
     emerald: 'border-l-4 border-l-emerald-500',
     success: 'border-l-4 border-l-emerald-500',
     amber: 'border-l-4 border-l-amber-500',
@@ -34,16 +34,16 @@ export const Card = forwardRef(({
     neutral: 'border-l-4 border-l-slate-400'
   };
 
-  const ribbonStyle = ribbon ? (ribbonColors[ribbon] || 'border-l-4 border-l-[#5B61F4]') : '';
+  const ribbonStyle = ribbon ? (ribbonColors[ribbon] || 'border-l-4 border-l-emerald-500') : '';
   const hoverStyle = hoverable || onClick
-    ? 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/10 active:translate-y-0 active:bg-slate-50/50'
+    ? 'cursor-pointer transition-colors hover:border-slate-300 hover:bg-slate-50/50'
     : '';
 
   return (
     <Component
       ref={ref}
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 border border-slate-100/90 dark:border-slate-800/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none ${paddings[padding] || paddings.normal} ${ribbonStyle} ${hoverStyle} ${className}`}
+      className={`bg-white border border-slate-200 rounded-xl shadow-2xs ${paddings[padding] || paddings.normal} ${ribbonStyle} ${hoverStyle} ${className}`}
       {...props}
     >
       {children}
