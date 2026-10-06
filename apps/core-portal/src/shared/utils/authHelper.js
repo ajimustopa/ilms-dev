@@ -16,10 +16,12 @@ export const getAppLoginPath = (pathname = '') => {
   if (path.startsWith('/dapur')) return '/dapur/login';
   if (path.startsWith('/perpustakaan')) return '/perpustakaan/login';
   if (path.startsWith('/manajemen')) return '/manajemen/login';
+  if (path.startsWith('/calon-murid')) return '/calon-murid/login';
+  if (path.startsWith('/ppdb') || path.startsWith('/psb')) return '/login';
   if (path.startsWith('/core')) return '/core/login';
   if (path.startsWith('/website-utama')) return '/core/login';
   
-  return '/core/login';
+  return '/login';
 };
 
 /**
