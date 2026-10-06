@@ -1111,7 +1111,7 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 15. Portal Guru Baru (Mobile-First Modular Architecture)
+  // 15. Portal Guru (Mobile-First Modular Architecture)
   {
     path: '/guru/login',
     element: lazyLoad(() => import('./apps/guru/pages/Login')),
@@ -1244,81 +1244,14 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 15b. Portal Guru Versi Lama (Legacy Reroute)
+  // Redirect rute legacy guru ke portal guru baru
   {
-    path: '/guru-lama/login',
-    element: lazyLoad(() => import('./apps/guru/_legacy/pages/Login')),
-  },
-  {
-    path: '/guru-lama/_design',
-    element: lazyLoad(() => import('./apps/guru/_legacy/pages/DesignTokensPreview')),
+    path: '/guru-lama/*',
+    element: <Navigate to="/guru" replace />,
   },
   {
     path: '/guru-lama',
-    element: <ProtectedRoute redirectTo="/guru-lama/login" />,
-    children: [
-      {
-        element: lazyLoad(() => import('./apps/guru/_legacy/components/GuruLayout')),
-        children: [
-          {
-            index: true,
-            element: <Navigate to="/guru-lama/dashboard" replace />,
-          },
-          {
-            path: 'dashboard',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/Dashboard')),
-          },
-          {
-            path: 'jadwal',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/JadwalMengajar')),
-          },
-          {
-            path: 'absensi',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiDiri')),
-          },
-          {
-            path: 'presensi',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiDiri')),
-          },
-          {
-            path: 'absensi-kelas',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/AbsensiKelas')),
-          },
-          {
-            path: 'nilai',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InputNilai')),
-          },
-          {
-            path: 'penilaian',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InputNilai')),
-          },
-          {
-            path: 'tujuan-pembelajaran',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/TujuanPembelajaran')),
-          },
-          {
-            path: 'tp',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/TujuanPembelajaran')),
-          },
-          {
-            path: 'siswa',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/InformasiSiswa')),
-          },
-          {
-            path: 'pengumuman',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/Pengumuman')),
-          },
-          {
-            path: 'profil',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/ProfilSaya')),
-          },
-          {
-            path: 'profile',
-            element: lazyLoad(() => import('./apps/guru/_legacy/pages/ProfilSaya')),
-          },
-        ],
-      },
-    ],
+    element: <Navigate to="/guru" replace />,
   },
 
   // 16. Portal Calon Murid & Santri (PSB)

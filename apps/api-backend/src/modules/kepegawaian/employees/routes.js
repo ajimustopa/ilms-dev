@@ -7,7 +7,8 @@ const router = express.Router();
 const employeesController = require('./controller');
 const { authenticate, requirePermission } = require('../../../middlewares/auth');
 
-// Self-service profile update (Pegawai / Guru)
+// Self-service profile (Pegawai / Guru)
+router.get('/me/profile', authenticate, employeesController.getMyProfile);
 router.put('/me/profile', authenticate, employeesController.updateMyProfile);
 router.put('/profile/self', authenticate, employeesController.updateMyProfile);
 

@@ -605,7 +605,11 @@ class CurriculumService {
         'students.satuan_pendidikan_id',
         'students.nis',
         'students.nisn',
+        'students.nipd',
         'students.full_name',
+        'students.nickname',
+        'students.birth_place',
+        'students.birth_date',
         'students.gender',
         'students.status as student_status',
         'students.cohort_name',
@@ -615,8 +619,10 @@ class CurriculumService {
 
     const studentIds = members.map((m) => m.student_id);
     let regularClassMap = {};
+    let guardianMap = {};
 
     if (studentIds.length > 0) {
+      // 1. Regular class map
       let regQuery = db('student_class_enrollments')
         .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
         .whereIn('student_class_enrollments.student_id', studentIds)
@@ -638,11 +644,42 @@ class CurriculumService {
       for (const r of regEnrollments) {
         regularClassMap[r.student_id] = r.regular_class_name;
       }
+
+      // 2. Primary Guardian / Parent contact
+      try {
+        const rawGuardians = await db('student_guardians')
+          .join('guardians', 'student_guardians.guardian_id', 'guardians.id')
+          .whereIn('student_guardians.student_id', studentIds)
+          .select(
+            'student_guardians.student_id',
+            'student_guardians.relationship',
+            'student_guardians.is_primary_contact',
+            'guardians.full_name as guardian_name',
+            'guardians.phone as guardian_phone'
+          )
+          .orderBy('student_guardians.is_primary_contact', 'desc');
+
+        for (const g of rawGuardians) {
+          if (!guardianMap[g.student_id]) {
+            guardianMap[g.student_id] = {
+              parent_name: g.guardian_name,
+              parent_phone: g.guardian_phone,
+              parent_relationship: g.relationship
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching student guardians for class group members:', e);
+      }
     }
 
     return members.map((m) => ({
       ...m,
-      regular_class_name: regularClassMap[m.student_id] || null
+      class_group_name: classGroup?.name || null,
+      parent_name: guardianMap[m.student_id]?.parent_name || null,
+      parent_phone: guardianMap[m.student_id]?.parent_phone || null,
+      parent_relationship: guardianMap[m.student_id]?.parent_relationship || null,
+      regular_class_name: regularClassMap[m.student_id] || classGroup?.name || null
     }));
   }
 
@@ -2784,7 +2821,9 @@ class CurriculumService {
         'subjects.code as subject_code',
         'grade_levels.name as grade_level_name',
         'academic_years.name as academic_year_name',
-        'semesters.name as semester_name'
+        'semesters.name as semester_name',
+        db.raw('(SELECT COUNT(id) FROM teaching_journals WHERE teaching_journals.learning_objective_id = learning_objectives.id) as journal_count'),
+        db.raw('(SELECT COUNT(id) FROM student_tp_scores WHERE student_tp_scores.learning_objective_id = learning_objectives.id) as score_count')
       );
 
     if (query.satuan_pendidikan_id) {
@@ -2803,10 +2842,21 @@ class CurriculumService {
       baseQuery = baseQuery.where('learning_objectives.semester_id', query.semester_id);
     }
 
-    return baseQuery.orderBy([
+    const rows = await baseQuery.orderBy([
       { column: 'learning_objectives.order_index', order: 'asc' },
       { column: 'learning_objectives.id', order: 'asc' }
     ]);
+
+    return rows.map(r => {
+      const journal_count = parseInt(r.journal_count || 0, 10);
+      const score_count = parseInt(r.score_count || 0, 10);
+      return {
+        ...r,
+        journal_count,
+        score_count,
+        is_used: journal_count > 0 || score_count > 0
+      };
+    });
   }
 
   async createLearningObjective(payload) {
@@ -2817,6 +2867,7 @@ class CurriculumService {
       subject_id,
       semester_id,
       code,
+      scope_material,
       description,
       order_index = 1
     } = payload;
@@ -2834,6 +2885,7 @@ class CurriculumService {
       subject_id,
       semester_id: semester_id || null,
       code: code.trim(),
+      scope_material: scope_material ? scope_material.trim() : null,
       description: description.trim(),
       order_index: parseInt(order_index, 10) || 1,
       is_active: true,
@@ -2866,6 +2918,7 @@ class CurriculumService {
       if (!item.description || !item.description.trim()) continue;
 
       const code = item.code && item.code.trim() ? item.code.trim() : `TP-${i + 1}`;
+      const scopeMaterial = item.scope_material && item.scope_material.trim() ? item.scope_material.trim() : null;
       const orderIndex = item.order_index !== undefined ? parseInt(item.order_index, 10) : (i + 1);
 
       const [id] = await db('learning_objectives').insert({
@@ -2875,6 +2928,7 @@ class CurriculumService {
         subject_id,
         semester_id: item.semester_id || semester_id || null,
         code,
+        scope_material: scopeMaterial,
         description: item.description.trim(),
         order_index: orderIndex,
         is_active: true,
@@ -2902,6 +2956,7 @@ class CurriculumService {
 
     const updateData = { updated_at: db.fn.now() };
     if (payload.code) updateData.code = payload.code.trim();
+    if (payload.scope_material !== undefined) updateData.scope_material = payload.scope_material ? payload.scope_material.trim() : null;
     if (payload.description) updateData.description = payload.description.trim();
     if (payload.order_index !== undefined) updateData.order_index = parseInt(payload.order_index, 10) || 1;
     if (payload.semester_id !== undefined) updateData.semester_id = payload.semester_id || null;
@@ -2922,8 +2977,24 @@ class CurriculumService {
       throw error;
     }
 
+    // Periksa apakah TP sudah digunakan di Jurnal Mengajar atau Penilaian Siswa
+    const journalUsage = await db('teaching_journals').where({ learning_objective_id: id }).count('id as total').first();
+    const scoreUsage = await db('student_tp_scores').where({ learning_objective_id: id }).count('id as total').first();
+
+    const journalCount = parseInt(journalUsage?.total || 0, 10);
+    const scoreCount = parseInt(scoreUsage?.total || 0, 10);
+
+    if (journalCount > 0 || scoreCount > 0) {
+      const reasons = [];
+      if (journalCount > 0) reasons.push(`${journalCount} jurnal mengajar`);
+      if (scoreCount > 0) reasons.push(`${scoreCount} penilaian siswa`);
+      const error = new Error(`Tujuan Pembelajaran "${current.code}" tidak dapat dihapus karena telah digunakan pada ${reasons.join(' dan ')}. Silakan nonaktifkan status TP jika sudah tidak digunakan.`);
+      error.statusCode = 422;
+      throw error;
+    }
+
     await db('learning_objectives').where({ id }).del();
-    return { success: true, message: 'Tujuan Pembelajaran berhasil dihapus' };
+    return { success: true, message: `Tujuan Pembelajaran "${current.code}" berhasil dihapus` };
   }
 
   // ==========================================

@@ -367,6 +367,7 @@ Sama seperti `api-contract-coreservice.md` §1.4 (`200`, `201`, `400`, `401`, `4
 | `GET` / `POST` | `/semesters` | List/buat semester, filter `academic_year_id` | JWT (Admin) |
 | `GET` / `POST` | `/grade-levels` | List/buat tingkat | JWT (Admin) |
 | `GET` / `POST` | `/class-groups` | List/buat rombel, filter `satuan_pendidikan_id`, `academic_year_id` | JWT (Admin) |
+| `GET` | `/class-groups/:id/members` | List anggota siswa dalam rombel (termasuk NIPD, NISN, nama, panggilan, TTL, & kontak wali primer) | JWT |
 | `PUT` | `/class-groups/:id` | Update rombel (termasuk ganti wali kelas) | JWT (Admin) |
 | `GET` | `/enrollments` | List penempatan siswa ke rombel, filter `class_group_id`, `student_id` | JWT |
 | `POST` | `/enrollments` | Tempatkan siswa ke rombel | JWT (Admin/TU) |

@@ -14,7 +14,7 @@ import {
   Calendar
 } from 'lucide-react';
 
-export default function QuickAttendanceModal({ isOpen, onClose }) {
+export function QuickAttendanceModal({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -195,3 +195,5 @@ export default function QuickAttendanceModal({ isOpen, onClose }) {
     </div>
   );
 }
+
+export default QuickAttendanceModal;

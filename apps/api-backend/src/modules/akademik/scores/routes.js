@@ -40,7 +40,9 @@ router.post('/scores/calculate-final', authenticate, requirePermission('akademik
 
 // 6. Nilai per Tujuan Pembelajaran (TP)
 router.get('/tp-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listTpScores);
+router.get('/scores/tp-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listTpScores);
 router.post('/tp-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveTpScoresBulk);
+router.post('/scores/tp-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveTpScoresBulk);
 
 // 7. Dimensi Sikap & Nilai Sikap
 router.get('/attitude-dimensions', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeDimensions);
@@ -49,9 +51,12 @@ router.put('/attitude-dimensions/:id', authenticate, requirePermission('akademik
 router.delete('/attitude-dimensions/:id', authenticate, requirePermission('akademik.scores.delete'), scoresController.deleteAttitudeDimension);
 
 router.get('/attitude-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeScores);
+router.get('/scores/attitude-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.listAttitudeScores);
 router.get('/attitude-scores/matrix', authenticate, requirePermission('akademik.scores.read'), scoresController.getAttitudeScoresMatrix);
+router.get('/scores/attitude-scores/matrix', authenticate, requirePermission('akademik.scores.read'), scoresController.getAttitudeScoresMatrix);
 router.post('/attitude-scores', authenticate, requirePermission('akademik.scores.create'), scoresController.createAttitudeScore);
 router.post('/attitude-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveAttitudeScoresBulk);
+router.post('/scores/attitude-scores/bulk', authenticate, requirePermission('akademik.scores.create'), scoresController.saveAttitudeScoresBulk);
 
 // 8. Nilai Ekstrakurikuler Wajib Pramuka
 router.get('/scout-scores', authenticate, requirePermission('akademik.scores.read'), scoresController.getScoutScores);

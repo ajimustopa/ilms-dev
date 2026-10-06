@@ -9,10 +9,17 @@ export const journalService = {
   },
 
   /**
+   * Mengambil detail satu jurnal mengajar
+   */
+  async getJournalById(id) {
+    return handleApiResponse(api.get(`/akademik/curriculum/teaching-journals/${id}`));
+  },
+
+  /**
    * Mengambil status pengisian jurnal mengajar hari ini
    */
-  async getTodayJournalStatus() {
-    return handleApiResponse(api.get('/akademik/curriculum/teaching-journals/today-status'));
+  async getTodayJournalStatus(params = {}) {
+    return handleApiResponse(api.get('/akademik/curriculum/teaching-journals/today-status', { params }));
   },
 
   /**
@@ -28,4 +35,11 @@ export const journalService = {
   async updateJournal(id, payload) {
     return handleApiResponse(api.put(`/akademik/curriculum/teaching-journals/${id}`, payload));
   },
+
+  /**
+   * Menghapus catatan jurnal mengajar
+   */
+  async deleteJournal(id) {
+    return handleApiResponse(api.delete(`/akademik/curriculum/teaching-journals/${id}`));
+  }
 };

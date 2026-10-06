@@ -9,7 +9,7 @@ import {
   MapPin
 } from 'lucide-react';
 
-export default function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
+export function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
   const location = useLocation();
 
   const isHomeActive = location.pathname === '/guru' || location.pathname === '/guru/dashboard';
@@ -91,3 +91,5 @@ export default function GuruBottomNav({ onOpenQuickAttendance, onOpenDrawer }) {
     </nav>
   );
 }
+
+export default GuruBottomNav;

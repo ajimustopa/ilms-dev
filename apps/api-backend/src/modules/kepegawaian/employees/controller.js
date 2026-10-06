@@ -85,6 +85,29 @@ class EmployeesController {
     }
   }
 
+  async getMyProfile(req, res, next) {
+    try {
+      const user = req.user;
+      if (!user || user.ref_type !== 'staff' || !user.ref_id) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terhubung dengan data pegawai/guru.',
+          errors: null
+        });
+      }
+      const employee = await employeesService.getEmployeeById(user.ref_id);
+      res.status(200).json({
+        success: true,
+        data: employee,
+        message: 'Profil pegawai berhasil dimuat',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async updateMyProfile(req, res, next) {
     try {
       const user = req.user;

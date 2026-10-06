@@ -12,7 +12,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-export default function GuruHeader() {
+export function GuruHeader() {
   const { user, logout, activeSchoolUnit, schoolUnits, selectSchoolUnit, roleTitle } = useTeacherAuth();
   const navigate = useNavigate();
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
@@ -143,15 +143,6 @@ export default function GuruHeader() {
                     <span>Profil Saya & Password</span>
                   </Link>
 
-                  <Link
-                    to="/guru-lama/dashboard"
-                    onClick={() => setShowProfileDropdown(false)}
-                    className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2"
-                  >
-                    <ExternalLink className="w-4 h-4 text-amber-500" />
-                    <span>Buka Portal Guru Lama</span>
-                  </Link>
-
                   <div className="border-t border-slate-100 mt-1 pt-1">
                     <button
                       type="button"
@@ -171,3 +162,5 @@ export default function GuruHeader() {
     </header>
   );
 }
+
+export default GuruHeader;

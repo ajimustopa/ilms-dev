@@ -27,7 +27,8 @@ import {
 export default function AkademikLayout() {
   const location = useLocation();
   const { user, activeSchoolUnit, schoolUnits, changeActiveSchoolUnit, logout } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [localUnits, setLocalUnits] = useState([]);
   const [activeYear, setActiveYear] = useState(null);
   const [activeSemester, setActiveSemester] = useState(null);
@@ -341,9 +342,12 @@ export default function AkademikLayout() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                onClick={() => {
+                  setUnitDropdownOpen(!unitDropdownOpen);
+                  setUserDropdownOpen(false);
+                }}
                 className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border transition-all duration-200 shadow-2xs group ${
-                  dropdownOpen
+                  unitDropdownOpen
                     ? 'bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
                     : 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-emerald-300'
                 }`}
@@ -361,16 +365,16 @@ export default function AkademikLayout() {
                 </div>
                 <div className="flex items-center gap-1 pl-1 shrink-0 border-l border-slate-200 ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${unitDropdownOpen ? 'rotate-180 text-emerald-600' : ''}`} />
                 </div>
               </button>
 
               {/* Custom Popover Dropdown Menu */}
-              {dropdownOpen && (
+              {unitDropdownOpen && (
                 <>
                   <div
                     className="fixed inset-0 z-[999]"
-                    onClick={() => setDropdownOpen(false)}
+                    onClick={() => setUnitDropdownOpen(false)}
                   />
                   <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-white border border-slate-200/90 rounded-xl shadow-2xl z-[1000] p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between">
@@ -388,7 +392,7 @@ export default function AkademikLayout() {
                           type="button"
                           onClick={() => {
                             changeActiveSchoolUnit(null);
-                            setDropdownOpen(false);
+                            setUnitDropdownOpen(false);
                           }}
                           className={`w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group ${
                             !activeSchoolUnit
@@ -422,7 +426,7 @@ export default function AkademikLayout() {
                               type="button"
                               onClick={() => {
                                 changeActiveSchoolUnit(unit);
-                                setDropdownOpen(false);
+                                setUnitDropdownOpen(false);
                               }}
                               className={`w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group ${
                                 isSelected
@@ -487,37 +491,52 @@ export default function AkademikLayout() {
 
             <div className="relative">
               <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                type="button"
+                onClick={() => {
+                  setUserDropdownOpen(!userDropdownOpen);
+                  setUnitDropdownOpen(false);
+                }}
                 className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:text-slate-900 focus:outline-none transition shadow-2xs"
               >
                 <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
                   {user?.full_name?.charAt(0) || 'U'}
                 </div>
                 <span>{user?.full_name || user?.username}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${userDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{user?.full_name}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{user?.username}</p>
+              {userDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[49]"
+                    onClick={() => setUserDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2 border-b border-slate-100">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{user?.full_name}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{user?.username}</p>
+                    </div>
+                    <Link
+                      to="/"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      <Grid className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>App Launcher</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 text-left"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Keluar (Logout)</span>
+                    </button>
                   </div>
-                  <Link
-                    to="/"
-                    className="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50"
-                  >
-                    <Grid className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>App Launcher</span>
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 text-left"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Keluar (Logout)</span>
-                  </button>
-                </div>
+                </>
               )}
             </div>
           </div>

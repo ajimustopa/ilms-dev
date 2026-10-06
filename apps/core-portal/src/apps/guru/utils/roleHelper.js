@@ -39,6 +39,8 @@ export function parseTeacherRoles(user) {
 
   const isSuperAdmin = roleSet.has('super_admin') || roleSet.has('superadmin');
   const isAdminYayasan = roleSet.has('admin_yayasan');
+  const isAdminUnit = roleSet.has('admin_satuan_pendidikan') || roleSet.has('admin_unit') || isSuperAdmin || isAdminYayasan;
+  const isKesiswaan = roleSet.has('kesiswaan') || roleSet.has('waka_kesiswaan') || roleSet.has('staf_kesiswaan') || isAdminUnit;
   const isCounselor = roleSet.has('guru_bk') || roleSet.has('bk') || roleSet.has('counselor') || isSuperAdmin;
   const isHomeroom = roleSet.has('wali_kelas') || roleSet.has('homeroom_teacher') || isSuperAdmin;
   const isCurriculum = roleSet.has('waka_kurikulum') || roleSet.has('kurikulum') || isSuperAdmin;
@@ -48,6 +50,8 @@ export function parseTeacherRoles(user) {
   let primaryRoleName = 'Guru';
   if (isSuperAdmin) primaryRoleName = 'Super Admin';
   else if (isAdminYayasan) primaryRoleName = 'Admin Yayasan';
+  else if (isAdminUnit) primaryRoleName = 'Admin Satuan';
+  else if (isKesiswaan) primaryRoleName = 'Waka Kesiswaan';
   else if (isCurriculum) primaryRoleName = 'Waka Kurikulum';
   else if (isCounselor) primaryRoleName = 'Guru BK';
   else if (isHomeroom) primaryRoleName = 'Wali Kelas';
@@ -56,6 +60,8 @@ export function parseTeacherRoles(user) {
   return {
     isSuperAdmin,
     isAdminYayasan,
+    isAdminUnit,
+    isKesiswaan,
     isHomeroom,
     isCounselor,
     isCurriculum,

@@ -23,7 +23,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 
-export default function GuruMenuDrawer({ isOpen, onClose }) {
+export function GuruMenuDrawer({ isOpen, onClose }) {
   const { teacherRoles, roleTitle } = useTeacherAuth();
   const { isHomeroom, isCounselor, isCurriculum } = teacherRoles;
 
@@ -222,26 +222,10 @@ export default function GuruMenuDrawer({ isOpen, onClose }) {
               </div>
             </div>
           ))}
-
-          {/* Akses Portal Lama */}
-          <div className="pt-2 border-t border-slate-200">
-            <Link
-              to="/guru-lama/dashboard"
-              onClick={onClose}
-              className="flex items-center justify-between p-2.5 rounded-lg border border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 transition"
-            >
-              <div className="flex items-center gap-2.5">
-                <ExternalLink className="w-4 h-4 text-amber-700" />
-                <div>
-                  <p className="text-xs font-bold text-amber-900">Portal Guru Lama (Legacy)</p>
-                  <p className="text-[10px] text-amber-700">Akses sementara halaman lama</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-amber-600" />
-            </Link>
-          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default GuruMenuDrawer;

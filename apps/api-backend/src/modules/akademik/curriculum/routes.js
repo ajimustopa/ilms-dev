@@ -59,6 +59,7 @@ router.delete('/subjects/:id', authenticate, requirePermission('akademik.subject
 
 // 7. Pembagian Tugas Mengajar & Ekskul (Multi-Teacher & Audit Logs)
 router.get('/my-teaching-assignments', authenticate, curriculumController.getMyTeachingAssignments);
+router.get('/curriculum/my-teaching-assignments', authenticate, curriculumController.getMyTeachingAssignments);
 router.get('/teaching-duties', authenticate, curriculumController.listTeachingDuties);
 router.post('/teaching-duties', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.assignTeacherDuty);
 router.delete('/teaching-duties/:id', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.removeTeacherDuty);
@@ -73,6 +74,7 @@ router.delete('/schedule-presets/:id', authenticate, requirePermission('akademik
 
 // 9. Jadwal Pelajaran (Schedules & Anti-Bentrok & Audit Logs)
 router.get('/my-schedules', authenticate, curriculumController.getMySchedules);
+router.get('/curriculum/my-schedules', authenticate, curriculumController.getMySchedules);
 router.get('/schedules/logs', authenticate, curriculumController.listScheduleLogs);
 router.get('/schedules', authenticate, curriculumController.listSchedules);
 router.post('/schedules', authenticate, requirePermission('akademik.class_groups.manage'), curriculumController.createSchedule);
@@ -87,10 +89,10 @@ router.post('/teaching-assignments', authenticate, requirePermission('akademik.c
 
 // 10. Tujuan Pembelajaran (Learning Objectives)
 router.get('/learning-objectives', authenticate, curriculumController.listLearningObjectives);
-router.post('/learning-objectives/bulk', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.createLearningObjectivesBulk);
-router.post('/learning-objectives', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.createLearningObjective);
-router.put('/learning-objectives/:id', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.updateLearningObjective);
-router.delete('/learning-objectives/:id', authenticate, requirePermission('akademik.subjects.manage'), curriculumController.deleteLearningObjective);
+router.post('/learning-objectives/bulk', authenticate, requirePermission('akademik.subjects.manage', 'akademik.scores.manage', 'akademik.view'), curriculumController.createLearningObjectivesBulk);
+router.post('/learning-objectives', authenticate, requirePermission('akademik.subjects.manage', 'akademik.scores.manage', 'akademik.view'), curriculumController.createLearningObjective);
+router.put('/learning-objectives/:id', authenticate, requirePermission('akademik.subjects.manage', 'akademik.scores.manage', 'akademik.view'), curriculumController.updateLearningObjective);
+router.delete('/learning-objectives/:id', authenticate, requirePermission('akademik.subjects.manage', 'akademik.scores.manage', 'akademik.view'), curriculumController.deleteLearningObjective);
 
 
 // 11. KKM / KKTP Per Kelas & Tahun Ajaran

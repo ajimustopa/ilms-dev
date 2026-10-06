@@ -11,7 +11,10 @@ export function useTeacherAuth() {
     isHomeroom: teacherRoles.isHomeroom,
     isCounselor: teacherRoles.isCounselor,
     isCurriculum: teacherRoles.isCurriculum,
+    isKesiswaan: teacherRoles.isKesiswaan,
+    isAdminUnit: teacherRoles.isAdminUnit,
     isSubjectTeacher: teacherRoles.isSubjectTeacher,
     roleTitle: teacherRoles.primaryRoleName,
   };
 }
+
