@@ -168,10 +168,8 @@ class RipsController {
   async listGoals(req, res, next) {
     try {
       const { rips_document_id } = req.query;
-      if (!rips_document_id) {
-        return res.status(422).json({ success: false, data: null, message: 'rips_document_id wajib disertakan', errors: null });
-      }
-      const data = await service.listGoals(Number(rips_document_id), req.query);
+      const docId = (rips_document_id && !isNaN(Number(rips_document_id))) ? Number(rips_document_id) : null;
+      const data = await service.listGoals(docId, req.query);
       res.json({ success: true, data, message: 'Daftar sasaran RIPS berhasil diambil', errors: null });
     } catch (err) {
       next(err);
@@ -237,10 +235,8 @@ class RipsController {
   async listPrograms(req, res, next) {
     try {
       const { rips_document_id } = req.query;
-      if (!rips_document_id) {
-        return res.status(422).json({ success: false, data: null, message: 'rips_document_id wajib disertakan', errors: null });
-      }
-      const data = await service.listPrograms(Number(rips_document_id));
+      const docId = (rips_document_id && !isNaN(Number(rips_document_id))) ? Number(rips_document_id) : null;
+      const data = await service.listPrograms(docId, req.query);
       res.json({ success: true, data, message: 'Daftar program RIPS berhasil diambil', errors: null });
     } catch (err) {
       next(err);

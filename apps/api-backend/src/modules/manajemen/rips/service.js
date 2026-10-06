@@ -353,19 +353,30 @@ class RipsService {
   // ==========================================
   // 3. RIPS GOALS (SASARAN STRATEGIS RIPS)
   // ==========================================
-  async listGoals(ripsDocumentId, query = {}) {
+  async listGoals(ripsDocumentId = null, query = {}) {
     let q = db('rips_goals')
       .leftJoin('rips_domains', 'rips_goals.domain_id', 'rips_domains.id')
       .leftJoin('rips_subdomains', 'rips_goals.subdomain_id', 'rips_subdomains.id')
       .leftJoin('bsc_aspects', 'rips_goals.bsc_aspect_id', 'bsc_aspects.id')
-      .where('rips_goals.rips_document_id', ripsDocumentId)
+      .leftJoin('rips_documents', 'rips_goals.rips_document_id', 'rips_documents.id')
       .select(
         'rips_goals.*',
+        'rips_documents.school_unit_id',
         'rips_domains.name as domain_name',
         'rips_subdomains.name as subdomain_name',
         'bsc_aspects.name as bsc_aspect_name'
       );
 
+    if (ripsDocumentId) {
+      q = q.where('rips_goals.rips_document_id', ripsDocumentId);
+    }
+    if (query.school_unit_id !== undefined && query.school_unit_id !== null && query.school_unit_id !== '') {
+      if (query.school_unit_id === 'null' || query.school_unit_id === 'foundation') {
+        q = q.whereNull('rips_documents.school_unit_id');
+      } else {
+        q = q.where('rips_documents.school_unit_id', Number(query.school_unit_id));
+      }
+    }
     if (query.domain_id) q = q.where('rips_goals.domain_id', query.domain_id);
     if (query.bsc_aspect_id) q = q.where('rips_goals.bsc_aspect_id', query.bsc_aspect_id);
     if (query.status) q = q.where('rips_goals.status', query.status);
@@ -609,16 +620,17 @@ class RipsService {
   // ==========================================
   // 4. RIPS PROGRAMS & LINK GOALS
   // ==========================================
-  async listPrograms(ripsDocumentId) {
-    const programs = await db('rips_programs')
+  async listPrograms(ripsDocumentId = null, query = {}) {
+    let q = db('rips_programs')
       .leftJoin('rips_program_categories', 'rips_programs.category_id', 'rips_program_categories.id')
       .leftJoin('rips_domains as direct_domain', 'rips_programs.domain_id', 'direct_domain.id')
       .leftJoin('rips_subdomains as direct_subdomain', 'rips_programs.subdomain_id', 'direct_subdomain.id')
-      .where('rips_programs.rips_document_id', ripsDocumentId)
+      .leftJoin('rips_documents', 'rips_programs.rips_document_id', 'rips_documents.id')
       .orderBy('rips_programs.order_index', 'asc')
       .orderBy('rips_programs.id', 'asc')
       .select(
         'rips_programs.*',
+        'rips_documents.school_unit_id',
         'rips_program_categories.name as category_name',
         'rips_program_categories.color as category_color',
         'rips_program_categories.bg_color as category_bg_color',
@@ -628,6 +640,19 @@ class RipsService {
         'direct_subdomain.name as direct_subdomain_name',
         'direct_subdomain.order_index as direct_subdomain_order_index'
       );
+
+    if (ripsDocumentId) {
+      q = q.where('rips_programs.rips_document_id', ripsDocumentId);
+    }
+    if (query.school_unit_id !== undefined && query.school_unit_id !== null && query.school_unit_id !== '') {
+      if (query.school_unit_id === 'null' || query.school_unit_id === 'foundation') {
+        q = q.whereNull('rips_documents.school_unit_id');
+      } else {
+        q = q.where('rips_documents.school_unit_id', Number(query.school_unit_id));
+      }
+    }
+
+    const programs = await q;
 
     const programIds = programs.map((p) => p.id);
     let links = [];

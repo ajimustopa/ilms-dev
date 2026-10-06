@@ -21,9 +21,6 @@ import {
   Building2,
   PanelLeft,
   PanelLeftClose,
-  FileCheck2,
-  UserPlus,
-  CalendarDays,
   History
 } from 'lucide-react';
 
@@ -167,12 +164,6 @@ export default function AkademikLayout() {
       path: '/akademik/calendar',
       icon: Calendar,
     },
-    // PSB (Penerimaan Murid Baru)
-    {
-      label: 'Penerimaan Murid Baru (PSB)',
-      path: '/akademik/psb',
-      icon: UserPlus,
-    },
     // Riwayat & Arsip
     {
       label: 'Riwayat & Impor Data',
@@ -256,9 +247,6 @@ export default function AkademikLayout() {
           )}
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isMatch = item.path === '/akademik/psb'
-              ? location.pathname.startsWith('/akademik/psb')
-              : location.pathname === item.path;
             return (
               <NavLink
                 key={item.path}
@@ -266,7 +254,7 @@ export default function AkademikLayout() {
                 title={isCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
                   `flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'} py-2.5 text-xs font-semibold rounded-xl transition-all ${
-                    (isActive || isMatch)
+                    isActive
                       ? 'bg-emerald-600 text-white shadow-md font-bold'
                       : 'text-slate-400 hover:bg-slate-800/90 hover:text-white'
                   }`

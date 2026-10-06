@@ -281,6 +281,47 @@ class StudentsController {
       next(err);
     }
   }
+
+  async batchImport(req, res, next) {
+    try {
+      const result = await studentsService.batchImport(req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: `Import selesai: ${result.inserted_count} baru, ${result.updated_count} diperbarui${result.skipped_count > 0 ? `, ${result.skipped_count} dilewati` : ''}`,
+        errors: result.errors && result.errors.length > 0 ? result.errors : null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async printCardsPdf(req, res, next) {
+    try {
+      const pdfBuffer = await studentsService.generatePrintableCardsPdf(req.body, req.user);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="kartu-tanda-siswa-akademik.pdf"');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.end(pdfBuffer);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async uploadPhoto(req, res, next) {
+    try {
+      const studentId = req.params.id || req.body.student_id;
+      const result = await studentsService.uploadStudentPhoto(studentId, req.body);
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Pas foto siswa berhasil diunggah',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new StudentsController();

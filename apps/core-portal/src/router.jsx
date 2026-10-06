@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { updateBrowserTab } from './shared/utils/moduleTabHelper';
 
 import ProtectedRoute from './shared/components/ProtectedRoute';
 
@@ -396,38 +397,14 @@ export const router = createBrowserRouter([
             path: 'kalender',
             element: lazyLoad(() => import('./apps/akademik/pages/KalenderAkademik')),
           },
-          // PSB (Penerimaan Murid Baru) - Unified Hub & Subtabs
+          // PSB dialihkan ke Modul PPDB tersendiri (/ppdb)
           {
             path: 'psb',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSB')),
+            element: <Navigate to="/ppdb" replace />,
           },
           {
-            path: 'psb/proses',
-            element: <Navigate to="/akademik/psb?tab=proses" replace />,
-          },
-          {
-            path: 'psb/kelompok',
-            element: <Navigate to="/akademik/psb?tab=kelompok" replace />,
-          },
-          {
-            path: 'psb/pendataan',
-            element: <Navigate to="/akademik/psb?tab=pendataan" replace />,
-          },
-          {
-            path: 'psb/pendataan/:id',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrantDetail')),
-          },
-          {
-            path: 'psb/detail/:id',
-            element: lazyLoad(() => import('./apps/akademik/pages/PSBRegistrantDetail')),
-          },
-          {
-            path: 'psb/testing',
-            element: <Navigate to="/akademik/psb?tab=testing" replace />,
-          },
-          {
-            path: 'psb/penempatan',
-            element: <Navigate to="/akademik/psb?tab=penempatan" replace />,
+            path: 'psb/*',
+            element: <Navigate to="/ppdb" replace />,
           },
           {
             path: 'riwayat-data',
@@ -1312,3 +1289,15 @@ export const router = createBrowserRouter([
     v7_relativeSplatPath: true,
   },
 });
+
+// Update title dan icon favicon otomatis saat navigasi antar modul
+router.subscribe((state) => {
+  if (state.location) {
+    updateBrowserTab(state.location.pathname);
+  }
+});
+
+// Inisialisasi awal saat pertama kali web dimuat
+if (typeof window !== 'undefined') {
+  updateBrowserTab(window.location.pathname);
+}

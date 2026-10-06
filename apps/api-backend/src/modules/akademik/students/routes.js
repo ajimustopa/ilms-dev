@@ -11,6 +11,9 @@ const { authenticate, requirePermission } = require('../../../middlewares/auth')
 // 1. Data Induk Siswa CRUD & Quick Operations
 router.get('/students/search-quick', authenticate, requirePermission('akademik.students.read'), studentsController.searchQuick);
 router.post('/students/quick-add-legacy', authenticate, requirePermission('akademik.students.create'), studentsController.quickAddLegacy);
+router.post('/students/batch-import', authenticate, requirePermission('akademik.students.create'), studentsController.batchImport);
+router.post('/students/upload-photo', authenticate, requirePermission('akademik.students.update'), studentsController.uploadPhoto);
+router.post('/students/:id/upload-photo', authenticate, requirePermission('akademik.students.update'), studentsController.uploadPhoto);
 router.get('/students', authenticate, requirePermission('akademik.students.read'), studentsController.listStudents);
 router.post('/students', authenticate, requirePermission('akademik.students.create'), studentsController.createStudent);
 router.get('/students/:id', authenticate, requirePermission('akademik.students.read'), studentsController.getStudentById);

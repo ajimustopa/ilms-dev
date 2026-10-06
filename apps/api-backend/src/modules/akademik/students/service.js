@@ -5,9 +5,36 @@
  */
 const db = require('../../../config/db/akademik');
 const schoolUnitsService = require('../../core/school-units/service');
+const foundationService = require('../../core/foundation/service');
 const usersService = require('../../core/users/service');
 const webhooksService = require('../../core/webhooks/service');
 const { parseUnitId } = require('../../../utils/parseUnitId');
+const fs = require('fs');
+const path = require('path');
+
+function saveStudentPhotoBase64(base64String, studentId) {
+  if (!base64String || typeof base64String !== 'string') return base64String;
+  const matches = base64String.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+  if (!matches) {
+    return base64String;
+  }
+  try {
+    const rawExt = matches[1].toLowerCase();
+    const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'png' ? 'png' : (rawExt === 'webp' ? 'webp' : 'jpg'));
+    const buffer = Buffer.from(matches[2], 'base64');
+    const uploadsDir = path.join(__dirname, '../../../../public/uploads/student-photos');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const filename = `photo_siswa_${studentId || 'new'}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, buffer);
+    return `/uploads/student-photos/${filename}`;
+  } catch (err) {
+    console.warn('Gagal menyimpan pas foto base64 ke disk:', err.message);
+    return base64String;
+  }
+}
 
 const DEFAULT_REPORT_RECAPS = [
   { grade_name: 'Kelas 7', semester: 'Semester 1' },
@@ -532,7 +559,7 @@ class StudentsService {
       hobby: hobby || null,
       ambition: ambition || null,
       address: address || student_address?.full_address || student_address?.street_address || null,
-      photo_url: photo_url || null,
+      photo_url: saveStudentPhotoBase64(photo_url, cleanNis || 'new') || null,
       status: status || 'aktif',
       data_entry_mode: data_entry_mode || 'lengkap',
       dapodik_status: dapodik_status || 'belum_masuk_dapodik',
@@ -864,6 +891,8 @@ class StudentsService {
       if (payload[key] !== undefined) {
         if (key === 'birth_date' || key === 'enrolled_at') {
           updateData[key] = formatDateOnly(payload[key]);
+        } else if (key === 'photo_url') {
+          updateData[key] = saveStudentPhotoBase64(payload[key], id) || null;
         } else {
           updateData[key] = payload[key];
         }
@@ -1859,6 +1888,566 @@ class StudentsService {
 
     return baseQuery.orderBy('students.id', 'desc').limit(Number(limit));
   }
+
+  // ==========================================
+  // 13. Batch Import Siswa (Create Baru & Update Edit Masal)
+  // ==========================================
+  async batchImport(payload, user = null) {
+    const { satuan_pendidikan_id, academic_year_id, rows = [] } = payload;
+    const unitId = parseUnitId(satuan_pendidikan_id) || 1;
+    const targetAyId = academic_year_id ? Number(academic_year_id) : null;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      const error = new Error('Data baris import kosong atau tidak valid.');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // Ambil cache class_groups untuk unit ini agar bisa mencocokkan nama rombel dengan cepat
+    const classGroups = await db('class_groups')
+      .where({ satuan_pendidikan_id: unitId })
+      .select('id', 'name', 'grade_level_id');
+    const classGroupMap = {};
+    for (const cg of classGroups) {
+      classGroupMap[cg.name.toLowerCase().trim()] = cg.id;
+      classGroupMap[String(cg.id)] = cg.id;
+    }
+
+    let insertedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+    const errors = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowIndex = i + 1;
+
+      // Skip baris contoh atau baris tanpa nama
+      const rawName = String(row.full_name || row.nama_lengkap || row['Nama Lengkap'] || '').trim();
+      const rawNis = String(row.nis || row['NIS'] || '').trim();
+      if (!rawName || rawName.toUpperCase().includes('[CONTOH]') || rawNis.toUpperCase().includes('[CONTOH]')) {
+        skippedCount++;
+        continue;
+      }
+
+      try {
+        // Standardisasi data
+        let gender = String(row.gender || row.jenis_kelamin || row['Jenis Kelamin'] || 'L').toUpperCase().trim();
+        if (gender.startsWith('P') || gender === 'WANITA' || gender === 'PEREMPUAN' || gender === 'AKHWAT') {
+          gender = 'P';
+        } else {
+          gender = 'L';
+        }
+
+        const nisn = (row.nisn || row['NISN']) ? String(row.nisn || row['NISN']).trim() : null;
+        const nik = (row.nik || row.nik_siswa || row['NIK Siswa'] || row['NIK']) ? String(row.nik || row.nik_siswa || row['NIK Siswa'] || row['NIK']).trim() : null;
+        const familyCard = (row.family_card_number || row.no_kk || row['No KK'] || row['Nomor KK']) ? String(row.family_card_number || row.no_kk || row['No KK'] || row['Nomor KK']).trim() : null;
+        const nickname = (row.nickname || row.nama_panggilan || row['Nama Panggilan']) ? String(row.nickname || row.nama_panggilan || row['Nama Panggilan']).trim() : null;
+        const birthPlace = (row.birth_place || row.tempat_lahir || row['Tempat Lahir']) ? String(row.birth_place || row.tempat_lahir || row['Tempat Lahir']).trim() : null;
+        const birthDate = formatDateOnly(row.birth_date || row.tanggal_lahir || row['Tanggal Lahir']);
+        const religion = (row.religion || row.agama || row['Agama']) ? String(row.religion || row.agama || row['Agama']).trim() : null;
+        const citizenship = (row.citizenship || row.kewarganegaraan || row['Kewarganegaraan']) ? String(row.citizenship || row.kewarganegaraan || row['Kewarganegaraan']).trim() : 'WNI';
+        const orderInFamily = row.order_in_family || row.anak_ke || row['Anak Ke'] ? Number(row.order_in_family || row.anak_ke || row['Anak Ke']) : null;
+        const numberOfSiblings = row.number_of_siblings || row.jumlah_saudara || row['Jumlah Saudara'] ? Number(row.number_of_siblings || row.jumlah_saudara || row['Jumlah Saudara']) : null;
+        const status = (row.status || row.status_siswa || row['Status Siswa'] || 'aktif').toLowerCase().trim();
+        const address = (row.address || row.alamat || row.alamat_lengkap || row['Alamat Lengkap'] || row['Alamat']) ? String(row.address || row.alamat || row.alamat_lengkap || row['Alamat Lengkap'] || row['Alamat']).trim() : null;
+        const rt = (row.rt || row['RT']) ? String(row.rt || row['RT']).trim() : null;
+        const rw = (row.rw || row['RW']) ? String(row.rw || row['RW']).trim() : null;
+        const hamlet = (row.hamlet || row.dusun || row['Dusun']) ? String(row.hamlet || row.dusun || row['Dusun']).trim() : null;
+        const village = (row.village || row.desa || row.kelurahan || row['Kelurahan / Desa'] || row['Kelurahan'] || row['Desa']) ? String(row.village || row.desa || row.kelurahan || row['Kelurahan / Desa'] || row['Kelurahan'] || row['Desa']).trim() : null;
+        const district = (row.district || row.kecamatan || row['Kecamatan']) ? String(row.district || row.kecamatan || row['Kecamatan']).trim() : null;
+        const postalCode = (row.postal_code || row.kode_pos || row['Kode Pos']) ? String(row.postal_code || row.kode_pos || row['Kode Pos']).trim() : null;
+        const phone = (row.phone || row.no_hp || row.no_hp_siswa || row['No HP / WA Siswa'] || row['No HP Siswa']) ? String(row.phone || row.no_hp || row.no_hp_siswa || row['No HP / WA Siswa'] || row['No HP Siswa']).trim() : null;
+        const email = (row.email || row.email_siswa || row['Email Siswa'] || row['Email']) ? String(row.email || row.email_siswa || row['Email Siswa'] || row['Email']).trim() : null;
+        const heightCm = (row.height_cm || row.tinggi_badan || row['Tinggi Badan (cm)'] || row['Tinggi Badan']) ? Number(row.height_cm || row.tinggi_badan || row['Tinggi Badan (cm)'] || row['Tinggi Badan']) : null;
+        const weightKg = (row.weight_kg || row.berat_badan || row['Berat Badan (kg)'] || row['Berat Badan']) ? Number(row.weight_kg || row.berat_badan || row['Berat Badan (kg)'] || row['Berat Badan']) : null;
+        const bloodType = (row.blood_type || row.golongan_darah || row['Golongan Darah']) ? String(row.blood_type || row.golongan_darah || row['Golongan Darah']).toUpperCase().trim() : null;
+        const medicalHistory = (row.medical_history || row.riwayat_penyakit || row['Riwayat Penyakit']) ? String(row.medical_history || row.riwayat_penyakit || row['Riwayat Penyakit']).trim() : null;
+        
+        // Pendaftaran
+        const regTypeRaw = String(row.registration_type || row.jenis_pendaftaran || row['Jenis Pendaftaran'] || 'siswa_baru').toLowerCase();
+        const regType = regTypeRaw.includes('pindah') ? 'pindahan' : 'siswa_baru';
+        const prevSchool = (row.previous_school_name || row.asal_sekolah || row['Asal Sekolah']) ? String(row.previous_school_name || row.asal_sekolah || row['Asal Sekolah']).trim() : null;
+
+        // Rombel
+        const rombelRaw = String(row.class_group_name || row.rombel || row.kelas || row['Rombel / Kelas'] || row['Rombel'] || '').trim();
+        let targetCgId = row.class_group_id ? Number(row.class_group_id) : null;
+        if (!targetCgId && rombelRaw) {
+          targetCgId = classGroupMap[rombelRaw.toLowerCase()] || null;
+        }
+
+        // Cari apakah siswa sudah ada (berdasarkan ID atau NIS)
+        let targetStudent = null;
+        const inputId = row.id || row.student_id || row['ID Siswa'] || row['ID'];
+        if (inputId && !isNaN(inputId)) {
+          targetStudent = await db('students').where({ id: Number(inputId) }).first();
+        }
+        if (!targetStudent && rawNis) {
+          targetStudent = await db('students')
+            .where({ satuan_pendidikan_id: unitId, nis: rawNis })
+            .first();
+        }
+
+        let studentId = null;
+
+        if (targetStudent) {
+          // ==============================
+          // MODE UPDATE DATA SISWA
+          // ==============================
+          studentId = targetStudent.id;
+          const updateFields = {
+            full_name: rawName,
+            updated_at: db.fn.now()
+          };
+          if (rawNis) updateFields.nis = rawNis;
+          if (nisn !== null) updateFields.nisn = nisn;
+          if (nik !== null) updateFields.nik = nik;
+          if (familyCard !== null) updateFields.family_card_number = familyCard;
+          if (nickname !== null) updateFields.nickname = nickname;
+          if (gender) updateFields.gender = gender;
+          if (birthPlace !== null) updateFields.birth_place = birthPlace;
+          if (birthDate !== null) updateFields.birth_date = birthDate;
+          if (religion !== null) updateFields.religion = religion;
+          if (citizenship !== null) updateFields.citizenship = citizenship;
+          if (orderInFamily !== null) updateFields.order_in_family = orderInFamily;
+          if (numberOfSiblings !== null) updateFields.number_of_siblings = numberOfSiblings;
+          if (status) updateFields.status = status;
+          if (address !== null) updateFields.address = address;
+
+          await db('students').where({ id: studentId }).update(updateFields);
+
+          // Update/Insert Alamat
+          if (address || rt || rw || hamlet || village || district || postalCode || email) {
+            await this.updateAddress(studentId, {
+              street_address: address,
+              rt,
+              rw,
+              hamlet,
+              village,
+              district,
+              postal_code: postalCode,
+              email
+            });
+          }
+
+          // Update/Insert Fisik
+          if (heightCm !== null || weightKg !== null || bloodType !== null || medicalHistory !== null) {
+            await this.updatePhysicalData(studentId, {
+              height_cm: heightCm,
+              weight_kg: weightKg,
+              blood_type: bloodType,
+              medical_history: medicalHistory
+            });
+          }
+
+          // Update/Insert Admission
+          if (prevSchool || regType) {
+            await this.updateAdmission(studentId, {
+              registration_type: regType,
+              previous_school_name: prevSchool
+            });
+          }
+
+          updatedCount++;
+        } else {
+          // ==============================
+          // MODE CREATE SISWA BARU
+          // ==============================
+          if (!rawNis) {
+            errors.push(`Baris #${rowIndex} (${rawName}): NIS wajib diisi untuk siswa baru.`);
+            continue;
+          }
+
+          const [newId] = await db('students').insert({
+            satuan_pendidikan_id: unitId,
+            nis: rawNis,
+            nisn: nisn || null,
+            nik: nik || null,
+            family_card_number: familyCard || null,
+            full_name: rawName,
+            nickname: nickname || null,
+            gender: gender || 'L',
+            birth_place: birthPlace || null,
+            birth_date: birthDate || null,
+            order_in_family: orderInFamily || null,
+            number_of_siblings: numberOfSiblings || null,
+            religion: religion || 'Islam',
+            citizenship: citizenship || 'WNI',
+            address: address || null,
+            status: status || 'aktif',
+            data_entry_mode: 'lengkap',
+            dapodik_status: 'belum_masuk_dapodik',
+            enrolled_at: formatDateOnly(new Date()),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+
+          studentId = newId;
+
+          // Simpan Alamat
+          await db('student_addresses').insert({
+            student_id: studentId,
+            street_address: address || null,
+            rt: rt || null,
+            rw: rw || null,
+            hamlet: hamlet || null,
+            village: village || null,
+            district: district || null,
+            postal_code: postalCode || null,
+            email: email || null,
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+
+          // Simpan Fisik
+          await db('student_physical_data').insert({
+            student_id: studentId,
+            height_cm: heightCm || null,
+            weight_kg: weightKg || null,
+            blood_type: bloodType || null,
+            medical_history: medicalHistory || null,
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+
+          // Simpan Pendaftaran
+          await db('student_admissions').insert({
+            student_id: studentId,
+            registration_type: regType || 'siswa_baru',
+            admission_date: formatDateOnly(new Date()),
+            previous_school_name: prevSchool || null,
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+
+          // Seed default rapor
+          const seedRows = DEFAULT_REPORT_RECAPS.map(item => ({
+            student_id: studentId,
+            grade_name: item.grade_name,
+            semester: item.semester,
+            dik_status: false,
+            din_status: false,
+            created_at: new Date(),
+            updated_at: new Date()
+          }));
+          await db('student_report_card_recap_checklists').insert(seedRows);
+
+          // Auto Provision Akun Core Siswa
+          try {
+            const { generateShortUsername } = require('../../../utils/usernameGenerator');
+            const coreDb = require('../../../config/db/core');
+            const existingUsernames = new Set((await coreDb('users').select('username')).map(u => u.username));
+            const generatedUsername = generateShortUsername(rawName, existingUsernames);
+
+            await usersService.internalCreateUser({
+              username: generatedUsername,
+              password: 'abs321',
+              full_name: rawName,
+              account_type: 'student',
+              ref_type: 'student',
+              ref_id: studentId,
+              school_unit_id: unitId,
+              role_id: 18
+            });
+          } catch (e) {}
+
+          insertedCount++;
+        }
+
+        // ==============================
+        // RELASI ORANG TUA / WALI
+        // ==============================
+        // Ayah
+        const fatherName = (row.father_name || row.nama_ayah || row['Nama Ayah']) ? String(row.father_name || row.nama_ayah || row['Nama Ayah']).trim() : null;
+        if (fatherName) {
+          const fatherNik = (row.father_nik || row.nik_ayah || row['NIK Ayah']) ? String(row.father_nik || row.nik_ayah || row['NIK Ayah']).trim() : null;
+          const fatherEdu = (row.father_education || row.pendidikan_ayah || row['Pendidikan Ayah']) ? String(row.father_education || row.pendidikan_ayah || row['Pendidikan Ayah']).trim() : null;
+          const fatherOcc = (row.father_occupation || row.pekerjaan_ayah || row['Pekerjaan Ayah']) ? String(row.father_occupation || row.pekerjaan_ayah || row['Pekerjaan Ayah']).trim() : null;
+          const fatherInc = (row.father_income || row.penghasilan_ayah || row['Penghasilan Ayah']) ? String(row.father_income || row.penghasilan_ayah || row['Penghasilan Ayah']).trim() : null;
+          const fatherPhone = (row.father_phone || row.no_hp_ayah || row['No HP Ayah']) ? String(row.father_phone || row.no_hp_ayah || row['No HP Ayah']).trim() : null;
+          
+          await this.saveGuardian(studentId, {
+            relationship: 'ayah',
+            full_name: fatherName,
+            nik: fatherNik,
+            education_level: fatherEdu,
+            occupation: fatherOcc,
+            income_range: fatherInc,
+            phone: fatherPhone,
+            is_primary_contact: true
+          });
+        }
+
+        // Ibu
+        const motherName = (row.mother_name || row.nama_ibu || row['Nama Ibu']) ? String(row.mother_name || row.nama_ibu || row['Nama Ibu']).trim() : null;
+        if (motherName) {
+          const motherNik = (row.mother_nik || row.nik_ibu || row['NIK Ibu']) ? String(row.mother_nik || row.nik_ibu || row['NIK Ibu']).trim() : null;
+          const motherEdu = (row.mother_education || row.pendidikan_ibu || row['Pendidikan Ibu']) ? String(row.mother_education || row.pendidikan_ibu || row['Pendidikan Ibu']).trim() : null;
+          const motherOcc = (row.mother_occupation || row.pekerjaan_ibu || row['Pekerjaan Ibu']) ? String(row.mother_occupation || row.pekerjaan_ibu || row['Pekerjaan Ibu']).trim() : null;
+          const motherInc = (row.mother_income || row.penghasilan_ibu || row['Penghasilan Ibu']) ? String(row.mother_income || row.penghasilan_ibu || row['Penghasilan Ibu']).trim() : null;
+          const motherPhone = (row.mother_phone || row.no_hp_ibu || row['No HP Ibu']) ? String(row.mother_phone || row.no_hp_ibu || row['No HP Ibu']).trim() : null;
+          
+          await this.saveGuardian(studentId, {
+            relationship: 'ibu',
+            full_name: motherName,
+            nik: motherNik,
+            education_level: motherEdu,
+            occupation: motherOcc,
+            income_range: motherInc,
+            phone: motherPhone,
+            is_primary_contact: false
+          });
+        }
+
+        // Wali Lainnya (Jika Ada)
+        const guardianName = (row.guardian_name || row.nama_wali || row['Nama Wali']) ? String(row.guardian_name || row.nama_wali || row['Nama Wali']).trim() : null;
+        if (guardianName) {
+          const guardianNik = (row.guardian_nik || row.nik_wali || row['NIK Wali']) ? String(row.guardian_nik || row.nik_wali || row['NIK Wali']).trim() : null;
+          const guardianRel = (row.guardian_relationship || row.hubungan_wali || row['Hubungan Wali'] || 'wali') ? String(row.guardian_relationship || row.hubungan_wali || row['Hubungan Wali'] || 'wali').trim() : 'wali';
+          const guardianPhone = (row.guardian_phone || row.no_hp_wali || row['No HP Wali']) ? String(row.guardian_phone || row.no_hp_wali || row['No HP Wali']).trim() : null;
+          
+          await this.saveGuardian(studentId, {
+            relationship: guardianRel,
+            full_name: guardianName,
+            nik: guardianNik,
+            phone: guardianPhone,
+            is_primary_contact: false
+          });
+        }
+
+        // ==============================
+        // HUBUNGKAN KE ROMBEL / ENROLLMENT
+        // ==============================
+        if (targetCgId && targetAyId) {
+          const existingEnrollment = await db('student_class_enrollments')
+            .where({
+              student_id: studentId,
+              academic_year_id: targetAyId,
+              class_group_id: targetCgId
+            })
+            .first();
+
+          if (existingEnrollment) {
+            await db('student_class_enrollments')
+              .where({ id: existingEnrollment.id })
+              .update({ status: 'aktif', updated_at: db.fn.now() });
+          } else {
+            // Batalkan enrollment lain di tahun ajaran yang sama jika ada
+            await db('student_class_enrollments')
+              .where({
+                student_id: studentId,
+                academic_year_id: targetAyId
+              })
+              .whereIn('class_group_id', function() {
+                this.select('id').from('class_groups').where(function() {
+                  this.whereNull('type').orWhere('type', 'reguler');
+                });
+              })
+              .update({ status: 'dibatalkan', updated_at: db.fn.now() });
+
+            await db('student_class_enrollments').insert({
+              satuan_pendidikan_id: unitId,
+              student_id: studentId,
+              class_group_id: targetCgId,
+              academic_year_id: targetAyId,
+              status: 'aktif',
+              created_at: db.fn.now(),
+              updated_at: db.fn.now()
+            });
+          }
+        }
+      } catch (rowErr) {
+        console.error(`[batchImport] Error on row #${rowIndex}:`, rowErr);
+        errors.push(`Baris #${rowIndex} (${rawName}): ${rowErr.message}`);
+      }
+    }
+
+    return {
+      total_received: rows.length,
+      inserted_count: insertedCount,
+      updated_count: updatedCount,
+      skipped_count: skippedCount,
+      errors
+    };
+  }
+
+  // ==========================================
+  // 14. Cetak Kartu Siswa PDF (Multi-Layout, QR Code NIPD, Desain & Margin Kustom)
+  // ==========================================
+  async generatePrintableCardsPdf(payload = {}, user = null) {
+    const {
+      satuan_pendidikan_id,
+      academic_year_id,
+      class_group_id,
+      student_ids = [],
+      paper_size = 'a4',
+      paper_orientation = 'portrait',
+      custom_paper_width_mm,
+      custom_paper_height_mm,
+      card_size = 'cr80',
+      custom_card_width_mm,
+      custom_card_height_mm,
+      margin_mm = 8,
+      gap_mm = 3,
+      show_cutting_lines = true,
+      theme = 'emerald',
+      card_title = 'KARTU TANDA SISWA',
+      show_nis = true,
+      show_nipd = true,
+      show_nisn = true,
+      show_class = true,
+      show_birth_info = true,
+      show_gender = false,
+      show_address = false,
+      show_qr = true,
+      show_academic_year = true
+    } = payload;
+
+    const unitId = parseUnitId(satuan_pendidikan_id) || 1;
+
+    // Ambil info nama yayasan (merujuk ke Profil Yayasan di modul Core /core/foundation)
+    let schoolName = 'YAYASAN ALDEPOS SALAM';
+    try {
+      const foundation = await foundationService.getProfile();
+      if (foundation && foundation.name) {
+        schoolName = String(foundation.name).trim().toUpperCase();
+      }
+    } catch (e) {
+      console.warn('Gagal memuat profil yayasan untuk cetak kartu siswa:', e.message);
+    }
+
+    let unitName = 'SMP ISLAM TERPADU ALDEPOS';
+    try {
+      const unit = await schoolUnitsService.getSchoolUnitById(unitId);
+      if (unit) {
+        unitName = unit.name || unitName;
+      }
+    } catch (e) {}
+
+    // Ambil info nama tahun ajaran
+    let targetAyName = '2026/2027';
+    let matchingAyIds = [];
+    if (academic_year_id && academic_year_id !== 'all') {
+      const ay = await db('academic_years').where('id', Number(academic_year_id)).first();
+      if (ay) {
+        targetAyName = ay.name;
+        const sameAys = await db('academic_years').where('name', ay.name).pluck('id');
+        matchingAyIds = sameAys.length > 0 ? sameAys : [Number(academic_year_id)];
+      }
+    } else {
+      const activeAy = await db('academic_years').where({ satuan_pendidikan_id: unitId, is_active: 1 }).first();
+      if (activeAy) {
+        targetAyName = activeAy.name;
+        matchingAyIds = [activeAy.id];
+      }
+    }
+
+    // Query Siswa
+    let baseQuery = db('students')
+      .where('students.satuan_pendidikan_id', unitId)
+      .whereNotIn('students.status', ['keluar', 'dikeluarkan']);
+
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      baseQuery = baseQuery.whereIn('students.id', student_ids.map(Number));
+    } else {
+      if (payload.status) {
+        baseQuery = baseQuery.where('students.status', payload.status);
+      }
+      if (class_group_id && class_group_id !== 'all') {
+        baseQuery = baseQuery.whereIn('students.id', function() {
+          this.select('student_id')
+            .from('student_class_enrollments')
+            .where('class_group_id', Number(class_group_id))
+            .whereNotIn('status', ['dibatalkan', 'batal']);
+        });
+      }
+    }
+
+    const rawStudents = await baseQuery.orderBy('students.full_name', 'asc');
+
+    if (rawStudents.length === 0) {
+      const error = new Error('Tidak ada data siswa yang terpilih untuk dicetak.');
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // Ambil info Rombel aktif siswa
+    const sIds = rawStudents.map(s => s.id);
+    const enrollments = await db('student_class_enrollments')
+      .join('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+      .whereIn('student_class_enrollments.student_id', sIds)
+      .whereNotIn('student_class_enrollments.status', ['dibatalkan', 'batal'])
+      .modify(builder => {
+        if (matchingAyIds.length > 0) {
+          builder.whereIn('student_class_enrollments.academic_year_id', matchingAyIds);
+        }
+      })
+      .select('student_class_enrollments.student_id', 'class_groups.name as class_group_name')
+      .orderBy('student_class_enrollments.id', 'desc');
+
+    const rombelMap = {};
+    for (const enr of enrollments) {
+      if (!rombelMap[enr.student_id]) {
+        rombelMap[enr.student_id] = enr.class_group_name;
+      }
+    }
+
+    const studentsToPrint = rawStudents.map(s => ({
+      ...s,
+      class_group_name: rombelMap[s.id] || '-'
+    }));
+
+    const { generateStudentCardsPdf } = require('../utils/studentCardPdfGenerator');
+
+    return await generateStudentCardsPdf(studentsToPrint, {
+      paper_size,
+      paper_orientation,
+      custom_paper_width_mm,
+      custom_paper_height_mm,
+      card_size,
+      custom_card_width_mm,
+      custom_card_height_mm,
+      margin_mm,
+      gap_mm,
+      show_cutting_lines,
+      theme,
+      school_name: schoolName,
+      unit_name: unitName,
+      card_title,
+      show_nis,
+      show_nipd,
+      show_nisn,
+      show_class,
+      show_birth_info,
+      show_gender,
+      show_address,
+      show_qr,
+      show_academic_year,
+      academic_year_name: targetAyName
+    });
+  }
+
+  async uploadStudentPhoto(studentId, payload) {
+    const { image_base64 } = payload;
+    if (!image_base64) {
+      const error = new Error('Data gambar pas foto (base64) wajib disertakan');
+      error.statusCode = 422;
+      throw error;
+    }
+    const fileUrl = saveStudentPhotoBase64(image_base64, studentId);
+    if (studentId && Number(studentId) > 0) {
+      await db('students').where({ id: Number(studentId) }).update({
+        photo_url: fileUrl,
+        updated_at: db.fn.now()
+      });
+    }
+    return {
+      file_url: fileUrl,
+      message: 'Pas foto berhasil diunggah dan disimpan'
+    };
+  }
 }
 
 module.exports = new StudentsService();
+
+

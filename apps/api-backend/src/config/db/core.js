@@ -1,6 +1,7 @@
 /**
  * Knex Database Connection Instance for Core Service Module
  */
+const path = require('path');
 const knex = require('knex');
 try {
   require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
@@ -32,9 +33,19 @@ try {
         charset: 'utf8mb4',
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
+        connectTimeout: 20000,
         ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
-      pool: { min: 0, max: 10, idleTimeoutMillis: 30000, acquireTimeoutMillis: 30000 },
+      pool: {
+        min: 0,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        acquireTimeoutMillis: 30000,
+        afterCreate: (conn, done) => {
+          conn.on('error', () => {});
+          done(null, conn);
+        }
+      },
     },
     development: {
       client: 'mysql2',
@@ -47,9 +58,19 @@ try {
         charset: 'utf8mb4',
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
+        connectTimeout: 20000,
         ssl: (Number(dbPort) === 4000 || process.env.DB_SSL === 'true') ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } : undefined,
       },
-      pool: { min: 0, max: 10, idleTimeoutMillis: 30000, acquireTimeoutMillis: 30000 },
+      pool: {
+        min: 0,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        acquireTimeoutMillis: 30000,
+        afterCreate: (conn, done) => {
+          conn.on('error', () => {});
+          done(null, conn);
+        }
+      },
     }
   };
 }

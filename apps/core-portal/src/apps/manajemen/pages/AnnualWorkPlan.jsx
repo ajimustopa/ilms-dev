@@ -638,18 +638,62 @@ export default function AnnualWorkPlan() {
   }, [contextType, selectedUnitId, academicYear]);
 
   // Toggle Domain / Subdomain / Program
-  const toggleDomain = (key) => {
-    setExpandedDomains((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const toggleDomain = (key, domainObj) => {
+    setExpandedDomains((prev) => {
+      const isCurrentlyExpanded = Boolean(prev[key]);
+      const nextExpanded = !isCurrentlyExpanded;
+
+      // Saat membuka bidang, otomatis buka seluruh sub-bidang & program di dalamnya agar data langsung tampil lengkap
+      if (nextExpanded && domainObj?.subdomainList) {
+        setExpandedSubdomains((prevSub) => {
+          const nextSub = { ...prevSub };
+          domainObj.subdomainList.forEach((s) => {
+            nextSub[`sub_${domainObj.id}_${s.id}`] = true;
+          });
+          return nextSub;
+        });
+
+        if (domainObj.subdomainList.some((s) => s.programs?.length > 0)) {
+          setExpandedPrograms((prevProg) => {
+            const nextProg = { ...prevProg };
+            domainObj.subdomainList.forEach((s) => {
+              s.programs?.forEach((p) => {
+                nextProg[p.program_id] = true;
+              });
+            });
+            return nextProg;
+          });
+        }
+      }
+
+      return {
+        ...prev,
+        [key]: nextExpanded,
+      };
+    });
   };
 
-  const toggleSubdomain = (key) => {
-    setExpandedSubdomains((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const toggleSubdomain = (key, subObj) => {
+    setExpandedSubdomains((prev) => {
+      const isCurrentlyExpanded = Boolean(prev[key]);
+      const nextExpanded = !isCurrentlyExpanded;
+
+      // Saat membuka sub-bidang, otomatis buka seluruh program di dalamnya
+      if (nextExpanded && subObj?.programs) {
+        setExpandedPrograms((prevProg) => {
+          const nextProg = { ...prevProg };
+          subObj.programs.forEach((p) => {
+            nextProg[p.program_id] = true;
+          });
+          return nextProg;
+        });
+      }
+
+      return {
+        ...prev,
+        [key]: nextExpanded,
+      };
+    });
   };
 
   const toggleProgram = (pId) => {
@@ -670,10 +714,10 @@ export default function AnnualWorkPlan() {
       const domOrder = d.order_index ?? (dIdx + 1);
       const subMap = new Map();
 
-      const matchedSubs = subdomainsData.filter((s) => Number(s.domain_id) === Number(d.id));
+      const matchedSubs = subdomainsData.filter((s) => String(s.domain_id) === String(d.id));
       if (matchedSubs.length > 0) {
         matchedSubs.forEach((s, sIdx) => {
-          subMap.set(s.id, {
+          subMap.set(String(s.id), {
             id: s.id,
             name: s.name,
             code: `SUB-${String(s.order_index ?? sIdx + 1).padStart(2, '0')}`,
@@ -683,7 +727,7 @@ export default function AnnualWorkPlan() {
         });
       }
 
-      domainMap.set(d.id, {
+      domainMap.set(String(d.id), {
         id: d.id,
         name: d.name,
         code: `BID-${String(domOrder).padStart(2, '0')}`,
@@ -745,7 +789,7 @@ export default function AnnualWorkPlan() {
 
     // 3. Place programs into domains and subdomains
     filtered.forEach((prog) => {
-      const dId = prog.domain_id || 'unassigned';
+      const dId = prog.domain_id ? String(prog.domain_id) : 'unassigned';
       if (!domainMap.has(dId)) {
         domainMap.set(dId, {
           id: dId,
@@ -757,7 +801,7 @@ export default function AnnualWorkPlan() {
       }
       const domainObj = domainMap.get(dId);
 
-      const subId = prog.subdomain_id || 'general';
+      const subId = prog.subdomain_id ? String(prog.subdomain_id) : 'general';
       if (!domainObj.subdomains.has(subId)) {
         domainObj.subdomains.set(subId, {
           id: subId,
@@ -1125,19 +1169,23 @@ export default function AnnualWorkPlan() {
 
     try {
       // 1. Fetch available RIPS programs for this RKT
-      const availRes = await api.get(`/manajemen/annual-work-plans/${annualWorkPlan.id}/available-programs`);
+      const availRes = await api.get(`/manajemen/annual-work-plans/${annualWorkPlan.id}/available-programs`).catch((err) => {
+        console.warn('Could not fetch available programs:', err);
+        return { data: { success: true, data: [] } };
+      });
       if (availRes.data?.success) {
         setAvailableRipsPrograms(availRes.data.data || []);
       }
 
       // 2. Fetch RIPS goals & categories for creating new programs
+      const unitQuery = annualWorkPlan?.school_unit_id ? `?school_unit_id=${annualWorkPlan.school_unit_id}` : '';
       const [goalsRes, catsRes] = await Promise.all([
-        api.get('/manajemen/rips/goals').catch(() => ({ data: { data: [] } })),
+        api.get(`/manajemen/rips/goals${unitQuery}`).catch(() => ({ data: { data: [] } })),
         api.get('/manajemen/rips/program-categories').catch(() => ({ data: { data: [] } })),
       ]);
 
       let allGoals = goalsRes.data?.data || [];
-      if (annualWorkPlan.school_unit_id) {
+      if (annualWorkPlan?.school_unit_id) {
         allGoals = allGoals.filter((g) => g.school_unit_id === annualWorkPlan.school_unit_id || g.rips_document_id === (annualWorkPlan.school_unit_id === 1 ? 2 : 3));
       } else {
         allGoals = allGoals.filter((g) => !g.school_unit_id || g.rips_document_id === 1);
@@ -1389,12 +1437,13 @@ export default function AnnualWorkPlan() {
     let allCats = availableRipsCategories;
     if (!allCats || allCats.length === 0 || !allGoals || allGoals.length === 0) {
       try {
+        const unitQuery = annualWorkPlan?.school_unit_id ? `?school_unit_id=${annualWorkPlan.school_unit_id}` : '';
         const [goalsRes, catsRes] = await Promise.all([
-          api.get('/manajemen/rips/goals').catch(() => ({ data: { data: [] } })),
+          api.get(`/manajemen/rips/goals${unitQuery}`).catch(() => ({ data: { data: [] } })),
           api.get('/manajemen/rips/program-categories').catch(() => ({ data: { data: [] } })),
         ]);
         allGoals = goalsRes.data?.data || [];
-        if (annualWorkPlan.school_unit_id) {
+        if (annualWorkPlan?.school_unit_id) {
           allGoals = allGoals.filter((g) => g.school_unit_id === annualWorkPlan.school_unit_id || g.rips_document_id === (annualWorkPlan.school_unit_id === 1 ? 2 : 3));
         } else {
           allGoals = allGoals.filter((g) => !g.school_unit_id || g.rips_document_id === 1);
@@ -1504,7 +1553,7 @@ export default function AnnualWorkPlan() {
               <div className="flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => toggleDomain(domKey)}
+                  onClick={() => toggleDomain(domKey, domain)}
                   className="flex items-center gap-1.5 text-left group focus:outline-none flex-1 min-w-0"
                 >
                   <span className="p-0.5 rounded bg-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-colors shrink-0">
@@ -1567,7 +1616,7 @@ export default function AnnualWorkPlan() {
                       <div className="flex items-center justify-between">
                         <button
                           type="button"
-                          onClick={() => toggleSubdomain(subKey)}
+                          onClick={() => toggleSubdomain(subKey, sub)}
                           className="flex items-center gap-1.5 text-left group focus:outline-none"
                         >
                           <span className="p-0.5 rounded bg-amber-200 group-hover:bg-amber-600 group-hover:text-white transition-colors">
@@ -1976,7 +2025,7 @@ export default function AnnualWorkPlan() {
   };
 
   return (
-    <div className="space-y-6 pb-16 pt-2">
+    <div className="space-y-6 pb-40 pt-2">
       {/* Top Header Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-visible">
         <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
@@ -2494,7 +2543,7 @@ export default function AnnualWorkPlan() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm min-h-[160px]">
               <table className="w-full text-left border-collapse min-w-[950px]">
                 <thead>
                   <tr className="bg-[#F3F4F6] text-slate-800 uppercase text-[11px] font-bold tracking-wider border-b border-[#D1D5DB]">
@@ -2510,6 +2559,19 @@ export default function AnnualWorkPlan() {
                 <tbody className="divide-y divide-gray-200">
                   {renderRktTableBody()}
                 </tbody>
+                <tfoot>
+                  <tr className="bg-[#F9FAFB] text-slate-600 text-[11px] font-semibold border-t-2 border-slate-300">
+                    <td colSpan={7} className="py-3 px-4 text-center">
+                      <span className="inline-flex items-center gap-2">
+                        <span>Menampilkan</span>
+                        <strong className="text-indigo-700">{totalFilteredPrograms}</strong>
+                        <span>dari</span>
+                        <strong className="text-slate-800">{programs.length}</strong>
+                        <span>Program Kerja Terjadwal ({academicYear})</span>
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
@@ -2795,6 +2857,19 @@ export default function AnnualWorkPlan() {
                     <tbody className="divide-y divide-gray-200">
                       {renderRktTableBody()}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-[#F9FAFB] text-slate-600 text-[11px] font-semibold border-t-2 border-slate-300">
+                        <td colSpan={7} className="py-3 px-4 text-center">
+                          <span className="inline-flex items-center gap-2">
+                            <span>Menampilkan</span>
+                            <strong className="text-indigo-700">{totalFilteredPrograms}</strong>
+                            <span>dari</span>
+                            <strong className="text-slate-800">{programs.length}</strong>
+                            <span>Program Kerja Terjadwal ({academicYear})</span>
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 )}
               </div>

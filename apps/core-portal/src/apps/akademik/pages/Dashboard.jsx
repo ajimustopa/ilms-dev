@@ -182,10 +182,10 @@ export default function AkademikDashboard() {
               </h2>
             </div>
             <Link
-              to="/akademik/psb"
+              to="/ppdb"
               className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 self-start sm:self-auto"
             >
-              <span>Kelola PSB</span>
+              <span>Buka Modul PPDB</span>
               <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>

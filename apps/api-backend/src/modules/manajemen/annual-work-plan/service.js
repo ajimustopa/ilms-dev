@@ -705,7 +705,9 @@ class AnnualWorkPlanService {
     }
 
     const activeTargets = await activeTargetsQuery.select('rips_program_id');
-    const existingProgramIds = activeTargets.map((t) => t.rips_program_id);
+    const existingProgramIds = activeTargets
+      .map((t) => t.rips_program_id)
+      .filter((id) => id !== null && id !== undefined);
 
     // 3. Ambil semua program di dokumen RIPS terkait yang BELUM masuk ke RKT ini
     let progQuery = db('rips_programs as rp')
@@ -727,7 +729,10 @@ class AnnualWorkPlanService {
       .orderBy('rp.order_index', 'asc')
       .orderBy('rp.id', 'asc');
 
-    const progIds = availableProgs.map((p) => p.id);
+    const progIds = availableProgs
+      .map((p) => p.id)
+      .filter((id) => id !== null && id !== undefined);
+
     if (progIds.length === 0) return [];
 
     // Ambil info sasaran & bidang terkait

@@ -1,6 +1,7 @@
 /**
  * Knex Database Connection Instance for Manajemen Module
  */
+const path = require('path');
 const knex = require('knex');
 try {
   require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
