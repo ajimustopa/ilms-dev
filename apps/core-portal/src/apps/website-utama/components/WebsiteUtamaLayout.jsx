@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Building2,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Grid
 } from 'lucide-react';
 
 export default function WebsiteUtamaLayout() {
@@ -155,10 +156,21 @@ export default function WebsiteUtamaLayout() {
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm z-10">
           <div className="flex items-center space-x-3">
-            <Building2 className="w-5 h-5 text-emerald-600" />
-            <div>
-              <h2 className="text-sm font-bold text-slate-800 leading-tight">{currentUnit?.name || 'SD Aldepos Islamic School'}</h2>
-              <p className="text-[11px] text-slate-500">Panel Administrasi Konten & PPDB Online</p>
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-xs font-semibold text-slate-700 transition shadow-2xs group"
+              title="Kembali ke Portal Modul (Launcher)"
+            >
+              <Grid className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+              <span>Portal Modul</span>
+            </Link>
+
+            <div className="flex items-center space-x-2 border-l border-slate-200 pl-3">
+              <Building2 className="w-4 h-4 text-emerald-600" />
+              <div>
+                <h2 className="text-sm font-bold text-slate-800 leading-tight">{currentUnit?.name || 'SD Aldepos Islamic School'}</h2>
+                <p className="text-[11px] text-slate-500">Panel Administrasi Konten & PPDB Online</p>
+              </div>
             </div>
           </div>
 

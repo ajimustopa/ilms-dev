@@ -272,9 +272,11 @@ export default function InputNilai() {
   // TAB 1: JENIS PENGUJIAN & BOBOT RAPOR STATE
   // ----------------------------------------------------
   const [assessmentTypes, setAssessmentTypes] = useState([]);
+  const [typeAcademicYearFilter, setTypeAcademicYearFilter] = useState('all');
   const [typeModalOpen, setTypeModalOpen] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [typeForm, setTypeForm] = useState({
+    academic_year_id: '',
     name: '',
     code: '',
     description: '',
@@ -1104,19 +1106,32 @@ export default function InputNilai() {
   // ----------------------------------------------------
   // HANDLERS TAB 1: JENIS PENGUJIAN
   // ----------------------------------------------------
+  const filteredAssessmentTypes = useMemo(() => {
+    if (typeAcademicYearFilter === 'all') {
+      return assessmentTypes;
+    }
+    if (typeAcademicYearFilter === 'global') {
+      return assessmentTypes.filter(t => !t.academic_year_id);
+    }
+    return assessmentTypes.filter(t => 
+      !t.academic_year_id || String(t.academic_year_id) === String(typeAcademicYearFilter)
+    );
+  }, [assessmentTypes, typeAcademicYearFilter]);
+
   const totalWeight = useMemo(() => {
-    return assessmentTypes.reduce((acc, curr) => acc + (parseFloat(curr.weight_percentage) || 0), 0);
-  }, [assessmentTypes]);
+    return filteredAssessmentTypes.reduce((acc, curr) => acc + (parseFloat(curr.weight_percentage) || 0), 0);
+  }, [filteredAssessmentTypes]);
 
   const handleOpenAddType = () => {
     setEditingType(null);
     setTypeForm({
+      academic_year_id: typeAcademicYearFilter !== 'all' && typeAcademicYearFilter !== 'global' ? typeAcademicYearFilter : (selectedAcademicYearId || ''),
       name: '',
       code: '',
       description: '',
       weight_percentage: Math.max(0, 100 - totalWeight),
       is_tp_based: true,
-      order_index: assessmentTypes.length + 1
+      order_index: filteredAssessmentTypes.length + 1
     });
     setTypeModalOpen(true);
   };
@@ -1124,6 +1139,7 @@ export default function InputNilai() {
   const handleOpenEditType = (type) => {
     setEditingType(type);
     setTypeForm({
+      academic_year_id: type.academic_year_id ? String(type.academic_year_id) : '',
       name: type.name,
       code: type.code,
       description: type.description || '',
@@ -1146,8 +1162,13 @@ export default function InputNilai() {
     try {
       const payload = {
         satuan_pendidikan_id: activeSchoolUnit?.id || 1,
-        academic_year_id: selectedAcademicYearId,
-        ...typeForm
+        academic_year_id: typeForm.academic_year_id ? Number(typeForm.academic_year_id) : null,
+        name: typeForm.name.trim(),
+        code: typeForm.code.trim().toUpperCase(),
+        description: typeForm.description ? typeForm.description.trim() : null,
+        weight_percentage: parseFloat(typeForm.weight_percentage) || 0,
+        is_tp_based: Boolean(typeForm.is_tp_based),
+        order_index: Number(typeForm.order_index) || 1
       };
 
       if (editingType) {
@@ -2706,6 +2727,46 @@ export default function InputNilai() {
       {/* ======================================================== */}
       {activeTab === 'assessment_types' && (
         <div className="space-y-4">
+          {/* Filter & Kontrol Tahun Ajaran Tab 1 */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">
+                  Tahun Ajaran yang Sedang Dikelola
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  {typeAcademicYearFilter === 'all'
+                    ? 'Menampilkan seluruh jenis pengujian (Standar global & spesifik tiap TA).'
+                    : typeAcademicYearFilter === 'global'
+                    ? 'Menampilkan jenis pengujian Standar Global (berlaku default di semua tahun).'
+                    : `Menampilkan jenis pengujian yang aktif & relevan untuk TA ${academicYears.find(y => String(y.id) === String(typeAcademicYearFilter))?.name || typeAcademicYearFilter}.`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                Pilih Tahun Ajaran:
+              </label>
+              <select
+                value={typeAcademicYearFilter}
+                onChange={(e) => setTypeAcademicYearFilter(e.target.value)}
+                className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition cursor-pointer shadow-2xs"
+              >
+                <option value="all">Semua Tahun Ajaran (Tampilkan Seluruhnya)</option>
+                <option value="global">Standar Global (Berlaku Permanen/Semua TA)</option>
+                {academicYears.map((ay) => (
+                  <option key={ay.id} value={String(ay.id)}>
+                    TA {ay.name} {ay.is_active ? '★ (Aktif Saat Ini)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Summary Bobot Bar */}
           <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs ${
             totalWeight === 100
@@ -2744,6 +2805,7 @@ export default function InputNilai() {
                   <th className="py-3 px-4 w-12 text-center">No</th>
                   <th className="py-3 px-4 w-28">Kode</th>
                   <th className="py-3 px-4">Nama Jenis Pengujian</th>
+                  <th className="py-3 px-4 w-36 text-center">Tahun Ajaran</th>
                   <th className="py-3 px-4">Deskripsi</th>
                   <th className="py-3 px-4 w-32 text-center">Ruang Lingkup</th>
                   <th className="py-3 px-4 w-32 text-center bg-emerald-50/60 font-black text-emerald-900">
@@ -2753,14 +2815,14 @@ export default function InputNilai() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {assessmentTypes.length === 0 ? (
+                {filteredAssessmentTypes.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-slate-400 text-xs">
-                      Belum ada jenis pengujian yang dikonfigurasi. Klik "+ Tambah Jenis Pengujian" di atas.
+                    <td colSpan={8} className="py-10 text-center text-slate-400 text-xs">
+                      Belum ada jenis pengujian yang dikonfigurasi untuk filter ini. Klik "+ Tambah Jenis Pengujian" di atas.
                     </td>
                   </tr>
                 ) : (
-                  assessmentTypes.map((type, idx) => (
+                  filteredAssessmentTypes.map((type, idx) => (
                     <tr key={type.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3.5 px-4 text-center text-slate-500 font-bold">{idx + 1}</td>
                       <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
@@ -2769,6 +2831,17 @@ export default function InputNilai() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-bold text-slate-900">{type.name}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        {type.academic_year_id ? (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            TA {academicYears.find(y => Number(y.id) === Number(type.academic_year_id))?.name || `ID ${type.academic_year_id}`}
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            Semua TA (Global)
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4 text-slate-600 max-w-md">{type.description || '-'}</td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
@@ -4029,6 +4102,27 @@ export default function InputNilai() {
             </div>
 
             <form onSubmit={handleSaveType} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Tahun Ajaran Berlaku *
+                </label>
+                <select
+                  value={typeForm.academic_year_id || ''}
+                  onChange={(e) => setTypeForm({ ...typeForm, academic_year_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+                >
+                  <option value="">Berlaku untuk Semua Tahun Ajaran (Standar Global)</option>
+                  {academicYears.map((ay) => (
+                    <option key={ay.id} value={String(ay.id)}>
+                      TA {ay.name} {ay.is_active ? '(Tahun Ajaran Aktif Saat Ini)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  * Pilih "Semua Tahun Ajaran" agar rumus pengujian & bobot ini selalu digunakan setiap tahun ajaran secara konsisten.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">Nama Jenis Pengujian *</label>
                 <input

@@ -176,12 +176,23 @@ export default function DapurLayout() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Navbar */}
         <header className="h-12 bg-white border-b border-slate-200/80 px-5 flex items-center justify-between shrink-0 z-10">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>Dapur & Gizi</span>
-            <span>/</span>
-            <span className="font-semibold text-slate-800">
-              {activeSchoolUnit?.name || 'Seluruh Satuan'}
-            </span>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-xs font-semibold text-slate-700 transition shadow-2xs group"
+              title="Kembali ke Portal Modul (Launcher)"
+            >
+              <Grid className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+              <span>Portal Modul</span>
+            </Link>
+
+            <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-slate-200 pl-3">
+              <span>Dapur & Gizi</span>
+              <span>/</span>
+              <span className="font-semibold text-slate-800">
+                {activeSchoolUnit?.name || 'Seluruh Satuan'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

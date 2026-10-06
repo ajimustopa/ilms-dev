@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../../shared/store/AuthContext';
 import api from '../../../shared/services/api';
 import AndroidAppLauncher, { GURU_MENU_ITEMS } from './AndroidAppLauncher';
@@ -25,7 +25,8 @@ import {
   ChevronDown,
   Building2,
   Radio,
-  Volume2
+  Volume2,
+  Grid
 } from 'lucide-react';
 
 export default function GuruLayout() {
@@ -151,6 +152,16 @@ export default function GuruLayout() {
           {/* Quick Actions & User Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Tombol Kembali ke Portal Modul */}
+            <Link
+              to="/"
+              title="Kembali ke Portal Modul (Launcher)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition active:scale-95 group"
+            >
+              <Grid className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">Portal Modul</span>
+            </Link>
+
             {/* Tombol Buka Menu Android */}
             <button
               onClick={() => setIsLauncherOpen(true)}

@@ -1129,12 +1129,17 @@ class PpdbBillingService {
   }
 
   async createRefundPolicyRule(schoolUnitId, data) {
+    const refundPct = data.refund_percentage !== undefined ? parseFloat(data.refund_percentage) : (100 - parseFloat(data.deduction_percentage || 0));
+    const deductPct = data.deduction_percentage !== undefined ? parseFloat(data.deduction_percentage) : (100 - refundPct);
+
     const [id] = await db('ppdb_refund_policy_rules').insert({
       school_unit_id: schoolUnitId,
+      name: data.name || 'Aturan Kebijakan Refund',
       fee_component: data.fee_component || 'enrollment_fee',
-      is_refundable: Boolean(data.is_refundable),
+      is_refundable: data.is_refundable !== undefined ? Boolean(data.is_refundable) : (refundPct > 0),
       cutoff_date: data.cutoff_date || null,
-      deduction_percentage: parseFloat(data.deduction_percentage || 0),
+      refund_percentage: refundPct,
+      deduction_percentage: deductPct,
       description: data.description || null,
       is_active: data.is_active !== undefined ? Boolean(data.is_active) : true
     });
@@ -1142,17 +1147,26 @@ class PpdbBillingService {
   }
 
   async updateRefundPolicyRule(id, data) {
+    const updateData = {
+      updated_at: db.fn.now()
+    };
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.fee_component !== undefined) updateData.fee_component = data.fee_component;
+    if (data.is_refundable !== undefined) updateData.is_refundable = Boolean(data.is_refundable);
+    if (data.cutoff_date !== undefined) updateData.cutoff_date = data.cutoff_date || null;
+    if (data.refund_percentage !== undefined) {
+      updateData.refund_percentage = parseFloat(data.refund_percentage);
+      updateData.deduction_percentage = 100 - parseFloat(data.refund_percentage);
+    } else if (data.deduction_percentage !== undefined) {
+      updateData.deduction_percentage = parseFloat(data.deduction_percentage);
+      updateData.refund_percentage = 100 - parseFloat(data.deduction_percentage);
+    }
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.is_active !== undefined) updateData.is_active = Boolean(data.is_active);
+
     await db('ppdb_refund_policy_rules')
       .where({ id })
-      .update({
-        fee_component: data.fee_component,
-        is_refundable: data.is_refundable !== undefined ? Boolean(data.is_refundable) : undefined,
-        cutoff_date: data.cutoff_date || null,
-        deduction_percentage: data.deduction_percentage !== undefined ? parseFloat(data.deduction_percentage) : undefined,
-        description: data.description,
-        is_active: data.is_active !== undefined ? Boolean(data.is_active) : undefined,
-        updated_at: db.fn.now()
-      });
+      .update(updateData);
     return db('ppdb_refund_policy_rules').where({ id }).first();
   }
 

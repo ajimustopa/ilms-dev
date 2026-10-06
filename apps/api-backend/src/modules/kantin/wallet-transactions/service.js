@@ -60,7 +60,8 @@ class WalletTransactionsService {
     const defaultTunaiAcc = formattedCashAccounts.find(a => a.is_canteen && !a.bank_account_number) || formattedCashAccounts.find(a => !a.bank_account_number) || formattedCashAccounts[0] || null;
     const defaultBankAcc = formattedCashAccounts.find(a => a.is_canteen && a.bank_account_number) || formattedCashAccounts.find(a => a.bank_account_number) || formattedCashAccounts[0] || null;
 
-    const defaultWalletCoa = formattedCoas.find(c => c.account_code === '20101') || formattedCoas.find(c => c.account_code === '404') || walletLiabilityCoas[0] || formattedCoas[0] || null;
+    const defaultWalletCoa = formattedCoas.find(c => c.account_code === '404') || formattedCoas.find(c => c.account_code === '20101') || walletLiabilityCoas[0] || formattedCoas[0] || null;
+    const defaultClearingCoa = formattedCoas.find(c => c.account_code === '50199') || formattedCoas.find(c => (c.account_name || '').toLowerCase().includes('penyeimbang') || (c.account_name || '').toLowerCase().includes('kliring')) || null;
     const defaultCashCoa = formattedCoas.find(c => c.account_code === '10101') || formattedCoas.find(c => c.account_code === '101') || cashCoas[0] || formattedCoas[0] || null;
     const defaultBankCoa = formattedCoas.find(c => c.account_code === '10102') || formattedCoas.find(c => c.account_code === '102') || bankCoas[0] || formattedCoas[0] || null;
 
@@ -73,6 +74,9 @@ class WalletTransactionsService {
       wallet_liability_coa_id: settings?.wallet_liability_coa_id || defaultWalletCoa?.id || null,
       wallet_liability_coa_code: settings?.wallet_liability_coa_code || defaultWalletCoa?.account_code || null,
       wallet_liability_coa_name: settings?.wallet_liability_coa_name || defaultWalletCoa?.account_name || null,
+      opening_clearing_coa_id: settings?.opening_clearing_coa_id || defaultClearingCoa?.id || null,
+      opening_clearing_coa_code: settings?.opening_clearing_coa_code || defaultClearingCoa?.account_code || '50199',
+      opening_clearing_coa_name: settings?.opening_clearing_coa_name || defaultClearingCoa?.account_name || 'Penyeimbang Saldo Awal Dompet Santri',
       cash_coa_id: settings?.cash_coa_id || defaultCashCoa?.id || null,
       cash_coa_code: settings?.cash_coa_code || defaultCashCoa?.account_code || null,
       cash_coa_name: settings?.cash_coa_name || defaultCashCoa?.account_name || null,
@@ -413,13 +417,13 @@ class WalletTransactionsService {
     const walletConfig = await this.getAccountingConfig(effectiveUnitId);
     const conf = walletConfig.settings || {};
 
-    const finalDebitCoaId = debit_coa_id ? Number(debit_coa_id) : (conf.bank_coa_id || conf.cash_coa_id || null);
-    const finalDebitCoaCode = debit_coa_code || conf.bank_coa_code || conf.cash_coa_code || '10102';
-    const finalDebitCoaName = debit_coa_name || conf.bank_coa_name || conf.cash_coa_name || 'Kas Bank Penampung Saldo Awal';
+    const finalDebitCoaId = debit_coa_id ? Number(debit_coa_id) : (conf.opening_clearing_coa_id || null);
+    const finalDebitCoaCode = debit_coa_code || conf.opening_clearing_coa_code || '50199';
+    const finalDebitCoaName = debit_coa_name || conf.opening_clearing_coa_name || 'Penyeimbang Saldo Awal Dompet Santri';
 
     const finalCreditCoaId = credit_coa_id ? Number(credit_coa_id) : (conf.wallet_liability_coa_id || null);
-    const finalCreditCoaCode = credit_coa_code || conf.wallet_liability_coa_code || '20101';
-    const finalCreditCoaName = credit_coa_name || conf.wallet_liability_coa_name || 'Simpanan Dompet Santri';
+    const finalCreditCoaCode = credit_coa_code || conf.wallet_liability_coa_code || '404';
+    const finalCreditCoaName = credit_coa_name || conf.wallet_liability_coa_name || 'Dana Titipan Dompet Santri';
 
     const newBalance = parseFloat(student.wallet_balance || 0) + initialAmount;
     const transactionDate = occurred_at ? new Date(occurred_at) : new Date();

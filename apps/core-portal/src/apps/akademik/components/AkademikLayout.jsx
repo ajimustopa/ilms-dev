@@ -315,17 +315,27 @@ export default function AkademikLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Navbar - Sticky Top Header */}
         <header className="sticky top-0 z-[100] h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 shadow-xs">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Toggle Sidebar Button at Top Navbar */}
             <button
               type="button"
               onClick={toggleSidebar}
               title={isCollapsed ? "Buka Navigasi (Tampilkan Teks)" : "Sembunyikan Navigasi (Tampilkan Ikon Saja)"}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 font-bold text-xs shadow-2xs border border-slate-200"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 font-bold text-xs shadow-2xs border border-slate-200 cursor-pointer"
             >
               {isCollapsed ? <PanelLeft className="w-4 h-4 text-emerald-600" /> : <PanelLeftClose className="w-4 h-4 text-slate-600" />}
               <span className="hidden sm:inline">{isCollapsed ? 'Buka Sidebar' : 'Ciutkan Navigasi'}</span>
             </button>
+
+            {/* Tombol Kembali ke Portal Modul */}
+            <Link
+              to="/"
+              title="Kembali ke Portal Modul (Launcher)"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 transition font-bold text-xs shadow-2xs border border-slate-200 group"
+            >
+              <Grid className="w-4 h-4 text-slate-600 group-hover:text-emerald-600 shrink-0" />
+              <span className="hidden sm:inline">Portal Modul</span>
+            </Link>
 
             {/* Custom Interactive School Unit Selector at Top Navbar */}
             <div className="relative">

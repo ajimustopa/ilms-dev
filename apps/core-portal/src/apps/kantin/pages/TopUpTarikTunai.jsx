@@ -489,8 +489,8 @@ export default function TopUpTarikTunai() {
       let payload;
       if (activeTab === 'opening_balance') {
         const allCoas = accountingConfig?.coas?.all || [];
-        const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id;
-        const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id;
+        const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.opening_clearing_coa_id || allCoas.find(c => c.account_code === '50199')?.id;
+        const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id || allCoas.find(c => c.account_code === '404')?.id;
         const debCoa = allCoas.find(c => String(c.id) === String(effectiveDebitId));
         const credCoa = allCoas.find(c => String(c.id) === String(effectiveCreditId));
 
@@ -499,11 +499,11 @@ export default function TopUpTarikTunai() {
           amount: parseFloat(amount),
           occurred_at: combinedDateTime ? new Date(combinedDateTime).toISOString() : undefined,
           debit_coa_id: debCoa?.id || null,
-          debit_coa_code: debCoa?.account_code || null,
-          debit_coa_name: debCoa?.account_name || null,
+          debit_coa_code: debCoa?.account_code || '50199',
+          debit_coa_name: debCoa?.account_name || 'Penyeimbang Saldo Awal Dompet Santri',
           credit_coa_id: credCoa?.id || null,
-          credit_coa_code: credCoa?.account_code || null,
-          credit_coa_name: credCoa?.account_name || null,
+          credit_coa_code: credCoa?.account_code || '404',
+          credit_coa_name: credCoa?.account_name || 'Dana Titipan Dompet Santri',
           notes: notes.trim() || 'Saldo Awal Migrasi Sistem Lama (Cutover)'
         };
       } else {
@@ -980,7 +980,7 @@ export default function TopUpTarikTunai() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-emerald-800 mb-1">
-                      [Debet] Akun Aset / Penampung *
+                      [Debet] Akun Penyeimbang / Kliring Saldo Awal *
                     </label>
                     <SearchableSelect
                       options={(accountingConfig?.coas?.all || []).map(c => ({
@@ -989,21 +989,21 @@ export default function TopUpTarikTunai() {
                         sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`,
                         badge: c.account_code
                       }))}
-                      value={String(openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id || '')}
+                      value={String(openingDebitCoaId || accountingConfig?.settings?.opening_clearing_coa_id || (accountingConfig?.coas?.all || []).find(c => c.account_code === '50199')?.id || '')}
                       onChange={(val) => setOpeningDebitCoaId(val)}
                       placeholder="-- Pilih Akun Debet COA --"
                       searchPlaceholder="Cari kode atau nama akun..."
                       emptyText="Akun tidak ditemukan"
                       allowClear={false}
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      * Akun aset kas/bank tempat dana santri tercatat sebelumnya.
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      * Default <b>[50199] Penyeimbang Saldo Awal Dompet</b> (menampung tanpa menduplikasi kas aktif).
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-rose-800 mb-1">
-                      [Kredit] Akun Kewajiban Dompet *
+                      [Kredit] Akun Kewajiban Dompet Santri *
                     </label>
                     <SearchableSelect
                       options={(accountingConfig?.coas?.all || []).map(c => ({
@@ -1012,15 +1012,15 @@ export default function TopUpTarikTunai() {
                         sublabel: `Kelompok: ${(c.account_group || '').toUpperCase()}`,
                         badge: c.account_code
                       }))}
-                      value={String(openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id || '')}
+                      value={String(openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id || (accountingConfig?.coas?.all || []).find(c => c.account_code === '404')?.id || '')}
                       onChange={(val) => setOpeningCreditCoaId(val)}
                       placeholder="-- Pilih Akun Kredit COA --"
                       searchPlaceholder="Cari kode atau nama akun..."
                       emptyText="Akun tidak ditemukan"
                       allowClear={false}
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      * Akun kewajiban titipan/simpanan dompet santri.
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      * Default <b>[404] Dana Titipan Dompet Santri</b> (Kewajiban titipan dana kartu santri).
                     </p>
                   </div>
                 </div>
@@ -1153,19 +1153,19 @@ export default function TopUpTarikTunai() {
                 <div className="grid grid-cols-2 gap-3 text-slate-600 text-[10px]">
                   <div className="p-2.5 rounded-lg bg-white/90 border border-emerald-200/80 space-y-1">
                     <span className="text-emerald-700 font-bold block uppercase text-[9px] tracking-wider">
-                      [Dr] Akun Debet (Aset/Kas):
+                      [Dr] Akun Penyeimbang (Kliring):
                     </span>
                     {(() => {
                       const allCoas = accountingConfig?.coas?.all || [];
-                      const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.bank_coa_id || accountingConfig?.settings?.cash_coa_id;
+                      const effectiveDebitId = openingDebitCoaId || accountingConfig?.settings?.opening_clearing_coa_id || allCoas.find(c => c.account_code === '50199')?.id;
                       const debCoa = allCoas.find(c => String(c.id) === String(effectiveDebitId));
                       return (
                         <>
                           <span className="font-bold text-slate-900 block text-[11px] leading-tight">
-                            {debCoa ? `[${debCoa.account_code}] ${debCoa.account_name}` : 'Kas Bank Penampung (10102)'}
+                            {debCoa ? `[${debCoa.account_code}] ${debCoa.account_name}` : '[50199] Penyeimbang Saldo Awal Dompet Santri'}
                           </span>
                           <span className="text-[10px] text-emerald-700 font-mono font-bold block">
-                            +Rp {amount ? parseFloat(amount || 0).toLocaleString('id-ID') : '0'}
+                            Rp {amount ? parseFloat(amount || 0).toLocaleString('id-ID') : '0'}
                           </span>
                         </>
                       );
@@ -1174,19 +1174,19 @@ export default function TopUpTarikTunai() {
 
                   <div className="p-2.5 rounded-lg bg-white/90 border border-rose-200/80 space-y-1">
                     <span className="text-rose-700 font-bold block uppercase text-[9px] tracking-wider">
-                      [Cr] Akun Kredit (Kewajiban):
+                      [Cr] Akun Kewajiban (Titipan):
                     </span>
                     {(() => {
                       const allCoas = accountingConfig?.coas?.all || [];
-                      const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id;
+                      const effectiveCreditId = openingCreditCoaId || accountingConfig?.settings?.wallet_liability_coa_id || allCoas.find(c => c.account_code === '404')?.id;
                       const credCoa = allCoas.find(c => String(c.id) === String(effectiveCreditId));
                       return (
                         <>
                           <span className="font-bold text-slate-900 block text-[11px] leading-tight">
-                            {credCoa ? `[${credCoa.account_code}] ${credCoa.account_name}` : 'Simpanan Dompet Santri (20101)'}
+                            {credCoa ? `[${credCoa.account_code}] ${credCoa.account_name}` : '[404] Dana Titipan Dompet Santri'}
                           </span>
                           <span className="text-[10px] text-slate-500 block">
-                            Kartu: <b>{selectedStudent?.student_name || 'Santri'}</b>
+                            Santri: <b>{selectedStudent?.student_name || 'Santri'}</b>
                           </span>
                         </>
                       );

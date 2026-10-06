@@ -17,7 +17,8 @@ import {
   GraduationCap,
   Sparkles,
   School,
-  ArrowRight
+  ArrowRight,
+  Grid
 } from 'lucide-react';
 import AcademicYearSelector from './AcademicYearSelector';
 
@@ -193,6 +194,16 @@ export default function PpdbLayout() {
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">Sistem Penerimaan Santri Baru Terpadu</p>
             </div>
+          </Link>
+
+          {/* Tombol Portal Modul */}
+          <Link
+            to="/"
+            title="Kembali ke Portal Modul (Launcher)"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 transition font-bold text-xs shadow-2xs border border-slate-200 group ml-2"
+          >
+            <Grid className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 shrink-0" />
+            <span>Portal Modul</span>
           </Link>
         </div>
 

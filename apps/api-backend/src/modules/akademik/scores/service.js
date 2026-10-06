@@ -82,6 +82,8 @@ class ScoresService {
     }
 
     const updateData = { updated_at: db.fn.now() };
+    if (payload.academic_year_id !== undefined) updateData.academic_year_id = payload.academic_year_id ? Number(payload.academic_year_id) : null;
+    if (payload.satuan_pendidikan_id !== undefined) updateData.satuan_pendidikan_id = Number(payload.satuan_pendidikan_id);
     if (payload.category !== undefined) updateData.category = payload.category;
     if (payload.name !== undefined) updateData.name = payload.name.trim();
     if (payload.code !== undefined) updateData.code = payload.code.trim().toUpperCase();
