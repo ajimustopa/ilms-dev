@@ -479,6 +479,9 @@ export default function TopUpTarikTunai() {
     setSubmitting(true);
 
     try {
+      const formattedTime = occurredTime ? (occurredTime.length === 5 ? `${occurredTime}:00` : occurredTime) : '12:00:00';
+      const combinedDateTime = occurredDate ? `${occurredDate}T${formattedTime}` : undefined;
+
       let endpoint = '/kantin/wallet-transactions/top-up';
       if (activeTab === 'withdrawal') {
         endpoint = '/kantin/wallet-transactions/withdrawal';
