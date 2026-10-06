@@ -107,14 +107,15 @@ export function AuthProvider({ children }) {
             }
           }
         }
-      } catch (err) {
-        console.warn('Gagal memverifikasi profil user aktif:', err);
-        if (err.response?.status === 401) {
-          setUser(null);
-          setAccessToken(null);
-          setRefreshToken(null);
-          setActiveSchoolUnit(null);
-          setSchoolUnits([]);
+        } catch (err) {
+          console.warn('Gagal memverifikasi profil user aktif:', err);
+          if (err.response?.status === 401) {
+            setUser(null);
+            setAccessToken(null);
+            setRefreshToken(null);
+            setActiveSchoolUnit(null);
+            setSchoolUnits([]);
+          }
         }
       }
     };
