@@ -3,14 +3,15 @@ import { useAuth } from '../../../shared/store/AuthContext';
 import {
   CalendarRange,
   Clock,
-  BookOpen,
+  PieChart,
   Calendar as CalendarIcon,
+  FileText,
   Sliders,
-  BarChart3,
   RefreshCw,
   Plus,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Settings
 } from 'lucide-react';
 import api from '../../../shared/services/api';
 
@@ -27,232 +28,237 @@ export default function CutiLembur() {
   const { user, activeSchoolUnit } = useAuth();
   const [activeTab, setActiveTab] = useState('leaves');
 
-  // Global state for leave requests and overtimes
-  const [leaves, setLeaves] = useState([]);
-  const [loadingLeaves, setLoadingLeaves] = useState(true);
-
-  const [overtimes, setOvertimes] = useState([]);
-  const [loadingOvertimes, setLoadingOvertimes] = useState(true);
-
+  // Master Data State
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+  const [pendingOvertimeCount, setPendingOvertimeCount] = useState(0);
 
-  // Modals
+  // Modals State
   const [isCreateLeaveModalOpen, setIsCreateLeaveModalOpen] = useState(false);
   const [isCreateOvertimeModalOpen, setIsCreateOvertimeModalOpen] = useState(false);
 
-  const [notification, setNotification] = useState(null);
+  // Toast Notification
+  const [toast, setToast] = useState(null);
 
-  const isHr = user?.permissions?.includes('kepegawaian.leave_requests.manage') ||
-               user?.permissions?.includes('kepegawaian.leave_types.manage') ||
+  const permissions = user?.permissions || [];
+  const isHr = permissions.includes('kepegawaian.leave_requests.manage') ||
+               permissions.includes('kepegawaian.leave_requests.override') ||
+               permissions.includes('kepegawaian.leave_types.manage') ||
                user?.role === 'super_admin' ||
                user?.role === 'hrd' ||
                user?.role === 'admin_satuan_pendidikan';
 
-  const fetchLeaves = async () => {
-    setLoadingLeaves(true);
-    try {
-      let q = '';
-      if (activeSchoolUnit?.id) q = `?school_unit_id=${activeSchoolUnit.id}`;
-      const res = await api.get(`/kepegawaian/leave-requests${q}`);
-      if (res.data?.success) {
-        setLeaves(res.data.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch leaves:', err);
-    } finally {
-      setLoadingLeaves(false);
-    }
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   };
 
-  const fetchOvertimes = async () => {
-    setLoadingOvertimes(true);
-    try {
-      let q = '';
-      if (activeSchoolUnit?.id) q = `?school_unit_id=${activeSchoolUnit.id}`;
-      const res = await api.get(`/kepegawaian/overtimes${q}`);
-      if (res.data?.success) {
-        setOvertimes(res.data.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch overtimes:', err);
-    } finally {
-      setLoadingOvertimes(false);
-    }
-  };
-
+  // Fetch Master Data & Badges
   const fetchMasterData = async () => {
     try {
-      const [typesRes, empsRes] = await Promise.all([
+      let q = '';
+      if (activeSchoolUnit?.id) q = `?school_unit_id=${activeSchoolUnit.id}`;
+
+      const [typesRes, empsRes, leavesRes, overtimesRes] = await Promise.all([
         api.get('/kepegawaian/leave-types'),
-        api.get('/kepegawaian/employees?per_page=100')
+        api.get(`/kepegawaian/employees${q ? q + '&per_page=200' : '?per_page=200'}`),
+        api.get(`/kepegawaian/leave-requests${q ? q + '&status=pending' : '?status=pending'}`),
+        api.get(`/kepegawaian/overtimes${q ? q + '&status=pending' : '?status=pending'}`)
       ]);
+
       if (typesRes.data?.success) setLeaveTypes(typesRes.data.data || []);
       if (empsRes.data?.success) setEmployees(empsRes.data.data.items || empsRes.data.data || []);
+      if (leavesRes.data?.success) setPendingLeaveCount((leavesRes.data.data || []).length);
+      if (overtimesRes.data?.success) setPendingOvertimeCount((overtimesRes.data.data || []).length);
     } catch (err) {
       console.error('Failed to fetch master data:', err);
     }
   };
 
   useEffect(() => {
-    fetchLeaves();
-    fetchOvertimes();
     fetchMasterData();
   }, [activeSchoolUnit]);
 
-  const showNotification = (msg, type = 'success') => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 4000);
-  };
-
+  // Tab Definitions matching precision design
   const tabs = [
-    { id: 'leaves', label: 'Permohonan Cuti & Izin', icon: CalendarRange },
-    { id: 'balances', label: 'Saldo & Jatah Cuti', icon: BookOpen },
-    { id: 'overtimes', label: 'Lembur Pegawai', icon: Clock },
-    { id: 'holidays', label: 'Kalender Libur & Cuti Bersama', icon: CalendarIcon },
-    { id: 'settings', label: 'Master & Kebijakan', icon: Sliders },
-    { id: 'reports', label: 'Laporan & Analitik', icon: BarChart3 }
+    { id: 'leaves', label: 'Pengajuan Cuti & Izin', icon: CalendarRange, badge: pendingLeaveCount },
+    { id: 'overtimes', label: 'Penugasan Lembur', icon: Clock, badge: pendingOvertimeCount },
+    { id: 'balances', label: 'Saldo Cuti', icon: PieChart },
+    { id: 'holidays', label: 'Kalender', icon: CalendarIcon },
+    { id: 'reports', label: 'Laporan', icon: FileText },
+    ...(isHr ? [{ id: 'settings', label: 'Pengaturan', icon: Sliders }] : [])
   ];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Toast Notification */}
-      {notification && (
-        <div className={`p-4 rounded-xl border text-sm font-medium flex items-center justify-between shadow-md transition-all ${
-          notification.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
+    <div className="p-4 sm:p-6 space-y-5 max-w-7xl mx-auto min-h-screen">
+      {/* Toast Alert */}
+      {toast && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between shadow-md transition-all animate-in fade-in ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-rose-600" />}
-            <span>{notification.msg}</span>
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+            )}
+            <span>{toast.message}</span>
           </div>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-600">×</button>
+          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-700">
+            ×
+          </button>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
-              <CalendarRange className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Cuti, Izin & Lembur</h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Pusat persetujuan berjenjang, perhitungan saldo pro-rata otomatis, dan integrasi kalender kerja
-              </p>
-            </div>
-          </div>
+      {/* 1. Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Cuti, Izin & Lembur</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Kelola permohonan ketidakhadiran kerja dan penugasan lembur pegawai terintegrasi
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Top Right Action Controls */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
-            onClick={() => {
-              fetchLeaves();
-              fetchOvertimes();
-              showNotification('Data berhasil disegarkan!');
-            }}
-            className="p-2.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl shadow-xs transition-colors"
-            title="Segarkan Data"
+            onClick={fetchMasterData}
+            className="w-9 h-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors flex items-center justify-center shadow-2xs active:scale-95"
+            title="Muat Ulang Data"
+            type="button"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
 
+          {isHr && (
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium transition-colors shadow-2xs ${
+                activeTab === 'settings' ? 'bg-slate-100 text-slate-900 font-bold' : ''
+              }`}
+              type="button"
+            >
+              <Settings className="w-4 h-4 text-slate-500" />
+              <span>Pengaturan</span>
+            </button>
+          )}
+
           <button
             onClick={() => setIsCreateLeaveModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors active:scale-95"
+            type="button"
           >
             <Plus className="w-4 h-4" />
-            Ajukan Cuti / Izin
+            <span>Ajukan Cuti / Izin</span>
           </button>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b border-slate-200">
-        <nav className="flex space-x-6 overflow-x-auto no-scrollbar">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const isActive = activeTab === t.id;
+      {/* 2. Tabs Navigation Bar */}
+      <div className="border-b border-slate-200 bg-white rounded-t-xl px-4 pt-1 shadow-2xs">
+        <div className="flex items-center gap-6 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
             return (
               <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`py-3 px-1 inline-flex items-center gap-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative pb-3 pt-3 flex items-center gap-2 text-xs transition-colors focus:outline-none whitespace-nowrap ${
                   isActive
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                    ? 'text-indigo-600 font-bold'
+                    : 'text-slate-500 hover:text-slate-800 font-medium'
                 }`}
+                type="button"
               >
-                <Icon className="w-4 h-4" />
-                {t.label}
+                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+                {Boolean(tab.badge) && tab.badge > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full font-bold text-[10px] leading-none ${
+                      isActive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-indigo-600 rounded-full" />
+                )}
               </button>
             );
           })}
-        </nav>
+        </div>
       </div>
 
-      {/* Tab Panels */}
-      {activeTab === 'leaves' && (
-        <LeaveRequestsTab
-          leaves={leaves}
-          loading={loadingLeaves}
-          leaveTypes={leaveTypes}
-          employees={employees}
-          onRefresh={fetchLeaves}
-          onOpenCreateModal={() => setIsCreateLeaveModalOpen(true)}
-        />
-      )}
+      {/* 3. Tab Content View */}
+      <div className="animate-in fade-in duration-150">
+        {activeTab === 'leaves' && (
+          <LeaveRequestsTab
+            currentUser={user}
+            activeSchoolUnit={activeSchoolUnit}
+            leaveTypes={leaveTypes}
+            employees={employees}
+            onOpenCreateModal={() => setIsCreateLeaveModalOpen(true)}
+            onShowToast={showToast}
+          />
+        )}
 
-      {activeTab === 'balances' && (
-        <LeaveBalancesTab activeSchoolUnit={activeSchoolUnit} />
-      )}
+        {activeTab === 'overtimes' && (
+          <OvertimeTab
+            overtimes={[]}
+            loading={false}
+            employees={employees}
+            onRefresh={fetchMasterData}
+            onOpenCreateModal={() => setIsCreateOvertimeModalOpen(true)}
+          />
+        )}
 
-      {activeTab === 'overtimes' && (
-        <OvertimeTab
-          overtimes={overtimes}
-          loading={loadingOvertimes}
-          employees={employees}
-          onRefresh={fetchOvertimes}
-          onOpenCreateModal={() => setIsCreateOvertimeModalOpen(true)}
-        />
-      )}
+        {activeTab === 'balances' && (
+          <LeaveBalancesTab />
+        )}
 
-      {activeTab === 'holidays' && (
-        <HolidaysTab activeSchoolUnit={activeSchoolUnit} />
-      )}
+        {activeTab === 'holidays' && (
+          <HolidaysTab />
+        )}
 
-      {activeTab === 'settings' && (
-        <LeaveSettingsTab activeSchoolUnit={activeSchoolUnit} />
-      )}
+        {activeTab === 'reports' && (
+          <LeaveReportsTab />
+        )}
 
-      {activeTab === 'reports' && (
-        <LeaveReportsTab activeSchoolUnit={activeSchoolUnit} />
-      )}
+        {activeTab === 'settings' && isHr && (
+          <LeaveSettingsTab />
+        )}
+      </div>
 
-      {/* Create Leave Modal */}
+      {/* Modal Ajukan Cuti */}
       <CreateLeaveModal
         isOpen={isCreateLeaveModalOpen}
         onClose={() => setIsCreateLeaveModalOpen(false)}
-        leaveTypes={leaveTypes}
+        currentUser={user}
         employees={employees}
-        onSuccess={() => {
-          fetchLeaves();
-          showNotification('Permohonan cuti/izin berhasil diajukan!');
+        leaveTypes={leaveTypes}
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchMasterData();
         }}
-        isHr={isHr}
       />
 
-      {/* Create Overtime Modal */}
+      {/* Modal Penugasan Lembur */}
       <CreateOvertimeModal
         isOpen={isCreateOvertimeModalOpen}
         onClose={() => setIsCreateOvertimeModalOpen(false)}
         employees={employees}
-        onSuccess={() => {
-          fetchOvertimes();
-          showNotification('Pengajuan lembur berhasil diajukan!');
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchMasterData();
         }}
-        isHr={isHr}
       />
     </div>
   );

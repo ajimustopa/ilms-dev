@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   CalendarRange,
   Search,
@@ -16,48 +16,189 @@ import {
   Check,
   X,
   ChevronRight,
-  Download
+  Download,
+  Calendar as CalendarIcon,
+  Inbox,
+  AlertCircle,
+  HelpCircle,
+  ShieldAlert,
+  Loader2,
+  Paperclip,
+  RefreshCw,
+  FileDown
 } from 'lucide-react';
 import StatusBadge from '../../../../shared/components/StatusBadge';
+import LoadingSkeleton from '../../../../shared/components/LoadingSkeleton';
+import EmptyState from '../../../../shared/components/EmptyState';
+import ErrorState from '../../../../shared/components/ErrorState';
 import api from '../../../../shared/services/api';
 
+import LeaveDetailDrawer from './LeaveDetailDrawer';
+import LeaveReclassifyModal from './LeaveReclassifyModal';
+import LeaveReassignModal from './LeaveReassignModal';
+import LeaveBulkActionModal from './LeaveBulkActionModal';
+
 export default function LeaveRequestsTab({
-  leaves = [],
-  loading = false,
+  currentUser,
+  activeSchoolUnit,
   leaveTypes = [],
   employees = [],
-  onRefresh,
-  onOpenCreateModal
+  onOpenCreateModal,
+  onShowToast
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [selectedType, setSelectedType] = useState('ALL');
-  const [selectedLeave, setSelectedLeave] = useState(null);
-  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  // Active Queue: 'all', 'inbox', 'needs_review'
+  const [queueTab, setQueueTab] = useState('all');
 
-  // Action Modals
-  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [actionType, setActionType] = useState('approve'); // 'approve', 'reject', 'request_revision', 'cancel'
-  const [actionComment, setActionComment] = useState('');
-  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
-  const [actionError, setActionError] = useState('');
+  // Table Data State
+  const [leaves, setLeaves] = useState([]);
+  const [inboxLeaves, setInboxLeaves] = useState([]);
+  const [needsReviewLeaves, setNeedsReviewLeaves] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredLeaves = leaves.filter(item => {
-    const matchSearch =
-      (item.employee_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.nip || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.reason || '').toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
-    const matchType = selectedType === 'ALL' || item.leave_type === selectedType;
-
-    return matchSearch && matchStatus && matchType;
+  // Summary Metrics State
+  const [metrics, setMetrics] = useState({
+    pending: 0,
+    approvedMonth: 0,
+    rejectedMonth: 0,
+    onLeaveToday: 0,
+    upcoming7Days: 0,
+    missingDocuments: 0
   });
 
-  const pendingCount = leaves.filter(l => l.status === 'pending').length;
-  const approvedCount = leaves.filter(l => l.status === 'approved').length;
-  const totalDays = leaves.filter(l => l.status === 'approved').reduce((acc, curr) => acc + (parseFloat(curr.duration_days) || 0), 0);
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [datePreset, setDatePreset] = useState('month'); // 'all', 'month', 'next_month', 'semester'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
+  // Bulk Selection
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Modals & Drawer State
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isReclassifyOpen, setIsReclassifyOpen] = useState(false);
+  const [isReassignOpen, setIsReassignOpen] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState(null); // 'approve' | 'reject' | null
+
+  const isHr = currentUser?.permissions?.includes('kepegawaian.leave_requests.manage') ||
+               currentUser?.permissions?.includes('kepegawaian.leave_requests.override') ||
+               currentUser?.role === 'super_admin';
+
+  // Calculate Date Range from Presets
+  const activeDateRange = useMemo(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth(); // 0-indexed
+
+    if (datePreset === 'month') {
+      const start = new Date(y, m, 1);
+      const end = new Date(y, m + 1, 0);
+      return {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+        label: `${start.toLocaleDateString('id-ID', { month: 'short' })} ${y}`
+      };
+    } else if (datePreset === 'next_month') {
+      const start = new Date(y, m + 1, 1);
+      const end = new Date(y, m + 2, 0);
+      return {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+        label: `${start.toLocaleDateString('id-ID', { month: 'short' })} ${y}`
+      };
+    } else if (datePreset === 'semester') {
+      // Semester 1: Jul-Des, Semester 2: Jan-Jun
+      const isSem1 = m >= 6;
+      const start = isSem1 ? new Date(y, 6, 1) : new Date(y, 0, 1);
+      const end = isSem1 ? new Date(y, 11, 31) : new Date(y, 5, 30);
+      return {
+        start: start.toISOString().slice(0, 10),
+        end: end.toISOString().slice(0, 10),
+        label: isSem1 ? `Sem 1 (${y})` : `Sem 2 (${y})`
+      };
+    }
+    return {
+      start: customStartDate || '',
+      end: customEndDate || '',
+      label: 'Kustom'
+    };
+  }, [datePreset, customStartDate, customEndDate]);
+
+  // Fetch Leave Data
+  const fetchLeavesData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (activeSchoolUnit?.id) params.append('school_unit_id', activeSchoolUnit.id);
+      if (searchQuery.trim()) params.append('search', searchQuery.trim());
+      if (selectedType) params.append('leave_type', selectedType);
+      if (selectedStatus) params.append('status', selectedStatus);
+      if (activeDateRange.start) params.append('start_date', activeDateRange.start);
+      if (activeDateRange.end) params.append('end_date', activeDateRange.end);
+
+      params.append('page', currentPage);
+      params.append('per_page', perPage);
+
+      let endpoint = '/kepegawaian/leave-requests';
+      if (queueTab === 'inbox') endpoint = '/kepegawaian/leave-requests/inbox';
+      if (queueTab === 'needs_review') endpoint = '/kepegawaian/leave-requests/needs-review';
+
+      const res = await api.get(`${endpoint}?${params.toString()}`);
+      if (res.data?.success) {
+        const items = res.data.data || [];
+        setLeaves(items);
+        setTotalItems(res.data.total || items.length);
+
+        // Compute metrics from dataset
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const next7DaysStr = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+
+        setMetrics({
+          pending: items.filter(l => l.status === 'pending').length,
+          approvedMonth: items.filter(l => l.status === 'approved').length,
+          rejectedMonth: items.filter(l => l.status === 'rejected').length,
+          onLeaveToday: items.filter(l => l.status === 'approved' && l.start_date <= todayStr && l.end_date >= todayStr).length,
+          upcoming7Days: items.filter(l => l.status === 'approved' && l.start_date > todayStr && l.start_date <= next7DaysStr).length,
+          missingDocuments: items.filter(l => l.attachment_rule === 'required' && !l.has_attachment).length
+        });
+      }
+    } catch (err) {
+      console.error('Fetch leaves error:', err);
+      setError('Gagal memuat data pengajuan cuti. Silakan coba kembali.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Queue Counts (Inbox and Needs-Review)
+  const fetchQueueCounts = async () => {
+    try {
+      const [inboxRes, reviewRes] = await Promise.all([
+        api.get('/kepegawaian/leave-requests/inbox?per_page=1'),
+        api.get('/kepegawaian/leave-requests/needs-review?per_page=1')
+      ]);
+      if (inboxRes.data?.success) setInboxLeaves(inboxRes.data.data || []);
+      if (reviewRes.data?.success) setNeedsReviewLeaves(reviewRes.data.data || []);
+    } catch (err) {
+      console.error('Fetch queue counts error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeavesData();
+    fetchQueueCounts();
+    setSelectedIds([]);
+  }, [queueTab, activeSchoolUnit, searchQuery, selectedType, selectedStatus, datePreset, customStartDate, customEndDate, currentPage, perPage]);
+
+  // Open Detail Drawer
   const handleOpenDetail = async (leaveItem) => {
     try {
       const res = await api.get(`/kepegawaian/leave-requests/${leaveItem.id}`);
@@ -69,462 +210,715 @@ export default function LeaveRequestsTab({
     } catch (e) {
       setSelectedLeave(leaveItem);
     }
-    setIsDetailDrawerOpen(true);
+    setIsDrawerOpen(true);
   };
 
-  const handleOpenActionModal = (type, leaveItem) => {
-    setSelectedLeave(leaveItem);
-    setActionType(type);
-    setActionComment('');
-    setActionError('');
-    setIsActionModalOpen(true);
-  };
-
-  const handleExecuteAction = async () => {
-    if (!selectedLeave) return;
-    setIsSubmittingAction(true);
-    setActionError('');
-
+  // Quick Inline Approve
+  const handleQuickApprove = async (leaveItem) => {
     try {
-      let endpoint = '';
-      let payload = {};
-
-      if (actionType === 'approve') {
-        endpoint = `/kepegawaian/leave-requests/${selectedLeave.id}/approve`;
-        payload = { comment: actionComment };
-      } else if (actionType === 'reject') {
-        endpoint = `/kepegawaian/leave-requests/${selectedLeave.id}/reject`;
-        payload = { rejection_reason: actionComment };
-      } else if (actionType === 'request_revision') {
-        endpoint = `/kepegawaian/leave-requests/${selectedLeave.id}/request-revision`;
-        payload = { comment: actionComment };
-      } else if (actionType === 'cancel') {
-        endpoint = `/kepegawaian/leave-requests/${selectedLeave.id}/cancel`;
-        payload = { cancel_reason: actionComment };
-      }
-
-      const res = await api.patch(endpoint, payload);
+      const res = await api.post(`/kepegawaian/leave-requests/${leaveItem.id}/approve`, {
+        comment: 'Disetujui cepat melalui tabel'
+      });
       if (res.data?.success) {
-        setIsActionModalOpen(false);
-        setIsDetailDrawerOpen(false);
-        if (onRefresh) onRefresh();
+        if (onShowToast) onShowToast('Permohonan cuti berhasil disetujui');
+        fetchLeavesData();
       }
     } catch (err) {
-      setActionError(err.response?.data?.message || 'Gagal memproses aksi');
-    } finally {
-      setIsSubmittingAction(false);
+      alert(err.response?.data?.message || 'Gagal menyetujui pengajuan');
     }
   };
 
+  // Quick Inline Reject
+  const handleQuickReject = async (leaveItem) => {
+    const reason = window.prompt('Masukkan alasan penolakan permohonan cuti:');
+    if (!reason || !reason.trim()) return;
+
+    try {
+      const res = await api.post(`/kepegawaian/leave-requests/${leaveItem.id}/reject`, {
+        rejection_reason: reason.trim()
+      });
+      if (res.data?.success) {
+        if (onShowToast) onShowToast('Permohonan cuti ditolak');
+        fetchLeavesData();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menolak pengajuan');
+    }
+  };
+
+  // Toggle Row Selection
+  const toggleSelectRow = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // Toggle Select All
+  const toggleSelectAll = () => {
+    if (selectedIds.length === leaves.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(leaves.map(l => l.id));
+    }
+  };
+
+  // Reset Filters
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedType('');
+    setSelectedStatus('');
+    setDatePreset('month');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setCurrentPage(1);
+  };
+
+  // Export CSV Helper
+  const handleExportCsv = () => {
+    if (leaves.length === 0) {
+      alert('Tidak ada data yang dapat diekspor');
+      return;
+    }
+
+    const headers = ['ID', 'Pegawai', 'NIP', 'Jenis Cuti', 'Mulai', 'Selesai', 'Durasi (Hari)', 'Status', 'Alasan'];
+    const rows = leaves.map(l => [
+      l.id,
+      `"${l.employee_name || ''}"`,
+      `"${l.nip || ''}"`,
+      `"${l.leave_type_name || l.leave_type}"`,
+      l.start_date,
+      l.end_date,
+      l.duration_days,
+      l.status,
+      `"${(l.reason || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `pengajuan_cuti_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Menunggu Persetujuan</p>
-            <h3 className="text-2xl font-bold text-amber-600">{pendingCount}</h3>
-            <p className="text-xs text-slate-400 mt-1">Perlu ditindaklanjuti segera</p>
+    <div className="space-y-4">
+      {/* 1. Summary Metric Cards (6 Cards matching precision design) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {/* Card 1: Menunggu Persetujuan */}
+        <div className="bg-white rounded-xl p-3.5 border border-amber-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-amber-800 line-clamp-1">Menunggu Persetujuan</span>
+            <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4" />
+            </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Cuti Disetujui</p>
-            <h3 className="text-2xl font-bold text-emerald-600">{approvedCount}</h3>
-            <p className="text-xs text-slate-400 mt-1">Total pengajuan sah</p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.pending}</span>
+            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+              Perlu tindakan
+            </span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Total Hari Diambil</p>
-            <h3 className="text-2xl font-bold text-indigo-600">{totalDays} <span className="text-sm font-medium text-slate-500">Hari</span></h3>
-            <p className="text-xs text-slate-400 mt-1">Akumulasi durasi cuti</p>
+        {/* Card 2: Disetujui Bulan Ini */}
+        <div className="bg-white rounded-xl p-3.5 border border-emerald-200/70 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-emerald-800 line-clamp-1">Disetujui Periode Ini</span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-            <CalendarRange className="w-6 h-6" />
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.approvedMonth}</span>
+            <span className="text-[11px] text-slate-500 font-medium">{activeDateRange.label}</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Jenis Cuti Terdaftar</p>
-            <h3 className="text-2xl font-bold text-blue-600">{leaveTypes.length}</h3>
-            <p className="text-xs text-slate-400 mt-1">Master kebijakan aktif</p>
+        {/* Card 3: Ditolak Bulan Ini */}
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-700 line-clamp-1">Ditolak Periode Ini</span>
+            <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+              <XCircle className="w-4 h-4" />
+            </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-            <FileText className="w-6 h-6" />
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.rejectedMonth}</span>
+            <span className="text-[11px] text-slate-400">Total berkas</span>
+          </div>
+        </div>
+
+        {/* Card 4: Sedang Cuti Hari Ini */}
+        <div className="bg-white rounded-xl p-3.5 border border-blue-200/70 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-blue-800 line-clamp-1">Sedang Cuti Hari Ini</span>
+            <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.onLeaveToday}</span>
+            <span className="text-[11px] text-blue-600 font-medium">Pegawai aktif</span>
+          </div>
+        </div>
+
+        {/* Card 5: Akan Cuti 7 Hari ke Depan */}
+        <div className="bg-white rounded-xl p-3.5 border border-purple-200/70 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-purple-800 line-clamp-1">Akan Cuti 7 Hari</span>
+            <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.upcoming7Days}</span>
+            <span className="text-[11px] text-purple-600 font-medium">Terjadwal</span>
+          </div>
+        </div>
+
+        {/* Card 6: Perlu Dokumen Pendukung */}
+        <div className="bg-white rounded-xl p-3.5 border border-red-200/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-red-800 line-clamp-1">Perlu Lampiran</span>
+            <span className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+              <Paperclip className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">{metrics.missingDocuments}</span>
+            <span className="text-[10px] font-semibold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+              Belum lengkap
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* 2. Queue Tabs (Semua / Kotak Masuk / Perlu Tinjauan) */}
+      <div className="bg-white rounded-xl border border-slate-200 p-1.5 shadow-2xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => { setQueueTab('all'); setCurrentPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              queueTab === 'all'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <CalendarRange className="w-3.5 h-3.5" />
+            <span>Semua Pengajuan</span>
+          </button>
+
+          <button
+            onClick={() => { setQueueTab('inbox'); setCurrentPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              queueTab === 'inbox'
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            <span>Kotak Masuk Persetujuan</span>
+            {inboxLeaves.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-white text-indigo-700 font-bold text-[10px]">
+                {inboxLeaves.length}
+              </span>
+            )}
+          </button>
+
+          {isHr && (
+            <button
+              onClick={() => { setQueueTab('needs_review'); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                queueTab === 'needs_review'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>Perlu Tinjauan Khusus</span>
+              {needsReviewLeaves.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-white text-amber-800 font-bold text-[10px]">
+                  {needsReviewLeaves.length}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={fetchLeavesData}
+          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+          title="Muat Ulang Tabel"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {/* 3. Filter Bar Card */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          {/* Search */}
+          <div className="lg:col-span-2 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Cari nama pegawai, NIP, atau alasan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              placeholder="Cari nama pegawai, NIP, atau alasan..."
+              className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 bg-slate-50/50 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="py-2 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="pending">Menunggu (Pending)</option>
-              <option value="approved">Disetujui (Approved)</option>
-              <option value="rejected">Ditolak (Rejected)</option>
-              <option value="revision_requested">Minta Revisi</option>
-              <option value="cancelled">Dibatalkan</option>
-            </select>
-
+          {/* Jenis Cuti Dropdown */}
+          <div>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="py-2 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-xs text-slate-700 focus:bg-white focus:border-emerald-500 outline-none"
             >
-              <option value="ALL">Semua Jenis Cuti</option>
+              <option value="">Semua Jenis Cuti</option>
               {leaveTypes.map(t => (
-                <option key={t.code} value={t.code}>{t.name}</option>
+                <option key={t.id || t.code} value={t.code}>{t.name}</option>
               ))}
             </select>
           </div>
+
+          {/* Status Dropdown */}
+          <div>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50/50 text-xs text-slate-700 focus:bg-white focus:border-emerald-500 outline-none"
+            >
+              <option value="">Semua Status</option>
+              <option value="pending">Menunggu (Pending)</option>
+              <option value="approved">Disetujui (Approved)</option>
+              <option value="rejected">Ditolak (Rejected)</option>
+              <option value="revision_requested">Perlu Revisi</option>
+              <option value="cancelled">Dibatalkan (Cancelled)</option>
+            </select>
+          </div>
+
+          {/* Quick Date Presets */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
+            <button
+              onClick={() => setDatePreset('month')}
+              className={`flex-1 py-1 text-[11px] rounded-md font-semibold transition-colors ${
+                datePreset === 'month' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Bulan Ini
+            </button>
+            <button
+              onClick={() => setDatePreset('next_month')}
+              className={`flex-1 py-1 text-[11px] rounded-md font-semibold transition-colors ${
+                datePreset === 'next_month' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Bulan Depan
+            </button>
+            <button
+              onClick={() => setDatePreset('semester')}
+              className={`flex-1 py-1 text-[11px] rounded-md font-semibold transition-colors ${
+                datePreset === 'semester' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Semester
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-          <button
-            onClick={onOpenCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Ajukan Cuti / Izin
-          </button>
-        </div>
-      </div>
+        {/* Filter Bar Footer */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs text-slate-600">
+          <div className="flex items-center gap-2 text-[11px]">
+            <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-slate-500">Periode Aktif:</span>
+            <span className="font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+              {activeDateRange.start || 'Semua'} s.d {activeDateRange.end || 'Semua'}
+            </span>
+          </div>
 
-      {/* Main Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase font-semibold text-slate-500 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4">Pegawai</th>
-                <th className="py-3.5 px-4">Jenis Cuti</th>
-                <th className="py-3.5 px-4">Rentang Tanggal</th>
-                <th className="py-3.5 px-4 text-center">Durasi</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Alasan</th>
-                <th className="py-3.5 px-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <div className="inline-flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                      Memuat permohonan cuti...
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredLeaves.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    Tidak ada data permohonan cuti yang sesuai filter.
-                  </td>
-                </tr>
-              ) : (
-                filteredLeaves.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900">{item.employee_name || 'Pegawai'}</div>
-                      <div className="text-xs text-slate-400">{item.nip || `ID: ${item.employee_id}`}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
-                        {item.leave_type_name || item.leave_type}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="text-slate-800 font-medium">{item.start_date}</div>
-                      <div className="text-xs text-slate-400">s/d {item.end_date}</div>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="inline-block px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                        {item.duration_days} {item.count_mode === 'calendar_days' ? 'Hari' : 'HK'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className="py-3.5 px-4 max-w-xs truncate text-xs text-slate-500" title={item.reason}>
-                      {item.reason || '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleOpenDetail(item)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Lihat Detail & Timeline"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-
-                        {item.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleOpenActionModal('approve', item)}
-                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                              title="Setujui"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenActionModal('reject', item)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Tolak"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleResetFilters}
+              className="px-2.5 py-1 text-slate-500 hover:text-slate-800 text-xs transition-colors"
+            >
+              Reset Filter
+            </button>
+            <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs shadow-2xs transition-colors"
+            >
+              <FileDown className="w-3.5 h-3.5 text-slate-500" />
+              <span>Ekspor CSV</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Drawer Detail & Multi-Step Approval Timeline */}
-      {isDetailDrawerOpen && selectedLeave && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-            {/* Drawer Header */}
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Detail Permohonan Cuti</h3>
-                <p className="text-xs text-slate-500">ID #{selectedLeave.id} • Dibuat {selectedLeave.created_at?.slice(0, 10)}</p>
-              </div>
-              <button
-                onClick={() => setIsDetailDrawerOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* 4. Bulk Action Floating Bar (when items selected) */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-900 shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px] font-bold">
+              {selectedIds.length}
+            </span>
+            <span className="font-medium">permohonan dipilih dari tabel</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setBulkActionType('approve')}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors shadow-xs"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Setujui Terpilih</span>
+            </button>
+            <button
+              onClick={() => setBulkActionType('reject')}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Tolak Terpilih</span>
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-2.5 py-1 text-slate-600 hover:text-slate-900 text-xs underline"
+            >
+              Batalkan Seleksi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Server-Side Data Table */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col">
+        {loading ? (
+          <div className="p-8">
+            <LoadingSkeleton count={6} />
+          </div>
+        ) : error ? (
+          <div className="p-8">
+            <ErrorState message={error} onRetry={fetchLeavesData} />
+          </div>
+        ) : leaves.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+              <CalendarRange className="w-6 h-6 text-slate-400" />
             </div>
+            <p className="text-sm font-semibold text-slate-800">Tidak ada permohonan cuti / izin ditemukan</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              Gunakan tombol "Ajukan Cuti / Izin" untuk membuat permohonan baru atau sesuaikan filter pencarian.
+            </p>
+            <button
+              onClick={onOpenCreateModal}
+              className="mt-4 px-3.5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700"
+            >
+              Ajukan Sekarang
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px] select-none sticky top-0 z-10">
+                  <th className="w-10 px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.length === leaves.length && leaves.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    />
+                  </th>
+                  <th className="px-3 py-3 min-w-[200px]">PEGAWAI</th>
+                  <th className="px-3 py-3 min-w-[140px]">JENIS CUTI</th>
+                  <th className="px-3 py-3 min-w-[150px]">PERIODE TANGGAL</th>
+                  <th className="px-3 py-3 min-w-[180px]">ALASAN</th>
+                  <th className="px-3 py-3 min-w-[100px] text-center">LAMPIRAN</th>
+                  <th className="px-3 py-3 min-w-[100px]">STATUS</th>
+                  <th className="px-3 py-3 min-w-[130px]">TAHAP APPROVAL</th>
+                  <th className="px-3 py-3 min-w-[110px] text-right pr-4">AKSI</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {leaves.map((leave) => {
+                  const isSelected = selectedIds.includes(leave.id);
+                  const isPending = leave.status === 'pending';
+                  const steps = leave.approval_steps || [];
 
-            {/* Drawer Body */}
-            <div className="p-6 flex-1 overflow-y-auto space-y-6">
-              {/* Employee Info Card */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
-                  {selectedLeave.employee_name?.charAt(0) || 'P'}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900">{selectedLeave.employee_name}</h4>
-                  <p className="text-xs text-slate-500">{selectedLeave.nip || 'NIP Pegawai'} • {selectedLeave.position_name || 'Staff'}</p>
-                </div>
-              </div>
+                  return (
+                    <tr
+                      key={leave.id}
+                      className={`transition-colors ${
+                        isSelected ? 'bg-emerald-50/30' : 'hover:bg-slate-50/70'
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-3 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(leave.id)}
+                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                      </td>
 
-              {/* Leave Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                  <span className="text-xs text-slate-400 block mb-1">Jenis Cuti</span>
-                  <span className="font-semibold text-sm text-slate-800">{selectedLeave.leave_type_name || selectedLeave.leave_type}</span>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                  <span className="text-xs text-slate-400 block mb-1">Durasi Total</span>
-                  <span className="font-semibold text-sm text-indigo-600">{selectedLeave.duration_days} Hari ({selectedLeave.count_mode === 'calendar_days' ? 'Kalender' : 'HK'})</span>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                  <span className="text-xs text-slate-400 block mb-1">Tanggal Mulai</span>
-                  <span className="font-semibold text-sm text-slate-800">{selectedLeave.start_date} ({selectedLeave.start_portion || 'full'})</span>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg">
-                  <span className="text-xs text-slate-400 block mb-1">Tanggal Selesai</span>
-                  <span className="font-semibold text-sm text-slate-800">{selectedLeave.end_date} ({selectedLeave.end_portion || 'full'})</span>
-                </div>
-              </div>
-
-              {/* Reason */}
-              <div>
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Alasan Permohonan</span>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700">
-                  {selectedLeave.reason || 'Tidak ada alasan khusus dicantumkan.'}
-                </div>
-              </div>
-
-              {/* Multi-Step Approval Timeline */}
-              <div>
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-3">Jalur Persetujuan (Workflow)</span>
-                <div className="space-y-3">
-                  {selectedLeave.approval_steps && selectedLeave.approval_steps.length > 0 ? (
-                    selectedLeave.approval_steps.map((step, idx) => (
-                      <div key={step.id || idx} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                          step.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                          step.status === 'rejected' ? 'bg-rose-100 text-rose-700' :
-                          step.status === 'bypassed' ? 'bg-blue-100 text-blue-700' :
-                          'bg-amber-100 text-amber-700'
-                        }`}>
-                          {step.step_no}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h5 className="text-sm font-semibold text-slate-800">
-                              {step.approver_source === 'direct_supervisor' ? 'Atasan Langsung' :
-                               step.approver_source === 'unit_head' ? 'Kepala Sekolah' : 'HRD Yayasan'}
-                            </h5>
-                            <span className="text-xs font-medium capitalize">
-                              <StatusBadge status={step.status} />
+                      {/* Pegawai */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {(leave.employee_name || 'P').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-slate-900 truncate">
+                              {leave.employee_name || 'Pegawai'}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {leave.nip || `ID:${leave.employee_id}`}
+                            </span>
+                            <span className="text-[10px] text-slate-600 truncate">
+                              {leave.position_name || 'Staf Pegawai'}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {step.assigned_employee_name ? `Penugasan: ${step.assigned_employee_name}` : 'Penugasan: Pool HRD'}
+                        </div>
+                      </td>
+
+                      {/* Jenis Cuti */}
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 font-semibold text-[11px] w-fit border border-slate-200">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: leave.leave_type_color || '#059669' }}
+                            />
+                            {leave.leave_type_name || leave.leave_type}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {leave.count_mode === 'calendar_days' ? 'Hari Kalender' : 'Hari Kerja'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Periode Tanggal */}
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900 text-xs">
+                            {leave.start_date} s.d {leave.end_date}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {leave.duration_days} Hari
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Alasan (with privacy check) */}
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-1 max-w-xs">
+                          <p className="text-slate-700 text-xs truncate" title={leave.reason}>
+                            {leave.reason || '-'}
                           </p>
-                          {step.comment && (
-                            <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded mt-2 border border-slate-100">
-                              Catatan: "{step.comment}"
-                            </p>
+                          {leave.has_overlap && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 text-[10px] font-semibold w-fit border border-rose-200">
+                              ⚠️ Bentrok Cuti Seunit
+                            </span>
                           )}
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 text-center">
-                      Persetujuan langsung 1 tingkat (HRD)
-                    </div>
-                  )}
-                </div>
-              </div>
+                      </td>
 
-              {/* Colleague Overlaps */}
-              {selectedLeave.overlapping_colleagues && selectedLeave.overlapping_colleagues.length > 0 && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                  <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs uppercase mb-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    Rekan Cuti Bersamaan ({selectedLeave.overlapping_colleagues.length} Orang)
-                  </div>
-                  <ul className="text-xs text-amber-900 space-y-1">
-                    {selectedLeave.overlapping_colleagues.map((col, cIdx) => (
-                      <li key={cIdx} className="flex justify-between">
-                        <span>• {col.colleague_name}</span>
-                        <span className="text-amber-700">{col.start_date} s/d {col.end_date}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                      {/* Lampiran */}
+                      <td className="px-3 py-3 text-center">
+                        {leave.has_attachment ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium border border-slate-200">
+                            <Paperclip className="w-3 h-3 text-slate-500" />
+                            <span>Ada</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-mono">-</span>
+                        )}
+                      </td>
 
-            {/* Drawer Footer Actions */}
-            {selectedLeave.status === 'pending' && (
-              <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => handleOpenActionModal('request_revision', selectedLeave)}
-                  className="px-3.5 py-2 text-sm font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
-                >
-                  Minta Revisi
-                </button>
-                <button
-                  onClick={() => handleOpenActionModal('reject', selectedLeave)}
-                  className="px-3.5 py-2 text-sm font-semibold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors"
-                >
-                  Tolak
-                </button>
-                <button
-                  onClick={() => handleOpenActionModal('approve', selectedLeave)}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors"
-                >
-                  Setujui Cuti
-                </button>
-              </div>
-            )}
+                      {/* Status */}
+                      <td className="px-3 py-3">
+                        <StatusBadge status={leave.status} />
+                      </td>
+
+                      {/* Tahap Approval (Visual Mini Step Dots) */}
+                      <td className="px-3 py-3">
+                        {steps.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            {steps.map((st, i) => (
+                              <React.Fragment key={st.step_no || i}>
+                                <span
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                    st.status === 'approved'
+                                      ? 'bg-emerald-600 text-white'
+                                      : st.status === 'pending'
+                                      ? 'bg-amber-500 text-white animate-pulse ring-2 ring-amber-100'
+                                      : st.status === 'rejected'
+                                      ? 'bg-rose-600 text-white'
+                                      : 'bg-slate-200 text-slate-500'
+                                  }`}
+                                  title={`Langkah ${st.step_no}: ${st.approver_source} (${st.status})`}
+                                >
+                                  {st.status === 'approved' ? '✓' : st.status === 'rejected' ? '✗' : st.step_no}
+                                </span>
+                                {i < steps.length - 1 && (
+                                  <div
+                                    className={`w-2 h-0.5 ${
+                                      st.status === 'approved' ? 'bg-emerald-500' : 'bg-slate-200'
+                                    }`}
+                                  />
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">-</span>
+                        )}
+                      </td>
+
+                      {/* Aksi Controls */}
+                      <td className="px-3 py-3 text-right pr-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenDetail(leave)}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Lihat Detail Lengkap"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          {isPending && isHr && (
+                            <>
+                              <button
+                                onClick={() => handleQuickApprove(leave)}
+                                className="p-1 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                title="Setujui Cepat"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleQuickReject(leave)}
+                                className="p-1 rounded text-rose-600 hover:bg-rose-50 transition-colors"
+                                title="Tolak"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Action Dialog (Approve, Reject, Revision, Cancel) */}
-      {isActionModalOpen && selectedLeave && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">
-                {actionType === 'approve' && 'Konfirmasi Persetujuan Cuti'}
-                {actionType === 'reject' && 'Konfirmasi Penolakan Cuti'}
-                {actionType === 'request_revision' && 'Permintaan Revisi Pengajuan'}
-                {actionType === 'cancel' && 'Batalkan Pengajuan Cuti'}
-              </h3>
-              <button onClick={() => setIsActionModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              Pegawai: <strong>{selectedLeave.employee_name}</strong> ({selectedLeave.duration_days} hari {selectedLeave.leave_type_name})
-            </p>
-
-            {actionError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
-                {actionError}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {actionType === 'approve' ? 'Catatan Tambahan (Opsional)' : 'Alasan / Catatan (Wajib)'}
-              </label>
-              <textarea
-                rows={3}
-                value={actionComment}
-                onChange={(e) => setActionComment(e.target.value)}
-                placeholder="Tuliskan catatan persetujuan atau alasan..."
-                className="w-full p-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsActionModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+        {/* 6. Table Footer / Pagination */}
+        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <div className="flex items-center gap-3">
+            <span>
+              Menampilkan <strong className="text-slate-900 font-bold">{leaves.length}</strong> dari{' '}
+              <strong className="text-slate-900 font-bold">{totalItems}</strong> pengajuan
+            </span>
+            <div className="h-3.5 w-px bg-slate-300 hidden sm:block" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500">Per halaman:</span>
+              <select
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="h-7 px-2 rounded border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none"
               >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleExecuteAction}
-                disabled={isSubmittingAction || (actionType !== 'approve' && !actionComment.trim())}
-                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-all ${
-                  actionType === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                  actionType === 'reject' ? 'bg-rose-600 hover:bg-rose-700' :
-                  'bg-indigo-600 hover:bg-indigo-700'
-                } disabled:opacity-50`}
-              >
-                {isSubmittingAction ? 'Memproses...' : 'Konfirmasi'}
-              </button>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
             </div>
           </div>
+
+          {/* Pagination buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              &lt; Sebelumnya
+            </button>
+            <span className="px-3 py-1 font-bold text-slate-900 bg-emerald-50 text-emerald-800 rounded border border-emerald-200">
+              {currentPage}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={leaves.length < perPage || currentPage * perPage >= totalItems}
+              className="px-2.5 py-1 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Berikutnya &gt;
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Detail Drawer */}
+      <LeaveDetailDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        leave={selectedLeave}
+        currentUser={currentUser}
+        onActionSuccess={(msg) => {
+          if (onShowToast) onShowToast(msg);
+          fetchLeavesData();
+        }}
+        onOpenReclassifyModal={(leaveItem) => {
+          setSelectedLeave(leaveItem);
+          setIsReclassifyOpen(true);
+        }}
+        onOpenReassignModal={(leaveItem) => {
+          setSelectedLeave(leaveItem);
+          setIsReassignOpen(true);
+        }}
+      />
+
+      {/* HR Reclassify Modal */}
+      <LeaveReclassifyModal
+        isOpen={isReclassifyOpen}
+        onClose={() => setIsReclassifyOpen(false)}
+        leave={selectedLeave}
+        leaveTypes={leaveTypes}
+        onSuccess={(msg) => {
+          if (onShowToast) onShowToast(msg);
+          fetchLeavesData();
+        }}
+      />
+
+      {/* HR Reassign Approver Modal */}
+      <LeaveReassignModal
+        isOpen={isReassignOpen}
+        onClose={() => setIsReassignOpen(false)}
+        leave={selectedLeave}
+        employees={employees}
+        onSuccess={(msg) => {
+          if (onShowToast) onShowToast(msg);
+          fetchLeavesData();
+        }}
+      />
+
+      {/* Bulk Action Modal */}
+      <LeaveBulkActionModal
+        isOpen={Boolean(bulkActionType)}
+        onClose={() => setBulkActionType(null)}
+        actionType={bulkActionType}
+        selectedIds={selectedIds}
+        onSuccess={(msg) => {
+          if (onShowToast) onShowToast(msg);
+          setSelectedIds([]);
+          fetchLeavesData();
+        }}
+      />
     </div>
   );
 }
