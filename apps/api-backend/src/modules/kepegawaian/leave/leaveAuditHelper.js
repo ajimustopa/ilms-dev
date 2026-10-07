@@ -23,25 +23,49 @@ const db = require('../../../config/db/kepegawaian');
 async function recordLeaveAuditLog({
   knex = null,
   entityType,
+  entity_type,
   entityId,
+  entity_id,
   action,
+  actor,
   actorUserId,
+  actor_user_id,
   actorEmployeeId = null,
+  actor_employee_id = null,
   beforeJson = null,
+  before_json = null,
   afterJson = null,
+  after_state = null,
+  after_json = null,
+  before_state = null,
   reason = null,
-  ip = null
+  ip = null,
+  metadata = null,
+  school_unit_id = null
 }) {
   const connection = knex || db;
   try {
+    const finalType = String(entityType || entity_type || 'holiday').slice(0, 50);
+    const rawEntityId = entityId !== undefined ? entityId : entity_id;
+    const finalEntityId = (rawEntityId !== null && rawEntityId !== undefined && !Number.isNaN(Number(rawEntityId))) ? Number(rawEntityId) : null;
+
+    const rawUserId = actorUserId || actor_user_id || (actor && actor.userId) || 1;
+    const finalUserId = !Number.isNaN(Number(rawUserId)) ? Number(rawUserId) : 1;
+
+    const rawEmpId = actorEmployeeId || actor_employee_id || (actor && actor.employeeId) || null;
+    const finalEmpId = (rawEmpId !== null && rawEmpId !== undefined && !Number.isNaN(Number(rawEmpId))) ? Number(rawEmpId) : null;
+
+    const bJson = beforeJson || before_json || before_state;
+    const aJson = afterJson || after_json || after_state || metadata;
+
     const insertData = {
-      entity_type: String(entityType).slice(0, 50),
-      entity_id: Number(entityId),
+      entity_type: finalType,
+      entity_id: finalEntityId,
       action: String(action).slice(0, 50),
-      actor_user_id: Number(actorUserId),
-      actor_employee_id: actorEmployeeId ? Number(actorEmployeeId) : null,
-      before_json: beforeJson ? JSON.stringify(beforeJson) : null,
-      after_json: afterJson ? JSON.stringify(afterJson) : null,
+      actor_user_id: finalUserId,
+      actor_employee_id: finalEmpId,
+      before_json: bJson ? JSON.stringify(bJson) : null,
+      after_json: aJson ? JSON.stringify(aJson) : null,
       reason: reason ? String(reason).slice(0, 500) : null,
       ip: ip ? String(ip).slice(0, 45) : null,
       created_at: new Date()

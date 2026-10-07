@@ -206,16 +206,27 @@ class LeaveController {
   }
 
   // =========================================================================
-  // Holidays (Kalender Libur)
+  // Holidays (Kalender Libur) - SPEC §10.2, §10.4, §11.1
   // =========================================================================
 
   async getHolidays(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const data = await holidayService.getHolidays(req.query, actor);
-      return res.json({ success: true, data, message: 'Daftar kalender libur', errors: null });
+      const result = await holidayService.getHolidays(req.query, actor);
+      return res.json({
+        success: true,
+        data: result.data,
+        meta: result.meta,
+        message: 'Daftar kalender libur',
+        errors: null
+      });
     } catch (err) {
-      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'SERVER_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -223,9 +234,19 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       const data = await holidayService.createHoliday(req.body, actor);
-      return res.status(201).json({ success: true, data, message: 'Hari libur berhasil ditambahkan', errors: null });
+      return res.status(201).json({
+        success: true,
+        data,
+        message: 'Hari libur berhasil ditambahkan',
+        errors: null
+      });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -233,9 +254,19 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       const data = await holidayService.updateHoliday(req.params.id, req.body, actor);
-      return res.json({ success: true, data, message: 'Hari libur berhasil diperbarui', errors: null });
+      return res.json({
+        success: true,
+        data,
+        message: 'Hari libur berhasil diperbarui',
+        errors: null
+      });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -243,9 +274,143 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       const data = await holidayService.deleteHoliday(req.params.id, actor);
-      return res.json({ success: true, data, message: 'Hari libur berhasil dihapus', errors: null });
+      return res.json({
+        success: true,
+        data,
+        message: 'Hari libur berhasil dihapus',
+        errors: null
+      });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'DELETE_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async importHolidays(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await holidayService.importHolidays(req.body, actor);
+      return res.json({
+        success: true,
+        data: result.data || result,
+        message: result.message || 'Hasil impor hari libur',
+        errors: result.errors || null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'IMPORT_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async copyYearHolidays(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await holidayService.copyYear(req.body, actor);
+      return res.json({
+        success: true,
+        data: result.data,
+        message: result.message,
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'COPY_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async syncAcademicHolidays(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await holidayService.syncAcademicCalendar(req.body, actor);
+      return res.json({
+        success: true,
+        data: result.data,
+        message: result.message,
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'SYNC_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async applyJointLeaveDeduction(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      await holidayService.applyJointLeaveDeduction(req.params.id, actor);
+    } catch (err) {
+      return res.status(err.statusCode || 501).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'NOT_IMPLEMENTED', message: err.message }]
+      });
+    }
+  }
+
+  async getEffectiveHolidays(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      let targetEmployeeId = req.query.employee_id ? Number(req.query.employee_id) : actor.employeeId;
+      const isPrivileged = actor.permissions.includes(HR_PERMISSIONS.LEAVE_READ) ||
+                          actor.permissions.includes(HR_PERMISSIONS.LEAVE_MANAGE) ||
+                          actor.permissions.includes(HR_PERMISSIONS.HOLIDAYS_MANAGE);
+
+      if (!isPrivileged || !targetEmployeeId) {
+        targetEmployeeId = actor.employeeId;
+      }
+
+      if (!targetEmployeeId) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terikat dengan profil pegawai',
+          errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Pegawai tidak teridentifikasi' }]
+        });
+      }
+
+      const fromDate = req.query.from || req.query.date_from || `${todayWIB().slice(0, 7)}-01`;
+      const toDate = req.query.to || req.query.date_to || `${todayWIB().slice(0, 7)}-31`;
+      const unitId = req.query.school_unit_id ? Number(req.query.school_unit_id) : (actor.unitScope !== 'all' && Array.isArray(actor.unitScope) ? actor.unitScope[0] : 1);
+
+      const offDaysMap = await holidayService.getOffDaysForEmployee(targetEmployeeId, unitId, fromDate, toDate);
+      const totalOffDays = Object.values(offDaysMap).filter(arr => arr.length > 0).length;
+
+      return res.json({
+        success: true,
+        data: {
+          employee_id: targetEmployeeId,
+          from: fromDate,
+          to: toDate,
+          total_holiday_off_days: totalOffDays,
+          off_days: offDaysMap
+        },
+        message: 'Daftar hari libur efektif pegawai',
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'SERVER_ERROR', message: err.message }]
+      });
     }
   }
 

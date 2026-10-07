@@ -38,9 +38,14 @@ router.get('/leave-employee-profile', authenticate, requirePermission('kepegawai
 router.patch('/leave-employee-profile/:employeeId', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.updateEmployeeProfile);
 
 // ==========================================
-// 2. Hari Libur (Holidays)
+// 2. Hari Libur (Holidays) - SPEC §11.1
 // ==========================================
 router.get('/holidays', authenticate, controller.getHolidays);
+router.get('/holidays/effective', authenticate, controller.getEffectiveHolidays);
+router.post('/holidays/import', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.importHolidays);
+router.post('/holidays/copy-year', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.copyYearHolidays);
+router.post('/holidays/sync-academic', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.syncAcademicHolidays);
+router.post('/holidays/:id/apply-joint-leave-deduction', authenticate, requirePermission('kepegawaian.holidays.manage', 'kepegawaian.leave_balances.manage'), controller.applyJointLeaveDeduction);
 router.post('/holidays', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.createHoliday);
 router.put('/holidays/:id', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.updateHoliday);
 router.delete('/holidays/:id', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.deleteHoliday);

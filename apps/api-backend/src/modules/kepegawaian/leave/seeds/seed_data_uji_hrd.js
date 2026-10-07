@@ -152,6 +152,41 @@ async function seedDataUji(coreDb, kepDb) {
     }
   }
 
+  // 7b. Seed Work Schedules in kepegawaian_dev
+  const testSchedules = [
+    {
+      id: 1,
+      satuan_pendidikan_id: 1,
+      name: 'Jadwal Reguler Guru 5 Hari (Senin-Jumat)',
+      schedule_type: 'massal',
+      days_of_week: JSON.stringify(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
+      start_time: '07:30:00',
+      end_time: '16:00:00',
+      is_active: 1
+    },
+    {
+      id: 2,
+      satuan_pendidikan_id: 1,
+      name: 'Jadwal Reguler Staf 6 Hari (Senin-Sabtu)',
+      schedule_type: 'massal',
+      days_of_week: JSON.stringify(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']),
+      start_time: '07:30:00',
+      end_time: '14:30:00',
+      is_active: 1
+    }
+  ];
+
+  for (const s of testSchedules) {
+    const existingS = await kepDb('attendance_work_schedules').where({ id: s.id }).first();
+    if (!existingS) {
+      await kepDb('attendance_work_schedules').insert({
+        ...s,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).catch(() => {});
+    }
+  }
+
   // 8. Seed Work Schedule Assignments
   const assignments = [
     { employee_id: 6, assignment_type: 'flexible', flexible_target_hours: 8.0 },

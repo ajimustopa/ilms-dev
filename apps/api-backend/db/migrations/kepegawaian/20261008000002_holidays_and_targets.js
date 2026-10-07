@@ -37,10 +37,13 @@ exports.up = async function(knex) {
       table.bigInteger('updated_by').unsigned().nullable();
       table.timestamps(true, true);
       table.timestamp('deleted_at').nullable();
-
-      table.index(['school_unit_id', 'start_date', 'end_date'], 'idx_holidays_unit_dates');
-      table.index(['holiday_type', 'start_date'], 'idx_holidays_type_date');
     });
+
+    // Add generated column and indexes in raw SQL for MariaDB compatibility
+    await knex.raw('ALTER TABLE holidays ADD COLUMN unit_key BIGINT UNSIGNED GENERATED ALWAYS AS (IFNULL(school_unit_id, 0)) STORED AFTER school_unit_id');
+    await knex.raw('ALTER TABLE holidays ADD CONSTRAINT uq_holidays_unit_type_date_name UNIQUE (unit_key, holiday_type, start_date, name)');
+    await knex.raw('ALTER TABLE holidays ADD INDEX idx_holidays_unit_key_dates (unit_key, start_date, end_date)');
+    await knex.raw('ALTER TABLE holidays ADD INDEX idx_holidays_type_date (holiday_type, start_date)');
   }
 
   const hasTargets = await knex.schema.hasTable('holiday_schedule_targets');

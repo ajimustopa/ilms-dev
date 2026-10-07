@@ -30,7 +30,7 @@ exports.up = async function(knex) {
     await knex.schema.createTable('leave_audit_logs', (table) => {
       table.bigIncrements('id').primary();
       table.string('entity_type', 50).notNullable(); // 'leave_request', 'leave_balance', 'holiday', 'leave_type', etc.
-      table.bigInteger('entity_id').unsigned().notNullable();
+      table.bigInteger('entity_id').unsigned().nullable();
       table.string('action', 50).notNullable(); // 'create', 'approve', 'reject', 'adjust', etc.
       table.bigInteger('actor_user_id').unsigned().notNullable();
       table.bigInteger('actor_employee_id').unsigned().nullable();
