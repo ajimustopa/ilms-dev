@@ -1,10 +1,18 @@
-/**
- * Knex Database Connection Instance for Akademik Module
- */
+const fs = require('fs');
 const path = require('path');
 const knex = require('knex');
+const { assertDevDatabase } = require('./dbGuard');
+
 try {
-  require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+  const devEnvPath = path.join(__dirname, '../../../.env.dev');
+  const rootDevEnvPath = path.join(__dirname, '../../../../.env.dev');
+  if (fs.existsSync(devEnvPath)) {
+    require('dotenv').config({ path: devEnvPath, override: true });
+  } else if (fs.existsSync(rootDevEnvPath)) {
+    require('dotenv').config({ path: rootDevEnvPath, override: true });
+  } else {
+    require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+  }
 } catch (e) {}
 
 function getDbHost() {
@@ -12,9 +20,9 @@ function getDbHost() {
   return (h === 'localhost') ? '127.0.0.1' : h;
 }
 
-const dbUser = process.env.AKADEMIK_DB_USER || process.env.DB_USER || 'akademik_local';
+const dbUser = process.env.AKADEMIK_DB_USER || process.env.DB_USER || 'root';
 const dbPassword = process.env.AKADEMIK_DB_PASSWORD || process.env.DB_PASSWORD || '';
-const dbName = process.env.AKADEMIK_DB_NAME || process.env.DB_NAME || 'akademik_local';
+const dbName = process.env.AKADEMIK_DB_NAME || process.env.DB_NAME || 'akademik_dev';
 const dbPort = Number(process.env.AKADEMIK_DB_PORT || process.env.DB_PORT || 3306);
 
 let knexConfig;
