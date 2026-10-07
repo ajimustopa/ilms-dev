@@ -77,6 +77,7 @@ router.get('/leave-requests', authenticate, requirePermission('kepegawaian.leave
 router.get('/leave-requests/:id/attachment', authenticate, controller.getLeaveAttachment);
 router.get('/leave-requests/:id', authenticate, controller.getLeaveRequestDetail);
 
+router.post('/leave-requests/preview-duration', authenticate, controller.previewDuration);
 router.post('/leave-requests/preview', authenticate, controller.previewLeaveRequest);
 router.post('/leave-requests', authenticate, controller.createLeaveRequest);
 

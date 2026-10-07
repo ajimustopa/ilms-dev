@@ -1,12 +1,17 @@
 /**
  * Unit Tests for Pure Duration Calculator Engine
- * Conforms to SPEC-CUTI-LEMBUR.md §4.3 (T1–T21)
+ * Conforms to SPEC-CUTI-LEMBUR.md §4.3 (T1–T21), §4.2, §5.1
  * Executed via node:test without database access
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { computeDuration, computeEndDate } = require('./durationCalculator');
+const {
+  computeDuration,
+  computeLeaveDuration,
+  computeEndDate,
+  periodOf
+} = require('./durationCalculator');
 
 // Helper to build dayFacts fixture for S1 (Sen-Jum kerja, Sab-Min libur)
 function buildS1Facts(dates, holidayMap = {}) {
@@ -16,7 +21,7 @@ function buildS1Facts(dates, holidayMap = {}) {
     const isWeekend = dow === 0 || dow === 6; // 0=Sun, 6=Sat
     facts[d] = {
       scheduleState: isWeekend ? 'NONWORKDAY' : 'WORKDAY',
-      offHolidays: holidayMap[d] ? [holidayMap[d]] : []
+      offHolidays: holidayMap[d] ? (Array.isArray(holidayMap[d]) ? holidayMap[d] : [holidayMap[d]]) : []
     };
   }
   return facts;
@@ -30,7 +35,7 @@ function buildS2Facts(dates, holidayMap = {}) {
     const isSun = dow === 0;
     facts[d] = {
       scheduleState: isSun ? 'NONWORKDAY' : 'WORKDAY',
-      offHolidays: holidayMap[d] ? [holidayMap[d]] : []
+      offHolidays: holidayMap[d] ? (Array.isArray(holidayMap[d]) ? holidayMap[d] : [holidayMap[d]]) : []
     };
   }
   return facts;
@@ -154,7 +159,6 @@ test('T8a: Libur semester 12-16 Okt menarget S1, rentang 12-17, pegawai S1 -> er
 
 test('T8b: Sama T8a, pegawai S2 (tidak ditarget libur) -> 6.0', () => {
   const dates = ['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17'];
-  // For S2, holiday is NOT applicable, so offHolidays is empty
   const dayFacts = buildS2Facts(dates, {});
   const res = computeDuration({
     startDate: '2026-10-12',
@@ -205,7 +209,7 @@ test('T10: Melahirkan kalender (mulai 1 Des 2026, 90 hari) -> computeEndDate = 2
     startDate: '2026-12-01',
     endDate: '2027-02-28',
     countMode: 'calendar_days',
-    periodOf: (d) => d.slice(0, 4), // Year based
+    periodStartMonth: 1, // Calendar basis
     dayFacts
   });
   assert.equal(res.total, 90.0);
@@ -225,7 +229,7 @@ test('T11: Lintas tahun HK + libur 1 Jan 2027 (28 Des 2026 -> 5 Jan 2027, S1) ->
     startDate: '2026-12-28',
     endDate: '2027-01-05',
     countMode: 'work_days',
-    periodOf: (d) => d.slice(0, 4),
+    periodStartMonth: 1, // Calendar basis
     dayFacts
   });
   assert.equal(res.total, 6.0);
@@ -319,7 +323,6 @@ test('T17: Tanpa penugasan jadwal -> error NO_SCHEDULE_ASSIGNMENT', () => {
 
 test('T18: Libur satuan lain (libur khusus unit 2 pada Rab 14, pegawai unit 1, 12-16) -> 5.0', () => {
   const dates = ['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'];
-  // For unit 1 employee, holiday is filtered out by adapter
   const dayFacts = buildS1Facts(dates, {});
   const res = computeDuration({
     startDate: '2026-10-12',
@@ -332,7 +335,6 @@ test('T18: Libur satuan lain (libur khusus unit 2 pada Rab 14, pegawai unit 1, 1
 
 test('T19: Jadwal Jumat libur (Sen-Kam+Sab kerja), HK, Kam 08 -> Sen 12 -> 3.0', () => {
   const dates = ['2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11', '2026-10-12'];
-  // 08=Thu(WORK), 09=Fri(NONWORK), 10=Sat(WORK), 11=Sun(NONWORK), 12=Mon(WORK)
   const dayFacts = {
     '2026-10-08': { scheduleState: 'WORKDAY', offHolidays: [] },
     '2026-10-09': { scheduleState: 'NONWORKDAY', offHolidays: [] },
@@ -379,4 +381,36 @@ test('T21: Dua libur satu tanggal (nasional + semester pada Rab 14, S1, 12-16) -
   assert.equal(res.total, 4.0);
   assert.equal(res.breakdown[2].state, 'HOLIDAY_OFF');
   assert.equal(res.breakdown[2].weight, 0.0);
+});
+
+test('Academic Jul-Jun vs Calendar Basis periodOf resolution', () => {
+  // Jul-Jun basis (periodStartMonth = 7)
+  assert.equal(periodOf('2026-07-01', 7), '2026/2027');
+  assert.equal(periodOf('2026-10-05', 7), '2026/2027');
+  assert.equal(periodOf('2027-02-28', 7), '2026/2027');
+  assert.equal(periodOf('2027-06-30', 7), '2026/2027');
+  assert.equal(periodOf('2026-04-10', 7), '2025/2026');
+
+  // Calendar basis (periodStartMonth = 1)
+  assert.equal(periodOf('2026-07-01', 1), '2026');
+  assert.equal(periodOf('2026-10-05', 1), '2026');
+  assert.equal(periodOf('2027-02-28', 1), '2027');
+});
+
+test('computeEndDate for work_days with weekend & holiday skips', () => {
+  const dates = [
+    '2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09',
+    '2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14',
+    '2026-10-15', '2026-10-16', '2026-10-17'
+  ];
+  const dayFacts = buildS1Facts(dates, { '2026-10-14': { name: 'Libur' } });
+
+  // 5 HK from 2026-10-05 (Mon) -> 2026-10-09 (Fri)
+  assert.equal(computeEndDate({ startDate: '2026-10-05', targetDays: 5, countMode: 'work_days', dayFacts }), '2026-10-09');
+
+  // 2 HK from 2026-10-09 (Fri) -> skip Sat, Sun -> 2026-10-12 (Mon)
+  assert.equal(computeEndDate({ startDate: '2026-10-09', targetDays: 2, countMode: 'work_days', dayFacts }), '2026-10-12');
+
+  // 4 HK from 2026-10-12 (Mon) with 14 Oct Holiday -> 12(Mon), 13(Tue), 15(Thu), 16(Fri) -> 2026-10-16
+  assert.equal(computeEndDate({ startDate: '2026-10-12', targetDays: 4, countMode: 'work_days', dayFacts }), '2026-10-16');
 });

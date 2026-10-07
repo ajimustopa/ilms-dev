@@ -595,6 +595,26 @@ class LeaveController {
   // Leave Requests (Pengajuan, Preview, Approval, Revision, Cancel, Attachment)
   // =========================================================================
 
+  async previewDuration(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.computeDurationForRequest(req.body, actor);
+      return res.json({
+        success: true,
+        data,
+        message: 'Pratinjau durasi cuti berhasil dihitung',
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
   async previewLeaveRequest(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);

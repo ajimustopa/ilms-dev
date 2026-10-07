@@ -13,11 +13,13 @@ const testFiles = [
   'tahap2_holidays_foundation.test.js',
   'tahap2_holidays_integration.test.js',
   'tahap4_master_types_foundation.test.js',
-  'tahap4_master_types_integration.test.js'
+  'tahap4_master_types_integration.test.js',
+  'durationCalculator.test.js',
+  'tahap6_duration_integration.test.js'
 ];
 
 console.log('================================================================');
-console.log('RUNNING ALL LEAVE MODULE AUTOMATED TEST SUITES (TAHAP 1 - 4)');
+console.log('RUNNING ALL LEAVE MODULE AUTOMATED TEST SUITES (TAHAP 1 - 6)');
 console.log('================================================================\n');
 
 let totalPassed = 0;

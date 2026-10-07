@@ -15,6 +15,14 @@ const { todayWIB, dateRange } = require('./dateHelper');
 const { resolveActor, isUnitInScope } = require('../common/actorHelper');
 const { saveLeaveAttachment } = require('./attachmentHelper');
 
+const HR_PERMISSIONS = {
+  LEAVE_READ: 'kepegawaian.leave_requests.read',
+  LEAVE_MANAGE: 'kepegawaian.leave_requests.manage',
+  LEAVE_TYPES_MANAGE: 'kepegawaian.leave_types.manage',
+  LEAVE_BALANCES_MANAGE: 'kepegawaian.leave_balances.manage',
+  OVERTIMES_MANAGE: 'kepegawaian.overtimes.manage'
+};
+
 class LeaveService {
   /**
    * Helper to resolve actor context from JWT user
@@ -141,6 +149,95 @@ class LeaveService {
       byPeriod: durationRes.byPeriod,
       warnings: durationRes.warnings,
       balance_impact: balanceInfo
+    };
+  }
+
+  /**
+   * Lightweight duration computation endpoint (SPEC §4.2, Tahap 6)
+   */
+  async computeDurationForRequest(data, actor) {
+    const {
+      employee_id,
+      leave_type,
+      leave_type_id,
+      start_date,
+      end_date,
+      start_portion = 'full',
+      end_portion = 'full'
+    } = data;
+
+    let targetEmployeeId = actor.employeeId;
+    const isPrivileged = actor.permissions.includes(HR_PERMISSIONS.LEAVE_READ) ||
+                         actor.permissions.includes(HR_PERMISSIONS.LEAVE_MANAGE);
+
+    if (isPrivileged && employee_id) {
+      targetEmployeeId = Number(employee_id);
+    }
+
+    if (!targetEmployeeId) {
+      const err = new Error('Akun Anda tidak terikat dengan profil pegawai aktif');
+      err.code = 'ACTOR_NOT_EMPLOYEE';
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const employee = await db('employees').where({ id: targetEmployeeId }).first();
+    if (!employee) {
+      const err = new Error('Data pegawai tidak ditemukan');
+      err.code = 'EMPLOYEE_NOT_FOUND';
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (isPrivileged && employee_id) {
+      if (!isUnitInScope(actor.unitScope, employee.school_unit_id)) {
+        const err = new Error('Akses ke data pegawai di luar cakupan satuan Anda ditolak');
+        err.code = 'FORBIDDEN_SCOPE';
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
+    let typeRecord = null;
+    if (leave_type_id) {
+      typeRecord = await db('leave_types').where({ id: leave_type_id }).first();
+    } else if (leave_type) {
+      typeRecord = await leaveTypeService.getLeaveType(leave_type);
+    } else {
+      typeRecord = await leaveTypeService.getLeaveType('cuti_tahunan');
+    }
+
+    if (!typeRecord) {
+      const err = new Error(`Jenis cuti '${leave_type || leave_type_id}' tidak ditemukan`);
+      err.code = 'TYPE_NOT_FOUND';
+      err.statusCode = 422;
+      throw err;
+    }
+
+    const dayFacts = await this.buildDayFacts(employee.id, employee.school_unit_id, start_date, end_date);
+    const settings = await leaveTypeService.getLeaveSettings(employee.school_unit_id);
+
+    const durationRes = computeDuration({
+      startDate: start_date,
+      endDate: end_date,
+      startPortion: start_portion,
+      endPortion: end_portion,
+      countMode: typeRecord.count_mode || 'work_days',
+      dayFacts,
+      flexibleDayRule: settings.flexible_employee_day_rule || 'mon_fri',
+      holidayInsideCalendarCounted: settings.holiday_inside_calendar_leave_counted !== undefined ? settings.holiday_inside_calendar_leave_counted : true
+    });
+
+    return {
+      employee_id: employee.id,
+      leave_type: typeRecord.code,
+      leave_type_id: typeRecord.id,
+      leave_type_name: typeRecord.name,
+      count_mode: typeRecord.count_mode || 'work_days',
+      total_days: durationRes.total,
+      breakdown: durationRes.breakdown,
+      by_period: durationRes.byPeriod,
+      warnings: durationRes.warnings
     };
   }
 
