@@ -50,6 +50,37 @@ exports.up = async function(knex) {
       MODIFY COLUMN status ENUM('pending','approved','rejected','revision_requested','cancelled') 
       NOT NULL DEFAULT 'pending'
     `);
+
+    // Indexes for employee_leave_requests (SPEC §10.1)
+    // Check if index exists or create inside alterTable / raw
+    try {
+      await knex.schema.alterTable('employee_leave_requests', (table) => {
+        table.index(['school_unit_id', 'status', 'start_date'], 'idx_leave_unit_status_start');
+        table.index(['employee_id', 'start_date', 'end_date'], 'idx_leave_emp_dates');
+        table.index(['status'], 'idx_leave_status');
+      });
+    } catch (e) {
+      // Index might already exist, ignore duplicate index error
+    }
+
+    // Backfill leave_type_id from LOWER(TRIM(leave_type)) (SPEC §10.3)
+    const hasLeaveTypesTable = await knex.schema.hasTable('leave_types');
+    if (hasLeaveTypesTable) {
+      const leaveRows = await knex('employee_leave_requests').whereNull('leave_type_id');
+      if (leaveRows.length > 0) {
+        const leaveTypes = await knex('leave_types').select('id', 'code');
+        const typeMap = new Map(leaveTypes.map(t => [t.code.toLowerCase(), t.id]));
+        const fallbackOther = typeMap.get('lainnya') || null;
+
+        for (const req of leaveRows) {
+          const normalizedCode = (req.leave_type || '').toLowerCase().trim();
+          const matchedId = typeMap.get(normalizedCode) || fallbackOther;
+          if (matchedId) {
+            await knex('employee_leave_requests').where({ id: req.id }).update({ leave_type_id: matchedId });
+          }
+        }
+      }
+    }
   }
 
   // 2. Create approval_steps
@@ -84,6 +115,16 @@ exports.down = async function(knex) {
     await knex.schema.dropTableIfExists('approval_steps');
   }
   if (await knex.schema.hasTable('employee_leave_requests')) {
+    try {
+      await knex.schema.alterTable('employee_leave_requests', (table) => {
+        table.dropIndex(['school_unit_id', 'status', 'start_date'], 'idx_leave_unit_status_start');
+        table.dropIndex(['employee_id', 'start_date', 'end_date'], 'idx_leave_emp_dates');
+        table.dropIndex(['status'], 'idx_leave_status');
+      });
+    } catch (e) {
+      // ignore if indexes do not exist
+    }
+
     await knex.schema.alterTable('employee_leave_requests', (table) => {
       table.dropColumn('cancel_reason');
       table.dropColumn('cancelled_by_user_id');
