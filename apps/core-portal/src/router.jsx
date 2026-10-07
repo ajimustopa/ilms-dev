@@ -1135,7 +1135,11 @@ export const router = createBrowserRouter([
             path: 'lainnya',
             element: lazyLoad(() => import('./apps/guru/pages/Lainnya')),
           },
-          // F1. Presensi Guru (Masuk/Pulang GPS)
+          // F1 & F2. Presensi Guru (Masuk/Pulang GPS) & Pengajuan Izin / Cuti
+          {
+            path: 'absensi-diri',
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
+          },
           {
             path: 'absensi',
             element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
@@ -1144,14 +1148,13 @@ export const router = createBrowserRouter([
             path: 'presensi',
             element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
           },
-          // F2. Pengajuan Izin / Cuti
           {
             path: 'izin',
-            element: lazyLoad(() => import('./apps/guru/pages/IzinPage')),
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
           },
           {
             path: 'cuti',
-            element: lazyLoad(() => import('./apps/guru/pages/IzinPage')),
+            element: lazyLoad(() => import('./apps/guru/pages/AbsensiPage')),
           },
           // F3. Jadwal Mengajar & Roster KBM
           {
