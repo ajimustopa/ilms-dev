@@ -77,6 +77,18 @@ function parseTimeToMinutes(timeStr) {
   return (h || 0) * 60 + (m || 0);
 }
 
+export const DEFAULT_SCHOOL_UNITS = [
+  { id: 1, name: 'SMP IT Aldepos Boarding School', code: 'SMP-IT', jenjang: 'SMP' },
+  { id: 2, name: 'SMA IT Aldepos Boarding School', code: 'SMA-IT', jenjang: 'SMA' },
+  { id: 3, name: 'SD IT Aldepos', code: 'SD-IT', jenjang: 'SD' },
+  { id: 4, name: 'Pondok Pesantren Aldepos (Tahfidz)', code: 'PONTREN', jenjang: 'Pesantren' }
+];
+
+export const DEFAULT_ACADEMIC_YEARS = [
+  { id: 1, name: '2026/2027', is_active: true },
+  { id: 2, name: '2025/2026', is_active: false }
+];
+
 /**
  * TeacherProvider Context
  * Menyimpan dan menyinkronkan konteks aktif guru, data jadwal ter-cache, dan sesi mengajar terdekat (WIB).
@@ -84,11 +96,11 @@ function parseTimeToMinutes(timeStr) {
 export const TeacherProvider = ({ children }) => {
   const { user } = useTeacherAuth();
 
-  const [loadingContext, setLoadingContext] = useState(true);
+  const [loadingContext, setLoadingContext] = useState(false);
   const [teachingAssignments, setTeachingAssignments] = useState([]);
   const [homeroomClasses, setHomeroomClasses] = useState([]);
-  const [availableUnits, setAvailableUnits] = useState([]);
-  const [availableAcademicYears, setAvailableAcademicYears] = useState([]);
+  const [availableUnits, setAvailableUnits] = useState(DEFAULT_SCHOOL_UNITS);
+  const [availableAcademicYears, setAvailableAcademicYears] = useState(DEFAULT_ACADEMIC_YEARS);
 
   // Cache Jadwal Mengajar (Diambil sekali pada mount, diperbarui via refreshSchedules)
   const [cachedSchedules, setCachedSchedules] = useState([]);
@@ -103,10 +115,10 @@ export const TeacherProvider = ({ children }) => {
       // fallback
     }
     return {
-      satuanPendidikanId: null,
-      satuanPendidikanName: '',
-      academicYearId: null,
-      academicYearName: '',
+      satuanPendidikanId: 1,
+      satuanPendidikanName: 'SMP IT Aldepos Boarding School',
+      academicYearId: 1,
+      academicYearName: '2026/2027',
       semester: 'Ganjil' // 'Ganjil' | 'Genap'
     };
   });
@@ -125,16 +137,17 @@ export const TeacherProvider = ({ children }) => {
 
       // Extract unique Units from assignments & user profile
       const unitMap = new Map();
-      if (user?.school_units && Array.isArray(user.school_units)) {
+      if (user?.school_units && Array.isArray(user.school_units) && user.school_units.length > 0) {
         user.school_units.forEach((u) => {
-          unitMap.set(String(u.id), { id: u.id, name: u.name || u.nama });
+          unitMap.set(String(u.id), { id: u.id, name: u.name || u.nama, jenjang: u.jenjang });
         });
       }
       assignments.forEach((a) => {
         if (a.satuan_pendidikan_id) {
           unitMap.set(String(a.satuan_pendidikan_id), {
             id: a.satuan_pendidikan_id,
-            name: a.satuan_pendidikan_name || `Unit #${a.satuan_pendidikan_id}`
+            name: a.satuan_pendidikan_name || `Unit #${a.satuan_pendidikan_id}`,
+            jenjang: a.jenjang || ''
           });
         }
       });
@@ -142,13 +155,15 @@ export const TeacherProvider = ({ children }) => {
         if (h.satuan_pendidikan_id) {
           unitMap.set(String(h.satuan_pendidikan_id), {
             id: h.satuan_pendidikan_id,
-            name: h.satuan_pendidikan_name || `Unit #${h.satuan_pendidikan_id}`
+            name: h.satuan_pendidikan_name || `Unit #${h.satuan_pendidikan_id}`,
+            jenjang: h.jenjang || ''
           });
         }
       });
 
       const units = Array.from(unitMap.values());
-      setAvailableUnits(units);
+      const finalUnits = units.length > 0 ? units : DEFAULT_SCHOOL_UNITS;
+      setAvailableUnits(finalUnits);
 
       // Extract unique Academic Years
       const yearMap = new Map();
@@ -169,7 +184,8 @@ export const TeacherProvider = ({ children }) => {
         }
       });
       const years = Array.from(yearMap.values());
-      setAvailableAcademicYears(years);
+      const finalYears = years.length > 0 ? years : DEFAULT_ACADEMIC_YEARS;
+      setAvailableAcademicYears(finalYears);
 
       // Auto-set default context if not set yet
       setActiveContext((prev) => {
@@ -178,21 +194,21 @@ export const TeacherProvider = ({ children }) => {
         let newYearId = prev.academicYearId;
         let newYearName = prev.academicYearName;
 
-        if (!newUnitId && units.length > 0) {
-          newUnitId = units[0].id;
-          newUnitName = units[0].name;
+        if (!newUnitId && finalUnits.length > 0) {
+          newUnitId = finalUnits[0].id;
+          newUnitName = finalUnits[0].name;
         }
-        if (!newYearId && years.length > 0) {
-          newYearId = years[0].id;
-          newYearName = years[0].name;
+        if (!newYearId && finalYears.length > 0) {
+          newYearId = finalYears[0].id;
+          newYearName = finalYears[0].name;
         }
 
         const updated = {
           ...prev,
-          satuanPendidikanId: newUnitId,
-          satuanPendidikanName: newUnitName,
-          academicYearId: newYearId,
-          academicYearName: newYearName
+          satuanPendidikanId: newUnitId || 1,
+          satuanPendidikanName: newUnitName || 'SMP IT Aldepos Boarding School',
+          academicYearId: newYearId || 1,
+          academicYearName: newYearName || '2026/2027'
         };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -204,6 +220,8 @@ export const TeacherProvider = ({ children }) => {
     } catch {
       setTeachingAssignments([]);
       setHomeroomClasses([]);
+      setAvailableUnits(DEFAULT_SCHOOL_UNITS);
+      setAvailableAcademicYears(DEFAULT_ACADEMIC_YEARS);
     } finally {
       setLoadingContext(false);
     }

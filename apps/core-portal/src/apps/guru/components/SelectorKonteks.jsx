@@ -68,6 +68,18 @@ export const SelectorKonteks = ({
   const currentYearLabel = activeContext?.academicYearName || '2026/2027';
   const currentSemester = activeContext?.semester || 'Ganjil';
 
+  const displayUnits = (availableUnits && availableUnits.length > 0) ? availableUnits : [
+    { id: 1, name: 'SMP IT Aldepos Boarding School', code: 'SMP-IT', jenjang: 'SMP' },
+    { id: 2, name: 'SMA IT Aldepos Boarding School', code: 'SMA-IT', jenjang: 'SMA' },
+    { id: 3, name: 'SD IT Aldepos', code: 'SD-IT', jenjang: 'SD' },
+    { id: 4, name: 'Pondok Pesantren Aldepos (Tahfidz)', code: 'PONTREN', jenjang: 'Pesantren' }
+  ];
+
+  const displayYears = (availableAcademicYears && availableAcademicYears.length > 0) ? availableAcademicYears : [
+    { id: 1, name: '2026/2027' },
+    { id: 2, name: '2025/2026' }
+  ];
+
   const modalContent = isOpen && (
     <div
       className="fixed inset-0 z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 overflow-y-auto"
@@ -117,46 +129,40 @@ export const SelectorKonteks = ({
               1. Satuan Pendidikan / Unit Sekolah
             </label>
             <div className="grid grid-cols-1 gap-2">
-              {availableUnits && availableUnits.length > 0 ? (
-                availableUnits.map((u) => {
-                  const isSelected = String(draftContext?.satuanPendidikanId) === String(u.id);
-                  return (
-                    <button
-                      key={String(u.id)}
-                      type="button"
-                      onClick={() => setDraftContext((prev) => ({
-                        ...prev,
-                        satuanPendidikanId: u.id,
-                        satuanPendidikanName: u.name
-                      }))}
-                      className={`flex items-center justify-between px-3.5 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-semibold ring-1 ring-emerald-500/20 shadow-xs'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:border-emerald-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                        <School className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
-                        <div className="min-w-0">
-                          <span className="text-xs sm:text-sm font-semibold block truncate">
-                            {u.name}
+              {displayUnits.map((u) => {
+                const isSelected = String(draftContext?.satuanPendidikanId) === String(u.id) || draftContext?.satuanPendidikanName === u.name;
+                return (
+                  <button
+                    key={String(u.id)}
+                    type="button"
+                    onClick={() => setDraftContext((prev) => ({
+                      ...prev,
+                      satuanPendidikanId: u.id,
+                      satuanPendidikanName: u.name
+                    }))}
+                    className={`flex items-center justify-between px-3.5 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-semibold ring-1 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50 hover:border-emerald-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <School className={`w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <div className="min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold block truncate">
+                          {u.name}
+                        </span>
+                        {u.jenjang && (
+                          <span className="text-[10px] text-slate-400 block font-normal">
+                            Jenjang: {u.jenjang}
                           </span>
-                          {u.jenjang && (
-                            <span className="text-[10px] text-slate-400 block font-normal">
-                              Jenjang: {u.jenjang}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
-                      {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">
-                  Memuat data satuan pendidikan...
-                </div>
-              )}
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -166,49 +172,28 @@ export const SelectorKonteks = ({
               2. Tahun Ajaran
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {availableAcademicYears && availableAcademicYears.length > 0 ? (
-                availableAcademicYears.map((yr) => {
-                  const isSelected = String(draftContext?.academicYearId) === String(yr.id) || draftContext?.academicYearName === yr.name;
-                  return (
-                    <button
-                      key={String(yr.id)}
-                      type="button"
-                      onClick={() => setDraftContext((prev) => ({
-                        ...prev,
-                        academicYearId: yr.id,
-                        academicYearName: yr.name
-                      }))}
-                      className={`flex items-center justify-between px-3 py-2 min-h-[38px] rounded-lg border text-left transition-all ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-xs font-mono">{yr.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                    </button>
-                  );
-                })
-              ) : (
-                ['2026/2027', '2025/2026'].map((yrStr) => {
-                  const isSelected = draftContext?.academicYearName === yrStr;
-                  return (
-                    <button
-                      key={yrStr}
-                      type="button"
-                      onClick={() => setDraftContext((prev) => ({ ...prev, academicYearName: yrStr }))}
-                      className={`flex items-center justify-between px-3 py-2 min-h-[38px] rounded-lg border text-left transition-all ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-semibold'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-xs font-mono">{yrStr}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                    </button>
-                  );
-                })
-              )}
+              {displayYears.map((yr) => {
+                const isSelected = String(draftContext?.academicYearId) === String(yr.id) || draftContext?.academicYearName === yr.name;
+                return (
+                  <button
+                    key={String(yr.id || yr.name)}
+                    type="button"
+                    onClick={() => setDraftContext((prev) => ({
+                      ...prev,
+                      academicYearId: yr.id || 1,
+                      academicYearName: yr.name
+                    }))}
+                    className={`flex items-center justify-between px-3 py-2 min-h-[38px] rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-xs font-mono">{yr.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
