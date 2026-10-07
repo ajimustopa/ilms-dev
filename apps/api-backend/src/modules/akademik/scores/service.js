@@ -390,6 +390,12 @@ class ScoresService {
       throw error;
     }
 
+    if (session.is_locked) {
+      const error = new Error('Sesi penilaian telah dikunci oleh Kurikulum dan tidak dapat diubah');
+      error.statusCode = 403;
+      throw error;
+    }
+
     const { items } = payload;
     if (!Array.isArray(items)) {
       const error = new Error('Field items (array) wajib dikirim');
@@ -397,7 +403,32 @@ class ScoresService {
       throw error;
     }
 
+    const maxScore = parseFloat(session.max_score) || 100;
     const reviewerEmployeeId = user?.ref_type === 'staff' ? user.ref_id : 1;
+
+    // Validasi rentang nilai terlebih dahulu
+    for (const item of items) {
+      if (item.score !== null && item.score !== undefined && item.score !== '') {
+        const val = parseFloat(item.score);
+        if (isNaN(val) || val < 0 || val > maxScore) {
+          const error = new Error(`Nilai siswa harus berada dalam rentang 0 hingga ${maxScore}`);
+          error.statusCode = 422;
+          throw error;
+        }
+      }
+      if (item.tp_scores && typeof item.tp_scores === 'object') {
+        for (const tpScoreVal of Object.values(item.tp_scores)) {
+          if (tpScoreVal !== null && tpScoreVal !== undefined && tpScoreVal !== '') {
+            const val = parseFloat(tpScoreVal);
+            if (isNaN(val) || val < 0 || val > maxScore) {
+              const error = new Error(`Nilai capaian TP harus berada dalam rentang 0 hingga ${maxScore}`);
+              error.statusCode = 422;
+              throw error;
+            }
+          }
+        }
+      }
+    }
 
     // Bersihkan nilai lama di sesi ini
     await db('assessment_session_scores').where({ assessment_session_id: sessionId }).del();
