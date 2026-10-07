@@ -19,9 +19,11 @@ import ApprovalProfilesSection from './settings/ApprovalProfilesSection';
 import UnitApproversAndDelegationsSection from './settings/UnitApproversAndDelegationsSection';
 import EmployeeCompletenessSection from './settings/EmployeeCompletenessSection';
 import GeneralSettingsSection from './settings/GeneralSettingsSection';
+import OvertimeSettingsSection from './settings/OvertimeSettingsSection';
+import { Clock } from 'lucide-react';
 
 export default function LeaveSettingsTab({ activeSchoolUnit }) {
-  const [subTab, setSubTab] = useState('types'); // 'types' | 'policies' | 'profiles' | 'approvers' | 'completeness' | 'general'
+  const [subTab, setSubTab] = useState('types'); // 'types' | 'policies' | 'profiles' | 'approvers' | 'completeness' | 'overtime' | 'general'
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [approvalProfiles, setApprovalProfiles] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -164,6 +166,19 @@ export default function LeaveSettingsTab({ activeSchoolUnit }) {
 
           <button
             type="button"
+            onClick={() => setSubTab('overtime')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'overtime'
+                ? 'bg-secondary text-on-secondary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Aturan Lembur</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSubTab('general')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
               subTab === 'general'
@@ -225,6 +240,12 @@ export default function LeaveSettingsTab({ activeSchoolUnit }) {
         <EmployeeCompletenessSection
           activeSchoolUnit={activeSchoolUnit}
           employees={employees}
+        />
+      )}
+
+      {subTab === 'overtime' && (
+        <OvertimeSettingsSection
+          activeSchoolUnit={activeSchoolUnit}
         />
       )}
 

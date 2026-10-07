@@ -148,14 +148,25 @@ export default function CutiLembur() {
             </button>
           )}
 
-          <button
-            onClick={() => setIsCreateLeaveModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors active:scale-95"
-            type="button"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ajukan Cuti / Izin</span>
-          </button>
+          {activeTab === 'overtimes' ? (
+            <button
+              onClick={() => setIsCreateOvertimeModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors active:scale-95"
+              type="button"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Tugaskan Lembur</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsCreateLeaveModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors active:scale-95"
+              type="button"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Ajukan Cuti / Izin</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -212,8 +223,8 @@ export default function CutiLembur() {
 
         {activeTab === 'overtimes' && (
           <OvertimeTab
-            overtimes={[]}
-            loading={false}
+            currentUser={user}
+            activeSchoolUnit={activeSchoolUnit}
             employees={employees}
             onRefresh={fetchMasterData}
             onOpenCreateModal={() => setIsCreateOvertimeModalOpen(true)}
@@ -233,7 +244,7 @@ export default function CutiLembur() {
         )}
 
         {activeTab === 'settings' && isHr && (
-          <LeaveSettingsTab />
+          <LeaveSettingsTab activeSchoolUnit={activeSchoolUnit} />
         )}
       </div>
 
