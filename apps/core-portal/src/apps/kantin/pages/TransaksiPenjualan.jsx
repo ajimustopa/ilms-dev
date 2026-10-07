@@ -5,6 +5,7 @@ import StatusPill from '../../../shared/components/StatusPill';
 import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import { formatCurrency, formatNumber, formatDate } from '../../../shared/utils/formatters';
 import SearchableSelect from '../../../shared/components/SearchableSelect';
+import { isCashierOnlyUser } from '../../../shared/utils/authHelper';
 import {
   ScanBarcode,
   ShoppingCart,
@@ -72,6 +73,7 @@ import {
 
 export default function TransaksiPenjualan() {
   const { user, logout } = useAuth();
+  const isCashierOnly = useMemo(() => isCashierOnlyUser(user), [user]);
   const [activeTab, setActiveTab] = useState('pos'); // 'pos' | 'history'
 
   // Full Screen & Focus Mode State
@@ -1298,7 +1300,9 @@ export default function TransaksiPenjualan() {
   };
 
   return (
-    <div className={`space-y-3 sm:space-y-4 font-sans bg-[#f1f5f9] min-h-screen -m-3 sm:-m-4 p-3 sm:p-5 flex flex-col justify-start ${
+    <div className={`space-y-3 sm:space-y-4 font-sans bg-[#f1f5f9] min-h-screen p-3 sm:p-5 flex flex-col justify-start ${
+      !isCashierOnly && !isFullscreenFocus ? '-m-3 sm:-m-4' : ''
+    } ${
       isFullscreenFocus
         ? 'fixed inset-0 z-50 bg-[#f1f5f9] overflow-y-auto p-3 sm:p-5 m-0'
         : 'relative'
@@ -1414,19 +1418,21 @@ export default function TransaksiPenjualan() {
             <ChevronDown className="w-3.5 h-3.5 opacity-70" />
           </div>
 
-          {/* POS Accounting Configuration Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setEditConfigForm(accountingConfig?.settings || {});
-              setAccountingConfigModalOpen(true);
-            }}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer border border-white/15 flex items-center gap-1.5"
-            title="Konfigurasi Akun Akuntansi POS, Rekening Kas & Pos Dana"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-amber-300" />
-            <span className="hidden lg:inline text-xs font-bold">Akuntansi POS</span>
-          </button>
+          {/* POS Accounting Configuration Button (Pengelola / Admin Kantin Saja) */}
+          {!isCashierOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditConfigForm(accountingConfig?.settings || {});
+                setAccountingConfigModalOpen(true);
+              }}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer border border-white/15 flex items-center gap-1.5"
+              title="Konfigurasi Akun Akuntansi POS, Rekening Kas & Pos Dana"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-amber-300" />
+              <span className="hidden lg:inline text-xs font-bold">Akuntansi POS</span>
+            </button>
+          )}
 
           {/* Reload / Sync Products & Stock Button */}
           <button

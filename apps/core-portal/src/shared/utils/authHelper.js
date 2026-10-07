@@ -34,6 +34,7 @@ export const isCashierOnlyUser = (user) => {
   const userRoles = new Set();
   if (user.account_type) userRoles.add(String(user.account_type).toLowerCase());
   if (user.role) userRoles.add(String(user.role).toLowerCase());
+  if (user.active_role) userRoles.add(String(user.active_role).toLowerCase());
   if (Array.isArray(user.roles)) {
     user.roles.forEach(r => userRoles.add((typeof r === 'string' ? r : r.name || r.role_name || '').toLowerCase()));
   }
@@ -80,6 +81,8 @@ export const isCashierOnlyUser = (user) => {
     userRoles.has('kasir_kantin') ||
     userRoles.has('kasir') ||
     userRoles.has('kasir pos') ||
+    userRoles.has('cashier') ||
+    userRoles.has('canteen_cashier') ||
     userPermissions.has('kantin.pos')
   );
 };
