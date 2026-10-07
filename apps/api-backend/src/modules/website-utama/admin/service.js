@@ -158,6 +158,11 @@ class AdminWebsiteService {
     }
 
     const [{ total }] = await baseQuery.clone().count('id as total');
+    
+    const hasPinned = await db.schema.hasColumn('news_posts', 'is_pinned');
+    if (hasPinned) {
+      baseQuery = baseQuery.orderBy('is_pinned', 'desc');
+    }
     const rows = await baseQuery.orderBy('published_at', 'desc').limit(limit).offset(offset);
 
     return {
