@@ -8,8 +8,20 @@
 
 const { dateRange, diffInDays } = require('./dateHelper');
 
+function toDateString(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  if (d instanceof Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return String(d).slice(0, 10);
+}
+
 function diffCalendarDays(d1, d2) {
-  return diffInDays(d1, d2);
+  return diffInDays(toDateString(d1), toDateString(d2));
 }
 
 /**
@@ -203,7 +215,7 @@ function validateLeaveRequest(context = {}) {
   const calDiff = diffCalendarDays(today, start_date);
 
   // 4.1 Backdate Exceeded
-  if (start_date < today) {
+  if (!bypass_approval && start_date < today) {
     const backdateDays = Math.abs(calDiff);
     const maxBackdate = leaveType.max_backdate_days !== null && leaveType.max_backdate_days !== undefined
       ? leaveType.max_backdate_days
@@ -215,7 +227,7 @@ function validateLeaveRequest(context = {}) {
   }
 
   // 4.2 Notice Too Short
-  if (start_date >= today) {
+  if (!bypass_approval && start_date >= today) {
     const noticeDays = calDiff;
     const minNotice = leaveType.min_notice_days !== null && leaveType.min_notice_days !== undefined
       ? leaveType.min_notice_days
@@ -282,7 +294,8 @@ function validateLeaveRequest(context = {}) {
       if (r.status !== 'approved') return false;
       if (r.id && request.id && r.id === request.id) return false;
       const matchType = (r.leave_type_id && r.leave_type_id === leaveType.id) || (r.leave_type === leaveType.code);
-      const matchYear = r.start_date && r.start_date.startsWith(reqYear);
+      const rStart = toDateString(r.start_date);
+      const matchYear = rStart && rStart.startsWith(reqYear);
       return matchType && matchYear;
     });
 
@@ -320,15 +333,17 @@ function validateLeaveRequest(context = {}) {
   }
 
   // 6.2 Attachment Required
-  const hasAttachment = Boolean(attachment || attachment_url || attachment_name);
-  if (leaveType.attachment_rule === 'required') {
-    if (!hasAttachment) {
-      addError('ATTACHMENT_REQUIRED', 'attachment', `Lampiran dokumen/surat bukti wajib disertakan untuk '${leaveType.name}'`);
-    }
-  } else if (leaveType.attachment_rule === 'required_after_days') {
-    const threshold = leaveType.attachment_required_after_days || 2;
-    if (reqDuration >= threshold && !hasAttachment) {
-      addError('ATTACHMENT_REQUIRED', 'attachment', `Lampiran wajib disertakan untuk pengajuan cuti '${leaveType.name}' berdurasi ≥ ${threshold} hari`);
+  if (!bypass_approval) {
+    const hasAttachment = Boolean(attachment || attachment_url || attachment_name);
+    if (leaveType.attachment_rule === 'required') {
+      if (!hasAttachment) {
+        addError('ATTACHMENT_REQUIRED', 'attachment', `Lampiran dokumen/surat bukti wajib disertakan untuk '${leaveType.name}'`);
+      }
+    } else if (leaveType.attachment_rule === 'required_after_days') {
+      const threshold = leaveType.attachment_required_after_days || 2;
+      if (reqDuration >= threshold && !hasAttachment) {
+        addError('ATTACHMENT_REQUIRED', 'attachment', `Lampiran wajib disertakan untuk pengajuan cuti '${leaveType.name}' berdurasi ≥ ${threshold} hari`);
+      }
     }
   }
 
@@ -340,12 +355,15 @@ function validateLeaveRequest(context = {}) {
     if (ex.status === 'cancelled' || ex.status === 'rejected') continue;
     if (ex.id && request.id && ex.id === request.id) continue;
 
+    const exStart = toDateString(ex.start_date);
+    const exEnd = toDateString(ex.end_date);
+
     // Check date overlap
-    const isOverlap = !(end_date < ex.start_date || start_date > ex.end_date);
+    const isOverlap = !(end_date < exStart || start_date > exEnd);
     if (isOverlap) {
       // Check portion conflict if single day boundary
       let portionConflict = true;
-      if (start_date === ex.end_date && start_date === end_date && ex.start_date === ex.end_date) {
+      if (start_date === exEnd && start_date === end_date && exStart === exEnd) {
         if ((start_portion === 'am' && ex.start_portion === 'pm') || (start_portion === 'pm' && ex.start_portion === 'am')) {
           portionConflict = false; // AM and PM on the same date can coexist
         }
@@ -353,9 +371,9 @@ function validateLeaveRequest(context = {}) {
 
       if (portionConflict) {
         if (ex.status === 'approved') {
-          addError('OVERLAP_APPROVED', 'start_date', `Rentang tanggal bertabrakan dengan cuti yang sudah disetujui (${ex.start_date} s.d ${ex.end_date})`);
+          addError('OVERLAP_APPROVED', 'start_date', `Rentang tanggal bertabrakan dengan cuti yang sudah disetujui (${exStart} s.d ${exEnd})`);
         } else if (ex.status === 'pending' || ex.status === 'revision_requested') {
-          addError('OVERLAP_PENDING', 'start_date', `Rentang tanggal bertabrakan dengan pengajuan cuti lain yang sedang diproses (${ex.start_date} s.d ${ex.end_date})`);
+          addError('OVERLAP_PENDING', 'start_date', `Rentang tanggal bertabrakan dengan pengajuan cuti lain yang sedang diproses (${exStart} s.d ${exEnd})`);
         }
       }
     }

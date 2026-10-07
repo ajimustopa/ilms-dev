@@ -74,6 +74,10 @@ function buildApprovalSteps(profile = {}, employee = {}, durationDays = 1, resol
         if (assignedEmployeeId === employee.id) {
           status = 'skipped';
           skipReason = 'skipped:applicant_is_unit_head';
+        } else if (employee.direct_supervisor_employee_id && assignedEmployeeId === employee.direct_supervisor_employee_id) {
+          // Redundant step if direct supervisor is also unit head
+          status = 'skipped';
+          skipReason = 'skipped:supervisor_is_unit_head';
         }
       } else {
         // Unit head missing -> unassigned

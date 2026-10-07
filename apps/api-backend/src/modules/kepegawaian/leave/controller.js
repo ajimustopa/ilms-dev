@@ -636,6 +636,16 @@ class LeaveController {
     }
   }
 
+  async updateBalancePolicy(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveLedgerService.updateBalancePolicy(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Kebijakan saldo cuti berhasil diperbarui', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
   // =========================================================================
   // Leave Requests (Pengajuan, Preview, Approval, Revision, Cancel, Attachment)
   // =========================================================================
@@ -810,6 +820,88 @@ class LeaveController {
       const actor = await leaveService.resolveActor(req.user);
       const data = await leaveService.requestRevision(req.params.id, actor, req.body.comment);
       return res.json({ success: true, data, message: 'Permintaan revisi berhasil dikirim', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getLeaveInbox(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.getLeaveInbox(req.query, actor);
+      return res.json({ success: true, data: data.data, meta: { total: data.total }, message: 'Kotak masuk persetujuan cuti', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getLeaveNeedsReview(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.getLeaveNeedsReview(req.query, actor);
+      return res.json({ success: true, data: data.data, meta: { total: data.total }, message: 'Daftar cuti perlu peninjauan', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async resubmitLeaveRequest(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.resubmitLeaveRequest(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Permohonan cuti berhasil dikirim ulang', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async reassignApprover(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.reassignApprover(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Approver berhasil dialihkan', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async reclassifyLeaveRequest(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.reclassifyLeaveRequest(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Jenis cuti berhasil direklasifikasi', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async recalculateLeaveRequest(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.recalculateLeaveRequest(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Durasi cuti berhasil direkalkulasi', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async bulkApproveLeaveRequests(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const { ids, comment } = req.body;
+      const data = await leaveService.bulkApproveLeaveRequests(ids, actor, comment);
+      return res.json({ success: true, data: data.results, message: 'Bulk approve selesai diproses', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async bulkRejectLeaveRequests(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const { ids, reason } = req.body;
+      const data = await leaveService.bulkRejectLeaveRequests(ids, actor, reason);
+      return res.json({ success: true, data: data.results, message: 'Bulk reject selesai diproses', errors: null });
     } catch (err) {
       return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }

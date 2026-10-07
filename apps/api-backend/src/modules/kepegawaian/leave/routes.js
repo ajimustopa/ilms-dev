@@ -61,6 +61,7 @@ router.delete('/holidays/:id', authenticate, requirePermission('kepegawaian.holi
 // 3. Saldo Cuti & Ledger (SPEC §11.3 & §11.1)
 // ==========================================
 router.get('/leave-balance-policies', authenticate, requirePermission('kepegawaian.leave_balances.manage', 'kepegawaian.leave_balances.read'), controller.getBalancePolicies);
+router.put('/leave-balance-policies/:id', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.updateBalancePolicy);
 router.get('/leave-balances', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getBalances);
 router.get('/leave-balances/my', authenticate, controller.getMyBalance);
 router.get('/leave-balances/:employeeId/ledger', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getLedger);
@@ -77,18 +78,27 @@ router.get('/leave-requests/reports/summary', authenticate, requirePermission('k
 router.get('/payroll-feed', authenticate, controller.getPayrollFeed);
 
 router.get('/leave-requests/my', authenticate, controller.getMyLeaveRequests);
+router.get('/leave-requests/inbox', authenticate, controller.getLeaveInbox);
+router.get('/leave-requests/needs-review', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getLeaveNeedsReview);
 router.get('/leave-requests', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.listLeaveRequests);
-router.get('/leave-requests/:id/attachment', authenticate, controller.getLeaveAttachment);
-router.get('/leave-requests/:id', authenticate, controller.getLeaveRequestDetail);
 
 router.post('/leave-requests/preview-duration', authenticate, controller.previewDuration);
 router.post('/leave-requests/preview', authenticate, controller.previewLeaveRequest);
+router.post('/leave-requests/bulk-approve', authenticate, controller.bulkApproveLeaveRequests);
+router.post('/leave-requests/bulk-reject', authenticate, controller.bulkRejectLeaveRequests);
 router.post('/leave-requests', authenticate, controller.createLeaveRequest);
+
+router.get('/leave-requests/:id/attachment', authenticate, controller.getLeaveAttachment);
+router.get('/leave-requests/:id', authenticate, controller.getLeaveRequestDetail);
 
 router.patch('/leave-requests/:id/approve', authenticate, controller.approveLeaveRequest);
 router.patch('/leave-requests/:id/reject', authenticate, controller.rejectLeaveRequest);
 router.patch('/leave-requests/:id/request-revision', authenticate, controller.requestRevision);
+router.patch('/leave-requests/:id/resubmit', authenticate, controller.resubmitLeaveRequest);
 router.patch('/leave-requests/:id/cancel', authenticate, controller.cancelLeaveRequest);
+router.patch('/leave-requests/:id/reassign-approver', authenticate, requirePermission('kepegawaian.leave_requests.manage', 'kepegawaian.leave_requests.override'), controller.reassignApprover);
+router.patch('/leave-requests/:id/reclassify', authenticate, requirePermission('kepegawaian.leave_requests.override'), controller.reclassifyLeaveRequest);
+router.post('/leave-requests/:id/recalculate', authenticate, requirePermission('kepegawaian.leave_requests.manage', 'kepegawaian.leave_requests.override'), controller.recalculateLeaveRequest);
 
 // ==========================================
 // 5. Lembur (Overtime)
