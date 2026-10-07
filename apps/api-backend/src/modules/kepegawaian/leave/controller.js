@@ -13,6 +13,7 @@ const leaveTypeService = require('./leaveTypeService');
 const leaveLedgerService = require('./leaveLedgerService');
 const overtimeService = require('./overtimeService');
 const employeeProfileService = require('./employeeProfileService');
+const leaveReportService = require('./leaveReportService');
 const { resolveAttachmentPath } = require('./attachmentHelper');
 
 class LeaveController {
@@ -921,8 +922,8 @@ class LeaveController {
   async getCalendarMatrix(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const data = await leaveService.getCalendarMatrix(req.query, actor);
-      return res.json({ success: true, data, message: 'Matriks kalender cuti bulanan', errors: null });
+      const data = await leaveReportService.getCalendarMatrix(req.query, actor);
+      return res.json({ success: true, data, message: 'Matriks kalender ketidakhadiran', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
@@ -931,8 +932,60 @@ class LeaveController {
   async getReportsSummary(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const data = await leaveService.getReportsSummary(req.query, actor);
+      const data = await leaveReportService.getReportsSummary(req.query, actor);
       return res.json({ success: true, data, message: 'Ringkasan laporan cuti', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getReportsByType(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveReportService.getReportsByType(req.query, actor);
+      return res.json({ success: true, data, message: 'Laporan per jenis cuti', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getReportsTrend(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveReportService.getReportsTrend(req.query, actor);
+      return res.json({ success: true, data, message: 'Tren bulanan ketidakhadiran & lembur', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getReportsTop(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveReportService.getReportsTop(req.query, actor);
+      return res.json({ success: true, data, message: 'Daftar pegawai paling sering tidak hadir', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getReportsRecap(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveReportService.getReportsRecap(req.query, actor);
+      return res.json({ success: true, data, message: 'Rekapitulasi cuti & lembur per pegawai', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async exportReports(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const { filename, contentType, buffer } = await leaveReportService.exportReport(req.query, actor);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(buffer);
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }

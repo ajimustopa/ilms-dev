@@ -71,10 +71,15 @@ router.post('/leave-balances/periods/:id/close', authenticate, requirePermission
 router.post('/leave-balances/periods/:id/reconcile', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.reconcilePeriod);
 
 // ==========================================
-// 4. Permohonan Cuti / Izin
+// 4. Permohonan Cuti / Izin & Laporan (SPEC §11.2)
 // ==========================================
-router.get('/leave-requests/calendar-matrix', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getCalendarMatrix);
-router.get('/leave-requests/reports/summary', authenticate, requirePermission('kepegawaian.leave_reports.read'), controller.getReportsSummary);
+router.get('/leave-requests/calendar-matrix', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage', 'kepegawaian.leave_reports.read'), controller.getCalendarMatrix);
+router.get('/leave-requests/reports/summary', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsSummary);
+router.get('/leave-requests/reports/by-type', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsByType);
+router.get('/leave-requests/reports/trend', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsTrend);
+router.get('/leave-requests/reports/top', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsTop);
+router.get('/leave-requests/reports/recap', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsRecap);
+router.get('/leave-requests/reports/export', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.exportReports);
 router.get('/payroll-feed', authenticate, controller.getPayrollFeed);
 
 router.get('/leave-requests/my', authenticate, controller.getMyLeaveRequests);
