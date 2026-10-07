@@ -5,45 +5,76 @@ import {
   Search,
   CheckCircle2,
   AlertCircle,
-  X,
-  Trash2,
+  AlertTriangle,
+  Upload,
+  Copy,
+  RefreshCw,
   Edit2,
-  Tag
+  Trash2,
+  Table as TableIcon,
+  Grid,
+  Filter,
+  Layers,
+  Sparkles,
+  Building,
+  Check,
+  Download,
+  Info
 } from 'lucide-react';
 import api from '../../../../shared/services/api';
+import { useAuth } from '../../../../shared/store/AuthContext';
+import HolidayFormModal from './HolidayFormModal';
+import HolidayImportModal from './HolidayImportModal';
+import HolidayCopyYearModal from './HolidayCopyYearModal';
+import HolidayCalendarView from './HolidayCalendarView';
+import { useToast } from '../../../../shared/components/Toast';
 
 export default function HolidaysTab({ activeSchoolUnit }) {
+  const { user } = useAuth();
+  const toast = useToast();
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedUnitId, setSelectedUnitId] = useState(activeSchoolUnit?.id ? String(activeSchoolUnit.id) : '');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all'); // all, national, joint_leave, school_semester, foundation, unit_special, draft
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'calendar'
 
-  // Add Holiday Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    holiday_type: 'national',
-    start_date: '',
-    end_date: '',
-    is_off_day: true,
-    deducts_annual_leave: false,
-    applies_to: 'all_employees',
-    notes: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
+  // Modals
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [selectedHolidayForEdit, setSelectedHolidayForEdit] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isCopyYearModalOpen, setIsCopyYearModalOpen] = useState(false);
+  const [isSyncingAcademic, setIsSyncingAcademic] = useState(false);
+
+  // Local notification fallback
+  const [localAlert, setLocalAlert] = useState(null);
+
+  const canManage = user?.permissions?.includes('kepegawaian.holidays.manage') ||
+                    user?.role === 'super_admin' ||
+                    user?.role === 'hrd' ||
+                    user?.role === 'admin_satuan_pendidikan';
+
+  const showToast = (message, type = 'success') => {
+    if (toast?.showToast) {
+      toast.showToast(message, type);
+    }
+    setLocalAlert({ message, type });
+    setTimeout(() => setLocalAlert(null), 4000);
+  };
 
   const fetchHolidays = async () => {
     setLoading(true);
     try {
       let q = `?year=${selectedYear}`;
-      if (activeSchoolUnit?.id) q += `&schoolUnitId=${activeSchoolUnit.id}`;
+      if (selectedUnitId) q += `&school_unit_id=${selectedUnitId}`;
       const res = await api.get(`/kepegawaian/holidays${q}`);
       if (res.data?.success) {
         setHolidays(res.data.data || []);
       }
     } catch (err) {
       console.error('Failed to fetch holidays:', err);
+      showToast(err.response?.data?.message || 'Gagal memuat daftar hari libur', 'error');
     } finally {
       setLoading(false);
     }
@@ -51,309 +82,577 @@ export default function HolidaysTab({ activeSchoolUnit }) {
 
   useEffect(() => {
     fetchHolidays();
-  }, [selectedYear, activeSchoolUnit]);
+  }, [selectedYear, selectedUnitId, activeSchoolUnit]);
 
-  const handleSaveHoliday = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setFormError('');
-
+  // Quick Action: Confirm single draft
+  const handleConfirmHoliday = async (id) => {
     try {
-      const payload = {
-        ...form,
-        school_unit_id: activeSchoolUnit?.id || null
-      };
-      const res = await api.post('/kepegawaian/holidays', payload);
-      if (res.data?.success) {
-        setIsModalOpen(false);
-        setForm({
-          name: '',
-          holiday_type: 'national',
-          start_date: '',
-          end_date: '',
-          is_off_day: true,
-          deducts_annual_leave: false,
-          applies_to: 'all_employees',
-          notes: ''
-        });
-        fetchHolidays();
-      }
+      await api.put(`/kepegawaian/holidays/${id}`, { review_status: 'confirmed' });
+      showToast('Hari libur berhasil dikonfirmasi dan efektif aktif');
+      fetchHolidays();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Gagal menyimpan hari libur');
-    } finally {
-      setIsSubmitting(false);
+      showToast(err.response?.data?.message || 'Gagal mengonfirmasi hari libur', 'error');
     }
   };
 
+  // Quick Action: Confirm all drafts in the current year
+  const handleConfirmAllDrafts = async () => {
+    const draftItems = holidays.filter(h => h.review_status === 'draft_needs_review');
+    if (draftItems.length === 0) return;
+
+    if (!confirm(`Konfirmasi seluruh ${draftItems.length} hari libur berstatus draft menjadi aktif?`)) return;
+
+    try {
+      for (const item of draftItems) {
+        await api.put(`/kepegawaian/holidays/${item.id}`, { review_status: 'confirmed' });
+      }
+      showToast(`Berhasil mengonfirmasi ${draftItems.length} hari libur`);
+      fetchHolidays();
+    } catch (err) {
+      showToast('Sebagian atau seluruh konfirmasi draft gagal', 'error');
+      fetchHolidays();
+    }
+  };
+
+  // Action: Delete holiday
   const handleDeleteHoliday = async (id) => {
     if (!confirm('Apakah Anda yakin ingin menghapus hari libur ini?')) return;
     try {
       await api.delete(`/kepegawaian/holidays/${id}`);
+      showToast('Hari libur berhasil dihapus');
       fetchHolidays();
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus hari libur');
+      showToast(err.response?.data?.message || 'Gagal menghapus hari libur', 'error');
     }
   };
 
-  const filteredHolidays = holidays.filter(h =>
-    (h.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (h.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Action: Sync Academic Calendar (P3)
+  const handleSyncAcademic = async () => {
+    setIsSyncingAcademic(true);
+    try {
+      const res = await api.post('/kepegawaian/holidays/sync-academic', {
+        school_unit_id: selectedUnitId ? Number(selectedUnitId) : null
+      });
+      if (res.data?.success) {
+        showToast(res.data.message || 'Sinkronisasi kalender akademik selesai');
+        fetchHolidays();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Gagal menyinkronkan kalender akademik', 'error');
+    } finally {
+      setIsSyncingAcademic(false);
+    }
+  };
+
+  // Metric Calculation
+  const totalOffDays = holidays.filter(h => h.is_off_day && h.review_status === 'confirmed').length;
+  const nationalCount = holidays.filter(h => h.holiday_type === 'national' && h.review_status === 'confirmed').length;
+  const jointLeaveCount = holidays.filter(h => h.holiday_type === 'joint_leave' && h.review_status === 'confirmed').length;
+  const schoolCalendarCount = holidays.filter(h => ['school_semester', 'school_ramadan', 'school_exam'].includes(h.holiday_type) && h.review_status === 'confirmed').length;
+  const draftCount = holidays.filter(h => h.review_status === 'draft_needs_review').length;
+
+  // Filtered List
+  const filteredHolidays = holidays.filter(h => {
+    const matchesSearch = (h.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (h.notes || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (h.start_date || '').includes(searchQuery);
+    if (!matchesSearch) return false;
+
+    if (filterType === 'draft') return h.review_status === 'draft_needs_review';
+    if (filterType === 'national') return h.holiday_type === 'national';
+    if (filterType === 'joint_leave') return h.holiday_type === 'joint_leave';
+    if (filterType === 'school_semester') return ['school_semester', 'school_ramadan', 'school_exam'].includes(h.holiday_type);
+    if (filterType === 'foundation') return h.holiday_type === 'foundation';
+    if (filterType === 'unit_special') return h.holiday_type === 'unit_special';
+
+    return true;
+  });
+
+  const getHolidayTypeLabel = (type) => {
+    switch (type) {
+      case 'national': return 'Libur Nasional';
+      case 'joint_leave': return 'Cuti Bersama';
+      case 'school_semester': return 'Libur Semester';
+      case 'school_ramadan': return 'Libur Ramadan';
+      case 'school_exam': return 'Libur Ujian';
+      case 'foundation': return 'Agenda Yayasan';
+      case 'unit_special': return 'Khusus Satuan';
+      default: return type;
+    }
+  };
+
+  const getHolidayTypeBadge = (h) => {
+    if (h.review_status === 'draft_needs_review') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-dashed border-amber-300">
+          <AlertTriangle className="w-3 h-3" />
+          Draft Perlu Tinjauan
+        </span>
+      );
+    }
+    switch (h.holiday_type) {
+      case 'national':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700">Libur Nasional</span>;
+      case 'joint_leave':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-800">Cuti Bersama (SKB)</span>;
+      case 'school_semester':
+      case 'school_ramadan':
+      case 'school_exam':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700">{getHolidayTypeLabel(h.holiday_type)}</span>;
+      case 'foundation':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700">Agenda Yayasan</span>;
+      case 'unit_special':
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700">Khusus Satuan</span>;
+      default:
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">{h.holiday_type}</span>;
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header and Actions */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="flex flex-1 items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Local Notification Alert */}
+      {localAlert && (
+        <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold shadow-sm transition-all ${
+          localAlert.type === 'error'
+            ? 'bg-red-50 border-red-200 text-red-800'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            {localAlert.type === 'error' ? <AlertCircle className="w-4 h-4 text-red-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+            <span>{localAlert.message}</span>
+          </div>
+          <button type="button" onClick={() => setLocalAlert(null)} className="text-slate-400 hover:text-slate-700">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Top Controls Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        {/* Left: Filters (Year & School Unit) */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Year Selector */}
+          <div className="relative inline-flex items-center">
+            <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-colors"
+            >
+              <option value="2024">Tahun 2024</option>
+              <option value="2025">Tahun 2025</option>
+              <option value="2026">Tahun 2026</option>
+              <option value="2027">Tahun 2027</option>
+              <option value="2028">Tahun 2028</option>
+            </select>
+          </div>
+
+          {/* School Unit Filter */}
+          <div className="relative inline-flex items-center">
+            <Building className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <select
+              value={selectedUnitId}
+              onChange={(e) => setSelectedUnitId(e.target.value)}
+              className="pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-colors"
+            >
+              <option value="">Semua Satuan (SMP, SMA, Yayasan)</option>
+              <option value="1">SMP IT Aldepos Islamic Boarding School</option>
+              <option value="2">SMA IT Aldepos Islamic Boarding School</option>
+            </select>
+          </div>
+
+          {/* View Switcher Toggle */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === 'table' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Daftar Tabel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === 'calendar' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Grid className="w-3.5 h-3.5" />
+              <span>Kalender Bulanan</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Actions (Add, Import, Copy Year, Sync Academic) */}
+        {canManage && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSyncAcademic}
+              disabled={isSyncingAcademic}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors shadow-sm disabled:opacity-50"
+              title="Sinkronisasi otomatis dengan kalender akademik sekolah"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAcademic ? 'animate-spin' : ''}`} />
+              <span>Sinkron Kalender Akademik</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCopyYearModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors shadow-sm"
+              title="Salin daftar libur dari tahun sebelumnya"
+            >
+              <Copy className="w-3.5 h-3.5 text-blue-600" />
+              <span>Salin dari Tahun Lalu</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold border border-indigo-200 transition-colors shadow-sm"
+              title="Impor massal dari berkas CSV atau JSON"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Impor Berkas (CSV/JSON)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedHolidayForEdit(null);
+                setIsFormModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Hari Libur</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Metric Cards (Dynamic Stats) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Libur Resmi</span>
+            <span className="text-xl font-bold text-slate-800 mt-0.5 block">{totalOffDays} Hari</span>
+            <span className="text-[11px] text-slate-500">Tahun {selectedYear}</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <CalendarIcon className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Libur Nasional</span>
+            <span className="text-xl font-bold text-red-600 mt-0.5 block">{nationalCount} Hari</span>
+            <span className="text-[11px] text-slate-500">Resmi SKB 3 Menteri</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold">
+            <Layers className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Cuti Bersama</span>
+            <span className="text-xl font-bold text-orange-600 mt-0.5 block">{jointLeaveCount} Hari</span>
+            <span className="text-[11px] text-slate-500">Pemerintah &amp; Yayasan</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+            <Sparkles className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Kalender Sekolah</span>
+            <span className="text-xl font-bold text-indigo-600 mt-0.5 block">{schoolCalendarCount} Hari</span>
+            <span className="text-[11px] text-slate-500">Semester &amp; Jeda Ujian</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <Building className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Draft Needs Review Banner (if any) */}
+      {draftCount > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-sm block text-amber-950">
+                Terdapat {draftCount} Hari Libur Perlu Tinjauan (Draft)
+              </span>
+              <span className="text-amber-800 text-xs">
+                Hari libur berstatus draft <b>tidak berlaku</b> pada modul presensi dan perhitungan cuti sebelum dikonfirmasi oleh HRD.
+              </span>
+            </div>
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleConfirmAllDrafts}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap flex items-center gap-1.5"
+            >
+              <Check className="w-4 h-4" />
+              <span>Konfirmasi Semua Draft</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Main Workspace Area */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* Filters & Search Header */}
+        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-50/50">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari nama hari libur atau keterangan..."
+              placeholder="Cari nama hari libur, catatan, atau tanggal..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-white border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
             />
           </div>
 
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="py-2 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="2026">Tahun 2026</option>
-            <option value="2027">Tahun 2027</option>
-          </select>
-        </div>
-
-        <button
-          onClick={() => {
-            setFormError('');
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah Hari Libur
-        </button>
-      </div>
-
-      {/* Holidays Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase font-semibold text-slate-500 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4">Nama Hari Libur</th>
-                <th className="py-3.5 px-4">Kategori Libur</th>
-                <th className="py-3.5 px-4">Tanggal</th>
-                <th className="py-3.5 px-4 text-center">Status Libur</th>
-                <th className="py-3.5 px-4 text-center">Potong Cuti Tahunan</th>
-                <th className="py-3.5 px-4">Keterangan</th>
-                <th className="py-3.5 px-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    Memuat kalender libur...
-                  </td>
-                </tr>
-              ) : filteredHolidays.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    Belum ada hari libur terdaftar pada tahun {selectedYear}.
-                  </td>
-                </tr>
-              ) : (
-                filteredHolidays.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">
-                      {item.name}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 capitalize">
-                        {item.holiday_type?.replace('_', ' ') || 'Nasional'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-800">{item.start_date}</div>
-                      {item.end_date && item.end_date !== item.start_date && (
-                        <div className="text-xs text-slate-400">s/d {item.end_date}</div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
-                        item.is_off_day ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {item.is_off_day ? 'Hari Libur (Off)' : 'Tetap Masuk'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      {item.deducts_annual_leave ? (
-                        <span className="text-xs font-semibold text-rose-600">Ya (-1 Cuti)</span>
-                      ) : (
-                        <span className="text-xs text-slate-400">Tidak</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-500 max-w-xs truncate">
-                      {item.notes || '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleDeleteHoliday(item.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Hapus Libur"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Holiday Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-lg">Tambah Hari Libur / Cuti Bersama</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
+          {/* Filter Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            {[
+              { id: 'all', label: `Semua (${holidays.length})` },
+              { id: 'national', label: `Libur Nasional (${nationalCount})` },
+              { id: 'joint_leave', label: `Cuti Bersama (${jointLeaveCount})` },
+              { id: 'school_semester', label: `Libur Sekolah (${schoolCalendarCount})` },
+              { id: 'draft', label: `Draft / Perlu Tinjauan (${draftCount})`, isAlert: draftCount > 0 }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterType(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                  filterType === tab.id
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : tab.isAlert
+                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {tab.label}
               </button>
-            </div>
-
-            {formError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
-                {formError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveHoliday} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Libur *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Hari Raya Idul Fitri 1447 H"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Libur *</label>
-                  <select
-                    value={form.holiday_type}
-                    onChange={(e) => setForm({ ...form, holiday_type: e.target.value })}
-                    className="w-full p-2.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="national">Libur Nasional Resmi</option>
-                    <option value="joint_leave">Cuti Bersama Pemerintah</option>
-                    <option value="school_semester">Libur Semester Sekolah</option>
-                    <option value="school_ramadan">Libur Awal/Akhir Ramadan</option>
-                    <option value="foundation">Libur Khusus Yayasan</option>
-                    <option value="unit_special">Libur Khusus Satuan</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Target Pegawai</label>
-                  <select
-                    value={form.applies_to}
-                    onChange={(e) => setForm({ ...form, applies_to: e.target.value })}
-                    className="w-full p-2.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="all_employees">Semua Pegawai</option>
-                    <option value="schedules">Jadwal Tertentu (Guru Saja)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Mulai *</label>
-                  <input
-                    type="date"
-                    required
-                    value={form.start_date}
-                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                    className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Selesai *</label>
-                  <input
-                    type="date"
-                    required
-                    value={form.end_date || form.start_date}
-                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                    className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 py-1">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={form.is_off_day}
-                    onChange={(e) => setForm({ ...form, is_off_day: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300"
-                  />
-                  Hari Libur (Pegawai Bebas Tugas)
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={form.deducts_annual_leave}
-                    onChange={(e) => setForm({ ...form, deducts_annual_leave: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300"
-                  />
-                  Memotong Jatah Cuti Tahunan
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan / Keterangan</label>
-                <textarea
-                  rows={2}
-                  placeholder="Keterangan SKB menteri atau surat edaran yayasan..."
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Hari Libur'}
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* View Mode Router */}
+        {viewMode === 'calendar' ? (
+          <div className="p-4">
+            <HolidayCalendarView
+              holidays={filteredHolidays}
+              selectedYear={selectedYear}
+              canManage={canManage}
+              onConfirmHoliday={handleConfirmHoliday}
+              onEditHoliday={(h) => {
+                setSelectedHolidayForEdit(h);
+                setIsFormModalOpen(true);
+              }}
+              onDeleteHoliday={handleDeleteHoliday}
+            />
+          </div>
+        ) : (
+          /* Table View */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                  <th className="py-3 px-4 whitespace-nowrap">Tanggal</th>
+                  <th className="py-3 px-4 min-w-[220px]">Nama Hari Libur</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Kategori</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Potong Cuti</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Berlaku Untuk</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Status &amp; Sumber</th>
+                  <th className="py-3 px-4 text-right whitespace-nowrap">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+                        <span className="font-medium text-xs">Memuat data hari libur...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredHolidays.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <CalendarIcon className="w-8 h-8 text-slate-300" />
+                        <span className="font-bold text-slate-600 text-sm">Tidak Ada Data Hari Libur</span>
+                        <span className="text-xs text-slate-400">
+                          {searchQuery
+                            ? 'Tidak ada hasil yang cocok dengan kata kunci pencarian Anda'
+                            : `Belum ada data hari libur yang terdaftar pada tahun ${selectedYear}`}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredHolidays.map((h) => (
+                    <tr key={h.id} className="hover:bg-slate-50/80 transition-colors group">
+                      {/* Tanggal */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 text-xs">
+                            {h.start_date === h.end_date || !h.end_date ? h.start_date : `${h.start_date} s/d ${h.end_date}`}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 block font-mono mt-0.5">
+                          {h.date_rule === 'fixed_date' ? 'Fixed (Tetap)' : 'Floating (Bergeser)'}
+                        </span>
+                      </td>
+
+                      {/* Nama & Catatan */}
+                      <td className="py-3 px-4">
+                        <span className="font-bold text-slate-900 block text-xs">{h.name}</span>
+                        {h.notes && (
+                          <span className="text-[11px] text-slate-500 block truncate max-w-sm">
+                            {h.notes}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Kategori */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {getHolidayTypeBadge(h)}
+                      </td>
+
+                      {/* Potong Cuti */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {h.deducts_annual_leave ? (
+                          <span className="inline-flex items-center gap-1 text-orange-700 font-semibold text-[11px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
+                            Memotong Kuota
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Bebas Potong
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Berlaku Untuk */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {h.applies_to === 'schedules' ? (
+                          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold text-[10px]">
+                            {h.target_schedule_ids?.length || 0} Jadwal Target
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                            {h.school_unit_id ? `Unit ${h.school_unit_id}` : 'Semua Pegawai (Global)'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Status & Sumber */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-[11px] text-slate-700 capitalize">
+                            {h.source === 'academic_calendar' ? 'Kalender Akademik' : h.source === 'copied' ? 'Salin Tahun Lalu' : h.source === 'imported_file' ? 'Impor Berkas' : 'Input Manual'}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {h.review_status === 'confirmed' ? 'Dikonfirmasi' : 'Perlu Tinjauan'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        {canManage && (
+                          <div className="inline-flex items-center gap-1">
+                            {h.review_status === 'draft_needs_review' && (
+                              <button
+                                type="button"
+                                onClick={() => handleConfirmHoliday(h.id)}
+                                className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-colors"
+                                title="Konfirmasi libur ini agar aktif"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedHolidayForEdit(h);
+                                setIsFormModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                              title="Ubah Data Libur"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteHoliday(h.id)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                              title="Hapus Hari Libur"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <HolidayFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => setIsFormModalOpen(false)}
+        holiday={selectedHolidayForEdit}
+        activeSchoolUnit={activeSchoolUnit}
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchHolidays();
+        }}
+      />
+
+      <HolidayImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        activeSchoolUnit={activeSchoolUnit}
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchHolidays();
+        }}
+      />
+
+      <HolidayCopyYearModal
+        isOpen={isCopyYearModalOpen}
+        onClose={() => setIsCopyYearModalOpen(false)}
+        selectedYear={selectedYear}
+        activeSchoolUnit={activeSchoolUnit}
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchHolidays();
+        }}
+      />
     </div>
   );
 }
