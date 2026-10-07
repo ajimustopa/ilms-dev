@@ -2897,6 +2897,26 @@ class CurriculumService {
       throw error;
     }
 
+    // Validasi keunikan kode TP per mapel, tingkat kelas, dan semester
+    const existingCode = await db('learning_objectives')
+      .where({
+        satuan_pendidikan_id,
+        academic_year_id,
+        grade_level_id,
+        subject_id,
+        code: code.trim()
+      })
+      .andWhere((builder) => {
+        if (semester_id) builder.where({ semester_id });
+      })
+      .first();
+
+    if (existingCode) {
+      const error = new Error(`Kode Tujuan Pembelajaran "${code.trim()}" sudah digunakan untuk mata pelajaran dan semester ini`);
+      error.statusCode = 422;
+      throw error;
+    }
+
     const [id] = await db('learning_objectives').insert({
       satuan_pendidikan_id,
       academic_year_id,
@@ -2971,6 +2991,35 @@ class CurriculumService {
       const error = new Error('Tujuan Pembelajaran tidak ditemukan');
       error.statusCode = 404;
       throw error;
+    }
+
+    // Jika kode atau mapel atau semester diubah, periksa keunikan
+    const targetCode = payload.code ? payload.code.trim() : current.code;
+    const targetSubjectId = payload.subject_id !== undefined ? payload.subject_id : current.subject_id;
+    const targetGradeId = payload.grade_level_id !== undefined ? payload.grade_level_id : current.grade_level_id;
+    const targetSemesterId = payload.semester_id !== undefined ? payload.semester_id : current.semester_id;
+    const targetYearId = payload.academic_year_id !== undefined ? payload.academic_year_id : current.academic_year_id;
+
+    if (payload.code && payload.code.trim() !== current.code) {
+      const duplicateCode = await db('learning_objectives')
+        .where({
+          satuan_pendidikan_id: current.satuan_pendidikan_id,
+          academic_year_id: targetYearId,
+          grade_level_id: targetGradeId,
+          subject_id: targetSubjectId,
+          code: targetCode
+        })
+        .whereNot({ id })
+        .andWhere((builder) => {
+          if (targetSemesterId) builder.where({ semester_id: targetSemesterId });
+        })
+        .first();
+
+      if (duplicateCode) {
+        const error = new Error(`Kode Tujuan Pembelajaran "${targetCode}" sudah digunakan untuk mata pelajaran dan semester ini`);
+        error.statusCode = 422;
+        throw error;
+      }
     }
 
     const updateData = { updated_at: db.fn.now() };

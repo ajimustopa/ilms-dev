@@ -16,31 +16,42 @@ import {
   ArrowUpDown,
   Filter,
   SlidersHorizontal,
-  Info
+  Info,
+  Check,
+  ChevronDown,
+  Download,
+  Copy,
+  FolderOpen,
+  GraduationCap,
+  Clock,
+  Verified,
+  FileClock,
+  X
 } from 'lucide-react';
 import { useTeacherContext } from '../context/TeacherContext';
 import { scoreService } from '../services/scoreService';
-import PageHeader from '../components/PageHeader';
-import SelectorKonteks from '../components/SelectorKonteks';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import FormField, { Input, Select, Textarea } from '../components/FormField';
-import BottomSheet from '../components/BottomSheet';
-import StatusBadge from '../components/StatusBadge';
-import EmptyState from '../components/EmptyState';
-import ErrorState from '../components/ErrorState';
-import Skeleton from '../components/Skeleton';
-import Toast from '../components/Toast';
-import ConfirmDialog from '../components/ConfirmDialog';
+import {
+  PageHeader,
+  SelectorKonteks,
+  Card,
+  Button,
+  StatusBadge,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  SkeletonCard,
+  SkeletonList,
+  BottomSheet,
+  ConfirmDialog,
+  StatRibbonCard,
+  useToast
+} from '../components';
 
 export default function PerencanaanPage() {
-  const {
-    activeContext,
-    teachingAssignments,
-    loadingContext
-  } = useTeacherContext();
+  const toast = useToast();
+  const { activeContext, teachingAssignments, loadingContext } = useTeacherContext();
 
-  // State Pilihan Mapel & Jenjang dari "Kelas dan Mapel Saya"
+  // State Konteks Filter
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedGradeLevelId, setSelectedGradeLevelId] = useState('');
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
@@ -50,9 +61,9 @@ export default function PerencanaanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterUsage, setFilterUsage] = useState('all'); // 'all' | 'used' | 'unused'
+  const [filterUsage, setFilterUsage] = useState('ALL'); // 'ALL' | 'USED' | 'DRAFT'
 
-  // Form Modal / Sheet State
+  // Form Drawer / Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTp, setEditingTp] = useState(null);
@@ -61,8 +72,7 @@ export default function PerencanaanPage() {
     scope_material: '',
     description: '',
     order_index: 1,
-    is_active: true,
-    semester_id: ''
+    is_active: true
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -70,10 +80,7 @@ export default function PerencanaanPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Toast State
-  const [toast, setToast] = useState(null);
-
-  // Ekstrak daftar mapel dan tingkat kelas yang diampu guru dari teachingAssignments
+  // Ekstrak daftar mapel yang diampu guru dari teachingAssignments
   const mySubjects = useMemo(() => {
     const map = new Map();
     teachingAssignments.forEach((a) => {
@@ -87,10 +94,15 @@ export default function PerencanaanPage() {
           });
         }
         const item = map.get(String(a.subject_id));
-        if (a.class_group_grade_level_id && !item.grade_levels.some(g => String(g.id) === String(a.class_group_grade_level_id))) {
+        if (
+          a.class_group_grade_level_id &&
+          !item.grade_levels.some((g) => String(g.id) === String(a.class_group_grade_level_id))
+        ) {
           item.grade_levels.push({
             id: a.class_group_grade_level_id,
-            name: a.class_group_name ? `Tingkat ${a.class_group_name.split(' ')[0] || ''}` : `Jenjang #${a.class_group_grade_level_id}`
+            name: a.class_group_name
+              ? `Kelas ${a.class_group_name.split(' ')[0] || ''}`
+              : `Tingkat #${a.class_group_grade_level_id}`
           });
         }
       }
@@ -106,7 +118,9 @@ export default function PerencanaanPage() {
         if (!map.has(idStr)) {
           map.set(idStr, {
             id: a.class_group_grade_level_id,
-            name: a.class_group_name ? a.class_group_name.split(' ')[0] || `Kelas #${a.class_group_grade_level_id}` : `Tingkat #${a.class_group_grade_level_id}`
+            name: a.class_group_name
+              ? `Kelas ${a.class_group_name.split(' ')[0] || ''}`
+              : `Tingkat #${a.class_group_grade_level_id}`
           });
         }
       }
@@ -114,7 +128,7 @@ export default function PerencanaanPage() {
     return Array.from(map.values());
   }, [teachingAssignments]);
 
-  // Auto-select mapel & grade level pertama jika belum terpilih
+  // Auto-select mapel pertama jika belum terpilih
   useEffect(() => {
     if (mySubjects.length > 0 && !selectedSubjectId) {
       setSelectedSubjectId(String(mySubjects[0].id));
@@ -127,7 +141,7 @@ export default function PerencanaanPage() {
     }
   }, [myGradeLevels, selectedGradeLevelId]);
 
-  // Load Tujuan Pembelajaran
+  // Load Daftar Tujuan Pembelajaran
   const fetchObjectives = useCallback(async () => {
     if (!activeContext?.satuanPendidikanId || !activeContext?.academicYearId) {
       return;
@@ -143,6 +157,7 @@ export default function PerencanaanPage() {
       };
       if (selectedSubjectId) params.subject_id = selectedSubjectId;
       if (selectedGradeLevelId) params.grade_level_id = selectedGradeLevelId;
+      if (selectedSemesterId) params.semester_id = selectedSemesterId;
 
       const res = await scoreService.getLearningObjectives(params);
       const data = res?.data || res || [];
@@ -154,64 +169,143 @@ export default function PerencanaanPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeContext?.satuanPendidikanId, activeContext?.academicYearId, selectedSubjectId, selectedGradeLevelId]);
+  }, [
+    activeContext?.satuanPendidikanId,
+    activeContext?.academicYearId,
+    selectedSubjectId,
+    selectedGradeLevelId,
+    selectedSemesterId
+  ]);
 
   useEffect(() => {
     fetchObjectives();
   }, [fetchObjectives]);
 
-  // Buka Sheet Tambah / Edit
-  const handleOpenForm = (item = null) => {
+  // Hitung Metrik Statistik Beban TP
+  const stats = useMemo(() => {
+    const total = learningObjectives.length;
+    // Anggap TP yang memiliki scores_count > 0 atau journals_count > 0 adalah terpakai di rapor
+    let used = 0;
+    learningObjectives.forEach((tp) => {
+      const isUsed =
+        Boolean(tp.is_used_in_report) ||
+        Number(tp.scores_count || 0) > 0 ||
+        Number(tp.journals_count || 0) > 0;
+      if (isUsed) used += 1;
+    });
+
+    const draft = Math.max(0, total - used);
+    const percentUsed = total > 0 ? Math.round((used / total) * 100) : 0;
+    const percentDraft = total > 0 ? Math.round((draft / total) * 100) : 0;
+
+    return {
+      total,
+      used,
+      draft,
+      percentUsed,
+      percentDraft
+    };
+  }, [learningObjectives]);
+
+  // Filtered List TP berdasarkan Tab & Query Search
+  const filteredObjectives = useMemo(() => {
+    return learningObjectives.filter((tp) => {
+      const isUsed =
+        Boolean(tp.is_used_in_report) ||
+        Number(tp.scores_count || 0) > 0 ||
+        Number(tp.journals_count || 0) > 0;
+
+      if (filterUsage === 'USED' && !isUsed) return false;
+      if (filterUsage === 'DRAFT' && isUsed) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchCode = (tp.code || '').toLowerCase().includes(q);
+        const matchDesc = (tp.description || '').toLowerCase().includes(q);
+        const matchScope = (tp.scope_material || '').toLowerCase().includes(q);
+        if (!matchCode && !matchDesc && !matchScope) return false;
+      }
+      return true;
+    });
+  }, [learningObjectives, filterUsage, searchQuery]);
+
+  // Buka Form Tambah Baru
+  const handleOpenCreate = () => {
+    setEditingTp(null);
+    setFormData({
+      code: `TP-${learningObjectives.length + 1}`,
+      scope_material: '',
+      description: '',
+      order_index: learningObjectives.length + 1,
+      is_active: true
+    });
     setFormErrors({});
-    if (item) {
-      setEditingTp(item);
-      setFormData({
-        code: item.code || '',
-        scope_material: item.scope_material || '',
-        description: item.description || '',
-        order_index: item.order_index || 1,
-        is_active: item.is_active !== undefined ? Boolean(item.is_active) : true,
-        semester_id: item.semester_id ? String(item.semester_id) : ''
-      });
-    } else {
-      setEditingTp(null);
-      const nextIndex = learningObjectives.length + 1;
-      setFormData({
-        code: `TP.${nextIndex}`,
-        scope_material: '',
-        description: '',
-        order_index: nextIndex,
-        is_active: true,
-        semester_id: ''
-      });
-    }
     setIsFormOpen(true);
   };
 
-  // Validasi Form
+  // Buka Form Edit
+  const handleOpenEdit = (tp) => {
+    setEditingTp(tp);
+    setFormData({
+      code: tp.code || '',
+      scope_material: tp.scope_material || '',
+      description: tp.description || '',
+      order_index: tp.order_index || 1,
+      is_active: tp.is_active !== false
+    });
+    setFormErrors({});
+    setIsFormOpen(true);
+  };
+
+  // Validasi Form Client-side
   const validateForm = () => {
     const errors = {};
-    if (!formData.code.trim()) errors.code = 'Kode TP wajib diisi (misal: TP.1)';
-    if (!formData.description.trim()) errors.description = 'Deskripsi tujuan pembelajaran wajib diisi';
-    if (!selectedSubjectId) errors.subject = 'Pilih mata pelajaran terlebih dahulu';
-    if (!selectedGradeLevelId) errors.grade_level = 'Pilih tingkat kelas terlebih dahulu';
+    if (!formData.code.trim()) {
+      errors.code = 'Kode Tujuan Pembelajaran wajib diisi';
+    } else {
+      // Cek duplikasi kode di client
+      const duplicate = learningObjectives.find(
+        (tp) =>
+          tp.code.trim().toLowerCase() === formData.code.trim().toLowerCase() &&
+          (!editingTp || String(tp.id) !== String(editingTp.id))
+      );
+      if (duplicate) {
+        errors.code = `Kode TP "${formData.code.trim()}" sudah digunakan pada mata pelajaran ini`;
+      }
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = 'Deskripsi Capaian Kompetensi wajib diisi';
+    } else if (formData.description.trim().length < 10) {
+      errors.description = 'Deskripsi TP minimal 10 karakter';
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Submit Simpan (Tambah / Ubah)
+  // Submit Form (Tambah / Edit)
   const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    if (!selectedSubjectId || !selectedGradeLevelId) {
+      toast.show({
+        type: 'danger',
+        title: 'Konteks Belum Lengkap',
+        message: 'Pastikan Mata Pelajaran dan Tingkat Kelas telah dipilih.'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
-        satuan_pendidikan_id: activeContext.satuanPendidikanId,
-        academic_year_id: activeContext.academicYearId,
+        satuan_pendidikan_id: Number(activeContext?.satuanPendidikanId),
+        academic_year_id: Number(activeContext?.academicYearId),
         subject_id: Number(selectedSubjectId),
         grade_level_id: Number(selectedGradeLevelId),
-        semester_id: formData.semester_id ? Number(formData.semester_id) : null,
+        semester_id: selectedSemesterId ? Number(selectedSemesterId) : null,
         code: formData.code.trim(),
         scope_material: formData.scope_material.trim() || null,
         description: formData.description.trim(),
@@ -221,17 +315,17 @@ export default function PerencanaanPage() {
 
       if (editingTp) {
         await scoreService.updateLearningObjective(editingTp.id, payload);
-        setToast({
+        toast.show({
           type: 'success',
-          title: 'Berhasil Diperbarui',
-          message: `Tujuan Pembelajaran "${formData.code}" berhasil diperbarui.`
+          title: 'Tujuan Pembelajaran Diperbarui',
+          message: `TP "${payload.code}" berhasil diperbarui.`
         });
       } else {
         await scoreService.createLearningObjective(payload);
-        setToast({
+        toast.show({
           type: 'success',
-          title: 'Berhasil Ditambahkan',
-          message: `Tujuan Pembelajaran "${formData.code}" berhasil disimpan ke sistem.`
+          title: 'Tujuan Pembelajaran Ditambahkan',
+          message: `TP "${payload.code}" berhasil dibuat.`
         });
       }
 
@@ -239,11 +333,10 @@ export default function PerencanaanPage() {
       fetchObjectives();
     } catch (err) {
       console.error('Error saving learning objective:', err);
-      const msg = err.response?.data?.message || err.message || 'Gagal menyimpan Tujuan Pembelajaran.';
-      setToast({
-        type: 'error',
-        title: 'Gagal Menyimpan',
-        message: msg
+      toast.show({
+        type: 'danger',
+        title: 'Gagal Menyimpan TP',
+        message: err.response?.data?.message || err.message || 'Terjadi kesalahan pada server.'
       });
     } finally {
       setIsSubmitting(false);
@@ -257,220 +350,241 @@ export default function PerencanaanPage() {
     setIsDeleting(true);
     try {
       await scoreService.deleteLearningObjective(deleteTarget.id);
-      setToast({
+      toast.show({
         type: 'success',
-        title: 'TP Dihapus',
-        message: `Tujuan Pembelajaran "${deleteTarget.code}" berhasil dihapus.`
+        title: 'Tujuan Pembelajaran Dihapus',
+        message: `TP "${deleteTarget.code}" berhasil dihapus.`
       });
       setDeleteTarget(null);
       fetchObjectives();
     } catch (err) {
       console.error('Error deleting learning objective:', err);
-      const msg = err.response?.data?.message || err.message || 'Gagal menghapus Tujuan Pembelajaran.';
-      setToast({
-        type: 'error',
-        title: 'Hapus Gagal',
-        message: msg
+      toast.show({
+        type: 'danger',
+        title: 'Gagal Menghapus TP',
+        message:
+          err.response?.data?.message ||
+          err.message ||
+          'TP tidak dapat dihapus karena sudah terhubung ke data nilai atau jurnal.'
       });
-      setDeleteTarget(null);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Filter & Pencarian
-  const filteredTPs = useMemo(() => {
-    return learningObjectives.filter((item) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        (item.code || '').toLowerCase().includes(q) ||
-        (item.description || '').toLowerCase().includes(q) ||
-        (item.scope_material || '').toLowerCase().includes(q);
+  // Ekspor Data ke CSV
+  const handleExportCSV = () => {
+    if (learningObjectives.length === 0) return;
+    const headers = ['Kode', 'Lingkup Materi', 'Deskripsi Capaian Kompetensi', 'Status'];
+    const rows = learningObjectives.map((tp) => [
+      `"${tp.code || ''}"`,
+      `"${tp.scope_material || ''}"`,
+      `"${(tp.description || '').replace(/"/g, '""')}"`,
+      `"${tp.is_used_in_report ? 'Di Rapor' : 'Draf'}"`
+    ]);
 
-      if (!matchSearch) return false;
-
-      if (filterUsage === 'used') {
-        return item.is_used || (item.journal_count > 0 || item.score_count > 0);
-      }
-      if (filterUsage === 'unused') {
-        return !item.is_used && (item.journal_count || 0) === 0 && (item.score_count || 0) === 0;
-      }
-
-      return true;
-    });
-  }, [learningObjectives, searchQuery, filterUsage]);
-
-  // Statistik Ringkas
-  const stats = useMemo(() => {
-    const total = learningObjectives.length;
-    const active = learningObjectives.filter(t => t.is_active).length;
-    const used = learningObjectives.filter(t => t.is_used || t.journal_count > 0 || t.score_count > 0).length;
-    return { total, active, used };
-  }, [learningObjectives]);
-
-  const activeSubjectName = mySubjects.find(s => String(s.id) === String(selectedSubjectId))?.name || 'Mata Pelajaran';
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Tujuan_Pembelajaran_${selectedSubjectId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <div className="flex flex-col gap-5 pb-16 animate-in fade-in duration-200">
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          type={toast.type}
-          title={toast.title}
-          message={toast.message}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      {/* Page Header */}
+    <div className="space-y-6 pb-16 animate-in fade-in duration-200">
+      {/* 1. Page Header */}
       <PageHeader
-        title="Perencanaan Pembelajaran"
-        subtitle="Kelola Tujuan Pembelajaran (TP) dan Lingkup Materi Kurikulum Merdeka."
-        action={
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={() => handleOpenForm()}
-            className="shrink-0"
-          >
-            Tambah TP
-          </Button>
+        title="Tujuan Pembelajaran (TP)"
+        subtitle="Target capaian kompetensi per lingkup materi Kurikulum Merdeka e-Rapor santri."
+        badge={
+          <StatusBadge status="info" size="sm">
+            {learningObjectives.length} Target TP
+          </StatusBadge>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenCreate}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="bg-emerald-600 hover:bg-emerald-700 font-bold shadow-sm min-h-[38px]"
+            >
+              Tambah TP Baru
+            </Button>
+            <SelectorKonteks />
+          </div>
         }
       />
 
-      {/* Context Selector Bar */}
-      <div className="bg-slate-900/60 dark:bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <SelectorKonteks />
-        </div>
+      {/* ========================================================================= */}
+      {/* 2. STAT RIBBON CARDS (3 Metrik Beban TP)                                  */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <StatRibbonCard
+          label="Total TP Terdata"
+          value={`${stats.total} TP`}
+          status="success"
+          icon={Layers}
+          context="Target aktif semester ini"
+          badge="100% Terstruktur"
+        >
+          <div className="mt-2.5 space-y-1">
+            <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-full bg-emerald-600 rounded-full w-full" />
+            </div>
+          </div>
+        </StatRibbonCard>
 
-        {/* Filter Mapel & Jenjang dari Kelas & Mapel Saya */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-          <div className="min-w-[140px] max-w-[200px]">
+        <StatRibbonCard
+          label="Di Rapor (Terpakai)"
+          value={`${stats.used} TP`}
+          status="info"
+          icon={Verified}
+          context={`${stats.percentUsed}% terpakai pada asesmen`}
+          badge="Aktif di Rapor"
+        />
+
+        <StatRibbonCard
+          label="Draf / Belum Diuji"
+          value={`${stats.draft} TP`}
+          status="warning"
+          icon={FileClock}
+          context="Menunggu asesmen sumatif"
+          badge={`${stats.percentDraft}% Draf`}
+        />
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. CONTEXT FILTER BAR & TOOLBAR                                           */}
+      {/* ========================================================================= */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-2xs space-y-3">
+        {/* Row 1: Dropdown Konteks Ajar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Mapel Guru */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg text-xs">
+            <span className="text-slate-400 font-medium">Mapel:</span>
             <select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              aria-label="Pilih Mata Pelajaran"
-              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium truncate"
+              className="bg-transparent font-bold text-emerald-800 dark:text-emerald-400 focus:outline-none cursor-pointer"
             >
-              {mySubjects.length > 0 ? (
-                mySubjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
-                    {s.name}
-                  </option>
-                ))
-              ) : (
-                <option value="">Semua Mapel</option>
-              )}
+              {mySubjects.map((s) => (
+                <option key={s.id} value={s.id} className="text-slate-900 dark:text-slate-100">
+                  {s.name}
+                </option>
+              ))}
             </select>
           </div>
 
-          <div className="min-w-[110px] max-w-[150px]">
+          {/* Tingkat Kelas / Fase */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg text-xs">
+            <span className="text-slate-400 font-medium">Tingkat:</span>
             <select
               value={selectedGradeLevelId}
               onChange={(e) => setSelectedGradeLevelId(e.target.value)}
-              aria-label="Pilih Jenjang / Tingkat Kelas"
-              className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium truncate"
+              className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
-              {myGradeLevels.length > 0 ? (
-                myGradeLevels.map((g) => (
-                  <option key={g.id} value={String(g.id)}>
-                    Tingkat {g.name}
-                  </option>
-                ))
-              ) : (
-                <option value="">Semua Tingkat</option>
-              )}
+              {myGradeLevels.map((g) => (
+                <option key={g.id} value={g.id} className="text-slate-900 dark:text-slate-100">
+                  {g.name}
+                </option>
+              ))}
             </select>
           </div>
+
+          {/* Semester */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg text-xs">
+            <span className="text-slate-400 font-medium">Semester:</span>
+            <select
+              value={selectedSemesterId}
+              onChange={(e) => setSelectedSemesterId(e.target.value)}
+              className="bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="" className="text-slate-900 dark:text-slate-100">
+                Semua Semester
+              </option>
+              <option value="1" className="text-slate-900 dark:text-slate-100">
+                Semester Ganjil
+              </option>
+              <option value="2" className="text-slate-900 dark:text-slate-100">
+                Semester Genap
+              </option>
+            </select>
+          </div>
+
+          {/* Ekspor CSV */}
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Ekspor CSV</span>
+          </button>
+        </div>
+
+        {/* Row 2: Search & Filter Tabs */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari kode TP atau deskripsi materi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-9 pr-3 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+
+          {/* Segmented Filter Tabs */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setFilterUsage('ALL')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                filterUsage === 'ALL'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Semua ({stats.total})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterUsage('USED')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                filterUsage === 'USED'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700'
+              }`}
+            >
+              Di Rapor ({stats.used})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterUsage('DRAFT')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                filterUsage === 'DRAFT'
+                  ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Draf ({stats.draft})
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Overview Metric Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3.5 bg-slate-900/60 dark:bg-slate-900 border-slate-800 flex flex-col justify-between">
-          <p className="text-[11px] font-semibold text-slate-400">Total TP</p>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-xl sm:text-2xl font-black text-slate-100">{stats.total}</span>
-            <span className="text-[11px] text-slate-500">butir</span>
-          </div>
-        </Card>
-        <Card className="p-3.5 bg-slate-900/60 dark:bg-slate-900 border-slate-800 flex flex-col justify-between">
-          <p className="text-[11px] font-semibold text-emerald-400">Status Aktif</p>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-xl sm:text-2xl font-black text-emerald-400">{stats.active}</span>
-            <span className="text-[11px] text-slate-500">TP</span>
-          </div>
-        </Card>
-        <Card className="p-3.5 bg-slate-900/60 dark:bg-slate-900 border-slate-800 flex flex-col justify-between">
-          <p className="text-[11px] font-semibold text-sky-400">Telah Dipakai</p>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-xl sm:text-2xl font-black text-sky-400">{stats.used}</span>
-            <span className="text-[11px] text-slate-500">KBM/Nilai</span>
-          </div>
-        </Card>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari kode TP, materi, atau deskripsi..."
-            className="w-full pl-9 pr-4 py-2 min-h-[44px] text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-        </div>
-
-        {/* Filter Usage Pill */}
-        <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 border border-slate-800 rounded-xl overflow-x-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => setFilterUsage('all')}
-            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition ${
-              filterUsage === 'all'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Semua ({learningObjectives.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterUsage('used')}
-            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition ${
-              filterUsage === 'used'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Terpakai ({stats.used})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterUsage('unused')}
-            className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition ${
-              filterUsage === 'unused'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Belum Terpakai ({stats.total - stats.used})
-          </button>
-        </div>
-      </div>
-
-      {/* Content Section: Loading, Error, Empty, List */}
+      {/* ========================================================================= */}
+      {/* 4. CONTENT LIST: DESKTOP TABLE & MOBILE CARDS                             */}
+      {/* ========================================================================= */}
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
-          <Skeleton className="h-28 rounded-xl" />
+          <SkeletonCard count={3} />
         </div>
       ) : fetchError ? (
         <ErrorState
@@ -478,266 +592,328 @@ export default function PerencanaanPage() {
           message={fetchError}
           onRetry={fetchObjectives}
         />
-      ) : filteredTPs.length === 0 ? (
+      ) : learningObjectives.length === 0 ? (
         <EmptyState
-          title={searchQuery ? 'Tidak Ada TP yang Cocok' : 'Belum Ada Tujuan Pembelajaran'}
-          description={
-            searchQuery
-              ? `Tidak ditemukan TP dengan kata kunci "${searchQuery}". Coba kata kunci lain.`
-              : `Belum ada Tujuan Pembelajaran yang dirumuskan untuk mapel ${activeSubjectName} di tingkat ini.`
-          }
-          icon={BookOpen}
-          action={
-            !searchQuery && (
-              <Button
-                variant="primary"
-                size="md"
-                icon={Plus}
-                onClick={() => handleOpenForm()}
-              >
-                Buat TP Pertama
-              </Button>
-            )
-          }
+          icon={<BookOpen className="w-8 h-8 text-slate-400" />}
+          title="Belum Ada Tujuan Pembelajaran"
+          description="Mata pelajaran ini belum memiliki master TP untuk semester aktif. Tambahkan TP baru untuk memulai perumusan capaian kurikulum."
+          actionLabel="Tambah TP Sekarang"
+          onAction={handleOpenCreate}
+        />
+      ) : filteredObjectives.length === 0 ? (
+        <EmptyState
+          icon={<Search className="w-8 h-8 text-slate-400" />}
+          title="Tidak Ditemukan TP yang Cocok"
+          description="Tidak ditemukan Tujuan Pembelajaran yang sesuai dengan kriteria filter atau pencarian Anda."
+          actionLabel="Reset Filter"
+          onAction={() => {
+            setFilterUsage('ALL');
+            setSearchQuery('');
+          }}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTPs.map((tp) => {
-            const isUsedInJournal = (tp.journal_count || 0) > 0;
-            const isUsedInScore = (tp.score_count || 0) > 0;
-            const isUsed = tp.is_used || isUsedInJournal || isUsedInScore;
+        <>
+          {/* DESKTOP TABLE VIEW */}
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th className="py-3 px-4 w-28">Kode TP</th>
+                  <th className="py-3 px-4">Deskripsi Capaian Kompetensi</th>
+                  <th className="py-3 px-4 w-44">Lingkup Materi</th>
+                  <th className="py-3 px-4 w-32 text-center">Status Rapor</th>
+                  <th className="py-3 px-4 w-24 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                {filteredObjectives.map((tp) => {
+                  const isUsed =
+                    Boolean(tp.is_used_in_report) ||
+                    Number(tp.scores_count || 0) > 0 ||
+                    Number(tp.journals_count || 0) > 0;
 
-            return (
-              <Card
-                key={tp.id}
-                className={`p-4 sm:p-5 flex flex-col justify-between border-slate-800 transition-all hover:border-slate-700 bg-slate-900/70 ${
-                  !tp.is_active ? 'opacity-70 bg-slate-900/40' : ''
-                }`}
-              >
-                <div>
-                  {/* Top Bar: Code, Scope, Status */}
-                  <div className="flex items-start justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-black font-mono tracking-wide">
-                        {tp.code}
+                  return (
+                    <tr
+                      key={tp.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group"
+                    >
+                      {/* Kode TP */}
+                      <td className="py-3.5 px-4 align-top">
+                        <span className="inline-block px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-[11px] font-bold border border-slate-200 dark:border-slate-700">
+                          {tp.code}
+                        </span>
+                      </td>
+
+                      {/* Deskripsi */}
+                      <td className="py-3.5 px-4 align-top">
+                        <p className="text-slate-900 dark:text-slate-100 font-medium leading-relaxed">
+                          {tp.description}
+                        </p>
+                        {isUsed && (
+                          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-1 block">
+                            • Terhubung ke asesmen penilaian
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Lingkup Materi */}
+                      <td className="py-3.5 px-4 align-top">
+                        {tp.scope_material ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px] border border-slate-200 dark:border-slate-700">
+                            <Tag className="w-3 h-3 text-slate-400" />
+                            {tp.scope_material}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">-</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 align-top text-center">
+                        {isUsed ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-semibold text-[11px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                            Di Rapor
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-medium text-[11px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                            Draf
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="py-3.5 px-4 align-top text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(tp)}
+                            title="Ubah TP"
+                            className="p-1.5 rounded-md text-slate-500 hover:text-emerald-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(tp)}
+                            title="Hapus TP"
+                            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* MOBILE CARD-STACK VIEW */}
+          <div className="md:hidden space-y-3">
+            {filteredObjectives.map((tp) => {
+              const isUsed =
+                Boolean(tp.is_used_in_report) ||
+                Number(tp.scores_count || 0) > 0 ||
+                Number(tp.journals_count || 0) > 0;
+
+              return (
+                <div
+                  key={tp.id}
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-2xs space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs font-bold border border-slate-200 dark:border-slate-700">
+                      {tp.code}
+                    </span>
+
+                    {isUsed ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 font-semibold text-[11px] border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                        Di Rapor
                       </span>
-                      {tp.scope_material && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-700/60">
-                          <Tag className="w-3 h-3 text-slate-400" />
-                          {tp.scope_material}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {tp.is_active ? (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                          Aktif
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                          Nonaktif
-                        </span>
-                      )}
-                    </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        Draf
+                      </span>
+                    )}
                   </div>
 
-                  {/* Description */}
-                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-normal mt-2">
+                  <p className="text-xs font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
                     {tp.description}
                   </p>
-                </div>
 
-                {/* Bottom Meta & Action Buttons */}
-                <div className="pt-4 mt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  {/* Usage Indicators */}
-                  <div className="flex items-center gap-2 flex-wrap text-[11px]">
-                    {isUsedInJournal && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-950/60 text-teal-300 border border-teal-800/50"
-                        title="Tujuan Pembelajaran ini telah digunakan dalam jurnal KBM harian"
-                      >
-                        <CheckCircle2 className="w-3 h-3 text-teal-400" />
-                        {tp.journal_count} Jurnal
-                      </span>
-                    )}
+                  {tp.scope_material && (
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 font-semibold">
+                      <Tag className="w-3 h-3 text-slate-400" />
+                      <span>{tp.scope_material}</span>
+                    </div>
+                  )}
 
-                    {isUsedInScore && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-950/60 text-sky-300 border border-sky-800/50"
-                        title="Tujuan Pembelajaran ini telah tercatat dalam penilaian e-Rapor siswa"
-                      >
-                        <FileCheck2 className="w-3 h-3 text-sky-400" />
-                        {tp.score_count} Nilai
-                      </span>
-                    )}
-
-                    {!isUsed && (
-                      <span className="text-slate-500 italic text-[11px]">
-                        Belum dipakai di jurnal / nilai
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Action Buttons (Touch Target 44px) */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenForm(tp)}
-                      aria-label={`Ubah TP ${tp.code}`}
-                      className="p-2 min-w-[40px] min-h-[40px] rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 active:bg-slate-700 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEdit(tp)}
+                      leftIcon={<Edit2 className="w-3.5 h-3.5" />}
+                      className="min-h-[40px] text-xs"
                     >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      type="button"
+                      Ubah TP
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => setDeleteTarget(tp)}
-                      aria-label={`Hapus TP ${tp.code}`}
-                      className="p-2 min-w-[40px] min-h-[40px] rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 active:bg-rose-900/40 transition flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                      className="min-h-[40px] text-xs"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      Hapus
+                    </Button>
                   </div>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* Bottom Sheet Form Tambah / Edit TP */}
+      {/* ========================================================================= */}
+      {/* 5. SLIDE-OVER DRAWER / MODAL FORM (TAMBAH & UBAH TP)                      */}
+      {/* ========================================================================= */}
       <BottomSheet
         isOpen={isFormOpen}
-        onClose={() => !isSubmitting && setIsFormOpen(false)}
-        title={editingTp ? 'Ubah Tujuan Pembelajaran' : 'Tambah Tujuan Pembelajaran'}
-        description={`Konfigurasi kompetensi TP untuk ${activeSubjectName} di ${activeContext?.satuanPendidikanName || 'Unit Sekolah'}.`}
+        onClose={() => setIsFormOpen(false)}
+        title={editingTp ? 'Ubah Tujuan Pembelajaran' : 'Tambah Tujuan Pembelajaran Baru'}
+        description={`Mata Pelajaran: ${mySubjects.find((s) => String(s.id) === String(selectedSubjectId))?.name || 'Mapel'}`}
         footer={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="md"
-              disabled={isSubmitting}
+              fullWidth
               onClick={() => setIsFormOpen(false)}
-              className="flex-1"
+              disabled={isSubmitting}
             >
               Batal
             </Button>
             <Button
               variant="primary"
-              size="md"
-              loading={isSubmitting}
+              fullWidth
               onClick={handleSubmitForm}
-              className="flex-1"
+              disabled={isSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-700 font-bold"
             >
-              {editingTp ? 'Simpan Perubahan' : 'Simpan TP'}
+              {isSubmitting ? 'Menyimpan...' : editingTp ? 'Simpan Perubahan' : 'Buat TP'}
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleSubmitForm} className="space-y-4 py-1">
-          {/* Grid Kode TP & No Urut */}
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
-              label="Kode TP"
-              required
-              error={formErrors.code}
-              help="Contoh: TP.1 atau TP.8.1"
-            >
-              <Input
+        <form onSubmit={handleSubmitForm} className="space-y-4 py-1 text-xs">
+          {/* Kode TP & Urutan */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+                Kode TP <span className="text-rose-500">*</span>
+              </label>
+              <input
                 type="text"
+                placeholder="Contoh: TP-7.1.1"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="TP.1"
-                className="font-mono font-bold"
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, code: e.target.value.toUpperCase() }));
+                  if (formErrors.code) setFormErrors((prev) => ({ ...prev, code: null }));
+                }}
+                className={`w-full h-10 px-3 text-xs font-mono font-bold rounded-lg bg-slate-50 dark:bg-slate-800 border ${
+                  formErrors.code
+                    ? 'border-rose-500 ring-1 ring-rose-500'
+                    : 'border-slate-200 dark:border-slate-700'
+                } text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500`}
               />
-            </FormField>
+              {formErrors.code && (
+                <p className="text-[11px] text-rose-500 font-semibold">{formErrors.code}</p>
+              )}
+            </div>
 
-            <FormField
-              label="No. Urutan"
-              required
-              help="Urutan tampil di e-Rapor"
-            >
-              <Input
-                type="number"
-                min="1"
-                value={formData.order_index}
-                onChange={(e) => setFormData({ ...formData, order_index: e.target.value })}
-                placeholder="1"
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+                Lingkup Materi
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Bilangan Bulat"
+                value={formData.scope_material}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, scope_material: e.target.value }))
+                }
+                className="w-full h-10 px-3 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
-            </FormField>
+            </div>
           </div>
 
-          {/* Lingkup Materi */}
-          <FormField
-            label="Lingkup Materi (Opsional)"
-            help="Topik bahasan, misal: Aljabar / Bilangan Bulat / Teks Prosedur"
-          >
-            <Input
-              type="text"
-              value={formData.scope_material}
-              onChange={(e) => setFormData({ ...formData, scope_material: e.target.value })}
-              placeholder="Contoh: Aljabar & SPLDV"
-            />
-          </FormField>
-
-          {/* Deskripsi TP */}
-          <FormField
-            label="Rumusan Tujuan Pembelajaran"
-            required
-            error={formErrors.description}
-            help="Tuliskan rumusan kompetensi dan lingkup materi yang diharapkan dicapai peserta didik."
-          >
-            <Textarea
-              rows={4}
+          {/* Deskripsi Capaian Kompetensi */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+              Deskripsi Capaian Kompetensi <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              rows="3"
+              placeholder="Contoh: Memahami konsep bilangan bulat dan sifat operasinya dalam kehidupan sehari-hari..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Peserta didik mampu memahami konsep..."
+              onChange={(e) => {
+                setFormData((prev) => ({ ...prev, description: e.target.value }));
+                if (formErrors.description) setFormErrors((prev) => ({ ...prev, description: null }));
+              }}
+              className={`w-full p-2.5 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border ${
+                formErrors.description
+                  ? 'border-rose-500 ring-1 ring-rose-500'
+                  : 'border-slate-200 dark:border-slate-700'
+              } text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none leading-relaxed`}
             />
-          </FormField>
+            {formErrors.description && (
+              <p className="text-[11px] text-rose-500 font-semibold">{formErrors.description}</p>
+            )}
+          </div>
 
           {/* Status Aktif Switch */}
-          <div className="pt-2">
-            <label className="flex items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 cursor-pointer hover:bg-slate-800 transition">
+          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Status TP Aktif
+              </span>
+              <span className="text-[11px] text-slate-500">
+                TP aktif dapat dipilih di Jurnal dan Asesmen Rapor
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, is_active: e.target.checked }))
+                }
+                className="sr-only peer"
               />
-              <div className="flex-1">
-                <span className="text-xs font-bold text-slate-200 block">Status TP Aktif</span>
-                <span className="text-[11px] text-slate-400 block">
-                  TP aktif akan muncul di pilihan jurnal harian dan modul penilaian.
-                </span>
-              </div>
+              <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
             </label>
           </div>
         </form>
       </BottomSheet>
 
-      {/* Confirm Dialog Hapus TP */}
-      {deleteTarget && (
-        <ConfirmDialog
-          isOpen={Boolean(deleteTarget)}
-          title={`Hapus TP ${deleteTarget.code}?`}
-          message={
-            (deleteTarget.journal_count > 0 || deleteTarget.score_count > 0 || deleteTarget.is_used)
-              ? `PERINGATAN: Tujuan Pembelajaran "${deleteTarget.code}" telah digunakan pada ${deleteTarget.journal_count || 0} jurnal mengajar dan ${deleteTarget.score_count || 0} penilaian siswa. Backend akan menolak penghapusan untuk menjaga integritas e-Rapor. Anda disarankan menonaktifkannya saja.`
-              : `Apakah Anda yakin ingin menghapus Tujuan Pembelajaran "${deleteTarget.code}"? Tindakan ini tidak dapat dibatalkan.`
-          }
-          variant={(deleteTarget.journal_count > 0 || deleteTarget.score_count > 0) ? 'warning' : 'danger'}
-          confirmLabel={
-            (deleteTarget.journal_count > 0 || deleteTarget.score_count > 0)
-              ? 'Tetap Coba Hapus'
-              : 'Ya, Hapus TP'
-          }
-          cancelLabel="Batal"
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setDeleteTarget(null)}
-          loading={isDeleting}
-        />
-      )}
+      {/* ========================================================================= */}
+      {/* 6. CONFIRM DELETE DIALOG                                                  */}
+      {/* ========================================================================= */}
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Hapus Tujuan Pembelajaran?"
+        message={`Apakah Anda yakin ingin menghapus TP "${deleteTarget?.code}" (${deleteTarget?.scope_material || 'Materi'})? Aksi ini tidak dapat dibatalkan jika TP belum terhubung ke nilai.`}
+        confirmText={isDeleting ? 'Menghapus...' : 'Ya, Hapus TP'}
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
