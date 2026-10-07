@@ -375,4 +375,9 @@ test('Tahap 7 Integration: Leave Entitlement, Append-Only Ledger, and Balance Ma
     const actor = await leaveService.resolveActor(siswaUser);
     assert.equal(actor.employeeId, null);
   });
+
+  t.after(async () => {
+    await coreDb.destroy();
+    await kepDb.destroy();
+  });
 });

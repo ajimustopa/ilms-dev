@@ -14,13 +14,14 @@ import api from '../../../../shared/services/api';
 
 import LeaveTypesSection from './settings/LeaveTypesSection';
 import LeaveTypeFormModal from './settings/LeaveTypeFormModal';
+import LeavePoliciesSection from './settings/LeavePoliciesSection';
 import ApprovalProfilesSection from './settings/ApprovalProfilesSection';
 import UnitApproversAndDelegationsSection from './settings/UnitApproversAndDelegationsSection';
 import EmployeeCompletenessSection from './settings/EmployeeCompletenessSection';
 import GeneralSettingsSection from './settings/GeneralSettingsSection';
 
 export default function LeaveSettingsTab({ activeSchoolUnit }) {
-  const [subTab, setSubTab] = useState('types'); // 'types' | 'profiles' | 'approvers' | 'completeness' | 'general'
+  const [subTab, setSubTab] = useState('types'); // 'types' | 'policies' | 'profiles' | 'approvers' | 'completeness' | 'general'
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [approvalProfiles, setApprovalProfiles] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -108,6 +109,19 @@ export default function LeaveSettingsTab({ activeSchoolUnit }) {
 
           <button
             type="button"
+            onClick={() => setSubTab('policies')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'policies'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Jatah & Kebijakan</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSubTab('profiles')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
               subTab === 'profiles'
@@ -115,7 +129,7 @@ export default function LeaveSettingsTab({ activeSchoolUnit }) {
                 : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
             }`}
           >
-            <Layers className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" />
             <span>Alur Persetujuan</span>
             <span className="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/30 text-[10px]">
               {approvalProfiles.length}
@@ -182,6 +196,12 @@ export default function LeaveSettingsTab({ activeSchoolUnit }) {
           onOpenCreate={handleOpenCreate}
           onOpenEdit={handleOpenEdit}
           approvalProfiles={approvalProfiles}
+        />
+      )}
+
+      {subTab === 'policies' && (
+        <LeavePoliciesSection
+          activeSchoolUnit={activeSchoolUnit}
         />
       )}
 
