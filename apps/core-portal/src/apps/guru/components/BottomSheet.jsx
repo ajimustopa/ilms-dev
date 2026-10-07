@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 /**
  * BottomSheet Component - Design System Portal Guru
- * Modal sheet geser dari bawah yang dioptimalkan untuk mobile layar sentuh dengan penanganan tombol ESC dan scroll lock.
+ * Modal Dialog & Bottom Sheet responsif dengan scroll lock, penanganan ESC, dan layout aman agar tidak terpotong atas/bawah.
  */
 export const BottomSheet = ({
   isOpen = false,
@@ -12,7 +12,7 @@ export const BottomSheet = ({
   description = null,
   children,
   footer = null,
-  maxHeight = 'max-h-[88vh]',
+  maxHeight = 'max-h-[85vh]',
   className = ''
 }) => {
   const sheetRef = useRef(null);
@@ -32,7 +32,7 @@ export const BottomSheet = ({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        onClose?.();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -43,39 +43,39 @@ export const BottomSheet = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'bottom-sheet-title' : undefined}
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Sheet Container */}
+      {/* Sheet / Modal Container (my-auto menjamin tidak terpotong di atas viewport) */}
       <div
         ref={sheetRef}
-        className={`relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200 overflow-hidden ${maxHeight} ${className}`}
+        className={`relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-xl sm:rounded-xl border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 my-0 sm:my-auto animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 overflow-hidden ${maxHeight} ${className}`}
       >
         {/* Mobile Pull/Drag Handle */}
-        <div className="sm:hidden flex items-center justify-center pt-3 pb-1 cursor-grab" onClick={onClose}>
-          <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
+        <div className="sm:hidden flex items-center justify-center pt-2.5 pb-1 cursor-grab" onClick={onClose}>
+          <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full" />
         </div>
 
         {/* Header */}
         {(title || onClose) && (
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
-            <div>
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/80 shrink-0">
+            <div className="min-w-0 pr-2">
               {title && (
-                <h3 id="bottom-sheet-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                <h3 id="bottom-sheet-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate">
                   {title}
                 </h3>
               )}
               {description && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                   {description}
                 </p>
               )}
@@ -85,22 +85,22 @@ export const BottomSheet = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Tutup"
-                className="w-10 h-10 min-w-[40px] flex items-center justify-center rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none shrink-0"
               >
-                <X className="w-5 h-5" aria-hidden="true" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
           </div>
         )}
 
         {/* Scrollable Content Body */}
-        <div className="p-4 overflow-y-auto flex-1 overscroll-contain">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain space-y-4">
           {children}
         </div>
 
         {/* Optional Sticky Footer */}
         {footer && (
-          <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/60 shrink-0">
+          <div className="p-3.5 sm:p-4 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/80 shrink-0">
             {footer}
           </div>
         )}
