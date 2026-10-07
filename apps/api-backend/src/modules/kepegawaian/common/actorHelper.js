@@ -21,18 +21,42 @@ const HR_PERMISSIONS = [
   'kepegawaian.overtimes.manage',
   'kepegawaian.overtime.read',
   'kepegawaian.overtime.approve',
+  'kepegawaian.overtime_settings.manage',
+  'kepegawaian.leave_reports.read',
+  'kepegawaian.holidays.manage',
   'kepegawaian.manage',
   'kepegawaian.view',
-  'superadmin'
+  'superadmin',
+  'core.manage'
 ];
+
+/**
+ * Checks whether targetSchoolUnitId is within the actor's unitScope.
+ * Returns true if unitScope is null (unrestricted superadmin), or contains the unit.
+ * @param {number|number[]|null} unitScope
+ * @param {number|string|null} targetSchoolUnitId
+ * @returns {boolean}
+ */
+function isUnitInScope(unitScope, targetSchoolUnitId) {
+  if (unitScope === null || unitScope === undefined) return true; // Unrestricted (super_admin / admin_yayasan)
+  if (!targetSchoolUnitId) return true;
+
+  const targetId = Number(targetSchoolUnitId);
+  if (Array.isArray(unitScope)) {
+    if (unitScope.length === 0) return true;
+    return unitScope.some(u => Number(u) === targetId);
+  }
+  return Number(unitScope) === targetId;
+}
 
 /**
  * Evaluasi murni (pure function) untuk objek user dan record employee.
  * @param {object} user - Objek JWT user
  * @param {object|null} employeeRecord - Data pegawai dari DB atau null jika tidak ada/bukan pegawai
  * @returns {{
+ *   userId: number|null,
  *   employeeId: number|null,
- *   unitScope: number|null,
+ *   unitScope: number[]|null,
  *   permissions: string[],
  *   isHR: boolean,
  *   isInactive: boolean,
@@ -42,14 +66,17 @@ const HR_PERMISSIONS = [
 function evaluateActor(user = {}, employeeRecord = null) {
   if (!user || typeof user !== 'object') {
     return {
+      userId: null,
       employeeId: null,
-      unitScope: null,
+      unitScope: [],
       permissions: [],
       isHR: false,
       isInactive: false,
       employee: null
     };
   }
+
+  const userId = user.id ? Number(user.id) : null;
 
   // 1. Ekstraksi Permissions
   const permissions = Array.isArray(user.permissions)
@@ -75,12 +102,29 @@ function evaluateActor(user = {}, employeeRecord = null) {
   const isHR = isSuperAdmin || hasHRPermission;
 
   // 3. Cakupan Satuan Pendidikan (Unit Scope)
-  const unitScope =
-    (user.active_school_unit_id && Number(user.active_school_unit_id)) ||
-    (user.school_unit_id && Number(user.school_unit_id)) ||
-    (Array.isArray(user.school_roles) && user.school_roles[0]?.school_unit_id && Number(user.school_roles[0].school_unit_id)) ||
-    (employeeRecord && employeeRecord.school_unit_id && Number(employeeRecord.school_unit_id)) ||
-    null;
+  let unitScope = null;
+  if (!isSuperAdmin) {
+    const rawUnits = new Set();
+    if (user.active_school_unit_id) rawUnits.add(Number(user.active_school_unit_id));
+    if (user.school_unit_id) rawUnits.add(Number(user.school_unit_id));
+    if (Array.isArray(user.school_unit_ids)) {
+      user.school_unit_ids.forEach(id => { if (id) rawUnits.add(Number(id)); });
+    }
+    if (Array.isArray(user.school_roles)) {
+      user.school_roles.forEach(sr => {
+        if (sr.school_unit_id) rawUnits.add(Number(sr.school_unit_id));
+      });
+    }
+    if (employeeRecord && employeeRecord.school_unit_id) {
+      rawUnits.add(Number(employeeRecord.school_unit_id));
+    }
+
+    if (rawUnits.size > 0) {
+      unitScope = Array.from(rawUnits);
+    } else {
+      unitScope = [];
+    }
+  }
 
   // 4. Verifikasi Tipe Referensi Akun (HANYA 'staff', 'teacher', atau 'employee')
   const allowedRefTypes = ['staff', 'teacher', 'employee'];
@@ -88,6 +132,7 @@ function evaluateActor(user = {}, employeeRecord = null) {
 
   if (!isValidRefType || !user.ref_id) {
     return {
+      userId,
       employeeId: null,
       unitScope,
       permissions,
@@ -100,6 +145,7 @@ function evaluateActor(user = {}, employeeRecord = null) {
   // 5. Verifikasi Data Pegawai
   if (!employeeRecord) {
     return {
+      userId,
       employeeId: null,
       unitScope,
       permissions,
@@ -115,6 +161,7 @@ function evaluateActor(user = {}, employeeRecord = null) {
 
   if (!isEmployeeActive) {
     return {
+      userId,
       employeeId: null,
       unitScope,
       permissions,
@@ -125,6 +172,7 @@ function evaluateActor(user = {}, employeeRecord = null) {
   }
 
   return {
+    userId,
     employeeId: Number(employeeRecord.id || user.ref_id),
     unitScope,
     permissions,
@@ -139,8 +187,9 @@ function evaluateActor(user = {}, employeeRecord = null) {
  * @param {object} user - req.user
  * @param {object} [customDb] - Knex instance (defaults to kepegawaian db)
  * @returns {Promise<{
+ *   userId: number|null,
  *   employeeId: number|null,
- *   unitScope: number|null,
+ *   unitScope: number[]|null,
  *   permissions: string[],
  *   isHR: boolean,
  *   isInactive: boolean,
@@ -194,5 +243,6 @@ module.exports = {
   evaluateActor,
   resolveActor,
   assertEmployeeActor,
+  isUnitInScope,
   HR_PERMISSIONS
 };

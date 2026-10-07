@@ -3,7 +3,8 @@ const path = require('path');
 const db = require('../../../config/db/kepegawaian');
 const calendarService = require('./calendarService');
 const auditService = require('./auditService');
-const { resolveActor, assertEmployeeActor } = require('../common/actorHelper');
+const { resolveActor, assertEmployeeActor, isUnitInScope } = require('../common/actorHelper');
+const { saveLeaveAttachment } = require('../leave/attachmentHelper');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
 
@@ -1079,23 +1080,7 @@ class AttendanceService {
       throw error;
     }
 
-    const uploadsDir = path.join(__dirname, '../../../../public/uploads/leave-attachments');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const sanitizedBase = path.basename(originalName, path.extname(originalName)).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `izin_${employeeId || 'emp'}_${Date.now()}_${sanitizedBase || 'dokumen'}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, buffer);
-
-    return {
-      attachment_url: `/uploads/leave-attachments/${filename}`,
-      attachment_name: originalName || filename,
-      attachment_mime_type: mimeType,
-      attachment_size_bytes: buffer.length
-    };
+    return saveLeaveAttachment(payload, employeeId);
   }
 
   // ==========================================
@@ -1125,7 +1110,16 @@ class AttendanceService {
       baseQuery = baseQuery.where('employee_leave_requests.leave_type', query.leave_type);
     }
 
-    return baseQuery.orderBy('employee_leave_requests.id', 'desc');
+    const rows = await baseQuery.orderBy('employee_leave_requests.id', 'desc');
+    return rows.map(r => {
+      const item = { ...r };
+      const hasAttachment = Boolean(item.attachment_url || item.attachment_name);
+      delete item.attachment_url; // Don't expose raw URL in list per SPEC §9.2
+      return {
+        ...item,
+        has_attachment: hasAttachment
+      };
+    });
   }
 
   async getMyLeaveRequests(user, query = {}) {
@@ -1250,6 +1244,12 @@ class AttendanceService {
     }
 
     const targetSchoolUnitId = school_unit_id || employee.school_unit_id;
+    if (!isUnitInScope(actor.unitScope, targetSchoolUnitId)) {
+      const error = new Error('Pegawai yang diajukan berada di luar cakupan satuan pendidikan Anda');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN_SCOPE';
+      throw error;
+    }
 
     // Proses berkas lampiran jika dikirim (opsional)
     const attachmentPayload = attachment || attachment_base64 || attachment_url || (attachment_name ? { name: attachment_name, data: attachment_base64 } : null);
@@ -1436,6 +1436,12 @@ class AttendanceService {
     }
 
     const targetSchoolUnitId = school_unit_id || employee.school_unit_id;
+    if (!isUnitInScope(actor.unitScope, targetSchoolUnitId)) {
+      const error = new Error('Pegawai yang diajukan berada di luar cakupan satuan pendidikan Anda');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN_SCOPE';
+      throw error;
+    }
 
     const [id] = await db('employee_overtimes').insert({
       employee_id,

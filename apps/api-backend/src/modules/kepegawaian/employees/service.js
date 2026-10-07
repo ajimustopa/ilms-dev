@@ -52,8 +52,8 @@ class EmployeesService {
 
     let baseQuery = db('employees');
 
-    // Filter berdasarkan school_unit_id
-    if (query.school_unit_id) {
+    // Filter berdasarkan school_unit_id (abaikan jika 'all' atau data gabungan pusat yayasan)
+    if (query.school_unit_id && query.school_unit_id !== 'all' && query.school_unit_id !== 'null' && query.school_unit_id !== 'undefined') {
       baseQuery = baseQuery.where('employees.school_unit_id', query.school_unit_id);
     }
 

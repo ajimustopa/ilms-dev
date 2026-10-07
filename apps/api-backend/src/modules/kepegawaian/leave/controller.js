@@ -2,13 +2,18 @@
  * Leave & Overtime Controller
  * Modul Kepegawaian - Core Aldepos
  * Handles all Leave Types, Holidays, Ledger Balances, Requests, Approvals, Overtimes, and Reports
+ * Conforms to SPEC-CUTI-LEMBUR.md §9, §10, §11
  */
 
+const fs = require('fs');
+const path = require('path');
 const leaveService = require('./leaveService');
 const holidayService = require('./holidayService');
 const leaveTypeService = require('./leaveTypeService');
 const leaveLedgerService = require('./leaveLedgerService');
 const overtimeService = require('./overtimeService');
+const employeeProfileService = require('./employeeProfileService');
+const { resolveAttachmentPath } = require('./attachmentHelper');
 
 class LeaveController {
   // =========================================================================
@@ -155,13 +160,60 @@ class LeaveController {
   }
 
   // =========================================================================
+  // Employee Profile Completeness (SPEC §11.1)
+  // =========================================================================
+
+  async getEmployeeProfiles(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await employeeProfileService.getEmployeeProfiles(req.query, actor);
+      return res.json({
+        success: true,
+        data: result.data,
+        meta: result.meta,
+        message: 'Daftar kelengkapan profil pegawai',
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'SERVER_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async updateEmployeeProfile(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const reqMeta = { ip: req.ip || req.connection?.remoteAddress };
+      const data = await employeeProfileService.updateEmployeeProfile(req.params.employeeId, req.body, actor, reqMeta);
+      return res.json({
+        success: true,
+        data,
+        message: 'Profil kelengkapan pegawai berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  // =========================================================================
   // Holidays (Kalender Libur)
   // =========================================================================
 
   async getHolidays(req, res) {
     try {
-      const data = await holidayService.getHolidays(req.query);
-      return res.json({ success: true, data, message: 'Daftar hari libur', errors: null });
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await holidayService.getHolidays(req.query, actor);
+      return res.json({ success: true, data, message: 'Daftar kalender libur', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
@@ -198,14 +250,20 @@ class LeaveController {
   }
 
   // =========================================================================
-  // Balances & Ledger (Saldo & Jatah Cuti)
+  // Balances & Ledger
   // =========================================================================
 
   async getBalances(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const data = await leaveLedgerService.getBalances(req.query);
-      return res.json({ success: true, data: data.data, meta: { total: data.total, page: data.page, per_page: data.perPage }, message: 'Daftar saldo cuti pegawai', errors: null });
+      const result = await leaveLedgerService.getBalances(req.query, actor);
+      return res.json({
+        success: true,
+        data: result.data,
+        meta: { total: result.total, page: result.page, per_page: result.perPage },
+        message: 'Daftar saldo cuti pegawai',
+        errors: null
+      });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
@@ -215,9 +273,14 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       if (!actor.employeeId) {
-        return res.status(403).json({ success: false, data: null, message: 'Akun Anda tidak terikat dengan profil pegawai', errors: null });
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terikat dengan profil pegawai aktif',
+          errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Bukan akun pegawai aktif' }]
+        });
       }
-      const data = await leaveLedgerService.getEmployeeBalance(actor.employeeId, req.query.period);
+      const data = await leaveLedgerService.getEmployeeBalance(actor.employeeId);
       return res.json({ success: true, data, message: 'Saldo cuti saya', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
@@ -226,8 +289,9 @@ class LeaveController {
 
   async getLedger(req, res) {
     try {
-      const data = await leaveLedgerService.getLedger(req.params.employeeId, req.query.period_id);
-      return res.json({ success: true, data, message: 'Mutasi buku besar (ledger) cuti', errors: null });
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveLedgerService.getLedgerEntries(req.params.employeeId, req.query, actor);
+      return res.json({ success: true, data, message: 'Riwayat mutasi ledger cuti', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
@@ -236,22 +300,15 @@ class LeaveController {
   async adjustBalance(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const { employee_id, delta_available, period_id, reason } = req.body;
-      const data = await leaveLedgerService.adjustBalance({
-        employeeId: employee_id,
-        deltaAvailable: delta_available,
-        periodId: period_id,
-        reason,
-        actor
-      });
-      return res.json({ success: true, data, message: 'Saldo cuti berhasil disesuaikan', errors: null });
+      const data = await leaveLedgerService.adjustBalance(req.body, actor);
+      return res.json({ success: true, data, message: 'Penyesuaian saldo cuti berhasil dicatat', errors: null });
     } catch (err) {
       return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
   }
 
   // =========================================================================
-  // Leave Requests (Pengajuan, Preview, Approval, Revision, Cancel)
+  // Leave Requests (Pengajuan, Preview, Approval, Revision, Cancel, Attachment)
   // =========================================================================
 
   async previewLeaveRequest(req, res) {
@@ -299,7 +356,12 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       if (!actor.employeeId) {
-        return res.status(403).json({ success: false, data: null, message: 'Akun Anda tidak terikat dengan profil pegawai', errors: null });
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terikat dengan profil pegawai aktif',
+          errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Bukan akun pegawai aktif' }]
+        });
       }
       const query = { ...req.query, employee_id: actor.employeeId };
       const result = await leaveService.getLeaveRequests(query, actor);
@@ -317,6 +379,58 @@ class LeaveController {
       return res.json({ success: true, data, message: 'Detail permohonan cuti', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getLeaveAttachment(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const leave = await leaveService.getLeaveRequestById(req.params.id, actor);
+      if (!leave) {
+        return res.status(404).json({ success: false, data: null, message: 'Pengajuan cuti tidak ditemukan', errors: null });
+      }
+
+      if (!leave.attachment_url) {
+        return res.status(404).json({ success: false, data: null, message: 'Pengajuan cuti ini tidak memiliki lampiran berkas', errors: null });
+      }
+
+      // Authorization check: owner OR HR in scope OR step approver
+      const isOwner = actor.employeeId && Number(actor.employeeId) === Number(leave.employee_id);
+      const isHr = actor.permissions.some(p => ['kepegawaian.leave_requests.manage', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.override'].includes(p)) || actor.isHR;
+
+      if (!isOwner && !isHr) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Anda tidak memiliki hak akses untuk mengunduh lampiran pengajuan cuti ini',
+          errors: [{ code: 'FORBIDDEN_SCOPE', message: 'Akses lampiran ditolak' }]
+        });
+      }
+
+      const { absolutePath, exists } = resolveAttachmentPath(leave.attachment_url);
+      if (!exists || !fs.existsSync(absolutePath)) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'Berkas lampiran fisik tidak ditemukan di server penyimpanan',
+          errors: [{ code: 'FILE_NOT_FOUND', message: 'Berkas fisik tidak ditemukan' }]
+        });
+      }
+
+      const mimeType = leave.attachment_mime_type || 'application/octet-stream';
+      const filename = leave.attachment_name || path.basename(absolutePath);
+
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
+      const fileStream = fs.createReadStream(absolutePath);
+      fileStream.pipe(res);
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'SERVER_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -416,7 +530,12 @@ class LeaveController {
     try {
       const actor = await leaveService.resolveActor(req.user);
       if (!actor.employeeId) {
-        return res.status(403).json({ success: false, data: null, message: 'Akun Anda tidak terikat dengan profil pegawai', errors: null });
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terikat dengan profil pegawai aktif',
+          errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Bukan akun pegawai aktif' }]
+        });
       }
       const query = { ...req.query, employee_id: actor.employeeId };
       const result = await overtimeService.getOvertimes(query, actor);
@@ -439,7 +558,7 @@ class LeaveController {
   async createOvertime(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const isHr = actor.permissions.includes('kepegawaian.overtimes.manage');
+      const isHr = actor.permissions.some(p => ['kepegawaian.overtimes.manage', 'kepegawaian.leave_requests.manage'].includes(p)) || actor.isHR;
       let targetEmpId = actor.employeeId;
       let origin = 'requested';
 
@@ -448,6 +567,15 @@ class LeaveController {
         if (targetEmpId !== actor.employeeId) {
           origin = 'assigned';
         }
+      }
+
+      if (!targetEmpId) {
+        return res.status(403).json({
+          success: false,
+          data: null,
+          message: 'Akun Anda tidak terikat dengan profil pegawai aktif',
+          errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Bukan akun pegawai aktif' }]
+        });
       }
 
       const data = await overtimeService.createOvertime({

@@ -7,6 +7,7 @@
 const db = require('../../../config/db/kepegawaian');
 const holidayService = require('./holidayService');
 const { todayWIB } = require('./dateHelper');
+const { isUnitInScope } = require('../common/actorHelper');
 
 class OvertimeService {
   /**
@@ -155,6 +156,13 @@ class OvertimeService {
     if (!employee) {
       const err = new Error('Pegawai tidak ditemukan');
       err.statusCode = 404;
+      throw err;
+    }
+
+    if (!isUnitInScope(actor.unitScope, employee.school_unit_id)) {
+      const err = new Error('Pegawai berada di luar cakupan satuan pendidikan Anda');
+      err.code = 'FORBIDDEN_SCOPE';
+      err.statusCode = 403;
       throw err;
     }
 

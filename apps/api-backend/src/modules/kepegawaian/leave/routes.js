@@ -32,6 +32,12 @@ router.put('/leave-settings', authenticate, requirePermission('kepegawaian.leave
 router.get('/absence-thresholds', authenticate, controller.getAbsenceThresholds);
 
 // ==========================================
+// 1b. Kelengkapan Profil Pegawai (Join Date & Atasan Langsung) - SPEC §11.1
+// ==========================================
+router.get('/leave-employee-profile', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getEmployeeProfiles);
+router.patch('/leave-employee-profile/:employeeId', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.updateEmployeeProfile);
+
+// ==========================================
 // 2. Hari Libur (Holidays)
 // ==========================================
 router.get('/holidays', authenticate, controller.getHolidays);
@@ -42,7 +48,7 @@ router.delete('/holidays/:id', authenticate, requirePermission('kepegawaian.holi
 // ==========================================
 // 3. Saldo Cuti & Ledger
 // ==========================================
-router.get('/leave-balances', authenticate, requirePermission('kepegawaian.leave_balances.read'), controller.getBalances);
+router.get('/leave-balances', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getBalances);
 router.get('/leave-balances/my', authenticate, controller.getMyBalance);
 router.get('/leave-balances/:employeeId/ledger', authenticate, requirePermission('kepegawaian.leave_balances.read'), controller.getLedger);
 router.post('/leave-balances/adjust', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.adjustBalance);
@@ -50,12 +56,13 @@ router.post('/leave-balances/adjust', authenticate, requirePermission('kepegawai
 // ==========================================
 // 4. Permohonan Cuti / Izin
 // ==========================================
-router.get('/leave-requests/calendar-matrix', authenticate, requirePermission('kepegawaian.leave_requests.read'), controller.getCalendarMatrix);
+router.get('/leave-requests/calendar-matrix', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getCalendarMatrix);
 router.get('/leave-requests/reports/summary', authenticate, requirePermission('kepegawaian.leave_reports.read'), controller.getReportsSummary);
 router.get('/payroll-feed', authenticate, controller.getPayrollFeed);
 
 router.get('/leave-requests/my', authenticate, controller.getMyLeaveRequests);
-router.get('/leave-requests', authenticate, requirePermission('kepegawaian.leave_requests.read'), controller.listLeaveRequests);
+router.get('/leave-requests', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.listLeaveRequests);
+router.get('/leave-requests/:id/attachment', authenticate, controller.getLeaveAttachment);
 router.get('/leave-requests/:id', authenticate, controller.getLeaveRequestDetail);
 
 router.post('/leave-requests/preview', authenticate, controller.previewLeaveRequest);
@@ -70,7 +77,7 @@ router.patch('/leave-requests/:id/cancel', authenticate, controller.cancelLeaveR
 // 5. Lembur (Overtime)
 // ==========================================
 router.get('/overtimes/my', authenticate, controller.getMyOvertimes);
-router.get('/overtimes', authenticate, requirePermission('kepegawaian.leave_requests.read'), controller.listOvertimes);
+router.get('/overtimes', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.overtimes.manage'), controller.listOvertimes);
 router.get('/overtimes/:id', authenticate, controller.getOvertimeDetail);
 router.post('/overtimes', authenticate, controller.createOvertime);
 router.patch('/overtimes/:id/approve', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.approveOvertime);

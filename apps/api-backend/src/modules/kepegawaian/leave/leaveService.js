@@ -12,6 +12,8 @@ const leaveLedgerService = require('./leaveLedgerService');
 const leaveApprovalService = require('./leaveApprovalService');
 const { computeDuration, computeEndDate } = require('./durationCalculator');
 const { todayWIB, dateRange } = require('./dateHelper');
+const { resolveActor, isUnitInScope } = require('../common/actorHelper');
+const { saveLeaveAttachment } = require('./attachmentHelper');
 
 class LeaveService {
   /**
@@ -19,40 +21,7 @@ class LeaveService {
    * SPEC §9.1
    */
   async resolveActor(user) {
-    if (!user) {
-      return {
-        userId: null,
-        employeeId: null,
-        unitScope: [],
-        permissions: []
-      };
-    }
-
-    const permissions = user.permissions || [];
-    let employeeId = null;
-    let unitScope = user.school_unit_ids || (user.school_unit_id ? [user.school_unit_id] : []);
-
-    // Check ref_type strictly
-    if (user.ref_type === 'staff' || user.ref_type === 'teacher') {
-      if (user.ref_id) {
-        const emp = await db('employees').where({ id: user.ref_id, account_status: 'active' }).first();
-        if (emp) {
-          employeeId = emp.id;
-          if (!unitScope || unitScope.length === 0) {
-            unitScope = [emp.school_unit_id];
-          }
-        }
-      }
-    }
-
-    return {
-      userId: user.id,
-      employeeId,
-      unitScope,
-      permissions,
-      accountType: user.account_type,
-      rawUser: user
-    };
+    return resolveActor(user, db);
   }
 
   /**
@@ -219,6 +188,39 @@ class LeaveService {
       throw err;
     }
 
+    if (submittedOnBehalf && !isUnitInScope(actor.unitScope, employee.school_unit_id)) {
+      const err = new Error('Pegawai yang diajukan berada di luar cakupan satuan pendidikan Anda');
+      err.code = 'FORBIDDEN_SCOPE';
+      err.statusCode = 403;
+      throw err;
+    }
+
+    // Process attachment if provided
+    let finalAttachmentUrl = attachment_url || null;
+    let finalAttachmentName = attachment_name || null;
+    let finalMimeType = null;
+    let finalSizeBytes = null;
+
+    let attachmentPayload = null;
+    if (data.attachment && typeof data.attachment === 'object') {
+      attachmentPayload = data.attachment;
+    } else if (data.attachment || data.attachment_base64 || data.attachment_data) {
+      attachmentPayload = {
+        data: data.attachment || data.attachment_base64 || data.attachment_data,
+        name: data.attachment_name || 'lampiran.pdf'
+      };
+    }
+
+    if (attachmentPayload) {
+      const saved = saveLeaveAttachment(attachmentPayload, employee.id);
+      if (saved) {
+        finalAttachmentUrl = saved.attachment_url;
+        finalAttachmentName = saved.attachment_name;
+        finalMimeType = saved.attachment_mime_type;
+        finalSizeBytes = saved.attachment_size_bytes;
+      }
+    }
+
     // Lookup leave type
     const typeRecord = await leaveTypeService.getLeaveType(leave_type);
     if (!typeRecord) {
@@ -296,8 +298,8 @@ class LeaveService {
         start_portion,
         end_portion,
         reason,
-        attachment_url,
-        attachment_name,
+        attachment_url: finalAttachmentUrl,
+        attachment_name: finalAttachmentName,
         status: initialStatus,
         version: 1,
         submitted_by_user_id: actor.userId,
@@ -449,11 +451,17 @@ class LeaveService {
     const rows = await q.orderBy('elr.created_at', 'desc').limit(perPage).offset(offset);
 
     return {
-      data: rows.map(r => ({
-        ...r,
-        duration_days: parseFloat(r.duration_days) || 0,
-        day_breakdown: typeof r.day_breakdown === 'string' ? JSON.parse(r.day_breakdown) : r.day_breakdown
-      })),
+      data: rows.map(r => {
+        const item = { ...r };
+        const hasAttachment = Boolean(item.attachment_url || item.attachment_name);
+        delete item.attachment_url; // Don't expose raw URL in list (SPEC §9.2)
+        return {
+          ...item,
+          has_attachment: hasAttachment,
+          duration_days: parseFloat(item.duration_days) || 0,
+          day_breakdown: typeof item.day_breakdown === 'string' ? JSON.parse(item.day_breakdown) : item.day_breakdown
+        };
+      }),
       total,
       page,
       perPage
