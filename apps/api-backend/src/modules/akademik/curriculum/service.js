@@ -611,6 +611,7 @@ class CurriculumService {
         'students.birth_place',
         'students.birth_date',
         'students.gender',
+        'students.photo_url',
         'students.status as student_status',
         'students.cohort_name',
         'cohorts.name as cohort_title'
