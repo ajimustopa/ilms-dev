@@ -30,6 +30,7 @@ const kepegawaianDetailsRoutes = require('./modules/kepegawaian/employee-details
 const kepegawaianRecruitmentRoutes = require('./modules/kepegawaian/recruitment/routes');
 const kepegawaianOrgRoutes = require('./modules/kepegawaian/organization/routes');
 const kepegawaianAttendanceRoutes = require('./modules/kepegawaian/attendance/routes');
+const kepegawaianLeaveRoutes = require('./modules/kepegawaian/leave/routes');
 const kepegawaianPayrollRoutes = require('./modules/kepegawaian/payroll/routes');
 const kepegawaianPerformanceRoutes = require('./modules/kepegawaian/performance/routes');
 const kepegawaianPsychotestRoutes = require('./modules/kepegawaian/psychotest/routes');
@@ -186,7 +187,9 @@ kepegawaianV1Router.use('/', kepegawaianRecruitmentRoutes);
 kepegawaianV1Router.use('/', kepegawaianOrgRoutes);
 
 // 2.3 Modul 3: Kehadiran (Presensi, Cuti & Izin, Lembur)
+kepegawaianV1Router.use('/', kepegawaianLeaveRoutes);
 kepegawaianV1Router.use('/', kepegawaianAttendanceRoutes);
+kepegawaianV1Router.use('/attendance', kepegawaianAttendanceRoutes);
 
 // 2.4 Modul 4: Penggajian (Payroll)
 kepegawaianV1Router.use('/', kepegawaianPayrollRoutes);

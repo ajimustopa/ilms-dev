@@ -3,59 +3,51 @@ import { useAuth } from '../../../shared/store/AuthContext';
 import {
   CalendarRange,
   Clock,
-  Plus,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Loader2,
+  BookOpen,
+  Calendar as CalendarIcon,
+  Sliders,
+  BarChart3,
   RefreshCw,
-  X,
-  User
+  Plus,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import api from '../../../shared/services/api';
+
+import LeaveRequestsTab from './cuti-lembur/LeaveRequestsTab';
+import LeaveBalancesTab from './cuti-lembur/LeaveBalancesTab';
+import OvertimeTab from './cuti-lembur/OvertimeTab';
+import HolidaysTab from './cuti-lembur/HolidaysTab';
+import LeaveSettingsTab from './cuti-lembur/LeaveSettingsTab';
+import LeaveReportsTab from './cuti-lembur/LeaveReportsTab';
+import CreateLeaveModal from './cuti-lembur/CreateLeaveModal';
+import CreateOvertimeModal from './cuti-lembur/CreateOvertimeModal';
 
 export default function CutiLembur() {
   const { user, activeSchoolUnit } = useAuth();
   const [activeTab, setActiveTab] = useState('leaves');
 
-  // Leaves state
+  // Global state for leave requests and overtimes
   const [leaves, setLeaves] = useState([]);
   const [loadingLeaves, setLoadingLeaves] = useState(true);
 
-  // Overtimes state
   const [overtimes, setOvertimes] = useState([]);
   const [loadingOvertimes, setLoadingOvertimes] = useState(true);
 
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-
-  // Modals & Forms
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({
-    employee_id: '',
-    leave_type: 'Cuti Tahunan',
-    start_date: '',
-    end_date: '',
-    reason: ''
-  });
-
-  const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
-  const [overtimeForm, setOvertimeForm] = useState({
-    employee_id: '',
-    overtime_date: '',
-    hours: '2',
-    notes: ''
-  });
-
-  // Reject Modal
-  const [rejectType, setRejectType] = useState(null); // 'leave' or 'overtime'
-  const [selectedRejectId, setSelectedRejectId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Employee list for dropdown
+  const [leaveTypes, setLeaveTypes] = useState([]);
   const [employees, setEmployees] = useState([]);
+
+  // Modals
+  const [isCreateLeaveModalOpen, setIsCreateLeaveModalOpen] = useState(false);
+  const [isCreateOvertimeModalOpen, setIsCreateOvertimeModalOpen] = useState(false);
+
+  const [notification, setNotification] = useState(null);
+
+  const isHr = user?.permissions?.includes('kepegawaian.leave_requests.manage') ||
+               user?.permissions?.includes('kepegawaian.leave_types.manage') ||
+               user?.role === 'super_admin' ||
+               user?.role === 'hrd' ||
+               user?.role === 'admin_satuan_pendidikan';
 
   const fetchLeaves = async () => {
     setLoadingLeaves(true);
@@ -63,9 +55,11 @@ export default function CutiLembur() {
       let q = '';
       if (activeSchoolUnit?.id) q = `?school_unit_id=${activeSchoolUnit.id}`;
       const res = await api.get(`/kepegawaian/leave-requests${q}`);
-      if (res.data?.success) setLeaves(res.data.data || []);
+      if (res.data?.success) {
+        setLeaves(res.data.data || []);
+      }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal memuat pengajuan cuti');
+      console.error('Failed to fetch leaves:', err);
     } finally {
       setLoadingLeaves(false);
     }
@@ -77,512 +71,189 @@ export default function CutiLembur() {
       let q = '';
       if (activeSchoolUnit?.id) q = `?school_unit_id=${activeSchoolUnit.id}`;
       const res = await api.get(`/kepegawaian/overtimes${q}`);
-      if (res.data?.success) setOvertimes(res.data.data || []);
+      if (res.data?.success) {
+        setOvertimes(res.data.data || []);
+      }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal memuat pengajuan lembur');
+      console.error('Failed to fetch overtimes:', err);
     } finally {
       setLoadingOvertimes(false);
     }
   };
 
-  const fetchEmployees = async () => {
+  const fetchMasterData = async () => {
     try {
-      const res = await api.get('/kepegawaian/employees?per_page=100');
-      if (res.data?.success) setEmployees(res.data.data.items || []);
-    } catch (err) {}
+      const [typesRes, empsRes] = await Promise.all([
+        api.get('/kepegawaian/leave-types'),
+        api.get('/kepegawaian/employees?per_page=100')
+      ]);
+      if (typesRes.data?.success) setLeaveTypes(typesRes.data.data || []);
+      if (empsRes.data?.success) setEmployees(empsRes.data.data.items || empsRes.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch master data:', err);
+    }
   };
 
   useEffect(() => {
     fetchLeaves();
     fetchOvertimes();
-    fetchEmployees();
+    fetchMasterData();
   }, [activeSchoolUnit]);
 
-  // Leave Handlers
-  const handleCreateLeave = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrorMsg('');
-    try {
-      const res = await api.post('/kepegawaian/leave-requests', {
-        ...leaveForm,
-        school_unit_id: activeSchoolUnit?.id || 1
-      });
-      if (res.data?.success) {
-        setSuccessMsg('Pengajuan cuti berhasil dikirim');
-        setIsLeaveModalOpen(false);
-        fetchLeaves();
-      }
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal mengajukan cuti');
-    } finally {
-      setSubmitting(false);
-    }
+  const showNotification = (msg, type = 'success') => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleApproveLeave = async (id) => {
-    try {
-      const res = await api.patch(`/kepegawaian/leave-requests/${id}/approve`, {});
-      if (res.data?.success) {
-        setSuccessMsg('Pengajuan cuti berhasil disetujui');
-        fetchLeaves();
-      }
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal menyetujui cuti');
-    }
-  };
-
-  // Overtime Handlers
-  const handleCreateOvertime = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrorMsg('');
-    try {
-      const res = await api.post('/kepegawaian/overtimes', {
-        ...overtimeForm,
-        school_unit_id: activeSchoolUnit?.id || 1
-      });
-      if (res.data?.success) {
-        setSuccessMsg('Pengajuan lembur berhasil dicatat');
-        setIsOvertimeModalOpen(false);
-        fetchOvertimes();
-      }
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal mencatat lembur');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleApproveOvertime = async (id) => {
-    try {
-      const res = await api.patch(`/kepegawaian/overtimes/${id}/approve`, {});
-      if (res.data?.success) {
-        setSuccessMsg('Pengajuan lembur berhasil disetujui');
-        fetchOvertimes();
-      }
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal menyetujui lembur');
-    }
-  };
-
-  // Reject Modal Open & Submit
-  const openRejectModal = (type, id) => {
-    setRejectType(type);
-    setSelectedRejectId(id);
-    setRejectReason('');
-    setIsRejectModalOpen(true);
-  };
-
-  const handleRejectSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrorMsg('');
-    try {
-      if (rejectType === 'leave') {
-        await api.patch(`/kepegawaian/leave-requests/${selectedRejectId}/reject`, { reason: rejectReason });
-        setSuccessMsg('Pengajuan cuti ditolak');
-        fetchLeaves();
-      } else {
-        await api.patch(`/kepegawaian/overtimes/${selectedRejectId}/reject`, { notes: rejectReason });
-        setSuccessMsg('Pengajuan lembur ditolak');
-        fetchOvertimes();
-      }
-      setIsRejectModalOpen(false);
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Gagal menolak pengajuan');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const statusBadges = {
-    pending: 'bg-amber-50 text-amber-700 border-amber-200',
-    approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    rejected: 'bg-rose-50 text-rose-700 border-rose-200'
-  };
+  const tabs = [
+    { id: 'leaves', label: 'Permohonan Cuti & Izin', icon: CalendarRange },
+    { id: 'balances', label: 'Saldo & Jatah Cuti', icon: BookOpen },
+    { id: 'overtimes', label: 'Lembur Pegawai', icon: Clock },
+    { id: 'holidays', label: 'Kalender Libur & Cuti Bersama', icon: CalendarIcon },
+    { id: 'settings', label: 'Master & Kebijakan', icon: Sliders },
+    { id: 'reports', label: 'Laporan & Analitik', icon: BarChart3 }
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">Manajemen Cuti, Izin & Lembur</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Kelola permohonan ketidakhadiran kerja dan penugasan lembur pegawai
-          </p>
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Toast Notification */}
+      {notification && (
+        <div className={`p-4 rounded-xl border text-sm font-medium flex items-center justify-between shadow-md transition-all ${
+          notification.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-rose-600" />}
+            <span>{notification.msg}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-600">×</button>
         </div>
+      )}
+
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+              <CalendarRange className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Cuti, Izin & Lembur</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Pusat persetujuan berjenjang, perhitungan saldo pro-rata otomatis, dan integrasi kalender kerja
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => { fetchLeaves(); fetchOvertimes(); }}
-            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition text-xs shadow-2xs"
+            onClick={() => {
+              fetchLeaves();
+              fetchOvertimes();
+              showNotification('Data berhasil disegarkan!');
+            }}
+            className="p-2.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl shadow-xs transition-colors"
+            title="Segarkan Data"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
-          {activeTab === 'leaves' ? (
-            <button
-              onClick={() => setIsLeaveModalOpen(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ajukan Cuti / Izin</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsOvertimeModalOpen(true)}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-semibold flex items-center gap-2 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Catat Lembur</span>
-            </button>
-          )}
+
+          <button
+            onClick={() => setIsCreateLeaveModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Ajukan Cuti / Izin
+          </button>
         </div>
       </div>
 
-      {/* Alerts */}
-      {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-      {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-3 text-xs font-semibold">
-        <button
-          onClick={() => setActiveTab('leaves')}
-          className={`pb-3 px-3 flex items-center gap-2 border-b-2 transition ${
-            activeTab === 'leaves' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'
-          }`}
-        >
-          <CalendarRange className="w-4 h-4" />
-          <span>Pengajuan Cuti & Izin ({leaves.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('overtimes')}
-          className={`pb-3 px-3 flex items-center gap-2 border-b-2 transition ${
-            activeTab === 'overtimes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Penugasan Lembur ({overtimes.length})</span>
-        </button>
+      {/* Navigation Tabs */}
+      <div className="border-b border-slate-200">
+        <nav className="flex space-x-6 overflow-x-auto no-scrollbar">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            const isActive = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`py-3 px-1 inline-flex items-center gap-2 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Tab 1: Cuti & Izin */}
+      {/* Tab Panels */}
       {activeTab === 'leaves' && (
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
-              <tr>
-                <th className="p-3.5">Pegawai</th>
-                <th className="p-3.5">Jenis Cuti</th>
-                <th className="p-3.5">Periode Tanggal</th>
-                <th className="p-3.5">Alasan</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5 text-right">Approval</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loadingLeaves ? (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                    <span>Memuat berkas cuti...</span>
-                  </td>
-                </tr>
-              ) : leaves.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
-                    Tidak ada pengajuan cuti tercatat
-                  </td>
-                </tr>
-              ) : (
-                leaves.map((lv) => (
-                  <tr key={lv.id} className="hover:bg-slate-50 transition">
-                    <td className="p-3.5 font-semibold text-slate-800">{lv.employee_name || `Pegawai #${lv.employee_id}`}</td>
-                    <td className="p-3.5 font-bold text-indigo-700">{lv.leave_type}</td>
-                    <td className="p-3.5 font-mono text-slate-700">
-                      {lv.start_date.split('T')[0]} s/d {lv.end_date.split('T')[0]}
-                    </td>
-                    <td className="p-3.5 text-slate-600 max-w-xs truncate">{lv.reason || '-'}</td>
-                    <td className="p-3.5">
-                      <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusBadges[lv.status]}`}>
-                        {lv.status}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {lv.status === 'pending' ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleApproveLeave(lv.id)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold"
-                          >
-                            Setujui
-                          </button>
-                          <button
-                            onClick={() => openRejectModal('leave', lv.id)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-[10px] font-bold"
-                          >
-                            Tolak
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">{lv.approver_name ? `Diproses: ${lv.approver_name}` : 'Selesai'}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <LeaveRequestsTab
+          leaves={leaves}
+          loading={loadingLeaves}
+          leaveTypes={leaveTypes}
+          employees={employees}
+          onRefresh={fetchLeaves}
+          onOpenCreateModal={() => setIsCreateLeaveModalOpen(true)}
+        />
       )}
 
-      {/* Tab 2: Lembur */}
+      {activeTab === 'balances' && (
+        <LeaveBalancesTab activeSchoolUnit={activeSchoolUnit} />
+      )}
+
       {activeTab === 'overtimes' && (
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
-              <tr>
-                <th className="p-3.5">Pegawai</th>
-                <th className="p-3.5">Tanggal Lembur</th>
-                <th className="p-3.5">Durasi (Jam)</th>
-                <th className="p-3.5">Keterangan / Tugas</th>
-                <th className="p-3.5">Status</th>
-                <th className="p-3.5 text-right">Approval</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loadingOvertimes ? (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
-                    <span>Memuat berkas lembur...</span>
-                  </td>
-                </tr>
-              ) : overtimes.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400">
-                    Tidak ada pengajuan lembur tercatat
-                  </td>
-                </tr>
-              ) : (
-                overtimes.map((ov) => (
-                  <tr key={ov.id} className="hover:bg-slate-50 transition">
-                    <td className="p-3.5 font-semibold text-slate-800">{ov.employee_name || `Pegawai #${ov.employee_id}`}</td>
-                    <td className="p-3.5 font-mono text-slate-700">{ov.overtime_date.split('T')[0]}</td>
-                    <td className="p-3.5 font-bold text-indigo-700">{ov.hours} Jam</td>
-                    <td className="p-3.5 text-slate-600 max-w-xs truncate">{ov.notes || '-'}</td>
-                    <td className="p-3.5">
-                      <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${statusBadges[ov.status]}`}>
-                        {ov.status}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {ov.status === 'pending' ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleApproveOvertime(ov.id)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold"
-                          >
-                            Setujui
-                          </button>
-                          <button
-                            onClick={() => openRejectModal('overtime', ov.id)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-[10px] font-bold"
-                          >
-                            Tolak
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">{ov.approver_name ? `Diproses: ${ov.approver_name}` : 'Selesai'}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <OvertimeTab
+          overtimes={overtimes}
+          loading={loadingOvertimes}
+          employees={employees}
+          onRefresh={fetchOvertimes}
+          onOpenCreateModal={() => setIsCreateOvertimeModalOpen(true)}
+        />
       )}
 
-      {/* Modal Ajukan Cuti */}
-      {isLeaveModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-sm">Formulir Pengajuan Cuti / Izin</h3>
-              <button onClick={() => setIsLeaveModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleCreateLeave} className="space-y-3">
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Pegawai *</label>
-                <select
-                  required
-                  value={leaveForm.employee_id}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, employee_id: e.target.value })}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="">Pilih Pegawai</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_number})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Jenis Cuti / Izin</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="mis. Cuti Tahunan, Cuti Sakit, Izin Khusus"
-                  value={leaveForm.leave_type}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Mulai Tanggal</label>
-                  <input
-                    type="date"
-                    required
-                    value={leaveForm.start_date}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Sampai Tanggal</label>
-                  <input
-                    type="date"
-                    required
-                    value={leaveForm.end_date}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Alasan / Keperluan</label>
-                <textarea
-                  rows="2"
-                  value={leaveForm.reason}
-                  onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                  placeholder="Keterangan pengajuan..."
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                ></textarea>
-              </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setIsLeaveModalOpen(false)} className="px-3 py-1.5 bg-slate-100 rounded-xl">Batal</button>
-                <button type="submit" disabled={submitting} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl font-semibold">Kirim Permohonan</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {activeTab === 'holidays' && (
+        <HolidaysTab activeSchoolUnit={activeSchoolUnit} />
       )}
 
-      {/* Modal Catat Lembur */}
-      {isOvertimeModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-sm">Catat Pengajuan Lembur</h3>
-              <button onClick={() => setIsOvertimeModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleCreateOvertime} className="space-y-3">
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Pegawai *</label>
-                <select
-                  required
-                  value={overtimeForm.employee_id}
-                  onChange={(e) => setOvertimeForm({ ...overtimeForm, employee_id: e.target.value })}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                >
-                  <option value="">Pilih Pegawai</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_number})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Tanggal Lembur</label>
-                  <input
-                    type="date"
-                    required
-                    value={overtimeForm.overtime_date}
-                    onChange={(e) => setOvertimeForm({ ...overtimeForm, overtime_date: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Durasi (Jam)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0.5"
-                    max="12"
-                    required
-                    value={overtimeForm.hours}
-                    onChange={(e) => setOvertimeForm({ ...overtimeForm, hours: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Uraian Tugas Lembur</label>
-                <textarea
-                  rows="2"
-                  value={overtimeForm.notes}
-                  onChange={(e) => setOvertimeForm({ ...overtimeForm, notes: e.target.value })}
-                  placeholder="Kegiatan yang dikerjakan..."
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl"
-                ></textarea>
-              </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setIsOvertimeModalOpen(false)} className="px-3 py-1.5 bg-slate-100 rounded-xl">Batal</button>
-                <button type="submit" disabled={submitting} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl font-semibold">Simpan Lembur</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {activeTab === 'settings' && (
+        <LeaveSettingsTab activeSchoolUnit={activeSchoolUnit} />
       )}
 
-      {/* Modal Penolakan (Reject) */}
-      {isRejectModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full text-xs">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800 text-sm">Alasan Penolakan Permohonan</h3>
-              <button onClick={() => setIsRejectModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleRejectSubmit} className="space-y-3">
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Alasan Penolakan *</label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="Tuliskan alasan penolakan..."
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
-                ></textarea>
-              </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setIsRejectModalOpen(false)} className="px-3 py-1.5 bg-slate-100 rounded-xl">Batal</button>
-                <button type="submit" disabled={submitting} className="px-3 py-1.5 bg-rose-600 text-white rounded-xl font-semibold">Konfirmasi Tolak</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {activeTab === 'reports' && (
+        <LeaveReportsTab activeSchoolUnit={activeSchoolUnit} />
       )}
+
+      {/* Create Leave Modal */}
+      <CreateLeaveModal
+        isOpen={isCreateLeaveModalOpen}
+        onClose={() => setIsCreateLeaveModalOpen(false)}
+        leaveTypes={leaveTypes}
+        employees={employees}
+        onSuccess={() => {
+          fetchLeaves();
+          showNotification('Permohonan cuti/izin berhasil diajukan!');
+        }}
+        isHr={isHr}
+      />
+
+      {/* Create Overtime Modal */}
+      <CreateOvertimeModal
+        isOpen={isCreateOvertimeModalOpen}
+        onClose={() => setIsCreateOvertimeModalOpen(false)}
+        employees={employees}
+        onSuccess={() => {
+          fetchOvertimes();
+          showNotification('Pengajuan lembur berhasil diajukan!');
+        }}
+        isHr={isHr}
+      />
     </div>
   );
 }
