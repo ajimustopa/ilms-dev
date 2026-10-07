@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
  * BottomSheet Component - Design System Portal Guru
- * Modal Dialog & Bottom Sheet responsif dengan scroll lock, penanganan ESC, dan layout aman agar tidak terpotong atas/bawah.
+ * Modal Dialog & Bottom Sheet responsif dengan React Portal (document.body), scroll lock, penanganan ESC, dan layout aman agar tidak terpotong.
  */
 export const BottomSheet = ({
   isOpen = false,
@@ -16,6 +17,11 @@ export const BottomSheet = ({
   className = ''
 }) => {
   const sheetRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Lock body scroll saat bottom sheet terbuka
   useEffect(() => {
@@ -41,9 +47,9 @@ export const BottomSheet = ({
 
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'bottom-sheet-title' : undefined}
@@ -107,6 +113,12 @@ export const BottomSheet = ({
       </div>
     </div>
   );
+
+  if (mounted && typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+
+  return content;
 };
 
 export default BottomSheet;
