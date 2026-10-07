@@ -139,3 +139,76 @@ test('Joined before period start -> full entitlement 12.0', () => {
   assert.equal(res.eligible, true);
   assert.equal(res.grantedDays, 12.0);
 });
+
+test('B5: Carry 2.0, cuti Kam 30 Sep 2027 -> Sel 5 Okt 2027 (4 HK)', () => {
+  const { allocateDaysToBuckets } = require('./entitlementCalculator');
+  const days = [
+    { date: '2027-09-30', weight: 1.0 },
+    { date: '2027-10-01', weight: 1.0 },
+    { date: '2027-10-04', weight: 1.0 },
+    { date: '2027-10-05', weight: 1.0 }
+  ];
+
+  const result = allocateDaysToBuckets({
+    days,
+    carryRemaining: 2.0,
+    carryExpiresOn: '2027-09-30'
+  });
+
+  // 30 Sep is <= carryExpiresOn -> takes 1.0 from carry
+  // Remaining 3 days are > carryExpiresOn -> take from current
+  assert.equal(result.carryDeduction, 1.0);
+  assert.equal(result.currentDeduction, 3.0);
+  assert.equal(result.totalDeduction, 4.0);
+  assert.equal(result.remainingCarryAfterDeduction, 1.0); // 1.0 remains to be expired
+  assert.equal(result.allocations.length, 4);
+  assert.equal(result.allocations[0].bucket, 'carry_over');
+  assert.equal(result.allocations[1].bucket, 'current');
+  assert.equal(result.allocations[2].bucket, 'current');
+  assert.equal(result.allocations[3].bucket, 'current');
+});
+
+test('Ledger Invariant check: grant 12, reserve 3, commit 3, adjust +2, expire 1 -> valid', () => {
+  const { rebuildBalanceFromLedger } = require('./entitlementCalculator');
+  const entries = [
+    { entry_type: 'grant', delta_available: 12.0, delta_reserved: 0, delta_used: 0 },
+    { entry_type: 'reserve', delta_available: -3.0, delta_reserved: 3.0, delta_used: 0 },
+    { entry_type: 'commit', delta_available: 0, delta_reserved: -3.0, delta_used: 3.0 },
+    { entry_type: 'adjust', delta_available: 2.0, delta_reserved: 0, delta_used: 0 },
+    { entry_type: 'expire', delta_available: -1.0, delta_reserved: 0, delta_used: 0 }
+  ];
+
+  const bal = rebuildBalanceFromLedger(entries);
+  assert.equal(bal.granted, 12.0);
+  assert.equal(bal.carry_in, 0);
+  assert.equal(bal.adjusted, 2.0);
+  assert.equal(bal.used, 3.0);
+  assert.equal(bal.reserved, 0);
+  assert.equal(bal.expired, 1.0);
+  assert.equal(bal.available, 10.0); // 12 + 2 - 1 - 3 = 10
+  assert.equal(bal.isValid, true);
+  assert.equal(bal.invariantDiff, 0);
+});
+
+test('Ledger Invariant check with refund and joint leave debit', () => {
+  const { rebuildBalanceFromLedger } = require('./entitlementCalculator');
+  const entries = [
+    { entry_type: 'grant', delta_available: 12.0, delta_reserved: 0, delta_used: 0 },
+    { entry_type: 'carry_in', delta_available: 4.0, delta_reserved: 0, delta_used: 0 },
+    // Reserve 5
+    { entry_type: 'reserve', delta_available: -5.0, delta_reserved: 5.0, delta_used: 0 },
+    // Commit 5
+    { entry_type: 'commit', delta_available: 0, delta_reserved: -5.0, delta_used: 5.0 },
+    // Refund 2.0 (B7)
+    { entry_type: 'refund', delta_available: 2.0, delta_reserved: 0, delta_used: -2.0 },
+    // Joint leave debit 1.0
+    { entry_type: 'joint_leave_debit', delta_available: -1.0, delta_reserved: 0, delta_used: 1.0 }
+  ];
+
+  const bal = rebuildBalanceFromLedger(entries);
+  assert.equal(bal.granted, 12.0);
+  assert.equal(bal.carry_in, 4.0);
+  assert.equal(bal.used, 4.0); // 5 - 2 + 1 = 4.0
+  assert.equal(bal.available, 12.0); // 12 + 4 - 4 = 12.0
+  assert.equal(bal.isValid, true);
+});

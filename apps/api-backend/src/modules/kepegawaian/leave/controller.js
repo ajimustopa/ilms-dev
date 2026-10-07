@@ -472,13 +472,19 @@ class LeaveController {
   async applyJointLeaveDeduction(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      await holidayService.applyJointLeaveDeduction(req.params.id, actor);
+      const result = await leaveLedgerService.applyJointLeaveDeduction(req.params.id, actor);
+      return res.json({
+        success: true,
+        data: result,
+        message: 'Pemotongan cuti bersama berhasil diproses',
+        errors: null
+      });
     } catch (err) {
-      return res.status(err.statusCode || 501).json({
+      return res.status(err.statusCode || 422).json({
         success: false,
         data: null,
         message: err.message,
-        errors: [{ code: err.code || 'NOT_IMPLEMENTED', message: err.message }]
+        errors: [{ code: err.code || 'JOINT_LEAVE_ERROR', message: err.message }]
       });
     }
   }
@@ -534,7 +540,7 @@ class LeaveController {
   }
 
   // =========================================================================
-  // Balances & Ledger
+  // Balances & Ledger (SPEC §5, §11.3)
   // =========================================================================
 
   async getBalances(req, res) {
@@ -564,7 +570,7 @@ class LeaveController {
           errors: [{ code: 'ACTOR_NOT_EMPLOYEE', message: 'Bukan akun pegawai aktif' }]
         });
       }
-      const data = await leaveLedgerService.getEmployeeBalance(actor.employeeId);
+      const data = await leaveLedgerService.getEmployeeBalance(actor.employeeId, req.query.period || '2026/2027', actor);
       return res.json({ success: true, data, message: 'Saldo cuti saya', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
@@ -588,6 +594,45 @@ class LeaveController {
       return res.json({ success: true, data, message: 'Penyesuaian saldo cuti berhasil dicatat', errors: null });
     } catch (err) {
       return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async bulkAssignBalances(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveLedgerService.bulkAssignEntitlements(req.body, actor);
+      return res.json({ success: true, data, message: 'Bulk assign jatah cuti berhasil diproses', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async closePeriod(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveLedgerService.closePeriod(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: data.dry_run ? 'Pratinjau penutupan periode (dry-run)' : 'Periode cuti berhasil ditutup', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async reconcilePeriod(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveLedgerService.reconcileBalances(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: data.dry_run ? 'Hasil rekonsiliasi saldo (dry-run)' : 'Rekonsiliasi saldo berhasil diterapkan', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getBalancePolicies(req, res) {
+    try {
+      const data = await leaveLedgerService.getBalancePolicies();
+      return res.json({ success: true, data, message: 'Daftar kebijakan saldo cuti', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
   }
 

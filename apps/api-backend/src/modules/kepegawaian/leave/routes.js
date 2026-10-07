@@ -58,12 +58,16 @@ router.put('/holidays/:id', authenticate, requirePermission('kepegawaian.holiday
 router.delete('/holidays/:id', authenticate, requirePermission('kepegawaian.holidays.manage'), controller.deleteHoliday);
 
 // ==========================================
-// 3. Saldo Cuti & Ledger
+// 3. Saldo Cuti & Ledger (SPEC §11.3 & §11.1)
 // ==========================================
+router.get('/leave-balance-policies', authenticate, requirePermission('kepegawaian.leave_balances.manage', 'kepegawaian.leave_balances.read'), controller.getBalancePolicies);
 router.get('/leave-balances', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getBalances);
 router.get('/leave-balances/my', authenticate, controller.getMyBalance);
-router.get('/leave-balances/:employeeId/ledger', authenticate, requirePermission('kepegawaian.leave_balances.read'), controller.getLedger);
+router.get('/leave-balances/:employeeId/ledger', authenticate, requirePermission('kepegawaian.leave_balances.read', 'kepegawaian.leave_balances.manage'), controller.getLedger);
 router.post('/leave-balances/adjust', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.adjustBalance);
+router.post('/leave-balances/bulk-assign', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.bulkAssignBalances);
+router.post('/leave-balances/periods/:id/close', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.closePeriod);
+router.post('/leave-balances/periods/:id/reconcile', authenticate, requirePermission('kepegawaian.leave_balances.manage'), controller.reconcilePeriod);
 
 // ==========================================
 // 4. Permohonan Cuti / Izin

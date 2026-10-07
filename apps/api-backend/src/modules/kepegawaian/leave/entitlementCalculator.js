@@ -207,6 +207,9 @@ function computeEntitlement({
 /**
  * Computes carry over days and expiry date
  */
+/**
+ * Computes carry over days and expiry date
+ */
 function computeCarryOver({
   remainingCurrentBalance,
   policy = {},
@@ -241,9 +244,136 @@ function computeCarryOver({
   };
 }
 
+/**
+ * Pure function: allocate requested leave days to carry_over and current buckets (SPEC §5.3, B5)
+ * @param {Array} days - array of date strings or day objects { date, weight }
+ * @param {number} carryRemaining - remaining carry over days available
+ * @param {string} carryExpiresOn - expiry date for carry over (YYYY-MM-DD)
+ */
+function allocateDaysToBuckets({
+  days = [],
+  carryRemaining = 0,
+  carryExpiresOn = null
+}) {
+  let availableCarry = Math.max(0, parseFloat(carryRemaining) || 0);
+  let carryDeduction = 0;
+  let currentDeduction = 0;
+  const allocations = [];
+
+  // Normalize day items and sort by date ascending
+  const normalizedDays = days.map(d => {
+    if (typeof d === 'string') return { date: d, weight: 1.0 };
+    return {
+      date: d.date,
+      weight: d.weight !== undefined ? parseFloat(d.weight) : (d.contribution !== undefined ? parseFloat(d.contribution) : 1.0)
+    };
+  }).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  for (const item of normalizedDays) {
+    const w = item.weight || 0;
+    if (w <= 0) continue;
+
+    if (carryExpiresOn && item.date <= carryExpiresOn && availableCarry > 0) {
+      const fromCarry = Math.min(w, availableCarry);
+      const fromCurrent = w - fromCarry;
+
+      if (fromCarry > 0) {
+        carryDeduction += fromCarry;
+        availableCarry -= fromCarry;
+        allocations.push({ date: item.date, bucket: 'carry_over', weight: fromCarry });
+      }
+      if (fromCurrent > 0) {
+        currentDeduction += fromCurrent;
+        allocations.push({ date: item.date, bucket: 'current', weight: fromCurrent });
+      }
+    } else {
+      currentDeduction += w;
+      allocations.push({ date: item.date, bucket: 'current', weight: w });
+    }
+  }
+
+  return {
+    carryDeduction: Math.round(carryDeduction * 10) / 10,
+    currentDeduction: Math.round(currentDeduction * 10) / 10,
+    totalDeduction: Math.round((carryDeduction + currentDeduction) * 10) / 10,
+    remainingCarryAfterDeduction: Math.round(availableCarry * 10) / 10,
+    allocations
+  };
+}
+
+/**
+ * Pure function: rebuild balance from append-only ledger entries and verify invariants (SPEC §5.4)
+ * @param {Array} entries - array of ledger entry objects
+ */
+function rebuildBalanceFromLedger(entries = []) {
+  let granted = 0;
+  let carry_in = 0;
+  let adjusted = 0;
+  let used = 0;
+  let reserved = 0;
+  let expired = 0;
+  let sumDeltaAvailable = 0;
+  let sumDeltaReserved = 0;
+  let sumDeltaUsed = 0;
+
+  for (const e of entries) {
+    const deltaAvail = parseFloat(e.delta_available) || 0;
+    const deltaRes = parseFloat(e.delta_reserved) || 0;
+    const deltaUse = parseFloat(e.delta_used) || 0;
+
+    sumDeltaAvailable += deltaAvail;
+    sumDeltaReserved += deltaRes;
+    sumDeltaUsed += deltaUse;
+
+    switch (e.entry_type) {
+      case 'grant':
+        granted += deltaAvail;
+        break;
+      case 'carry_in':
+        carry_in += deltaAvail;
+        break;
+      case 'adjust':
+        adjusted += deltaAvail;
+        break;
+      case 'expire':
+        expired += Math.abs(deltaAvail);
+        break;
+      case 'commit':
+      case 'refund':
+      case 'joint_leave_debit':
+        used += deltaUse;
+        break;
+      default:
+        break;
+    }
+  }
+
+  reserved = sumDeltaReserved;
+  const available = sumDeltaAvailable;
+
+  // Invariant: available = grants + carry_in + adjusted - expired - reserved - used
+  const calculatedAvailable = granted + carry_in + adjusted - expired - reserved - used;
+  const invariantDiff = Math.abs(available - calculatedAvailable);
+  const isValid = invariantDiff < 0.0001;
+
+  return {
+    granted: Math.round(granted * 10) / 10,
+    carry_in: Math.round(carry_in * 10) / 10,
+    adjusted: Math.round(adjusted * 10) / 10,
+    used: Math.round(used * 10) / 10,
+    reserved: Math.round(reserved * 10) / 10,
+    expired: Math.round(expired * 10) / 10,
+    available: Math.round(available * 10) / 10,
+    isValid,
+    invariantDiff
+  };
+}
+
 module.exports = {
   computeEntitlement,
   computeCarryOver,
+  allocateDaysToBuckets,
+  rebuildBalanceFromLedger,
   calculateServiceMonths,
   resolvePeriodRange,
   applyRounding

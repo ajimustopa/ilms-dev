@@ -23,7 +23,9 @@
     "migrate:perpustakaan": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.perpustakaan.js migrate:latest",
     "seed:perpustakaan": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.perpustakaan.js seed:run",
     "migrate:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js migrate:latest",
-    "seed:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js seed:run"
+    "seed:manajemen": "npm --workspace=apps/api-backend exec -- knex --knexfile knexfile.manajemen.js seed:run",
+    "leave:close-period": "npm --workspace=apps/api-backend run leave:close-period",
+    "leave:reconcile": "npm --workspace=apps/api-backend run leave:reconcile"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -39,7 +39,9 @@
     "seed:manajemen": "knex --knexfile knexfile.manajemen.js seed:run",
     "migrate:website-utama": "knex --knexfile knexfile.website-utama.js migrate:latest",
     "migrate:website-utama:rollback": "knex --knexfile knexfile.website-utama.js migrate:rollback",
-    "seed:website-utama": "knex --knexfile knexfile.website-utama.js seed:run"
+    "seed:website-utama": "knex --knexfile knexfile.website-utama.js seed:run",
+    "leave:close-period": "node src/modules/kepegawaian/leave/scripts/close_period.js",
+    "leave:reconcile": "node src/modules/kepegawaian/leave/scripts/reconcile_balances.js"
   },
   "keywords": [
     "core-service",
