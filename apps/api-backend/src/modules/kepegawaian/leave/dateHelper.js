@@ -98,10 +98,23 @@ function isWeekend(dateStr) {
   return dow === 'saturday' || dow === 'sunday';
 }
 
+function formatDbDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return formatDateParts(val, 'Asia/Jakarta');
+  }
+  if (typeof val === 'string') {
+    return val.substring(0, 10);
+  }
+  return String(val);
+}
+
 module.exports = {
   todayWIB,
   parseDate,
   formatDate,
+  formatDbDate,
+  formatDateParts,
   addDays,
   diffInDays,
   dateRange,

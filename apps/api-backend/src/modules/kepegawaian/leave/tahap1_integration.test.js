@@ -234,4 +234,9 @@ describe('Tahap 1: Full Security & Business Flow Integration', () => {
     // Clean up dummy employee
     await kepDb('employees').where({ id: 99 }).del();
   });
+
+  after(async () => {
+    await coreDb.destroy();
+    await kepDb.destroy();
+  });
 });

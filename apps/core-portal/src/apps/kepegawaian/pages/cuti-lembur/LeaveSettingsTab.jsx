@@ -1,167 +1,227 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Sliders,
-  CheckCircle2,
-  XCircle,
-  ToggleLeft,
-  ToggleRight,
-  Shield,
+  ListFilter,
   Layers,
-  Edit2,
+  UserCheck,
   Users,
   Settings,
-  Plus,
-  X
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import api from '../../../../shared/services/api';
 
+import LeaveTypesSection from './settings/LeaveTypesSection';
+import LeaveTypeFormModal from './settings/LeaveTypeFormModal';
+import ApprovalProfilesSection from './settings/ApprovalProfilesSection';
+import UnitApproversAndDelegationsSection from './settings/UnitApproversAndDelegationsSection';
+import EmployeeCompletenessSection from './settings/EmployeeCompletenessSection';
+import GeneralSettingsSection from './settings/GeneralSettingsSection';
+
 export default function LeaveSettingsTab({ activeSchoolUnit }) {
+  const [subTab, setSubTab] = useState('types'); // 'types' | 'profiles' | 'approvers' | 'completeness' | 'general'
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [profiles, setProfiles] = useState([]);
+  const [approvalProfiles, setApprovalProfiles] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  // Modal for Leave Type Create/Edit
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingType, setEditingType] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const fetchAllSettings = async () => {
     setLoading(true);
     try {
-      const [typesRes, profRes] = await Promise.all([
+      const [typesRes, profRes, empsRes] = await Promise.all([
         api.get('/kepegawaian/leave-types'),
-        api.get('/kepegawaian/approval-profiles')
+        api.get('/kepegawaian/approval-profiles'),
+        api.get('/kepegawaian/employees?per_page=100').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (typesRes.data?.success) setLeaveTypes(typesRes.data.data || []);
-      if (profRes.data?.success) setProfiles(profRes.data.data || []);
+      if (profRes.data?.success) setApprovalProfiles(profRes.data.data || []);
+      if (empsRes.data?.success) {
+        setEmployees(empsRes.data.data?.items || empsRes.data.data || []);
+      }
     } catch (err) {
-      console.error('Failed to fetch leave settings:', err);
+      console.error('Failed to fetch leave settings master data:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchAllSettings();
   }, [activeSchoolUnit]);
 
-  const handleToggleActive = async (typeId, currentStatus) => {
-    try {
-      await api.patch(`/kepegawaian/leave-types/${typeId}/active`, {
-        is_active: !currentStatus
-      });
-      fetchData();
-    } catch (e) {
-      alert(e.response?.data?.message || 'Gagal mengubah status jenis cuti');
-    }
+  const handleOpenCreate = () => {
+    setEditingType(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (type) => {
+    setEditingType(type);
+    setIsModalOpen(true);
+  };
+
+  const handleSuccess = (data, message) => {
+    setToastMessage(message || 'Konfigurasi berhasil disimpan');
+    fetchAllSettings();
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   return (
-    <div className="space-y-8">
-      {/* 1. Master Jenis Cuti */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Master Jenis Cuti & Izin</h3>
-            <p className="text-xs text-slate-500">Konfigurasi batas hari, syarat lampiran, pemotongan saldo, dan profil approval</p>
+    <div className="space-y-6">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span className="font-semibold">{toastMessage}</span>
           </div>
+          <button onClick={() => setToastMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Sub Navigation Bar */}
+      <div className="p-2 bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSubTab('types')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'types'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <ListFilter className="w-4 h-4" />
+            <span>Jenis Cuti & Izin</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/30 text-[10px]">
+              {leaveTypes.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('profiles')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'profiles'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Alur Persetujuan</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/30 text-[10px]">
+              {approvalProfiles.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('approvers')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'approvers'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Kepala Sekolah & Delegasi</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('completeness')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'completeness'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Kelengkapan Data Pegawai</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('general')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${
+              subTab === 'general'
+                ? 'bg-primary text-on-primary shadow-xs'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Pengaturan Umum</span>
+          </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-xs uppercase font-semibold text-slate-500 tracking-wider">
-              <tr>
-                <th className="py-3.5 px-4">Nama Jenis Cuti</th>
-                <th className="py-3.5 px-4">Kategori</th>
-                <th className="py-3.5 px-4 text-center">Hitung Hari</th>
-                <th className="py-3.5 px-4 text-center">Potong Saldo</th>
-                <th className="py-3.5 px-4">Batas Maksimal</th>
-                <th className="py-3.5 px-4">Lampiran</th>
-                <th className="py-3.5 px-4">Profil Approval</th>
-                <th className="py-3.5 px-4 text-center">Status Aktif</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    Memuat jenis cuti...
-                  </td>
-                </tr>
-              ) : (
-                leaveTypes.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900">{item.name}</div>
-                      <div className="text-xs text-slate-400 font-mono">{item.code}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 capitalize">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center text-xs font-medium">
-                      {item.count_mode === 'calendar_days' ? 'Hari Kalender' : 'Hari Kerja (HK)'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      {item.deducts_balance ? (
-                        <span className="text-xs font-bold text-indigo-600">Ya</span>
-                      ) : (
-                        <span className="text-xs text-slate-400">Tidak</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs">
-                      {item.max_days_per_request ? `${item.max_days_per_request} hari/pengajuan` : 'Sesuai Kebutuhan'}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs capitalize text-slate-600">
-                      {item.attachment_rule?.replace('_', ' ') || 'none'}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs font-medium text-slate-700">
-                      {item.approval_profile_name || 'Standar HRD'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => handleToggleActive(item.id, item.is_active)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                          item.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {item.is_active ? 'Aktif' : 'Nonaktif'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <button
+          type="button"
+          onClick={fetchAllSettings}
+          disabled={loading}
+          className="p-2 rounded-lg text-outline hover:text-primary hover:bg-surface-container transition-colors"
+          title="Segarkan Data"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
+        </button>
       </div>
 
-      {/* 2. Profil Approval */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">Alur Persetujuan (Approval Profiles)</h3>
-          <p className="text-xs text-slate-500">Daftar tahapan berjenjang (Atasan Langsung, Kepala Sekolah, Pool HRD)</p>
-        </div>
+      {/* SUB-TAB CONTENTS */}
+      {subTab === 'types' && (
+        <LeaveTypesSection
+          leaveTypes={leaveTypes}
+          loading={loading}
+          onRefresh={fetchAllSettings}
+          onOpenCreate={handleOpenCreate}
+          onOpenEdit={handleOpenEdit}
+          approvalProfiles={approvalProfiles}
+        />
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {profiles.map((prof) => (
-            <div key={prof.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-sm text-slate-900">{prof.name}</h4>
-                <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-slate-200">{prof.code}</span>
-              </div>
+      {subTab === 'profiles' && (
+        <ApprovalProfilesSection
+          approvalProfiles={approvalProfiles}
+          leaveTypes={leaveTypes}
+          loading={loading}
+          onRefresh={fetchAllSettings}
+        />
+      )}
 
-              <div className="space-y-2 pt-2">
-                {prof.steps && prof.steps.map((st) => (
-                  <div key={st.id} className="flex items-center gap-2 text-xs text-slate-700 bg-white p-2 rounded border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px]">
-                      {st.step_no}
-                    </span>
-                    <span className="font-medium">{st.step_name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {subTab === 'approvers' && (
+        <UnitApproversAndDelegationsSection
+          activeSchoolUnit={activeSchoolUnit}
+          employees={employees}
+        />
+      )}
+
+      {subTab === 'completeness' && (
+        <EmployeeCompletenessSection
+          activeSchoolUnit={activeSchoolUnit}
+          employees={employees}
+        />
+      )}
+
+      {subTab === 'general' && (
+        <GeneralSettingsSection
+          activeSchoolUnit={activeSchoolUnit}
+        />
+      )}
+
+      {/* Modal Form Tambah / Ubah Jenis Cuti */}
+      <LeaveTypeFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccess}
+        editingType={editingType}
+        approvalProfiles={approvalProfiles}
+      />
     </div>
   );
 }

@@ -46,7 +46,12 @@ class LeaveController {
       const data = await leaveTypeService.createLeaveType(req.body, actor);
       return res.status(201).json({ success: true, data, message: 'Jenis cuti berhasil dibuat', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -56,7 +61,12 @@ class LeaveController {
       const data = await leaveTypeService.updateLeaveType(req.params.id, req.body, actor);
       return res.json({ success: true, data, message: 'Jenis cuti berhasil diperbarui', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -67,7 +77,27 @@ class LeaveController {
       const data = await leaveTypeService.toggleLeaveTypeActive(req.params.id, is_active, actor);
       return res.json({ success: true, data, message: 'Status jenis cuti berhasil diubah', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async deleteLeaveType(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await leaveTypeService.deleteLeaveType(req.params.id, actor);
+      return res.json({ success: true, data: result, message: result.message, errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'ERROR', message: err.message }]
+      });
     }
   }
 
@@ -80,10 +110,36 @@ class LeaveController {
     }
   }
 
+  async updateApprovalProfile(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveTypeService.updateApprovalProfile(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Profil approval berhasil diperbarui', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'ERROR', message: err.message }]
+      });
+    }
+  }
+
   async getUnitApprovers(req, res) {
     try {
-      const data = await leaveTypeService.getUnitApprovers(req.query.school_unit_id);
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveTypeService.getUnitApprovers(req.query.school_unit_id, actor);
       return res.json({ success: true, data, message: 'Daftar approver satuan pendidikan', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async getPrincipalSuggestions(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveTypeService.getPrincipalSuggestions(req.query.school_unit_id, actor);
+      return res.json({ success: true, data, message: 'Saran kandidat Kepala Sekolah', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
@@ -95,16 +151,49 @@ class LeaveController {
       const data = await leaveTypeService.setUnitApprover(req.body, actor);
       return res.json({ success: true, data, message: 'Approver unit berhasil disimpan', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async updateUnitApprover(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveTypeService.updateUnitApprover(req.params.id, req.body, actor);
+      return res.json({ success: true, data, message: 'Approver unit berhasil diperbarui', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async deleteUnitApprover(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const result = await leaveTypeService.deleteUnitApprover(req.params.id, actor);
+      return res.json({ success: true, data: result, message: result.message, errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'ERROR', message: err.message }]
+      });
     }
   }
 
   async getDelegations(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const isHr = actor.permissions.includes('kepegawaian.leave_types.manage');
-      const empId = isHr ? req.query.employee_id : actor.employeeId;
-      const data = await leaveTypeService.getDelegations(empId, req.query.school_unit_id);
+      const data = await leaveTypeService.getDelegations(req.query.employee_id, req.query.school_unit_id, actor);
       return res.json({ success: true, data, message: 'Daftar delegasi persetujuan', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
@@ -117,17 +206,27 @@ class LeaveController {
       const data = await leaveTypeService.createDelegation(req.body, actor);
       return res.status(201).json({ success: true, data, message: 'Delegasi persetujuan berhasil dibuat', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
   async deleteDelegation(req, res) {
     try {
       const actor = await leaveService.resolveActor(req.user);
-      const data = await leaveTypeService.deleteDelegation(req.params.id, actor);
-      return res.json({ success: true, data, message: 'Delegasi berhasil dicabut', errors: null });
+      const result = await leaveTypeService.deleteDelegation(req.params.id, actor);
+      return res.json({ success: true, data: result, message: result.message, errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'ERROR', message: err.message }]
+      });
     }
   }
 
@@ -146,7 +245,12 @@ class LeaveController {
       const data = await leaveTypeService.updateLeaveSettings(req.body.school_unit_id, req.body.settings, actor);
       return res.json({ success: true, data, message: 'Pengaturan cuti berhasil disimpan', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 
@@ -156,6 +260,21 @@ class LeaveController {
       return res.json({ success: true, data, message: 'Ambang rawan ketidakhadiran', errors: null });
     } catch (err) {
       return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async updateAbsenceThresholds(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveTypeService.updateAbsenceThresholds(req.body.school_unit_id, req.body.thresholds, actor);
+      return res.json({ success: true, data, message: 'Ambang rawan ketidakhadiran berhasil disimpan', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 

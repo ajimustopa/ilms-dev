@@ -254,4 +254,11 @@ Tahun Baru Hijriah,national,2026-07-07,2026-07-07,true,all_employees,false,float
     assert.ok(syncRes.data);
     assert.equal(typeof syncRes.data.synced_count, 'number');
   });
+
+  after(async () => {
+    const academicDb = require('../../../config/db/akademik');
+    await coreDb.destroy();
+    await kepDb.destroy();
+    await academicDb.destroy();
+  });
 });

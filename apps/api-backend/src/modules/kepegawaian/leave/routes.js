@@ -17,10 +17,16 @@ router.get('/leave-types/:id', authenticate, controller.getLeaveTypeDetail);
 router.post('/leave-types', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.createLeaveType);
 router.put('/leave-types/:id', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.updateLeaveType);
 router.patch('/leave-types/:id/active', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.toggleLeaveTypeActive);
+router.delete('/leave-types/:id', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.deleteLeaveType);
 
 router.get('/approval-profiles', authenticate, controller.getApprovalProfiles);
+router.put('/approval-profiles/:id', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.updateApprovalProfile);
+
+router.get('/unit-approvers/suggestions', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.getPrincipalSuggestions);
 router.get('/unit-approvers', authenticate, controller.getUnitApprovers);
 router.post('/unit-approvers', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.setUnitApprover);
+router.put('/unit-approvers/:id', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.updateUnitApprover);
+router.delete('/unit-approvers/:id', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.deleteUnitApprover);
 
 router.get('/approval-delegations', authenticate, controller.getDelegations);
 router.post('/approval-delegations', authenticate, controller.createDelegation);
@@ -30,6 +36,7 @@ router.get('/leave-settings', authenticate, controller.getLeaveSettings);
 router.put('/leave-settings', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.updateLeaveSettings);
 
 router.get('/absence-thresholds', authenticate, controller.getAbsenceThresholds);
+router.put('/absence-thresholds', authenticate, requirePermission('kepegawaian.leave_types.manage'), controller.updateAbsenceThresholds);
 
 // ==========================================
 // 1b. Kelengkapan Profil Pegawai (Join Date & Atasan Langsung) - SPEC §11.1
