@@ -101,15 +101,31 @@ router.patch('/leave-requests/:id/reclassify', authenticate, requirePermission('
 router.post('/leave-requests/:id/recalculate', authenticate, requirePermission('kepegawaian.leave_requests.manage', 'kepegawaian.leave_requests.override'), controller.recalculateLeaveRequest);
 
 // ==========================================
-// 5. Lembur (Overtime)
+// 5. Lembur (Overtime) & Pengaturan (SPEC §11.1, §11.4)
 // ==========================================
+router.get('/overtime-settings', authenticate, requirePermission('kepegawaian.overtime_settings.manage', 'kepegawaian.overtimes.manage', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getOvertimeSettings);
+router.put('/overtime-settings', authenticate, requirePermission('kepegawaian.overtime_settings.manage', 'kepegawaian.overtimes.manage'), controller.updateOvertimeSettings);
+
 router.get('/overtimes/my', authenticate, controller.getMyOvertimes);
-router.get('/overtimes', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.overtimes.manage'), controller.listOvertimes);
+router.get('/overtimes', authenticate, requirePermission('kepegawaian.leave_requests.read', 'kepegawaian.overtimes.manage', 'kepegawaian.leave_requests.manage'), controller.listOvertimes);
+router.post('/overtimes/preview', authenticate, controller.previewOvertime);
+router.post('/overtimes/bulk', authenticate, requirePermission('kepegawaian.overtimes.manage', 'kepegawaian.leave_requests.manage'), controller.bulkCreateOvertime);
+router.post('/overtimes/bulk-approve', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.bulkApproveOvertime);
+router.patch('/overtimes/bulk-approve', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.bulkApproveOvertime);
+
 router.get('/overtimes/:id', authenticate, controller.getOvertimeDetail);
 router.post('/overtimes', authenticate, controller.createOvertime);
+
 router.patch('/overtimes/:id/approve', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.approveOvertime);
+router.post('/overtimes/:id/approve', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.approveOvertime);
+
 router.patch('/overtimes/:id/reject', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.rejectOvertime);
+router.post('/overtimes/:id/reject', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.rejectOvertime);
+
 router.patch('/overtimes/:id/cancel', authenticate, controller.cancelOvertime);
+router.post('/overtimes/:id/cancel', authenticate, controller.cancelOvertime);
+
 router.patch('/overtimes/:id/reconcile', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.reconcileOvertime);
+router.post('/overtimes/:id/reconcile', authenticate, requirePermission('kepegawaian.overtimes.manage'), controller.reconcileOvertime);
 
 module.exports = router;

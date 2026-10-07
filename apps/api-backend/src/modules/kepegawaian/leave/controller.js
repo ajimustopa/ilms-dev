@@ -1069,7 +1069,81 @@ class LeaveController {
       const data = await overtimeService.reconcileOvertime(req.params.id, req.body, actor);
       return res.json({ success: true, data, message: 'Rekonsiliasi lembur berhasil disimpan', errors: null });
     } catch (err) {
-      return res.status(err.statusCode || 422).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+  async previewOvertime(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await overtimeService.previewOvertime(req.body, actor);
+      return res.json({ success: true, data, message: 'Pratinjau lembur', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async bulkCreateOvertime(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await overtimeService.bulkCreateOvertime(req.body, actor);
+      return res.status(201).json({ success: true, data, message: 'Penugasan lembur massal berhasil diproses', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async bulkApproveOvertime(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const ids = req.body.ids || req.body.overtime_ids || [];
+      const data = await overtimeService.bulkApproveOvertimes(ids, req.body, actor);
+      return res.json({ success: true, data, message: 'Persetujuan lembur massal selesai diproses', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
+    }
+  }
+
+  async getOvertimeSettings(req, res) {
+    try {
+      const data = await overtimeService.getOvertimeSettings(req.query.school_unit_id);
+      return res.json({ success: true, data, message: 'Pengaturan lembur', errors: null });
+    } catch (err) {
+      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+    }
+  }
+
+  async updateOvertimeSettings(req, res) {
+    try {
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await overtimeService.updateOvertimeSettings(req.body, actor);
+      return res.json({ success: true, data, message: 'Pengaturan lembur berhasil diperbarui', errors: null });
+    } catch (err) {
+      return res.status(err.statusCode || 422).json({
+        success: false,
+        data: null,
+        message: err.message,
+        errors: err.errors || [{ code: err.code || 'VALIDATION_ERROR', message: err.message }]
+      });
     }
   }
 }
