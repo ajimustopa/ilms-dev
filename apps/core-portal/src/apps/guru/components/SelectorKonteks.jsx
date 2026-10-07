@@ -111,11 +111,10 @@ export const SelectorKonteks = ({
                         satuanPendidikanId: u.id,
                         satuanPendidikanName: u.name
                       }))}
-                      className={`flex items-center justify-between px-3.5 py-3 min-h-[44px] rounded-lg border text-left transition-all ${
-                        isSelected
+                      className={`flex items-center justify-between px-3.5 py-3 min-h-[44px] rounded-lg border text-left transition-all ${isSelected
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
                           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <School className="w-4 h-4 text-slate-400" />
@@ -151,11 +150,10 @@ export const SelectorKonteks = ({
                         academicYearId: yr.id,
                         academicYearName: yr.name
                       }))}
-                      className={`flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${
-                        isSelected
+                      className={`flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${isSelected
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
                           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      }`}
+                        }`}
                     >
                       <span className="text-xs font-mono">{yr.name}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
@@ -173,11 +171,10 @@ export const SelectorKonteks = ({
                         ...prev,
                         academicYearName: yrStr
                       }))}
-                      className={`flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${
-                        isSelected
+                      className={`flex items-center justify-between px-3 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${isSelected
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
                           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      }`}
+                        }`}
                     >
                       <span className="text-xs font-mono">{yrStr}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
@@ -201,11 +198,10 @@ export const SelectorKonteks = ({
                     key={sem}
                     type="button"
                     onClick={() => setDraftContext((prev) => ({ ...prev, semester: sem }))}
-                    className={`flex items-center justify-between px-3.5 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${
-                      isSelected
+                    className={`flex items-center justify-between px-3.5 py-2.5 min-h-[44px] rounded-lg border text-left transition-all ${isSelected
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-semibold'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    }`}
+                      }`}
                   >
                     <span className="text-xs font-medium">Semester {sem}</span>
                     {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}

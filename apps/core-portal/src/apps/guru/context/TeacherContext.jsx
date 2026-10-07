@@ -375,16 +375,16 @@ export const useTeacherContext = () => {
         academicYearName: '2026/2027',
         semester: 'Ganjil'
       },
-      updateContext: () => {},
+      updateContext: () => { },
       availableUnits: [],
       availableAcademicYears: [],
       teachingAssignments: [],
       homeroomClasses: [],
       loadingContext: false,
-      refreshContext: () => {},
+      refreshContext: () => { },
       cachedSchedules: [],
       loadingSchedules: false,
-      refreshSchedules: () => {},
+      refreshSchedules: () => { },
       nextTeachingSession: { hasActiveSession: false }
     };
   }
