@@ -1259,6 +1259,84 @@ class LeaveLedgerService {
       }))
     }));
   }
+
+  /**
+   * Update balance policy and entitlement rules (SPEC §11.1)
+   */
+  async updateBalancePolicy(policyId, payload, actor = null) {
+    const policy = await db('leave_balance_policies').where({ id: policyId }).first();
+    if (!policy) {
+      const err = new Error('Kebijakan saldo tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const {
+      name,
+      period_start_month,
+      proration_mode,
+      proration_join_day_cutoff,
+      rounding,
+      min_service_months_for_eligibility,
+      carry_over_enabled,
+      carry_over_max_days,
+      carry_over_expiry_months,
+      allow_negative,
+      negative_limit_days,
+      rules = []
+    } = payload;
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (period_start_month !== undefined) updateData.period_start_month = parseInt(period_start_month, 10);
+    if (proration_mode !== undefined) updateData.proration_mode = proration_mode;
+    if (proration_join_day_cutoff !== undefined) updateData.proration_join_day_cutoff = parseInt(proration_join_day_cutoff, 10);
+    if (rounding !== undefined) updateData.rounding = rounding;
+    if (min_service_months_for_eligibility !== undefined) updateData.min_service_months_for_eligibility = parseInt(min_service_months_for_eligibility, 10);
+    if (carry_over_enabled !== undefined) updateData.carry_over_enabled = carry_over_enabled ? 1 : 0;
+    if (carry_over_max_days !== undefined) updateData.carry_over_max_days = parseFloat(carry_over_max_days);
+    if (carry_over_expiry_months !== undefined) updateData.carry_over_expiry_months = parseInt(carry_over_expiry_months, 10);
+    if (allow_negative !== undefined) updateData.allow_negative = allow_negative ? 1 : 0;
+    if (negative_limit_days !== undefined) updateData.negative_limit_days = parseFloat(negative_limit_days);
+    updateData.updated_at = new Date();
+
+    return db.transaction(async (trx) => {
+      await trx('leave_balance_policies').where({ id: policy.id }).update(updateData);
+
+      if (Array.isArray(rules) && rules.length > 0) {
+        for (const rule of rules) {
+          if (rule.id) {
+            await trx('leave_entitlement_rules')
+              .where({ id: rule.id, policy_id: policy.id })
+              .update({
+                days: parseFloat(rule.days) || 0,
+                min_service_months: parseInt(rule.min_service_months, 10) || 0,
+                priority: parseInt(rule.priority, 10) || 10,
+                updated_at: new Date()
+              });
+          } else if (rule.employment_status) {
+            await trx('leave_entitlement_rules').insert({
+              policy_id: policy.id,
+              employment_status: rule.employment_status,
+              days: parseFloat(rule.days) || 0,
+              min_service_months: parseInt(rule.min_service_months, 10) || 0,
+              priority: parseInt(rule.priority, 10) || 10,
+              created_at: new Date(),
+              updated_at: new Date()
+            });
+          }
+        }
+      }
+
+      const updated = await trx('leave_balance_policies').where({ id: policy.id }).first();
+      const updatedRules = await trx('leave_entitlement_rules').where({ policy_id: policy.id }).orderBy('priority', 'desc');
+
+      return {
+        ...updated,
+        rules: updatedRules
+      };
+    });
+  }
 }
 
 module.exports = new LeaveLedgerService();
