@@ -22,6 +22,10 @@ const {
   applyAction,
   nextOvertimeStatus
 } = require('./approvalEngine');
+const {
+  buildEmployeePayrollFeedItem,
+  buildPayrollFeedResponse
+} = require('./payrollFeedEngine');
 
 const HR_PERMISSIONS = {
   LEAVE_READ: 'kepegawaian.leave_requests.read',
@@ -2080,61 +2084,192 @@ class LeaveService {
   }
 
   /**
-   * Payroll Feed Contract (SPEC §10.5)
+   * Payroll Feed Contract (SPEC §10.5, §2 #13, #19, #12)
    */
-  async getPayrollFeed({ period, schoolUnitId = null }) {
-    if (!period) period = todayWIB().slice(0, 7);
+  async getPayrollFeed(query = {}, actor = null) {
+    let period = query.period;
+    if (!period || !/^\d{4}-\d{2}$/.test(String(period).trim())) {
+      period = todayWIB().slice(0, 7);
+    } else {
+      period = String(period).trim();
+    }
+
+    const [yearStr, monthStr] = period.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const lastDay = new Date(year, month, 0).getDate();
 
     const startDate = `${period}-01`;
-    const endDate = `${period}-31`;
+    const endDate = `${period}-${String(lastDay).padStart(2, '0')}`;
 
-    const employees = await db('employees')
-      .where({ account_status: 'active' })
-      .select('id', 'full_name', 'employee_number', 'school_unit_id');
+    let targetUnitId = query.school_unit_id ? Number(query.school_unit_id) : null;
+    if (actor && actor.unitScope && actor.unitScope !== 'all' && Array.isArray(actor.unitScope)) {
+      if (targetUnitId && !actor.unitScope.includes(targetUnitId)) {
+        targetUnitId = actor.unitScope[0] || null;
+      }
+    }
 
-    const leaveRequests = await db('employee_leave_requests as elr')
-      .join('leave_types as lt', 'elr.leave_type_id', 'lt.id')
+    // 1. Ambil status lock periode
+    let lockQuery = db('attendance_period_locks')
+      .where({ period_year: year, period_month: month });
+    if (targetUnitId) {
+      lockQuery = lockQuery.where({ school_unit_id: targetUnitId });
+    } else {
+      lockQuery = lockQuery.whereNull('school_unit_id');
+    }
+    const lockRecord = await lockQuery.first();
+    const lockStatus = lockRecord && lockRecord.status ? lockRecord.status : 'open';
+
+    // 2. Ambil daftar pegawai aktif
+    let empQuery = db('employees as e')
+      .leftJoin('job_positions as jp', 'e.current_position_id', 'jp.id')
+      .where('e.account_status', 'active')
+      .select(
+        'e.id',
+        'e.employee_number',
+        'e.full_name',
+        'e.school_unit_id',
+        'e.employment_status',
+        'jp.name as position_title'
+      );
+    if (targetUnitId) {
+      empQuery = empQuery.where('e.school_unit_id', targetUnitId);
+    }
+    const employees = await empQuery.orderBy('e.id', 'asc');
+
+    // 3. Ambil seluruh approved leaves dalam periode
+    let leaveQuery = db('employee_leave_requests as elr')
+      .leftJoin('leave_types as lt', function() {
+        this.on('elr.leave_type_id', '=', 'lt.id')
+          .orOn('elr.leave_type', '=', 'lt.code');
+      })
       .where('elr.status', 'approved')
-      .whereBetween('elr.start_date', [startDate, endDate])
-      .select('elr.*', 'lt.code as leave_code', 'lt.payroll_pay_percent', 'lt.affects_attendance_allowance');
+      .where('elr.start_date', '<=', endDate)
+      .where('elr.end_date', '>=', startDate)
+      .select(
+        'elr.*',
+        db.raw('COALESCE(lt.code, elr.leave_type) as leave_code'),
+        db.raw('COALESCE(lt.name, elr.leave_type) as leave_type_name'),
+        'lt.category as leave_category',
+        'lt.payroll_pay_percent',
+        'lt.affects_attendance_allowance'
+      );
+    if (targetUnitId) {
+      leaveQuery = leaveQuery.where('elr.school_unit_id', targetUnitId);
+    }
+    const leaveRequests = await leaveQuery;
 
-    const overtimes = await db('employee_overtimes')
+    // 4. Ambil seluruh approved overtimes dalam periode
+    let otQuery = db('employee_overtimes')
       .where('status', 'approved')
-      .whereBetween('overtime_date', [startDate, endDate])
-      .select('*');
+      .where('overtime_date', '>=', startDate)
+      .where('overtime_date', '<=', endDate);
+    if (targetUnitId) {
+      otQuery = otQuery.where('school_unit_id', targetUnitId);
+    }
+    const overtimes = await otQuery;
 
-    const feed = employees.map(emp => {
-      const empLeaves = leaveRequests.filter(l => l.employee_id === emp.id);
-      const empOvertimes = overtimes.filter(o => o.employee_id === emp.id);
+    // 5. Ambil data presensi dalam periode untuk summary
+    let attQuery = db('employee_attendances')
+      .where('attendance_date', '>=', startDate)
+      .where('attendance_date', '<=', endDate);
+    if (targetUnitId) {
+      attQuery = attQuery.where('school_unit_id', targetUnitId);
+    }
+    const attendances = await attQuery;
 
-      const leave_days_by_type = empLeaves.map(l => ({
-        code: l.leave_code,
-        days: parseFloat(l.duration_days),
-        pay_percent: l.payroll_pay_percent,
-        affects_attendance_allowance: l.affects_attendance_allowance
-      }));
+    // Grouping
+    const leavesByEmp = new Map();
+    for (const l of leaveRequests) {
+      if (!leavesByEmp.has(l.employee_id)) leavesByEmp.set(l.employee_id, []);
+      leavesByEmp.get(l.employee_id).push(l);
+    }
 
-      const overtimeList = empOvertimes.map(o => ({
-        day_type: o.day_type,
-        payable_hours: o.payable_hours ? parseFloat(o.payable_hours) : parseFloat(o.hours),
-        multiplier_breakdown: typeof o.multiplier_breakdown === 'string' ? JSON.parse(o.multiplier_breakdown) : o.multiplier_breakdown,
-        estimated_wage: o.estimated_wage ? parseFloat(o.estimated_wage) : null
-      }));
+    const otByEmp = new Map();
+    for (const o of overtimes) {
+      if (!otByEmp.has(o.employee_id)) otByEmp.set(o.employee_id, []);
+      otByEmp.get(o.employee_id).push(o);
+    }
 
-      return {
-        employee_id: emp.id,
-        name: emp.full_name,
-        nip: emp.employee_number,
-        leave_days_by_type,
-        overtime: overtimeList
+    const attByEmp = new Map();
+    for (const a of attendances) {
+      if (!attByEmp.has(a.employee_id)) attByEmp.set(a.employee_id, []);
+      attByEmp.get(a.employee_id).push(a);
+    }
+
+    // Bentuk item per pegawai menggunakan payrollFeedEngine
+    const employeeFeedItems = employees.map(emp => {
+      const empLeaves = leavesByEmp.get(emp.id) || [];
+      const empOts = otByEmp.get(emp.id) || [];
+      const empAtts = attByEmp.get(emp.id) || [];
+
+      let presentCount = 0;
+      let sickCount = 0;
+      let permissionCount = 0;
+      let leaveCount = 0;
+      let dutyTravelCount = 0;
+      let absentCount = 0;
+      let lateCount = 0;
+      let lateMinutes = 0;
+      let totalWorkMinutes = 0;
+
+      for (const a of empAtts) {
+        if (a.status === 'present') {
+          presentCount++;
+          if (a.is_late) {
+            lateCount++;
+            lateMinutes += (a.late_minutes || 0);
+          }
+          if (a.check_in_time && a.check_out_time) {
+            const inParts = String(a.check_in_time).split(':').map(Number);
+            const outParts = String(a.check_out_time).split(':').map(Number);
+            const inM = (inParts[0] || 0) * 60 + (inParts[1] || 0);
+            const outM = (outParts[0] || 0) * 60 + (outParts[1] || 0);
+            if (outM > inM) totalWorkMinutes += (outM - inM);
+          }
+        } else if (a.status === 'sick') {
+          sickCount++;
+        } else if (a.status === 'permitted') {
+          permissionCount++;
+        } else if (a.status === 'absent') {
+          absentCount++;
+        }
+
+        if (a.sub_status === 'dinas_luar' || a.entry_type === 'duty_travel') {
+          dutyTravelCount++;
+        } else if (a.sub_status === 'cuti' || a.entry_type === 'leave') {
+          leaveCount++;
+        }
+      }
+
+      const attendanceSummary = {
+        effective_work_days: Math.max(presentCount + sickCount + permissionCount + leaveCount + dutyTravelCount + absentCount, 0),
+        present_count: presentCount,
+        sick_count: sickCount,
+        permission_count: permissionCount,
+        leave_count: leaveCount,
+        duty_travel_count: dutyTravelCount,
+        absent_count: absentCount,
+        late_count: lateCount,
+        late_minutes: lateMinutes,
+        total_work_hours: parseFloat((totalWorkMinutes / 60).toFixed(1))
       };
+
+      return buildEmployeePayrollFeedItem({
+        employee: emp,
+        leaves: empLeaves,
+        overtimes: empOts,
+        attendanceSummary
+      });
     });
 
-    return {
+    return buildPayrollFeedResponse({
       period,
-      as_of: new Date().toISOString(),
-      data: feed
-    };
+      schoolUnitId: targetUnitId,
+      lockStatus,
+      employeeFeedItems,
+      asOf: new Date().toISOString()
+    });
   }
 }
 

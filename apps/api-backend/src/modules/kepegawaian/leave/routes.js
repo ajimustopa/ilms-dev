@@ -80,7 +80,7 @@ router.get('/leave-requests/reports/trend', authenticate, requirePermission('kep
 router.get('/leave-requests/reports/top', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsTop);
 router.get('/leave-requests/reports/recap', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getReportsRecap);
 router.get('/leave-requests/reports/export', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.exportReports);
-router.get('/payroll-feed', authenticate, controller.getPayrollFeed);
+router.get('/payroll-feed', authenticate, requirePermission('kepegawaian.leave_reports.read', 'kepegawaian.leave_requests.read', 'kepegawaian.leave_requests.manage'), controller.getPayrollFeed);
 
 router.get('/leave-requests/my', authenticate, controller.getMyLeaveRequests);
 router.get('/leave-requests/inbox', authenticate, controller.getLeaveInbox);

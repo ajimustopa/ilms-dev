@@ -993,10 +993,16 @@ class LeaveController {
 
   async getPayrollFeed(req, res) {
     try {
-      const data = await leaveService.getPayrollFeed(req.query);
-      return res.json({ success: true, data: data.data, meta: { period: data.period, as_of: data.as_of }, message: 'Feed data cuti & lembur ke payroll', errors: null });
+      const actor = await leaveService.resolveActor(req.user);
+      const data = await leaveService.getPayrollFeed(req.query, actor);
+      return res.json({
+        success: true,
+        data,
+        message: `Feed data cuti & lembur ke payroll untuk periode ${data.period}`,
+        errors: null
+      });
     } catch (err) {
-      return res.status(500).json({ success: false, data: null, message: err.message, errors: [err.message] });
+      return res.status(err.statusCode || 500).json({ success: false, data: null, message: err.message, errors: [err.message] });
     }
   }
 
