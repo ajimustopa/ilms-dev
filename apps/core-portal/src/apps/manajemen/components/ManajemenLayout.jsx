@@ -355,7 +355,7 @@ function ManajemenLayoutContent() {
           </div>
           <button
             type="button"
-            onClick={() => logout('/manajemen/login')}
+            onClick={() => logout()}
             title="Keluar / Logout"
             className="p-2 rounded-xl transition border border-transparent hover:border-rose-500/30 shrink-0 hover:opacity-80"
             style={{

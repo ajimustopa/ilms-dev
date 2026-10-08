@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_blank" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "tertiary": "#b00032", "surface-container-high": "#dde9ff", "on-surface-variant": "#3f493f", "on-tertiary-fixed": "#40000c", "secondary": "#2e6a41", "secondary-fixed": "#b1f2be", "error-container": "#ffdad6", "primary-fixed-dim": "#79db8d", "surface": "#f8f9ff", "on-primary-fixed-variant": "#005323", "outline-variant": "#becabc", "inverse-on-surface": "#ebf1ff", "surface-variant": "#d5e3fd", "error": "#ba1a1a", "inverse-primary": "#79db8d", "tertiary-fixed": "#ffdada", "on-primary-container": "#d3ffd5", "surface-bright": "#f8f9ff", "on-tertiary-container": "#fff0f0", "tertiary-fixed-dim": "#ffb3b6", "on-primary": "#ffffff", "on-primary-fixed": "#00210a", "on-error-container": "#93000a", "inverse-surface": "#233144", "surface-tint": "#006d30", "primary-container": "#15803d", "surface-dim": "#ccdbf4", "secondary-fixed-dim": "#96d5a3", "surface-container-low": "#eff4ff", "primary-fixed": "#95f8a7", "on-background": "#0d1c2f", "on-secondary-fixed": "#00210d", "on-surface": "#0d1c2f", "surface-container-highest": "#d5e3fd", "secondary-container": "#b1f2be", "on-secondary-container": "#347047", "on-tertiary": "#ffffff", "on-secondary": "#ffffff", "outline": "#6f7a6e", "on-secondary-fixed-variant": "#12512c", "on-tertiary-fixed-variant": "#920028", "on-error": "#ffffff", "tertiary-container": "#da1544", "primary": "#00652c", "surface-container-lowest": "#ffffff", "surface-container": "#e6eeff", "background": "#f8f9ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin-lg": "2rem", "gutter": "1rem", "space-sm": "0.5rem", "space-lg": "1.25rem", "space-xs": "0.25rem", "gutter-lg": "2rem", "gutter-md": "1.5rem", "space-md": "0.75rem", "space-xl": "2rem", "margin-md": "1.5rem", "margin": "1rem" }, "fontFamily": { "headline-lg-mobile": [ "Inter" ], "label-md": [ "Inter" ], "headline-lg": [ "Inter" ], "body-md": [ "Inter" ], "body-sm": [ "Inter" ], "display-lg": [ "Inter" ], "headline-md": [ "Inter" ], "label-lg": [ "Inter" ], "headline-sm": [ "Inter" ], "body-lg": [ "Inter" ], "label-sm": [ "Inter" ] }, "fontSize": { "headline-lg-mobile": [ "24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" } ], "headline-lg": [ "28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-md": [ "14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" } ], "body-sm": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "400" } ], "display-lg": [ "36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "headline-md": [ "22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "label-lg": [ "14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "500" } ], "headline-sm": [ "18px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "600" } ], "body-lg": [ "16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" } ], "label-sm": [ "10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" } ] } } } };</script></head><body class="bg-background font-body-md text-body-md text-on-background min-h-screen"><main class="w-full min-h-screen"><div class="flex flex-col w-full">
+<!-- Interactive Design System Artifact Canvas -->
+<div class="w-full bg-surface-container-low text-on-surface">
+<!-- TOP HEADER & ARTIFACT METADATA -->
+<header class="w-full bg-surface-container-lowest px-margin md:px-margin-md lg:px-margin-lg py-space-md">
+<div class="max-w-[1536px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<!-- Left: Brand Hierarchy & Breadcrumb -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Aldepos ILMS · State Variants &amp; Motion Specs</span>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded">v2.4.0-st</span>
+</div>
+<div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant">
+<span>Autentikasi</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-on-surface font-label-md">State Matrix: Error &amp; Loading States</span>
+<span class="text-outline-variant font-mono text-xs ml-2">HEX:#15803D</span>
+</div>
+</div>
+<!-- Right: Design System Tags & Interactive Switcher -->
+<div class="flex flex-wrap items-center gap-space-xs">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span>Fidelity: High</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">play_circle</span>
+<span>Status: Interactive Prototype</span>
+</div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">verified_user</span>
+<span>Role: All Staff</span>
+</div>
+<!-- Live Trigger Toggle -->
+<button class="ml-2 inline-flex items-center gap-1.5 px-3 py-1 bg-primary text-on-primary font-label-sm text-label-sm rounded transition-colors duration-150 cursor-pointer" id="replayMotionBtn">
+<span class="material-symbols-outlined text-sm">replay</span>
+<span>Replay Micro-interactions</span>
+</button>
+</div>
+</div>
+</header>
+<!-- MAIN WORKSPACE: SIDE-BY-SIDE STATES -->
+<div class="w-full px-margin md:px-margin-md lg:px-margin-lg py-space-xl">
+<div class="max-w-[1536px] mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-lg items-start">
+<!-- ========================================== -->
+<!-- VARIANT A: ERROR STATE                     -->
+<!-- ========================================== -->
+<section class="flex flex-col gap-space-md">
+<!-- State Header Banner -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-7 h-7 rounded flex items-center justify-center bg-tertiary-fixed text-tertiary font-label-md text-label-md font-bold">A</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface leading-tight">State A: Kesalahan Autentikasi (Error State)</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Trigger: Mismatched credentials / failed hash comparison</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs">error</span>
+                Validation Error
+              </span>
+</div>
+<!-- Login Card Container -->
+<div class="bg-surface-container-lowest rounded-xl p-7 flex flex-col justify-center items-center relative overflow-hidden">
+<!-- Subtle Islamic Lattice Geometric Watermark Frame -->
+<svg class="absolute -top-12 -right-12 w-48 h-48 pointer-events-none opacity-[0.035] text-primary" fill="currentColor" viewbox="0 0 100 100">
+<polygon points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"></polygon>
+<circle cx="50" cy="50" fill="none" r="42" stroke="currentColor" stroke-width="2"></circle>
+<polygon fill="none" points="50,15 58,40 85,40 63,56 71,81 50,65 29,81 37,56 15,40 42,40" stroke="currentColor" stroke-width="1.5"></polygon>
+</svg>
+<!-- Authentic Institutional Card Inner: 420px max width -->
+<div class="w-full max-w-[420px] flex flex-col" id="errorCardWrapper">
+<!-- Brand Crest & Header inside card -->
+<div class="flex items-center gap-space-sm mb-space-lg">
+<div class="w-10 h-10 rounded bg-primary-container text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">mosque</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-none">Aldepos ILMS</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Sistem Integrasi Pesantren &amp; Akademik</p>
+</div>
+</div>
+<!-- Segmented Tabs -->
+<div class="grid grid-cols-2 p-1 bg-surface-container-low rounded-lg mb-space-md">
+<button class="py-2 text-center font-label-md text-label-md rounded bg-surface-container-lowest text-primary font-semibold shadow-sm" type="button">
+                    Nama Pengguna
+                  </button>
+<button class="py-2 text-center font-label-md text-label-md rounded text-on-surface-variant hover:text-on-surface transition-colors" type="button">
+                    ID Santri / NIS
+                  </button>
+</div>
+<!-- ALERT BOX: Error state verbatim specification -->
+<div class="bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-lg p-3 font-body-sm text-body-sm flex items-start gap-2.5 mb-space-md transition-all duration-300" id="errorAlertBox">
+<span class="material-symbols-outlined text-tertiary text-base mt-0.5 shrink-0">warning</span>
+<div class="flex flex-col gap-0.5">
+<p class="font-semibold text-tertiary leading-tight">Kata sandi (password) yang Anda masukkan salah. Silakan coba lagi.</p>
+<p class="font-label-sm text-label-sm text-tertiary opacity-90">Sisa percobaan login: 4 kali sebelum akun ditangguhkan sementara.</p>
+</div>
+</div>
+<!-- Form Fields Container -->
+<div class="flex flex-col gap-space-md">
+<!-- Field 1: Nama Pengguna (Valid State) -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface font-medium flex justify-between">
+<span>Nama Pengguna</span>
+<span class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">check_circle</span>
+                        ID Valid
+                      </span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-secondary text-lg">person</span>
+<input class="w-full h-10 pl-10 pr-10 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none" readonly="" type="text" value="superadmin"/>
+<span class="material-symbols-outlined absolute right-3 text-secondary text-lg">check</span>
+</div>
+</div>
+<!-- Field 2: Kata Sandi (Error State with Shake & Focus) -->
+<div class="flex flex-col gap-1" id="errorPasswordFieldGroup">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-tertiary font-medium">Kata Sandi</label>
+<a class="font-label-sm text-label-sm text-primary hover:underline" href="javascript:void(0)">Lupa Sandi?</a>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-tertiary text-lg">lock</span>
+<input class="w-full h-10 pl-10 pr-10 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed-variant font-body-md text-body-md focus:outline-none" id="errorPasswordField" type="password" value="mypassword123"/>
+<button class="material-symbols-outlined absolute right-3 text-tertiary text-lg hover:opacity-80" type="button">visibility_off</button>
+</div>
+<p class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-xs">cancel</span>
+                      Kata sandi tidak sesuai dengan ID ini.
+                    </p>
+</div>
+<!-- Checkbox & Persistent Session -->
+<div class="flex items-center justify-between pt-1">
+<label class="inline-flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input checked="" class="w-4 h-4 rounded text-primary accent-primary" type="checkbox"/>
+<span>Ingat sesi masuk ini</span>
+</label>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">14 Hari</span>
+</div>
+<!-- Submit Button (Enabled) -->
+<button class="w-full h-10 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-1" type="button">
+<span>Masuk ke Sistem</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+<div class="text-center pt-1">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Kendala teknis? Hubungi <span class="text-primary font-medium hover:underline cursor-pointer">Helpdesk Madrasah</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Annotation Box: Variant A Motion Behaviors -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl">
+<div class="flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-tertiary text-xl shrink-0 mt-0.5">timeline</span>
+<div class="flex flex-col gap-1.5">
+<span class="font-label-md text-label-md text-tertiary uppercase tracking-wider font-semibold">Spesifikasi Interaksi State A</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<strong>Error Alert slides down</strong> (duration: 250ms, ease-out) + Input fields horizontal shake (200ms single cycle: -4px, +4px, -2px, +2px, 0). Focus automatically re-anchored to Password field.
+                  </p>
+<div class="flex flex-wrap items-center gap-2 mt-1">
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">t_alert = 250ms</span>
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">bezier(0.16, 1, 0.3, 1)</span>
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">retry_backoff: 4 attempts</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- VARIANT B: LOADING & VERIFYING STATE       -->
+<!-- ========================================== -->
+<section class="flex flex-col gap-space-md">
+<!-- State Header Banner -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-7 h-7 rounded flex items-center justify-center bg-secondary-container text-on-secondary-container font-label-md text-label-md font-bold">B</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface leading-tight">State B: Proses Verifikasi (Loading / Async State)</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Trigger: Primary submit action in-flight through network handshake</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-secondary bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs animate-spin">sync</span>
+                Async In-Progress
+              </span>
+</div>
+<!-- Login Card Container -->
+<div class="bg-surface-container-lowest rounded-xl p-7 flex flex-col justify-center items-center relative overflow-hidden">
+<!-- Subtle Islamic Lattice Geometric Watermark Frame -->
+<svg class="absolute -top-12 -right-12 w-48 h-48 pointer-events-none opacity-[0.035] text-primary" fill="currentColor" viewbox="0 0 100 100">
+<polygon points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"></polygon>
+<circle cx="50" cy="50" fill="none" r="42" stroke="currentColor" stroke-width="2"></circle>
+<polygon fill="none" points="50,15 58,40 85,40 63,56 71,81 50,65 29,81 37,56 15,40 42,40" stroke="currentColor" stroke-width="1.5"></polygon>
+</svg>
+<!-- Authentic Institutional Card Inner: 420px max width -->
+<div class="w-full max-w-[420px] flex flex-col">
+<!-- Brand Crest & Header inside card -->
+<div class="flex items-center gap-space-sm mb-space-lg">
+<div class="w-10 h-10 rounded bg-primary-container text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">mosque</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-none">Aldepos ILMS</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-0.5">Sistem Integrasi Pesantren &amp; Akademik</p>
+</div>
+</div>
+<!-- Segmented Tabs (Disabled interactive surface) -->
+<div class="grid grid-cols-2 p-1 bg-surface-container-low rounded-lg mb-space-md opacity-75">
+<button class="py-2 text-center font-label-md text-label-md rounded bg-surface-container-lowest text-primary font-semibold shadow-sm cursor-not-allowed" disabled="" type="button">
+                    Nama Pengguna
+                  </button>
+<button class="py-2 text-center font-label-md text-label-md rounded text-on-surface-variant cursor-not-allowed" disabled="" type="button">
+                    ID Santri / NIS
+                  </button>
+</div>
+<!-- Placeholder Alert space preserved to ensure 100% pixel matching between states -->
+<div class="h-12 mb-space-md bg-surface-container-low rounded-lg flex items-center px-3 text-on-surface-variant font-label-sm text-label-sm gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary-container animate-pulse"></span>
+<span>Menyiapkan saluran aman TLS 1.3 enkripsi 256-bit...</span>
+</div>
+<!-- Form Fields Container (Locked) -->
+<div class="flex flex-col gap-space-md pointer-events-none select-none">
+<!-- Field 1: Nama Pengguna (Disabled / Read-only) -->
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Nama Pengguna</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-lg">person</span>
+<input class="w-full h-10 pl-10 pr-10 rounded-lg bg-surface-container text-on-surface-variant font-body-md text-body-md cursor-not-allowed opacity-90" disabled="" type="text" value="superadmin"/>
+<span class="material-symbols-outlined absolute right-3 text-outline text-lg">lock_clock</span>
+</div>
+</div>
+<!-- Field 2: Kata Sandi (Disabled / Read-only) -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface-variant font-medium">Kata Sandi</label>
+<span class="font-label-sm text-label-sm text-outline">Terkunci</span>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-lg">lock</span>
+<input class="w-full h-10 pl-10 pr-10 rounded-lg bg-surface-container text-on-surface-variant font-body-md text-body-md cursor-not-allowed tracking-widest opacity-90" disabled="" type="password" value="supersecretpassword"/>
+<span class="material-symbols-outlined absolute right-3 text-outline text-lg">visibility</span>
+</div>
+</div>
+<!-- Checkbox (Disabled) -->
+<div class="flex items-center justify-between pt-1">
+<label class="inline-flex items-center gap-2 cursor-not-allowed font-body-sm text-body-sm text-on-surface-variant opacity-80">
+<input checked="" class="w-4 h-4 rounded text-primary cursor-not-allowed" disabled="" type="checkbox"/>
+<span>Ingat sesi masuk ini</span>
+</label>
+<span class="font-label-sm text-label-sm text-outline font-mono">Diproses</span>
+</div>
+<!-- PRIMARY BUTTON (LOADING STATE) -->
+<div class="pt-1">
+<button class="h-12 w-full rounded-lg bg-primary-container text-on-primary font-semibold font-body-md text-body-md flex items-center justify-center gap-2.5 opacity-90 cursor-wait shadow-sm pointer-events-auto" disabled="" type="button">
+<!-- Animated SVG circular spinner -->
+<svg class="w-5 h-5 animate-spin text-on-primary" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+<path class="opacity-95" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<span>Memverifikasi Akun...</span>
+</button>
+</div>
+<!-- Status feedback below button verbatim -->
+<div class="text-xs text-on-surface-variant text-center flex items-center justify-center gap-1.5 mt-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+<span class="font-body-sm text-body-sm">Menghubungkan ke LDAP &amp; Server Basis Data Madrasah...</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Annotation Box: Variant B Motion Behaviors -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl">
+<div class="flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-xl shrink-0 mt-0.5">hourglass_top</span>
+<div class="flex flex-col gap-1.5">
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider font-semibold">Spesifikasi Interaksi State B</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<strong>Button transitions to loading state</strong>: opacity 0.9, cursor 'wait', SVG spinner rotates @ 750ms linear infinite. Inputs disabled with pointer-events-none to prevent double submission.
+                  </p>
+<div class="flex flex-wrap items-center gap-2 mt-1">
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">t_spin = 750ms</span>
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">opacity: 0.9</span>
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container text-on-surface">pointer-events: none</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- ============================================================== -->
+<!-- BOTTOM SECTION: MOTION & INTERACTION SPECIFICATION MATRIX     -->
+<!-- ============================================================== -->
+<section class="mt-space-xl pt-space-lg">
+<!-- Section Banner -->
+<div class="flex flex-col md:flex-row md:items-center justify-between pb-space-md gap-space-xs">
+<div>
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">Engineered Motion Specs</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Motion &amp; Interaction Specification Matrix</h3>
+</div>
+<div class="flex items-center gap-2 font-mono text-xs text-on-surface-variant">
+<span>Standard: IEEE 2888-WCAG 2.2 AA</span>
+<span class="text-outline-variant">|</span>
+<span class="text-secondary font-medium">Timing Target: 60 FPS</span>
+</div>
+</div>
+<!-- 4 Technical Specification Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-md">
+<!-- Spec Card 1: Staggered Entrance -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex flex-col justify-between hover:bg-surface-container-lowest/80 transition-colors">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold font-mono text-xs">01</span>
+<span class="material-symbols-outlined text-primary text-xl">vertical_align_top</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mt-1">Staggered Entrance</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Card &amp; form elements cascade fade-up (<code class="font-mono text-xs text-on-surface bg-surface-container px-1 py-0.5 rounded">opacity: 0 → 1</code>, <code class="font-mono text-xs text-on-surface bg-surface-container px-1 py-0.5 rounded">translateY: 12px → 0</code>, duration: 300ms, stagger delay: 40ms per child).
+                </p>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between font-mono text-xs text-on-surface-variant">
+<span>cubic-bezier(0,0,0.2,1)</span>
+<span class="text-primary font-bold">300ms</span>
+</div>
+</div>
+<!-- Spec Card 2: Subtle Islamic Lattice Drift -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex flex-col justify-between hover:bg-surface-container-lowest/80 transition-colors">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-secondary font-bold font-mono text-xs">02</span>
+<span class="material-symbols-outlined text-secondary text-xl">grain</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mt-1">Islamic Lattice Drift</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                  SVG background pattern moves 40px diagonally across 60s ease-in-out infinite loop. Preserves institutional stillness without visual distraction.
+                </p>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between font-mono text-xs text-on-surface-variant">
+<span>translate(40px, 40px)</span>
+<span class="text-secondary font-bold">60.0s loop</span>
+</div>
+</div>
+<!-- Spec Card 3: Tactile Feedback -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex flex-col justify-between hover:bg-surface-container-lowest/80 transition-colors">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-primary font-bold font-mono text-xs">03</span>
+<span class="material-symbols-outlined text-primary text-xl">touch_app</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mt-1">Tactile Feedback</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Active state scale-98 on CTA button, 2px solid emerald-600 focus ring with 150ms cubic-bezier transition. Zero decorative dropshadows.
+                </p>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between font-mono text-xs text-on-surface-variant">
+<span>scale: 0.98</span>
+<span class="text-primary font-bold">150ms</span>
+</div>
+</div>
+<!-- Spec Card 4: Accessibility & Reduced Motion -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex flex-col justify-between hover:bg-surface-container-lowest/80 transition-colors">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-tertiary font-bold font-mono text-xs">04</span>
+<span class="material-symbols-outlined text-tertiary text-xl">accessibility_new</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mt-1">Accessibility Compliant</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+<code class="font-mono text-xs text-on-surface bg-surface-container px-1 py-0.5 rounded">@media (prefers-reduced-motion: reduce)</code> disables keyframe transforms, ensuring instant accessibility compliance.
+                </p>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between font-mono text-xs text-on-surface-variant">
+<span>fallback: 0ms flat</span>
+<span class="text-secondary font-bold">WCAG AAA</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction simulation controller
+  (function initMotionSpecs() {
+    const replayBtn = document.getElementById('replayMotionBtn');
+    const alertBox = document.getElementById('errorAlertBox');
+    const pwdGroup = document.getElementById('errorPasswordFieldGroup');
+    const pwdInput = document.getElementById('errorPasswordField');
+
+    function executeShakeSequence() {
+      if (!alertBox || !pwdGroup) return;
+
+      // Reset transforms
+      alertBox.style.transform = 'translateY(-8px)';
+      alertBox.style.opacity = '0';
+      pwdGroup.style.transform = 'translateX(0px)';
+
+      // Slide alert down 250ms
+      setTimeout(() => {
+        alertBox.style.transition = 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease-out';
+        alertBox.style.transform = 'translateY(0px)';
+        alertBox.style.opacity = '1';
+      }, 50);
+
+      // Horizontal shake sequence: -4px, +4px, -2px, +2px, 0
+      const keyframes = [-4, 4, -2, 2, 0];
+      let step = 0;
+      const interval = setInterval(() => {
+        if (step < keyframes.length) {
+          pwdGroup.style.transform = `translateX(${keyframes[step]}px)`;
+          step++;
+        } else {
+          clearInterval(interval);
+          pwdGroup.style.transform = 'translateX(0px)';
+          if (pwdInput) {
+            pwdInput.focus();
+            pwdInput.select();
+          }
+        }
+      }, 40);
+    }
+
+    if (replayBtn) {
+      replayBtn.addEventListener('click', executeShakeSequence);
+    }
+  })();
+</script></main></body></html>

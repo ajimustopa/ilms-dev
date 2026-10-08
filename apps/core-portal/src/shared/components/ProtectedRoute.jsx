@@ -62,11 +62,47 @@ const MODULE_ROLE_RULES = {
   portal_ortu: ['super_admin', 'admin_yayasan', 'wali_santri', 'admin_satuan', 'admin_satuan_pendidikan', 'tu'],
   portal_siswa: ['super_admin', 'admin_yayasan', 'siswa', 'guru', 'wali_kelas', 'admin_satuan', 'admin_satuan_pendidikan', 'tu'],
   manajemen: ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'kepala_sekolah', 'waka_kurikulum', 'hrd', 'kepegawaian', 'keuangan', 'sarpras_manager'],
-  'website-utama': ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'panitia_ppdb', 'tu']
+  'website-utama': ['super_admin', 'admin_yayasan', 'admin_satuan', 'admin_satuan_pendidikan', 'panitia_ppdb', 'tu'],
+  guru: [
+    'super_admin',
+    'admin_yayasan',
+    'admin_satuan',
+    'admin_satuan_pendidikan',
+    'kepala_sekolah',
+    'waka_kurikulum',
+    'guru',
+    'wali_kelas',
+    'guru_bk',
+    'pelatih_ekskul',
+    'guru_tamu',
+    'tu'
+  ],
+  calon_murid: [
+    'super_admin',
+    'admin_yayasan',
+    'calon_siswa',
+    'calon_santri',
+    'wali_santri',
+    'admin_satuan',
+    'admin_satuan_pendidikan',
+    'panitia_ppdb',
+    'tu'
+  ],
+  'calon-murid': [
+    'super_admin',
+    'admin_yayasan',
+    'calon_siswa',
+    'calon_santri',
+    'wali_santri',
+    'admin_satuan',
+    'admin_satuan_pendidikan',
+    'panitia_ppdb',
+    'tu'
+  ]
 };
 
 export default function ProtectedRoute({
-  redirectTo,
+  redirectTo = '/login',
   requiredRoles = null,
   requiredPermissions = null,
   module = null
@@ -74,8 +110,8 @@ export default function ProtectedRoute({
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
 
-  // 1. Tentukan halaman login tujuan jika belum terotentikasi
-  const loginPath = redirectTo || getAppLoginPath(location.pathname);
+  // 1. Tentukan halaman login tujuan jika belum terotentikasi (selalu ke /login utama)
+  const loginPath = redirectTo || '/login';
 
   if (!isAuthenticated || !user) {
     return <Navigate to={loginPath} replace state={{ from: location }} />;
@@ -182,7 +218,7 @@ export default function ProtectedRoute({
             </Link>
 
             <button
-              onClick={() => logout(getAppLoginPath(location.pathname))}
+              onClick={() => logout()}
               className="w-full py-2.5 bg-slate-700/70 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 border border-slate-600/60"
             >
               <LogOut className="w-3.5 h-3.5" />

@@ -21,6 +21,9 @@ export default {
           900: '#14532d',
           950: '#052e16',
         }
+      },
+      transitionTimingFunction: {
+        'ilms-spring': 'cubic-bezier(0.16, 1, 0.3, 1)',
       }
     },
   },

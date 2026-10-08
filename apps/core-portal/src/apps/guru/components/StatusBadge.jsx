@@ -49,6 +49,18 @@ export const StatusBadge = ({
 
   const currentTheme = styles[status] || styles.neutral;
 
+  const renderIcon = (ic) => {
+    if (!ic) return null;
+    if (React.isValidElement(ic)) return ic;
+    if (typeof ic === 'function' || typeof ic === 'object') {
+      const IconComponent = ic;
+      return <IconComponent className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />;
+    }
+    return null;
+  };
+
+  const renderedIcon = renderIcon(icon);
+
   return (
     <span
       className={`inline-flex items-center font-medium rounded-full border select-none ${currentTheme.bg} ${sizes[size] || sizes.md} ${className}`}
@@ -64,8 +76,8 @@ export const StatusBadge = ({
       {dot && (
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentTheme.dot}`} aria-hidden="true" />
       )}
-      {icon && (
-        <span className="shrink-0 text-current" aria-hidden="true">{icon}</span>
+      {renderedIcon && (
+        <span className="shrink-0 text-current flex items-center" aria-hidden="true">{renderedIcon}</span>
       )}
       {children && <span className="truncate">{children}</span>}
     </span>

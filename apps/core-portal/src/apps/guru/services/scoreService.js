@@ -49,19 +49,19 @@ export const scoreService = {
    * Tujuan Pembelajaran (TP)
    */
   async getLearningObjectives(params = {}) {
-    return handleApiResponse(api.get('/akademik/curriculum/learning-objectives', { params }));
+    return handleApiResponse(api.get('/akademik/learning-objectives', { params }));
   },
 
   async createLearningObjective(payload) {
-    return handleApiResponse(api.post('/akademik/curriculum/learning-objectives', payload));
+    return handleApiResponse(api.post('/akademik/learning-objectives', payload));
   },
 
   async updateLearningObjective(id, payload) {
-    return handleApiResponse(api.put(`/akademik/curriculum/learning-objectives/${id}`, payload));
+    return handleApiResponse(api.put(`/akademik/learning-objectives/${id}`, payload));
   },
 
   async deleteLearningObjective(id) {
-    return handleApiResponse(api.delete(`/akademik/curriculum/learning-objectives/${id}`));
+    return handleApiResponse(api.delete(`/akademik/learning-objectives/${id}`));
   },
 
   /**
@@ -94,7 +94,7 @@ export const scoreService = {
    * Siswa Rombel
    */
   async getClassGroupMembers(classGroupId) {
-    return handleApiResponse(api.get(`/akademik/curriculum/class-groups/${classGroupId}/members`));
+    return handleApiResponse(api.get(`/akademik/class-groups/${classGroupId}/members`));
   }
 };
 

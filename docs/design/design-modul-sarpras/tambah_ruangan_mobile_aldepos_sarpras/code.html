@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><meta content="mobile_stack" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-container-highest": "#dce5dd", "primary-container": "#006c4c", "secondary": "#4d6357", "inverse-surface": "#2a322d", "on-primary-fixed": "#002114", "tertiary-container": "#3e6374", "tertiary": "#254b5b", "primary-fixed": "#9df4cb", "on-background": "#151d19", "tertiary-fixed-dim": "#a6cce0", "on-surface-variant": "#3f4943", "on-secondary-container": "#51685b", "secondary-container": "#cde6d6", "primary": "#005138", "surface-bright": "#f3fcf4", "primary-fixed-dim": "#81d7b0", "on-primary-container": "#93eac2", "surface-container-lowest": "#ffffff", "surface-container": "#e7f0e9", "on-error-container": "#93000a", "error": "#ba1a1a", "secondary-fixed-dim": "#b4ccbd", "on-tertiary": "#ffffff", "on-tertiary-fixed-variant": "#254b5c", "tertiary-fixed": "#c2e8fc", "on-primary-fixed-variant": "#005138", "secondary-fixed": "#d0e8d9", "on-tertiary-container": "#b8def2", "surface-tint": "#006c4c", "surface-container-low": "#edf6ee", "on-secondary-fixed-variant": "#364b40", "inverse-on-surface": "#eaf3ec", "on-secondary": "#ffffff", "surface-dim": "#d3dcd5", "surface-container-high": "#e1eae3", "on-primary": "#ffffff", "error-container": "#ffdad6", "on-secondary-fixed": "#0a1f16", "background": "#f3fcf4", "surface": "#f3fcf4", "inverse-primary": "#81d7b0", "surface-variant": "#dce5dd", "on-surface": "#151d19", "on-tertiary-fixed": "#001f2a", "outline": "#6f7a73", "outline-variant": "#bec9c1", "on-error": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-md": "0.75rem", "margin": "1.5rem", "margin-mobile": "1rem", "gutter-dense": "0.5rem", "space-xl": "1.5rem", "gutter": "1rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "space-lg": "1rem" }, fontFamily: { "body-large": ["Roboto Flex"], "title-small": ["Roboto Flex"], "title-large": ["Roboto Flex"], "label-large": ["Roboto Flex"], "body-medium": ["Roboto Flex"], "title-medium": ["Roboto Flex"], "label-medium": ["Roboto Flex"], "body-small": ["Roboto Flex"], "headline-small": ["Roboto Flex"], "label-small": ["Roboto Flex"] }, fontSize: { "body-large": ["16px", { lineHeight: "24px", letterSpacing: "0.5px", fontWeight: "400" }], "title-small": ["14px", { lineHeight: "20px", letterSpacing: "0.1px", fontWeight: "500" }], "title-large": ["22px", { lineHeight: "28px", fontWeight: "400" }], "label-large": ["14px", { lineHeight: "20px", letterSpacing: "0.1px", fontWeight: "500" }], "body-medium": ["14px", { lineHeight: "20px", letterSpacing: "0.25px", fontWeight: "400" }], "title-medium": ["16px", { lineHeight: "24px", letterSpacing: "0.15px", fontWeight: "500" }], "label-medium": ["12px", { lineHeight: "16px", letterSpacing: "0.5px", fontWeight: "500" }], "body-small": ["12px", { lineHeight: "16px", letterSpacing: "0.4px", fontWeight: "400" }], "headline-small": ["24px", { lineHeight: "32px", fontWeight: "400" }], "label-small": ["11px", { lineHeight: "16px", letterSpacing: "0.5px", fontWeight: "500" }] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-large text-body-large text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-14 px-margin-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="Kembali" class="w-11 h-11 -ml-space-xs flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:bg-surface-container transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><h1 class="font-title-medium text-title-medium text-on-surface truncate">Tambah Aset Baru</h1></div><div class="flex items-center gap-space-xs"><button aria-label="Bantuan formulir" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface active:bg-surface-container transition-colors" type="button"><span class="material-symbols-outlined text-[22px]">help_outline</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface"><div class="flex flex-col w-full">
+<div class="sticky top-0 z-40 bg-surface flex items-center justify-between px-space-md h-14 shadow-sm">
+<button aria-label="Tutup formulir" class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:bg-surface-container-high transition-colors" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<h1 class="font-title-medium text-title-medium text-on-surface">Tambah ruangan</h1>
+<button class="px-space-md py-1.5 rounded-full text-primary font-label-large text-label-large font-semibold hover:bg-surface-container active:bg-surface-container-high transition-colors" id="btn-save" type="button">
+      Simpan
+    </button>
+</div>
+<div class="px-margin-mobile py-space-md pb-space-xl flex flex-col gap-space-lg">
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-lg">
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="kode-ruang">Kode ruang *</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<input class="w-full bg-transparent font-mono text-body-medium text-body-medium text-on-surface outline-none tracking-wide" id="kode-ruang" name="kode-ruang" placeholder="Misal: AL-202" type="text" value="AL-202">
+</div>
+<p class="font-body-small text-body-small text-on-surface-variant">Format penomoran standar gedung</p>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="nama-ruang">Nama ruang *</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<input class="w-full bg-transparent font-body-medium text-body-medium text-on-surface outline-none" id="nama-ruang" name="nama-ruang" placeholder="Misal: Lab Bahasa 1" type="text" value="Lab Bahasa 1">
+</div>
+<p class="font-body-small text-body-small text-on-surface-variant">Nama spesifik fungsi ruangan</p>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="peruntukan">Peruntukan *</label>
+<div class="relative bg-surface-container-lowest rounded-lg shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<select class="w-full appearance-none bg-transparent p-space-sm pr-10 font-body-medium text-body-medium text-on-surface outline-none cursor-pointer" id="peruntukan" name="peruntukan">
+<option value="Ruang kelas">Ruang kelas</option>
+<option selected="" value="Laboratorium">Laboratorium</option>
+<option value="Perpustakaan">Perpustakaan</option>
+<option value="Aula">Aula</option>
+<option value="Kantor">Kantor</option>
+<option value="Ibadah">Ibadah</option>
+<option value="Asrama">Asrama</option>
+<option value="Gudang">Gudang</option>
+<option value="Lainnya">Lainnya</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="gedung">Gedung *</label>
+<div class="relative bg-surface-container-lowest rounded-lg shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<select class="w-full appearance-none bg-transparent p-space-sm pr-10 font-body-medium text-body-medium text-on-surface outline-none cursor-pointer" id="gedung" name="gedung">
+<option value="Gedung Abu Bakar">Gedung Abu Bakar</option>
+<option value="Gedung Umar">Gedung Umar</option>
+<option value="Gedung Utsman">Gedung Utsman</option>
+<option selected="" value="Gedung Ali">Gedung Ali</option>
+<option value="Gedung Khadijah">Gedung Khadijah</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="lantai">Lantai *</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<input class="w-full bg-transparent font-body-medium text-body-medium text-on-surface outline-none" id="lantai" name="lantai" type="number" value="2">
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="luas">Luas (m²) *</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm flex items-center shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<input class="w-full bg-transparent font-body-medium text-body-medium text-on-surface outline-none" id="luas" name="luas" type="number" value="64">
+<span class="font-body-medium text-body-medium text-on-surface-variant ml-2 whitespace-nowrap">m²</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="kapasitas">Kapasitas *</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm flex items-center shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<input class="w-full bg-transparent font-body-medium text-body-medium text-on-surface outline-none" id="kapasitas" name="kapasitas" type="number" value="36">
+<span class="font-body-medium text-body-medium text-on-surface-variant ml-2 whitespace-nowrap">santri / orang</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="kondisi-awal">Kondisi awal *</label>
+<div class="relative bg-surface-container-lowest rounded-lg p-space-sm flex items-center shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<div class="flex items-center gap-2 flex-1">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-primary-fixed-variant font-label-small text-label-small whitespace-nowrap">
+<span class="material-symbols-outlined text-[14px]">check</span>
+              Baik
+            </span>
+<select class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" id="kondisi-awal" name="kondisi-awal">
+<option selected="" value="Baik">Baik</option>
+<option value="Rusak ringan">Rusak ringan</option>
+<option value="Rusak berat">Rusak berat</option>
+</select>
+</div>
+<span class="material-symbols-outlined pointer-events-none text-on-surface-variant text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-medium text-label-medium text-on-surface-variant" for="catatan">Catatan</label>
+<div class="bg-surface-container-lowest rounded-lg p-space-sm shadow-[0_0_0_1px_rgba(111,122,115,0.4)] focus-within:shadow-[0_0_0_2px_#006c4c] transition-all">
+<textarea class="w-full bg-transparent font-body-medium text-body-medium text-on-surface outline-none resize-none leading-relaxed" id="catatan" name="catatan" rows="3">Dilengkapi instalasi audio lab bahasa dan 36 meja bilik santri.</textarea>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-col gap-0.5">
+<h2 class="font-title-small text-title-small text-on-surface">Foto ruangan</h2>
+<p class="font-body-small text-body-small text-on-surface-variant">Format JPG atau PNG, maks. 5 MB</p>
+</div>
+<div class="grid grid-cols-2 gap-space-md pt-1">
+<div class="relative aspect-4/3 rounded-lg bg-surface-variant flex flex-col items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant text-[32px] opacity-70">photo</span>
+<span class="font-body-small text-body-small text-on-surface-variant mt-1">ruang_utama.jpg</span>
+<button aria-label="Hapus foto 1" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-surface-container-lowest/90 text-on-surface flex items-center justify-center hover:bg-surface-container-lowest shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<div class="relative aspect-4/3 rounded-lg bg-surface-variant flex flex-col items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant text-[32px] opacity-70">photo</span>
+<span class="font-body-small text-body-small text-on-surface-variant mt-1">bilik_meja.jpg</span>
+<button aria-label="Hapus foto 2" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-surface-container-lowest/90 text-on-surface flex items-center justify-center hover:bg-surface-container-lowest shadow-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+<div class="pt-1">
+<button class="w-full py-2.5 px-space-md rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-large text-label-large flex items-center justify-center gap-2 hover:bg-secondary-fixed active:bg-secondary-fixed-dim transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">add_photo_alternate</span>
+          Tambah foto
+        </button>
+</div>
+</div>
+<div class="pt-2">
+<button class="w-full h-10 rounded-full bg-primary text-on-primary font-label-large text-label-large flex items-center justify-center gap-2 shadow-sm hover:opacity-95 active:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]">check</span>
+        Simpan ruangan
+      </button>
+</div>
+</div>
+</div>
+<script>
+  document.getElementById('btn-save')?.addEventListener('click', () => {
+    history.back();
+  });
+</script></main></body></html>

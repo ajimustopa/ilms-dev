@@ -35,8 +35,55 @@ export default function Layout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Ambil nama role aktif user
-  const currentRole = user?.school_roles?.[0]?.role_name || user?.account_type || 'super_admin';
+  // Kumpulkan seluruh wewenang/role yang dimiliki user
+  const userRoles = new Set();
+  if (user?.account_type) userRoles.add(String(user.account_type).toLowerCase().trim());
+  if (user?.role) userRoles.add(String(user.role).toLowerCase().trim());
+  if (user?.active_role) userRoles.add(String(user.active_role).toLowerCase().trim());
+  if (Array.isArray(user?.roles)) {
+    user.roles.forEach((r) => {
+      if (typeof r === 'string') userRoles.add(r.toLowerCase().trim());
+      else if (r?.role_name) userRoles.add(String(r.role_name).toLowerCase().trim());
+      else if (r?.name) userRoles.add(String(r.name).toLowerCase().trim());
+    });
+  }
+  if (Array.isArray(user?.school_roles)) {
+    user.school_roles.forEach((sr) => {
+      if (typeof sr === 'string') userRoles.add(sr.toLowerCase().trim());
+      else if (sr?.role_name) userRoles.add(String(sr.role_name).toLowerCase().trim());
+      else if (sr?.name) userRoles.add(String(sr.name).toLowerCase().trim());
+    });
+  }
+  if (Array.isArray(user?.school_units)) {
+    user.school_units.forEach((su) => {
+      if (su?.role) userRoles.add(String(su.role).toLowerCase().trim());
+      if (Array.isArray(su?.roles)) {
+        su.roles.forEach((r) => {
+          if (typeof r === 'string') userRoles.add(r.toLowerCase().trim());
+          else if (r?.role_name) userRoles.add(String(r.role_name).toLowerCase().trim());
+          else if (r?.name) userRoles.add(String(r.name).toLowerCase().trim());
+        });
+      }
+    });
+  }
+
+  const isSuperAdmin =
+    user?.is_super_admin ||
+    userRoles.has('super_admin') ||
+    userRoles.has('superadmin') ||
+    userRoles.has('admin') ||
+    userRoles.has('developer');
+
+  const isAdminYayasan = userRoles.has('admin_yayasan');
+  const isAdminSatuan = userRoles.has('admin_satuan_pendidikan') || userRoles.has('admin_satuan');
+
+  // Ambil nama role aktif user untuk badge
+  let currentRole = 'super_admin';
+  if (isSuperAdmin) currentRole = 'super_admin';
+  else if (isAdminYayasan) currentRole = 'admin_yayasan';
+  else if (isAdminSatuan) currentRole = 'admin_satuan_pendidikan';
+  else if (userRoles.size > 0) currentRole = Array.from(userRoles)[0];
+  else currentRole = user?.account_type || 'user';
 
   // Daftar navigasi dengan filter role sesuai roles.md
   const allNavItems = [
@@ -97,9 +144,10 @@ export default function Layout() {
   ];
 
   // Filter navigasi berdasarkan role user
-  const visibleNavItems = allNavItems.filter(item =>
-    currentRole === 'super_admin' || item.roles.includes(currentRole)
-  );
+  const visibleNavItems = allNavItems.filter((item) => {
+    if (isSuperAdmin) return true;
+    return item.roles.some((r) => userRoles.has(r.toLowerCase().trim()));
+  });
 
   return (
     <div className="min-h-screen flex bg-slate-50">

@@ -28,13 +28,32 @@ let totalPassed = 0;
 let totalFailed = 0;
 const results = [];
 
+const devEnv = {
+  ...process.env,
+  DB_HOST: '127.0.0.1',
+  DB_USER: 'root',
+  DB_PASSWORD: '',
+  DB_PORT: '3306',
+  CORE_DB_HOST: '127.0.0.1',
+  CORE_DB_USER: 'root',
+  CORE_DB_PASSWORD: '',
+  CORE_DB_NAME: 'core_dev',
+  CORE_DB_PORT: '3306',
+  KEPEGAWAIAN_DB_HOST: '127.0.0.1',
+  KEPEGAWAIAN_DB_USER: 'root',
+  KEPEGAWAIAN_DB_PASSWORD: '',
+  KEPEGAWAIAN_DB_NAME: 'kepegawaian_dev',
+  KEPEGAWAIAN_DB_PORT: '3306',
+  NODE_ENV: 'development'
+};
+
 for (const file of testFiles) {
   const filePath = path.join(__dirname, '..', file);
   console.log(`\n--- Running: ${file} ---`);
 
   const proc = spawnSync('node', ['--test', filePath], {
     stdio: 'inherit',
-    env: process.env
+    env: devEnv
   });
 
   if (proc.status === 0) {

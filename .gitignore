@@ -51,5 +51,6 @@ database_config_hostinger.txt
 
 # Temporary build timestamps
 *.timestamp-*.mjs
+~$*
 
 

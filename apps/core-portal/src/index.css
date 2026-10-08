@@ -333,3 +333,108 @@ table thead th.bg-white {
 .core-daypicker .rdp-outside .rdp-day_button {
   opacity: 0.35;
 }
+
+/* ==========================================================================
+   ALDEPOS ILMS DESIGN SYSTEM MOTION SPECIFICATIONS
+   Namespace: .ilms-* (Isolated to prevent conflict with other modules)
+   ========================================================================== */
+
+@keyframes ilmsFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ilmsFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ilmsSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ilmsShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-4px);
+  }
+  40%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes ilmsLatticeDrift {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(32px, 32px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+.ilms-fade-in {
+  animation: ilmsFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ilms-fade-up {
+  animation: ilmsFadeUp 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+.ilms-slide-up {
+  animation: ilmsSlideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ilms-shake {
+  animation: ilmsShake 250ms ease-in-out;
+}
+
+.ilms-drift {
+  animation: ilmsLatticeDrift 60s linear infinite;
+}
+
+.ilms-tile-hover {
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.ilms-tile-hover:hover {
+  transform: translateY(-2px);
+}
+
+.ilms-tile-hover:active {
+  transform: scale(0.96);
+}
+
+/* Reduced Motion Safety strictly scoped to ilms- namespace */
+@media (prefers-reduced-motion: reduce) {
+  [class*="ilms-"],
+  [class*="ilms-"] * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    transform: none !important;
+  }
+}

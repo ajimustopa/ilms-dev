@@ -1861,7 +1861,7 @@ export default function NilaiPage() {
           {/* Status Left */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <CloudCheck className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">

@@ -36,6 +36,7 @@ const ECOSYSTEM_APPS = [
   { module: 'website_utama', name: 'Website Utama CMS', desc: 'Profil Sekolah, Berita, Pengumuman, Agenda, Galeri & Konten Website Publik' },
   { module: 'kepegawaian', name: 'Kepegawaian & SDM', desc: 'Data Induk GTK, Alamat & Berkas, DUK, Presensi, Cuti, Payroll, Rekrutmen, Psikotes' },
   { module: 'akademik', name: 'Akademik & Kurikulum', desc: 'Data Siswa Dapodik, Rombel/Kelas, Jadwal, Nilai & Rapor, Presensi Siswa, Kelulusan' },
+  { module: 'guru', name: 'Portal Guru & Pengajar', desc: 'Presensi GPS & Izin Cuti, Roster KBM, TP/Silabus, Presensi Siswa, Jurnal, Nilai, Konseling BK' },
   { module: 'keuangan', name: 'Keuangan & SPP', desc: 'Pos Keuangan, Tagihan SPP & Uang Gedung, Virtual Account/Payment, Kas & Jurnal' },
   { module: 'kantin', name: 'Kantin & e-Wallet', desc: 'Kasir POS, Katalog Produk & Barcode, Vendor/Suplier, Top Up & Saldo Santri' },
   { module: 'dapur', name: 'Dapur & Logistik', desc: 'Menu Makanan Harian, Pengadaan Bahan Dapur, Stok Beras & Lauk Santri' },
@@ -44,6 +45,7 @@ const ECOSYSTEM_APPS = [
   { module: 'al_quran', name: 'Al-Qur\'an & Tahfidz', desc: 'Setoran Hafalan, Ziyadah & Muraja\'ah, Penilaian Tajwid/Tilawah, Ujian Tahfidz' },
   { module: 'manajemen', name: 'Manajemen & RKT', desc: 'RIPS, Renstra, RKJM, RKT, Evaluasi Diri (EVADIR), Monev & Balanced Scorecard' },
   { module: 'ppdb', name: 'PPDB / PSB Online', desc: 'Formulir Pendaftaran, Seleksi Berkas, Tes Masuk Online, Pengumuman & Daftar Ulang' },
+  { module: 'calon_murid', name: 'Portal Calon Murid', desc: 'Biodata Pendaftar PSB, Unggah Dokumen, Kartu Ujian, Status Seleksi & Kelulusan' },
   { module: 'kesiswaan', name: 'Kesiswaan & Ekskul', desc: 'Ekstrakurikuler, Prestasi Siswa, Tata Tertib & Poin Pelanggaran, OSIS / Beasiswa' },
   { module: 'bk', name: 'Bimbingan & Konseling', desc: 'Catatan Konseling, Sosiometri & Home Visit, Rekomendasi Peminatan / Karir Siswa' },
   { module: 'cbt', name: 'CBT & Ujian Online', desc: 'Bank Soal, Jadwal Ujian Online, Monitoring Anti-Cheat, Analisis Butir Soal' },
@@ -96,9 +98,9 @@ export default function ManajemenUser() {
     username: '',
     password: '',
     full_name: '',
-    account_type: 'admin',
-    school_scope_type: 'yayasan', // 'yayasan' or 'school'
-    school_unit_id: '',
+    account_type: 'staff',
+    school_scope_type: 'school', // 'yayasan' or 'school'
+    school_unit_ids: [],
     assignment_method: 'role', // 'role' or 'custom'
     role_id: '',
     app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
@@ -107,7 +109,7 @@ export default function ManajemenUser() {
   // Form State: Access Configuration for Existing User
   const [accessForm, setAccessForm] = useState({
     school_scope_type: 'yayasan',
-    school_unit_id: '',
+    school_unit_ids: [],
     assignment_method: 'role',
     role_id: '',
     app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
@@ -163,7 +165,14 @@ export default function ManajemenUser() {
       ]);
 
       if (schoolsRes.data?.success && schoolsRes.data.data?.items) {
-        setSchoolUnits(schoolsRes.data.data.items);
+        const units = schoolsRes.data.data.items;
+        setSchoolUnits(units);
+        if (units.length > 0) {
+          setAddForm((prev) => ({
+            ...prev,
+            school_unit_ids: prev.school_unit_ids.length > 0 ? prev.school_unit_ids : [String(units[0].id)]
+          }));
+        }
       }
 
       if (rolesRes.data?.success && rolesRes.data.data) {
@@ -195,8 +204,13 @@ export default function ManajemenUser() {
   const handleOpenAccessModal = (user) => {
     setSelectedUser(user);
     const primaryRole = user.school_roles?.[0];
-    const isYayasan = !primaryRole?.school_unit_id;
+    const isYayasan = !primaryRole?.school_unit_id || user.school_roles?.some((sr) => !sr.school_unit_id);
     const isCustom = primaryRole?.role_name?.startsWith('custom_user_');
+
+    // Kumpulkan seluruh unit sekolah yang ditugaskan ke user ini
+    const assignedUnitIds = (user.school_roles || [])
+      .map((sr) => (sr.school_unit_id ? String(sr.school_unit_id) : null))
+      .filter(Boolean);
 
     const initialPermissions = ECOSYSTEM_APPS.reduce((acc, app) => {
       acc[app.module] = 'none';
@@ -216,7 +230,7 @@ export default function ManajemenUser() {
 
     setAccessForm({
       school_scope_type: isYayasan ? 'yayasan' : 'school',
-      school_unit_id: primaryRole?.school_unit_id ? String(primaryRole.school_unit_id) : (schoolUnits[0]?.id ? String(schoolUnits[0].id) : ''),
+      school_unit_ids: isYayasan ? [] : (assignedUnitIds.length > 0 ? assignedUnitIds : (schoolUnits[0]?.id ? [String(schoolUnits[0].id)] : [])),
       assignment_method: isCustom ? 'custom' : 'role',
       role_id: primaryRole?.role_id ? String(primaryRole.role_id) : (roles[0]?.id ? String(roles[0].id) : ''),
       app_permissions: initialPermissions
@@ -226,16 +240,53 @@ export default function ManajemenUser() {
     setShowAccessModal(true);
   };
 
+  // Helper multi-select checkboxes for Unit Sekolah
+  const toggleUnitSelection = (unitId, isAdd = false) => {
+    const formState = isAdd ? addForm : accessForm;
+    const setFormState = isAdd ? setAddForm : setAccessForm;
+    const currentIds = formState.school_unit_ids || [];
+    const strId = String(unitId);
+    const newIds = currentIds.includes(strId)
+      ? currentIds.filter((id) => id !== strId)
+      : [...currentIds, strId];
+    setFormState({ ...formState, school_unit_ids: newIds });
+  };
+
+  const selectAllUnits = (isAdd = false) => {
+    const setFormState = isAdd ? setAddForm : setAccessForm;
+    const formState = isAdd ? addForm : accessForm;
+    setFormState({
+      ...formState,
+      school_unit_ids: schoolUnits.map((u) => String(u.id))
+    });
+  };
+
+  const clearAllUnits = (isAdd = false) => {
+    const setFormState = isAdd ? setAddForm : setAccessForm;
+    const formState = isAdd ? addForm : accessForm;
+    setFormState({
+      ...formState,
+      school_unit_ids: []
+    });
+  };
+
   // Submit Access Form for existing user
   const handleSaveAccess = async (e) => {
     e.preventDefault();
+    if (accessForm.school_scope_type === 'school' && (!accessForm.school_unit_ids || accessForm.school_unit_ids.length === 0)) {
+      setFormError('Harap pilih minimal 1 unit sekolah penugasan guru/pegawai.');
+      return;
+    }
+
     setSubmitting(true);
     setFormError('');
 
     try {
       const payload = {
         assignment_method: accessForm.assignment_method,
-        school_unit_id: accessForm.school_scope_type === 'yayasan' ? null : Number(accessForm.school_unit_id),
+        school_scope_type: accessForm.school_scope_type,
+        school_unit_ids: accessForm.school_scope_type === 'yayasan' ? [] : accessForm.school_unit_ids,
+        school_unit_id: accessForm.school_scope_type === 'yayasan' ? null : Number(accessForm.school_unit_ids[0] || null),
         role_id: accessForm.assignment_method === 'role' ? Number(accessForm.role_id) : null,
         app_permissions: accessForm.assignment_method === 'custom' ? accessForm.app_permissions : null
       };
@@ -255,6 +306,11 @@ export default function ManajemenUser() {
   // Handle Add User Submit
   const handleAddUser = async (e) => {
     e.preventDefault();
+    if (addForm.school_scope_type === 'school' && (!addForm.school_unit_ids || addForm.school_unit_ids.length === 0)) {
+      setFormError('Harap pilih minimal 1 unit sekolah penugasan guru/pegawai.');
+      return;
+    }
+
     setSubmitting(true);
     setFormError('');
 
@@ -264,7 +320,9 @@ export default function ManajemenUser() {
         password: addForm.password,
         full_name: addForm.full_name.trim(),
         account_type: addForm.account_type,
-        school_unit_id: addForm.school_scope_type === 'yayasan' ? null : Number(addForm.school_unit_id),
+        school_scope_type: addForm.school_scope_type,
+        school_unit_ids: addForm.school_scope_type === 'yayasan' ? [] : addForm.school_unit_ids,
+        school_unit_id: addForm.school_scope_type === 'yayasan' ? null : Number(addForm.school_unit_ids[0] || null),
         assignment_method: addForm.assignment_method,
         role_id: addForm.assignment_method === 'role' ? Number(addForm.role_id) : null,
         app_permissions: addForm.assignment_method === 'custom' ? addForm.app_permissions : null
@@ -277,9 +335,9 @@ export default function ManajemenUser() {
           username: '',
           password: '',
           full_name: '',
-          account_type: 'admin',
-          school_scope_type: 'yayasan',
-          school_unit_id: schoolUnits[0] ? String(schoolUnits[0].id) : '',
+          account_type: 'staff',
+          school_scope_type: 'school',
+          school_unit_ids: schoolUnits[0] ? [String(schoolUnits[0].id)] : [],
           assignment_method: 'role',
           role_id: roles[0] ? String(roles[0].id) : '',
           app_permissions: ECOSYSTEM_APPS.reduce((acc, app) => ({ ...acc, [app.module]: 'none' }), {})
@@ -558,13 +616,24 @@ export default function ManajemenUser() {
                         {isYayasan ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                             <Globe className="w-3 h-3" />
-                            <span>Yayasan (Lintas Satuan Pendidikan)</span>
+                            <span>Yayasan (Lintas Satuan)</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                            <Building2 className="w-3 h-3" />
-                            <span>{primaryRole?.school_name}</span>
-                          </span>
+                          <div className="flex flex-wrap gap-1 max-w-[280px]">
+                            {u.school_roles && u.school_roles.length > 0 ? (
+                              u.school_roles.map((sr, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"
+                                >
+                                  <Building2 className="w-3 h-3" />
+                                  <span>{sr.school_name}</span>
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic">Belum Ditugaskan</span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="py-3.5 px-4">
@@ -677,14 +746,36 @@ export default function ManajemenUser() {
             )}
 
             <form onSubmit={handleSaveAccess} className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1 text-xs">
-              {/* 1. Pemilihan Lingkup Satuan Pendidikan */}
+              {/* 1. Pemilihan Lingkup Satuan Pendidikan & Penugasan Unit */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
-                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
-                  1. Lingkup Satuan Pendidikan
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                    1. Lingkup Satuan Pendidikan & Penugasan Unit
+                  </label>
+                  {accessForm.school_scope_type === 'school' && schoolUnits.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectAllUnits(false)}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                      >
+                        Pilih Semua Unit
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => clearAllUnits(false)}
+                        className="text-[10px] font-bold text-rose-600 hover:text-rose-800 hover:underline"
+                      >
+                        Hapus Semua
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <label
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
                       accessForm.school_scope_type === 'yayasan'
                         ? 'bg-purple-50/80 border-purple-300 text-purple-900 font-bold shadow-2xs'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -696,17 +787,19 @@ export default function ManajemenUser() {
                       value="yayasan"
                       checked={accessForm.school_scope_type === 'yayasan'}
                       onChange={() => setAccessForm({ ...accessForm, school_scope_type: 'yayasan' })}
-                      className="text-purple-600"
+                      className="mt-0.5 text-purple-600"
                     />
-                    <Globe className="w-4 h-4 text-purple-600 shrink-0" />
-                    <div>
-                      <div>Lingkup Yayasan</div>
-                      <div className="text-[10px] font-normal text-purple-700">Akses Lintas Seluruh Satuan Pendidikan</div>
+                    <div className="flex gap-2">
+                      <Globe className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div>Lingkup Yayasan</div>
+                        <div className="text-[10px] font-normal text-purple-700">Akses Lintas Seluruh Satuan Pendidikan</div>
+                      </div>
                     </div>
                   </label>
 
                   <label
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
                       accessForm.school_scope_type === 'school'
                         ? 'bg-blue-50/80 border-blue-300 text-blue-900 font-bold shadow-2xs'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -718,28 +811,61 @@ export default function ManajemenUser() {
                       value="school"
                       checked={accessForm.school_scope_type === 'school'}
                       onChange={() => setAccessForm({ ...accessForm, school_scope_type: 'school' })}
-                      className="text-blue-600"
+                      className="mt-0.5 text-blue-600"
                     />
-                    <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    <div>
-                      <div>Satuan Pendidikan Spesifik</div>
-                      <div className="text-[10px] font-normal text-blue-700">Dibatasi pada 1 Unit Sekolah</div>
+                    <div className="flex gap-2">
+                      <Building2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div>Satuan Pendidikan Tertentu</div>
+                        <div className="text-[10px] font-normal text-blue-700">Pilih satu atau beberapa unit sekolah (multi-unit)</div>
+                      </div>
                     </div>
                   </label>
                 </div>
 
                 {accessForm.school_scope_type === 'school' && (
-                  <div className="pt-2">
-                    <label className="block font-semibold text-slate-700 mb-1">Pilih Unit Sekolah *</label>
-                    <select
-                      value={accessForm.school_unit_id}
-                      onChange={(e) => setAccessForm({ ...accessForm, school_unit_id: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800"
-                    >
-                      {schoolUnits.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                      ))}
-                    </select>
+                  <div className="pt-2 space-y-2">
+                    <label className="block font-semibold text-slate-700 text-xs">
+                      Pilih Unit Sekolah Tempat Guru/Pegawai Mengajar & Bertugas *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {schoolUnits.map((s) => {
+                        const isChecked = (accessForm.school_unit_ids || []).includes(String(s.id));
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                              isChecked
+                                ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950 font-bold shadow-2xs'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleUnitSelection(s.id, false)}
+                              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="truncate">{s.name}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                  {s.code || (s.stage || '').toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="text-[10px] font-normal text-slate-400">
+                                {isChecked ? '✓ Diberi hak akses & penugasan' : 'Tidak ditugaskan'}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {(!accessForm.school_unit_ids || accessForm.school_unit_ids.length === 0) && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        ⚠️ Harap pilih setidaknya 1 unit sekolah penugasan.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1000,14 +1126,36 @@ export default function ManajemenUser() {
                 </div>
               </div>
 
-              {/* 1. Lingkup Satuan Pendidikan */}
+              {/* 1. Lingkup Satuan Pendidikan & Penugasan Unit */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
-                  Lingkup Satuan Pendidikan
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                    Lingkup Satuan Pendidikan & Penugasan Unit
+                  </label>
+                  {addForm.school_scope_type === 'school' && schoolUnits.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectAllUnits(true)}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                      >
+                        Pilih Semua Unit
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => clearAllUnits(true)}
+                        className="text-[10px] font-bold text-rose-600 hover:text-rose-800 hover:underline"
+                      >
+                        Hapus Semua
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <label
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
                       addForm.school_scope_type === 'yayasan'
                         ? 'bg-purple-50/80 border-purple-300 text-purple-900 font-bold'
                         : 'bg-white border-slate-200 text-slate-600'
@@ -1019,14 +1167,19 @@ export default function ManajemenUser() {
                       value="yayasan"
                       checked={addForm.school_scope_type === 'yayasan'}
                       onChange={() => setAddForm({ ...addForm, school_scope_type: 'yayasan' })}
-                      className="text-purple-600"
+                      className="mt-0.5 text-purple-600"
                     />
-                    <Globe className="w-4 h-4 text-purple-600" />
-                    <span>Lingkup Yayasan (Lintas Unit)</span>
+                    <div className="flex gap-2">
+                      <Globe className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div>Lingkup Yayasan (Lintas Unit)</div>
+                        <div className="text-[10px] font-normal text-purple-700">Akses seluruh satuan pendidikan</div>
+                      </div>
+                    </div>
                   </label>
 
                   <label
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
                       addForm.school_scope_type === 'school'
                         ? 'bg-blue-50/80 border-blue-300 text-blue-900 font-bold'
                         : 'bg-white border-slate-200 text-slate-600'
@@ -1038,25 +1191,61 @@ export default function ManajemenUser() {
                       value="school"
                       checked={addForm.school_scope_type === 'school'}
                       onChange={() => setAddForm({ ...addForm, school_scope_type: 'school' })}
-                      className="text-blue-600"
+                      className="mt-0.5 text-blue-600"
                     />
-                    <Building2 className="w-4 h-4 text-blue-600" />
-                    <span>Satuan Pendidikan Tertentu</span>
+                    <div className="flex gap-2">
+                      <Building2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div>Satuan Pendidikan Tertentu</div>
+                        <div className="text-[10px] font-normal text-blue-700">Pilih satu atau beberapa unit sekolah (multi-unit)</div>
+                      </div>
+                    </div>
                   </label>
                 </div>
 
                 {addForm.school_scope_type === 'school' && (
-                  <div className="pt-2">
-                    <label className="block font-semibold text-slate-700 mb-1">Pilih Unit Sekolah *</label>
-                    <select
-                      value={addForm.school_unit_id}
-                      onChange={(e) => setAddForm({ ...addForm, school_unit_id: e.target.value })}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl"
-                    >
-                      {schoolUnits.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                      ))}
-                    </select>
+                  <div className="pt-2 space-y-2">
+                    <label className="block font-semibold text-slate-700 text-xs">
+                      Pilih Unit Sekolah Tempat Guru/Pegawai Mengajar & Bertugas *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {schoolUnits.map((s) => {
+                        const isChecked = (addForm.school_unit_ids || []).includes(String(s.id));
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                              isChecked
+                                ? 'bg-indigo-50/70 border-indigo-300 text-indigo-950 font-bold shadow-2xs'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleUnitSelection(s.id, true)}
+                              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="truncate">{s.name}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                  {s.code || (s.stage || '').toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="text-[10px] font-normal text-slate-400">
+                                {isChecked ? '✓ Diberi hak akses & penugasan' : 'Tidak ditugaskan'}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {(!addForm.school_unit_ids || addForm.school_unit_ids.length === 0) && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        ⚠️ Harap pilih setidaknya 1 unit sekolah penugasan.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

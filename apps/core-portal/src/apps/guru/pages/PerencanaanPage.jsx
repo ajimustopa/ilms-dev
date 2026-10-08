@@ -415,7 +415,6 @@ export default function PerencanaanPage() {
             >
               Tambah TP Baru
             </Button>
-            <SelectorKonteks />
           </div>
         }
       />

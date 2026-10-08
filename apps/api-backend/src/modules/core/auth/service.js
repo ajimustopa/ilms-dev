@@ -88,13 +88,14 @@ class AuthService {
 
     // 2. Validasi keberadaan user dan status aktif
     if (!user) {
-      const error = new Error('Username atau password salah');
+      const error = new Error('Nama pengguna (username) tidak terdaftar. Silakan periksa kembali username Anda.');
       error.statusCode = 401;
+      error.field = 'username';
       throw error;
     }
 
     if (user.status !== 'active') {
-      const error = new Error('Akun Anda saat ini dinonaktifkan. Hubungi administrator.');
+      const error = new Error('Akun Anda saat ini berstatus non-aktif. Hubungi administrator sistem.');
       error.statusCode = 403;
       throw error;
     }
@@ -123,8 +124,9 @@ class AuthService {
         occurred_at: db.fn.now()
       });
 
-      const error = new Error('Username atau password salah');
+      const error = new Error('Kata sandi (password) yang Anda masukkan salah. Silakan coba lagi.');
       error.statusCode = 401;
+      error.field = 'password';
       throw error;
     }
 

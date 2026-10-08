@@ -42,85 +42,142 @@ export function AuthProvider({ children }) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync user profile & school units when token exists
-  useEffect(() => {
-    const fetchMeAndUnits = async () => {
-      if (accessToken) {
-        try {
-          const [meRes, unitsRes] = await Promise.all([
-            api.get('/core/auth/me'),
-            api.get('/core/school-units').catch(() => ({ data: { data: { items: [] } } }))
-          ]);
+  // Helper to extract all user roles into a normalized Set
+  const getUserRoles = (userData) => {
+    const roles = new Set();
+    if (userData?.account_type) roles.add(String(userData.account_type).toLowerCase().trim());
+    if (userData?.role) roles.add(String(userData.role).toLowerCase().trim());
+    if (userData?.active_role) roles.add(String(userData.active_role).toLowerCase().trim());
+    if (Array.isArray(userData?.roles)) {
+      userData.roles.forEach((r) => {
+        if (typeof r === 'string') roles.add(r.toLowerCase().trim());
+        else if (r?.role_name) roles.add(String(r.role_name).toLowerCase().trim());
+        else if (r?.name) roles.add(String(r.name).toLowerCase().trim());
+      });
+    }
+    if (Array.isArray(userData?.school_roles)) {
+      userData.school_roles.forEach((sr) => {
+        if (typeof sr === 'string') roles.add(sr.toLowerCase().trim());
+        else if (sr?.role_name) roles.add(String(sr.role_name).toLowerCase().trim());
+        else if (sr?.name) roles.add(String(sr.name).toLowerCase().trim());
+      });
+    }
+    if (Array.isArray(userData?.school_units)) {
+      userData.school_units.forEach((su) => {
+        if (su?.role) roles.add(String(su.role).toLowerCase().trim());
+        if (Array.isArray(su?.roles)) {
+          su.roles.forEach((r) => {
+            if (typeof r === 'string') roles.add(r.toLowerCase().trim());
+            else if (r?.role_name) roles.add(String(r.role_name).toLowerCase().trim());
+            else if (r?.name) roles.add(String(r.name).toLowerCase().trim());
+          });
+        }
+      });
+    }
+    return roles;
+  };
 
-          if (meRes.data?.success && meRes.data.data) {
-            const userData = meRes.data.data.user || meRes.data.data;
-            if (userData) {
-              setUser(userData);
-              localStorage.setItem('aldepos_user', JSON.stringify(userData));
+  // Helper untuk sinkronisasi profil user & master data satuan pendidikan riil dari Core
+  const syncUserAndUnits = async (token = accessToken, currentUser = user) => {
+    const currentToken = token || localStorage.getItem('aldepos_access_token');
+    if (!currentToken) return;
 
-              let allUnits = unitsRes.data?.data?.items || (Array.isArray(unitsRes.data?.data) ? unitsRes.data.data : []);
-              
-              // Check if user is super_admin or admin_yayasan
-              const isAdmin = userData.account_type === 'admin' || userData.account_type === 'super_admin' || 
-                              userData.roles?.some(r => r.role_name === 'admin_yayasan' || r.role_name === 'super_admin');
+    try {
+      const [meRes, unitsRes] = await Promise.all([
+        api.get('/core/auth/me', { headers: { Authorization: `Bearer ${currentToken}` } }).catch(() => null),
+        api.get('/core/school-units', { headers: { Authorization: `Bearer ${currentToken}` } }).catch(() => null),
+      ]);
 
-            let permittedUnits = allUnits;
-            if (!isAdmin && userData.roles && userData.roles.length > 0) {
-              const allowedIds = userData.roles.map(r => r.school_unit_id).filter(Boolean);
-              if (allowedIds.length > 0) {
-                permittedUnits = allUnits.filter(u => allowedIds.includes(u.id));
-              }
-            }
+      let userData = currentUser;
+      if (meRes?.data?.success && meRes.data.data) {
+        userData = meRes.data.data.user || meRes.data.data;
+        setUser(userData);
+        localStorage.setItem('aldepos_user', JSON.stringify(userData));
+      }
 
-            if (permittedUnits.length === 0 && allUnits.length > 0) {
-              permittedUnits = allUnits;
-            }
+      const allUnits = unitsRes?.data?.data?.items || (Array.isArray(unitsRes?.data?.data) ? unitsRes.data.data : []);
 
-            setSchoolUnits(permittedUnits);
-            localStorage.setItem('aldepos_school_units', JSON.stringify(permittedUnits));
+      if (userData && allUnits.length > 0) {
+        const rolesSet = getUserRoles(userData);
+        const isUniversalAdmin =
+          userData.is_super_admin ||
+          rolesSet.has('super_admin') ||
+          rolesSet.has('superadmin') ||
+          rolesSet.has('admin') ||
+          rolesSet.has('admin_yayasan') ||
+          rolesSet.has('developer');
 
-            // Sync active school unit
-            const savedUnitId = localStorage.getItem('aldepos_active_school_unit_id');
-            const savedUnitRaw = localStorage.getItem('aldepos_active_school_unit');
-            let initialUnit = null;
-            if (savedUnitRaw && savedUnitRaw !== 'undefined') {
-              try {
-                initialUnit = JSON.parse(savedUnitRaw);
-              } catch {
-                initialUnit = null;
-              }
-            }
-            if (!initialUnit) {
-              if (savedUnitId === 'all') {
-                initialUnit = { id: 'all', name: 'Pusat Yayasan (Gabungan)', is_foundation: true };
-              } else if (savedUnitId) {
-                initialUnit = permittedUnits.find(u => String(u.id) === String(savedUnitId)) || permittedUnits[0] || null;
-              } else {
-                initialUnit = permittedUnits[0] || null;
-              }
-            }
-
-            setActiveSchoolUnit(initialUnit);
-            if (initialUnit) {
-              localStorage.setItem('aldepos_active_school_unit', JSON.stringify(initialUnit));
-              localStorage.setItem('aldepos_active_school_unit_id', String(initialUnit.id));
-            }
+        let permittedUnits = allUnits;
+        if (!isUniversalAdmin) {
+          const allowedIds = new Set();
+          if (Array.isArray(userData.roles)) {
+            userData.roles.forEach((r) => {
+              if (typeof r === 'object' && r.school_unit_id) allowedIds.add(String(r.school_unit_id));
+            });
+          }
+          if (Array.isArray(userData.school_units)) {
+            userData.school_units.forEach((su) => {
+              if (su.id || su.school_unit_id) allowedIds.add(String(su.id || su.school_unit_id));
+            });
+          }
+          if (allowedIds.size > 0) {
+            permittedUnits = allUnits.filter((u) => allowedIds.has(String(u.id)));
           }
         }
-        } catch (err) {
-          console.warn('Gagal memverifikasi profil user aktif:', err);
-          if (err.response?.status === 401) {
-            setUser(null);
-            setAccessToken(null);
-            setRefreshToken(null);
-            setActiveSchoolUnit(null);
-            setSchoolUnits([]);
+
+        if (permittedUnits.length === 0 && allUnits.length > 0) {
+          permittedUnits = allUnits;
+        }
+
+        setSchoolUnits(permittedUnits);
+        localStorage.setItem('aldepos_school_units', JSON.stringify(permittedUnits));
+
+        // Sinkronkan active school unit
+        const savedUnitId = localStorage.getItem('aldepos_active_school_unit_id');
+        const savedUnitRaw = localStorage.getItem('aldepos_active_school_unit');
+        let initialUnit = null;
+        if (savedUnitRaw && savedUnitRaw !== 'undefined') {
+          try {
+            initialUnit = JSON.parse(savedUnitRaw);
+          } catch {
+            initialUnit = null;
           }
+        }
+
+        if (initialUnit && initialUnit.id && initialUnit.id !== 'all') {
+          const matched = permittedUnits.find((u) => String(u.id) === String(initialUnit.id));
+          initialUnit = matched || permittedUnits[0] || null;
+        } else if (savedUnitId === 'all') {
+          initialUnit = { id: 'all', name: 'Semua Satuan (Gabungan)', is_foundation: true };
+        } else if (savedUnitId) {
+          initialUnit = permittedUnits.find((u) => String(u.id) === String(savedUnitId)) || permittedUnits[0] || null;
+        } else {
+          initialUnit = permittedUnits[0] || null;
+        }
+
+        setActiveSchoolUnit(initialUnit);
+        if (initialUnit && initialUnit.id) {
+          localStorage.setItem('aldepos_active_school_unit', JSON.stringify(initialUnit));
+          localStorage.setItem('aldepos_active_school_unit_id', String(initialUnit.id));
         }
       }
-    };
+    } catch (err) {
+      console.warn('Gagal memverifikasi profil user aktif:', err);
+      if (err.response?.status === 401) {
+        setUser(null);
+        setAccessToken(null);
+        setRefreshToken(null);
+        setActiveSchoolUnit(null);
+        setSchoolUnits([]);
+      }
+    }
+  };
 
-    fetchMeAndUnits();
+  // Sync user profile & school units when token exists
+  useEffect(() => {
+    if (accessToken) {
+      syncUserAndUnits(accessToken, user);
+    }
   }, [accessToken]);
 
   const login = async (usernameOrPayload, password, schoolUnitId = null) => {
@@ -153,24 +210,12 @@ export function AuthProvider({ children }) {
         setAccessToken(access_token);
         setRefreshToken(refresh_token);
 
-        const units = userData.roles?.map((r) => ({
-          id: r.school_unit_id,
-          name: r.school_name,
-          role_name: r.role_name,
-        })) || [];
-        setSchoolUnits(units);
-
-        const activeUnit = userData.active_school_unit || (units.length > 0 ? units[0] : null);
-        setActiveSchoolUnit(activeUnit);
-
         localStorage.setItem('aldepos_user', JSON.stringify(userData));
         localStorage.setItem('aldepos_access_token', access_token);
         localStorage.setItem('aldepos_refresh_token', refresh_token);
-        localStorage.setItem('aldepos_school_units', JSON.stringify(units));
-        if (activeUnit) {
-          localStorage.setItem('aldepos_active_school_unit', JSON.stringify(activeUnit));
-          localStorage.setItem('aldepos_active_school_unit_id', String(activeUnit.id));
-        }
+
+        // Langsung sinkronkan master satuan pendidikan yang valid dari API Core
+        await syncUserAndUnits(access_token, userData);
 
         return { success: true, user: userData };
       }
@@ -197,10 +242,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async (redirectPath) => {
-    // Tentukan URL login aplikasi asal sebelum state/token dihapus
+    // Tentukan URL login utama sebelum state/token dihapus
     const targetLogin = typeof redirectPath === 'string' && redirectPath 
       ? redirectPath 
-      : getAppLoginPath(window.location.pathname);
+      : '/login';
 
     try {
       if (refreshToken) {
@@ -221,7 +266,7 @@ export function AuthProvider({ children }) {
 
   const changeActiveSchoolUnit = (unit) => {
     setActiveSchoolUnit(unit);
-    if (unit && unit.id) {
+    if (unit && unit.id && unit.id !== 'all') {
       localStorage.setItem('aldepos_active_school_unit', JSON.stringify(unit));
       localStorage.setItem('aldepos_active_school_unit_id', String(unit.id));
     } else {
@@ -243,6 +288,8 @@ export function AuthProvider({ children }) {
         login,
         logout,
         changeActiveSchoolUnit,
+        refreshSchoolUnits: syncUserAndUnits,
+        refreshUserData: syncUserAndUnits,
       }}
     >
       {children}

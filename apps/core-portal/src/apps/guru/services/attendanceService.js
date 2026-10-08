@@ -30,6 +30,20 @@ export const attendanceService = {
   },
 
   /**
+   * Mengajukan klarifikasi / catatan presensi terlewat (lupa absen)
+   */
+  async submitClarification(payload) {
+    return handleApiResponse(api.post('/kepegawaian/attendances/clarifications', payload));
+  },
+
+  /**
+   * Mengambil daftar klarifikasi presensi
+   */
+  async getClarifications(params = {}) {
+    return handleApiResponse(api.get('/kepegawaian/attendances/clarifications', { params }));
+  },
+
+  /**
    * Mengambil riwayat pengajuan cuti / izin pribadi guru
    */
   async getMyLeaveRequests(params = {}) {
@@ -48,6 +62,20 @@ export const attendanceService = {
    */
   async getLeaveAttachment(id) {
     return handleApiResponse(api.get(`/kepegawaian/leave-requests/${id}/attachment`));
+  },
+
+  /**
+   * Mengambil riwayat pengajuan lembur pribadi
+   */
+  async getMyOvertimes(params = {}) {
+    return handleApiResponse(api.get('/kepegawaian/overtimes/my', { params }));
+  },
+
+  /**
+   * Mengajukan lembur mandiri
+   */
+  async submitOvertime(payload) {
+    return handleApiResponse(api.post('/kepegawaian/overtimes', payload));
   },
 
   // ==========================================
@@ -71,7 +99,7 @@ export const attendanceService = {
    * Mengambil anggota rombel / santri aktif di kelas
    */
   async getClassGroupMembers(classGroupId) {
-    return handleApiResponse(api.get(`/akademik/curriculum/class-groups/${classGroupId}/members`));
+    return handleApiResponse(api.get(`/akademik/class-groups/${classGroupId}/members`));
   },
 
   /**

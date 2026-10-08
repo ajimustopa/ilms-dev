@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacherAuth } from '../hooks/useTeacherAuth';
+import { useTeacherContext } from '../context/TeacherContext';
 import { scheduleService } from '../services/scheduleService';
 import { journalService } from '../services/journalService';
+import { attendanceService } from '../services/attendanceService';
 import { formatIndonesianDate, formatShortTime } from '../utils/dateHelper';
+import { getScheduleClassGroupDisplay, getScheduleRoomDisplay } from '../utils/scheduleHelper';
 import {
   Button,
   Card,
@@ -78,6 +81,7 @@ const BREAK_SLOTS = [
 export default function JadwalPage() {
   const navigate = useNavigate();
   const { user } = useTeacherAuth();
+  const { activeContext } = useTeacherContext();
 
   // Current real date & day
   const todayDayIndex = new Date().getDay(); // 0=Ahad, 1=Senin..6=Sabtu
@@ -100,6 +104,7 @@ export default function JadwalPage() {
   const [allSchedules, setAllSchedules] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [todayJournalStatus, setTodayJournalStatus] = useState(null);
+  const [todayAttendanceList, setTodayAttendanceList] = useState([]);
 
   // Modal Detail Schedule
   const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -116,26 +121,45 @@ export default function JadwalPage() {
     setLoading(true);
     setError(null);
     try {
-      const [schedRes, assignRes, journalRes] = await Promise.all([
-        scheduleService.getMySchedules().catch(() => ({ schedules: [] })),
-        scheduleService.getMyTeachingAssignments().catch(() => []),
-        journalService.getTodayJournalStatus().catch(() => null)
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+      const todayIso = new Date().toLocaleDateString('en-CA');
+
+      const [schedRes, assignRes, journalRes, attendanceRes] = await Promise.all([
+        scheduleService.getMySchedules({
+          satuan_pendidikan_id: unitParam,
+          academic_year_id: activeContext?.academicYearId || undefined
+        }).catch(() => ({ schedules: [] })),
+        scheduleService.getMyTeachingAssignments({
+          satuan_pendidikan_id: unitParam,
+          academic_year_id: activeContext?.academicYearId || undefined
+        }).catch(() => []),
+        journalService.getTodayJournalStatus().catch(() => null),
+        attendanceService.getLessonAttendances({ date: todayIso }).catch(() => [])
       ]);
 
-      const schedList = schedRes?.schedules || (Array.isArray(schedRes) ? schedRes : []);
+      let schedList = schedRes?.schedules || (Array.isArray(schedRes) ? schedRes : schedRes?.data || []);
+      if (!activeContext?.isAllUnits && selectedUnitIds.length > 0) {
+        schedList = schedList.filter((s) => !s.satuan_pendidikan_id || selectedUnitIds.some((uid) => String(uid) === String(s.satuan_pendidikan_id)));
+      }
       setAllSchedules(schedList);
 
-      const assignList = assignRes?.assignments || (Array.isArray(assignRes) ? assignRes : []);
+      let assignList = assignRes?.assignments || (Array.isArray(assignRes) ? assignRes : assignRes?.data?.assignments || []);
+      if (!activeContext?.isAllUnits && selectedUnitIds.length > 0) {
+        assignList = assignList.filter((a) => !a.satuan_pendidikan_id || selectedUnitIds.some((uid) => String(uid) === String(a.satuan_pendidikan_id)));
+      }
       setAssignments(assignList);
 
       setTodayJournalStatus(journalRes?.data || journalRes || null);
+      setTodayAttendanceList(attendanceRes?.data || (Array.isArray(attendanceRes) ? attendanceRes : []));
     } catch (err) {
       setError(err?.message || 'Gagal memuat jadwal mengajar.');
       setAllSchedules([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanIds, activeContext?.academicYearId, activeContext?.isAllUnits]);
 
   useEffect(() => {
     loadData();
@@ -229,6 +253,21 @@ export default function JadwalPage() {
     return map;
   }, [todayJournalStatus]);
 
+  // Attendance filled mapping (Presensi Siswa)
+  const attendanceFilledMap = useMemo(() => {
+    const map = new Map();
+    const list = Array.isArray(todayAttendanceList)
+      ? todayAttendanceList
+      : todayAttendanceList?.data || [];
+    list.forEach((item) => {
+      const sId = item.subject_schedule_id || item.schedule_id;
+      if (sId) {
+        map.set(Number(sId), true);
+      }
+    });
+    return map;
+  }, [todayAttendanceList]);
+
   // Statistik Beban Mengajar (Dihitung dari API Riil)
   const stats = useMemo(() => {
     let totalJp = 0;
@@ -243,10 +282,11 @@ export default function JadwalPage() {
       const jp = dur >= 80 ? 2 : dur >= 35 ? 1 : (s.jp_count || 2);
       totalJp += jp;
 
-      const rId = s.class_group_id || s.class_group_name || s.class_name;
+      const rName = getScheduleClassGroupDisplay(s);
+      const rId = s.class_group_id || rName;
       if (rId && !rombelSet.has(rId)) {
         rombelSet.add(rId);
-        rombelNames.push(s.class_group_name || s.class_name || `Rombel ${rId}`);
+        rombelNames.push(rName);
       }
     });
 
@@ -321,7 +361,8 @@ export default function JadwalPage() {
   const uniqueRooms = useMemo(() => {
     const map = new Map();
     allSchedules.forEach((s) => {
-      if (s.room_name) map.set(s.room_name, s.room_name);
+      const room = getScheduleRoomDisplay(s);
+      if (room) map.set(room, room);
     });
     return Array.from(map.values());
   }, [allSchedules]);
@@ -330,13 +371,13 @@ export default function JadwalPage() {
   const filteredSchedules = useMemo(() => {
     return allSchedules.filter((s) => {
       const sName = (s.subject_name || s.subject_code || '').toLowerCase();
-      const rName = (s.room_name || '').toLowerCase();
-      const cName = (s.class_group_name || s.class_name || '').toLowerCase();
+      const rName = getScheduleRoomDisplay(s).toLowerCase();
+      const cName = getScheduleClassGroupDisplay(s).toLowerCase();
 
       if (filterSubject !== 'ALL' && (s.subject_name || s.subject_code) !== filterSubject) {
         return false;
       }
-      if (filterRoom !== 'ALL' && s.room_name !== filterRoom) {
+      if (filterRoom !== 'ALL' && getScheduleRoomDisplay(s) !== filterRoom) {
         return false;
       }
       if (searchQuery.trim()) {
@@ -417,7 +458,7 @@ export default function JadwalPage() {
       {/* 1. Page Header */}
       <PageHeader
         title="Jadwal Mengajar Guru"
-        subtitle={`Semester Ganjil • ${todayDateStr}`}
+        subtitle={`${activeContext?.academicYearName || 'Semester Ganjil'} • ${todayDateStr}`}
         badge={
           <StatusBadge status="info" size="sm">
             {allSchedules.length} Sesi Terjadwal
@@ -434,15 +475,79 @@ export default function JadwalPage() {
             >
               Cetak Roster
             </Button>
-            <SelectorKonteks />
           </div>
         }
       />
 
       {/* ========================================================================= */}
-      {/* 2. STAT RIBBON CARDS (3 Metrik Beban Mengajar)                            */}
+      {/* 2. STAT CARDS: MOBILE 1-ROW COMPACT & DESKTOP 3-GRID RIBBON               */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+
+      {/* Tampilan Mobile: 1 Baris Ramping (Ultra-Compact, Colorful & Informative) */}
+      <div className="sm:hidden grid grid-cols-3 gap-1.5 p-1.5 bg-slate-900/5 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+        {/* Cardlet 1: Beban KBM (Emerald) */}
+        <div className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-500/20 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-tight truncate">
+              Beban KBM
+            </span>
+            <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <Clock className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="mt-1 flex items-baseline justify-between gap-1">
+            <span className="font-mono font-extrabold text-xs text-emerald-950 dark:text-emerald-100">
+              {stats.totalJp} <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">JP</span>
+            </span>
+            <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-1 py-0.2 rounded">
+              {stats.workPercent}%
+            </span>
+          </div>
+        </div>
+
+        {/* Cardlet 2: Rombel (Indigo) */}
+        <div className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-blue-500/10 border border-indigo-500/20 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-tight truncate">
+              Rombel
+            </span>
+            <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <Layers className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="mt-1 flex items-baseline justify-between gap-1">
+            <span className="font-mono font-extrabold text-xs text-indigo-950 dark:text-indigo-100">
+              {stats.totalRombel} <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400">Kelas</span>
+            </span>
+            <span className="text-[9px] font-medium text-indigo-600 dark:text-indigo-300 truncate max-w-[45px]">
+              {stats.rombelNames[0] || 'Aktif'}
+            </span>
+          </div>
+        </div>
+
+        {/* Cardlet 3: Santri (Amber) */}
+        <div className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/20 shadow-2xs min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-tight truncate">
+              Santri
+            </span>
+            <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <GraduationCap className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="mt-1 flex items-baseline justify-between gap-1">
+            <span className="font-mono font-extrabold text-xs text-amber-950 dark:text-amber-100">
+              {stats.totalSantri}
+            </span>
+            <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/50 px-1 py-0.2 rounded">
+              Santri
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tampilan Desktop / Tablet: 3 Kartu StatRibbonCard Penuh */}
+      <div className="hidden sm:grid sm:grid-cols-3 gap-3.5">
         <StatRibbonCard
           label="Total Beban Mengajar"
           value={`${stats.totalJp} JP`}
@@ -490,115 +595,7 @@ export default function JadwalPage() {
         />
       </div>
 
-      {/* ========================================================================= */}
-      {/* 3. HERO BANNER SESI AKTIF / SESI BERIKUTNYA                               */}
-      {/* ========================================================================= */}
-      {activeOrNextSession && (
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-900 text-white p-4 sm:p-5 shadow-sm border border-emerald-600/50">
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-2 max-w-3xl">
-              {/* Badge Live / Soon Indicator */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-bold tracking-wide uppercase text-emerald-100 border border-white/25">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      activeOrNextSession.evalInfo.isOngoing
-                        ? 'bg-rose-400 animate-ping'
-                        : 'bg-amber-300 animate-pulse'
-                    }`}
-                  />
-                  <span>
-                    {activeOrNextSession.evalInfo.isOngoing ? 'SEDANG BERLANGSUNG' : 'SESI BERIKUTNYA'}
-                  </span>
-                </span>
-                <span className="text-xs font-mono font-semibold text-emerald-200 bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-400/20">
-                  {formatShortTime(activeOrNextSession.schedule.start_time)} -{' '}
-                  {formatShortTime(activeOrNextSession.schedule.end_time)} WIB
-                </span>
-              </div>
 
-              {/* Subject & Class info */}
-              <div className="flex flex-wrap items-baseline gap-2">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  {activeOrNextSession.schedule.subject_name ||
-                    activeOrNextSession.schedule.subject_code ||
-                    'Mata Pelajaran'}
-                </h2>
-                <span className="px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-200 text-xs font-semibold border border-emerald-500/40">
-                  Kelas{' '}
-                  {activeOrNextSession.schedule.class_group_name ||
-                    activeOrNextSession.schedule.class_name ||
-                    '-'}
-                </span>
-              </div>
-
-              {/* Room & Countdown / Progress */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-emerald-100/90 pt-0.5">
-                {activeOrNextSession.schedule.room_name && (
-                  <span className="inline-flex items-center gap-1 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-300" />
-                    Ruang {activeOrNextSession.schedule.room_name}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 font-semibold text-emerald-200">
-                  <Clock className="w-3.5 h-3.5 text-emerald-300" />
-                  {activeOrNextSession.evalInfo.countdownText}
-                </span>
-              </div>
-
-              {/* Progress bar jika sesi KBM sedang berlangsung */}
-              {activeOrNextSession.evalInfo.isOngoing && (
-                <div className="space-y-1 pt-1 max-w-md">
-                  <div className="flex items-center justify-between text-[11px] text-emerald-200 font-mono">
-                    <span>Progres Sesi</span>
-                    <span>
-                      {activeOrNextSession.evalInfo.elapsedMinutes} /{' '}
-                      {activeOrNextSession.evalInfo.totalDuration} Mnt (
-                      {activeOrNextSession.evalInfo.progressPercent}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 bg-black/30 rounded-full overflow-hidden p-0.5 border border-white/15">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-300 to-teal-200 rounded-full transition-all duration-300"
-                      style={{ width: `${activeOrNextSession.evalInfo.progressPercent}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Actions CTA */}
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 pt-2 lg:pt-0">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() =>
-                  navigate(
-                    `/guru/absensi-kelas?class_group_id=${
-                      activeOrNextSession.schedule.class_group_id || ''
-                    }&schedule_id=${activeOrNextSession.schedule.id || ''}`
-                  )
-                }
-                leftIcon={<UserCheck className="w-4 h-4" />}
-                className="bg-white text-emerald-900 hover:bg-emerald-50 border-none font-bold shadow-sm"
-              >
-                Mulai Presensi Kelas
-              </Button>
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() =>
-                  navigate(`/guru/jurnal-mengajar?schedule_id=${activeOrNextSession.schedule.id || ''}`)
-                }
-                leftIcon={<BookOpen className="w-4 h-4" />}
-                className="bg-white/10 text-white hover:bg-white/20 border-white/30 text-xs font-semibold"
-              >
-                Isi Jurnal Mengajar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* 4. FILTER BAR & VIEW TOGGLE                                               */}
@@ -817,10 +814,16 @@ export default function JadwalPage() {
                             ? evaluateScheduleTime(item.start_time, item.end_time)
                             : { status: 'neutral', label: 'Terjadwal' };
 
+                          const isJournalFilled = journalFilledMap.get(Number(item.id));
+                          const isAttendanceFilled = attendanceFilledMap.get(Number(item.id));
+
                           return (
                             <div
                               key={d.id}
-                              onClick={() => setSelectedSchedule(item)}
+                              onClick={() => {
+                                const cgId = item.class_group_id || (item.class_groups && item.class_groups[0]?.id) || '';
+                                navigate(`/guru/absensi-kelas?schedule_id=${item.id}&class_group_id=${cgId}`);
+                              }}
                               className={`p-2.5 transition-all flex flex-col justify-between group cursor-pointer ${
                                 timeEval.isOngoing
                                   ? 'bg-emerald-100/60 dark:bg-emerald-950/50 ring-1 ring-emerald-500'
@@ -831,16 +834,17 @@ export default function JadwalPage() {
                             >
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between gap-1">
+                                  {/* Nama Rombel Reguler */}
                                   <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">
-                                    {item.class_group_name || item.class_name || '-'}
+                                    {getScheduleClassGroupDisplay(item)}
                                   </span>
                                   {timeEval.isOngoing ? (
                                     <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase animate-pulse">
                                       LIVE
                                     </span>
                                   ) : (
-                                    <span className="text-[10px] text-slate-400 font-mono">
-                                      {item.room_name || 'KBM'}
+                                    <span className="text-[10px] text-slate-400 font-mono truncate max-w-[60px]">
+                                      {getScheduleRoomDisplay(item)}
                                     </span>
                                   )}
                                 </div>
@@ -848,13 +852,62 @@ export default function JadwalPage() {
                                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-emerald-600 transition-colors">
                                   {item.subject_name || item.subject_code}
                                 </p>
+
+                                {/* Mini Status Badges: Absensi & Jurnal */}
+                                <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                                  {/* Status Absensi */}
+                                  {isAttendanceFilled ? (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 text-[9px] font-bold">
+                                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                      Absen
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded border text-[9px] ${
+                                        isToday && (timeEval.isPassed || timeEval.isOngoing)
+                                          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/60 font-bold'
+                                          : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium'
+                                      }`}
+                                    >
+                                      {isToday && (timeEval.isPassed || timeEval.isOngoing) ? (
+                                        <AlertTriangle className="w-2.5 h-2.5 text-rose-500" />
+                                      ) : (
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                      )}
+                                      Absen
+                                    </span>
+                                  )}
+
+                                  {/* Status Jurnal */}
+                                  {isJournalFilled ? (
+                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/50 text-[9px] font-bold">
+                                      <CheckCircle2 className="w-2.5 h-2.5 text-teal-600" />
+                                      Jurnal
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded border text-[9px] ${
+                                        isToday && (timeEval.isPassed || timeEval.isOngoing)
+                                          ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/60 font-bold'
+                                          : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium'
+                                      }`}
+                                    >
+                                      {isToday && (timeEval.isPassed || timeEval.isOngoing) ? (
+                                        <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                                      ) : (
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                      )}
+                                      Jurnal
+                                    </span>
+                                  )}
+                                </div>
                               </div>
 
-                              <div className="pt-2 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-emerald-600 transition-colors">
+                              <div className="pt-1.5 flex items-center justify-between text-[10px] text-slate-400 group-hover:text-emerald-600 transition-colors">
                                 <span className="flex items-center gap-0.5">
                                   <MapPin className="w-2.5 h-2.5" />
                                   <span className="truncate max-w-[80px]">
-                                    {item.room_name || 'R. Kelas'}
+                                    {getScheduleRoomDisplay(item)}
                                   </span>
                                 </span>
                                 <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -873,9 +926,12 @@ export default function JadwalPage() {
           {/* ===================================================================== */}
           {/* MODE B: MOBILE AGENDA CARD-STACK (Default di Mobile atau View Mode)  */}
           {/* ===================================================================== */}
-          <div className={viewMode === 'grid' ? 'md:hidden space-y-4' : 'space-y-4'}>
+          {/* ===================================================================== */}
+          {/* MODE B: MOBILE AGENDA CARD-STACK (Default di Mobile atau View Mode)  */}
+          {/* ===================================================================== */}
+          <div className={viewMode === 'grid' ? 'md:hidden space-y-3' : 'space-y-3'}>
             {/* Horizontal Day Picker (Senin s/d Sabtu) */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {DAYS_OF_WEEK.map((d) => {
                 const isSelected = d.id === selectedDay;
                 const isToday = d.id === todayDayNumber;
@@ -886,27 +942,29 @@ export default function JadwalPage() {
                     key={d.id}
                     type="button"
                     onClick={() => setSelectedDay(d.id)}
-                    className={`flex flex-col items-center justify-center min-w-[62px] min-h-[68px] rounded-xl p-2 transition-all shrink-0 border ${
+                    className={`flex flex-col items-center justify-center min-w-[54px] min-h-[58px] rounded-xl p-1.5 transition-all shrink-0 border ${
                       isSelected
-                        ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white border-slate-900 shadow-sm ring-2 ring-slate-900/10'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                        ? 'bg-slate-900 text-white dark:bg-emerald-600 dark:text-white border-slate-900 shadow-xs ring-2 ring-slate-900/10'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-800 hover:bg-slate-50'
                     }`}
                   >
                     <span
-                      className={`text-[10px] font-bold tracking-wider ${
-                        isSelected ? 'text-emerald-300' : isToday ? 'text-emerald-600' : 'text-slate-400'
+                      className={`text-[10px] font-bold tracking-tight uppercase ${
+                        isSelected ? 'text-emerald-300' : isToday ? 'text-emerald-600 font-extrabold' : 'text-slate-400'
                       }`}
                     >
                       {d.short}
                     </span>
-                    <span className="text-sm font-bold mt-0.5">{d.name.slice(0, 3)}</span>
+                    <span className="text-xs font-extrabold mt-0.5">{d.name.slice(0, 3)}</span>
                     <span
                       className={`text-[9px] font-mono font-bold mt-1 px-1.5 py-0.2 rounded-full ${
                         isSelected
                           ? 'bg-white/20 text-white'
                           : isToday
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-extrabold'
+                          : dayCount > 0
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold'
+                          : 'bg-transparent text-slate-300 dark:text-slate-600'
                       }`}
                     >
                       {dayCount} Sesi
@@ -926,7 +984,7 @@ export default function JadwalPage() {
                 description="Tidak ditemukan sesi KBM terjadwal untuk hari ini. Selamat beristirahat!"
               />
             ) : (
-              <div className="relative pl-4 space-y-4 border-l-2 border-emerald-500/30 ml-2">
+              <div className="relative pl-3 space-y-2.5 border-l-2 border-emerald-500/20 ml-1.5 sm:ml-2 sm:pl-4 sm:space-y-3">
                 {selectedDayItems.map((item, idx) => {
                   const isSelectedDayToday = selectedDay === todayDayNumber;
                   const timeEval = isSelectedDayToday
@@ -934,6 +992,7 @@ export default function JadwalPage() {
                     : { status: 'neutral', label: 'Terjadwal' };
 
                   const isJournalFilled = journalFilledMap.get(Number(item.id));
+                  const isAttendanceFilled = attendanceFilledMap.get(Number(item.id));
                   const isJournalUnfilledForPassedSchedule =
                     isSelectedDayToday && timeEval.isPassed && !isJournalFilled;
 
@@ -941,118 +1000,147 @@ export default function JadwalPage() {
                     <div key={item.id || idx} className="relative">
                       {/* Timeline Node Indicator */}
                       <div
-                        className={`absolute -left-[23px] top-4 w-3.5 h-3.5 rounded-full flex items-center justify-center ring-4 ${
+                        className={`absolute -left-[19px] sm:-left-[23px] top-3.5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full flex items-center justify-center ring-2 sm:ring-4 ${
                           timeEval.isOngoing
-                            ? 'bg-rose-500 ring-rose-200'
-                            : 'bg-emerald-600 ring-emerald-100 dark:ring-emerald-950'
+                            ? 'bg-rose-500 ring-rose-200 dark:ring-rose-900 animate-ping'
+                            : isSelectedDayToday
+                            ? 'bg-emerald-600 ring-emerald-100 dark:ring-emerald-950'
+                            : 'bg-slate-400 ring-slate-100 dark:ring-slate-800'
                         }`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white" />
                       </div>
 
-                      {/* Card Content */}
-                      <Card
-                        ribbon={
+                      {/* Card Content - Compact & Modern */}
+                      <div
+                        onClick={() => {
+                          const cgId = item.class_group_id || (item.class_groups && item.class_groups[0]?.id) || '';
+                          navigate(`/guru/absensi-kelas?schedule_id=${item.id}&class_group_id=${cgId}`);
+                        }}
+                        className={`p-3 sm:p-3.5 rounded-xl transition-all cursor-pointer border ${
                           timeEval.isOngoing
-                            ? 'emerald'
+                            ? 'bg-gradient-to-r from-emerald-500/5 via-white to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 border-emerald-500/40 shadow-xs ring-1 ring-emerald-500/30'
                             : isJournalUnfilledForPassedSchedule
-                            ? 'amber'
-                            : 'slate'
-                        }
-                        hoverable
-                        onClick={() => setSelectedSchedule(item)}
-                        className="space-y-3"
+                            ? 'bg-gradient-to-r from-amber-500/5 via-white to-white dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-900 border-amber-300 dark:border-amber-800/60 hover:shadow-2xs'
+                            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-2xs'
+                        }`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                        {/* Header: Mapel & Jam */}
+                        <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
                                 {item.subject_name || item.subject_code}
-                              </span>
-
-                              {isSelectedDayToday && (
-                                <StatusBadge
-                                  status={
-                                    timeEval.isOngoing
-                                      ? 'danger'
-                                      : timeEval.isUpcoming
-                                      ? 'warning'
-                                      : 'neutral'
-                                  }
-                                  size="sm"
-                                >
-                                  {timeEval.label}
-                                </StatusBadge>
-                              )}
-
-                              {isSelectedDayToday && isJournalFilled && (
-                                <StatusBadge status="success" size="sm" dot>
-                                  Jurnal Terisi
-                                </StatusBadge>
+                              </h3>
+                              {isSelectedDayToday && timeEval.isOngoing && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                  <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                                  LIVE
+                                </span>
                               )}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
-                                <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
-                                Kelas {item.class_group_name || item.class_name || '-'}
+                            {/* Meta Info: Rombel Reguler & Ruang */}
+                            <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <span className="inline-flex items-center gap-1 font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px]">
+                                <GraduationCap className="w-3.5 h-3.5 text-slate-500" />
+                                {getScheduleClassGroupDisplay(item)}
                               </span>
-                              {item.room_name && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                  Ruang {item.room_name}
+                              <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 text-[11px]">
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                {getScheduleRoomDisplay(item)}
+                              </span>
+                            </div>
+
+                            {/* Status Absensi & Jurnal Mengajar dengan Kode Warna & Teks Kecil */}
+                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                              {/* Status Absensi Siswa */}
+                              {isAttendanceFilled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 text-[10px] font-bold shadow-2xs">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  Absensi: Sudah
+                                </span>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] ${
+                                    isSelectedDayToday && (timeEval.isPassed || timeEval.isOngoing)
+                                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border-rose-200/70 dark:border-rose-800/70 font-bold'
+                                      : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium'
+                                  }`}
+                                >
+                                  {isSelectedDayToday && (timeEval.isPassed || timeEval.isOngoing) ? (
+                                    <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
+                                  ) : (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                  )}
+                                  Absensi: Belum
+                                </span>
+                              )}
+
+                              {/* Status Jurnal Mengajar */}
+                              {isJournalFilled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60 text-[10px] font-bold shadow-2xs">
+                                  <CheckCircle2 className="w-3 h-3 text-teal-600" />
+                                  Jurnal: Sudah
+                                </span>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] ${
+                                    isSelectedDayToday && (timeEval.isPassed || timeEval.isOngoing)
+                                      ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/70 font-bold'
+                                      : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium'
+                                  }`}
+                                >
+                                  {isSelectedDayToday && (timeEval.isPassed || timeEval.isOngoing) ? (
+                                    <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                                  ) : (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                  )}
+                                  Jurnal: Belum
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <div className="shrink-0">
-                            <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-1 rounded-md">
-                              {formatShortTime(item.start_time)} - {formatShortTime(item.end_time)} WIB
+                          {/* Time Slot Pill */}
+                          <div className="shrink-0 text-right">
+                            <span className="inline-block text-[11px] sm:text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 px-2 py-0.5 rounded-lg shadow-2xs">
+                              {formatShortTime(item.start_time)} - {formatShortTime(item.end_time)}
                             </span>
                           </div>
                         </div>
 
-                        {/* Action Bar (Presensi & Jurnal) */}
-                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="primary"
-                              size="sm"
+                        {/* Action Buttons: Ultra-Compact & Responsive */}
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                const cgId = item.class_group_id || (item.class_groups && item.class_groups[0]?.id) || '';
                                 navigate(
-                                  `/guru/absensi-kelas?class_group_id=${
-                                    item.class_group_id || ''
-                                  }&schedule_id=${item.id || ''}`
+                                  `/guru/absensi-kelas?class_group_id=${cgId}&schedule_id=${item.id || ''}`
                                 );
                               }}
-                              leftIcon={<UserCheck className="w-3.5 h-3.5" />}
-                              className="text-xs min-h-[38px]"
+                              className="h-7 sm:h-8 px-2.5 text-[11px] sm:text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
                             >
-                              Absensi Siswa
-                            </Button>
-
-                            <Button
-                              variant={isJournalUnfilledForPassedSchedule ? 'brand-subtle' : 'outline'}
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/guru/jurnal-mengajar?schedule_id=${item.id || ''}`);
-                              }}
-                              leftIcon={<FileEdit className="w-3.5 h-3.5" />}
-                              className="text-xs min-h-[38px]"
-                            >
-                              {isJournalFilled ? 'Lihat Jurnal' : 'Isi Jurnal'}
-                            </Button>
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Presensi & Jurnal</span>
+                            </button>
                           </div>
 
-                          <span className="text-xs text-slate-400 flex items-center gap-0.5 hover:text-slate-600">
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSchedule(item);
+                            }}
+                            className="text-[11px] text-slate-400 hover:text-emerald-600 font-medium flex items-center gap-0.5 cursor-pointer p-1"
+                          >
                             <span>Detail</span>
                             <ChevronRight className="w-3.5 h-3.5" />
-                          </span>
+                          </div>
                         </div>
-                      </Card>
+                      </div>
                     </div>
                   );
                 })}
@@ -1101,17 +1189,48 @@ export default function JadwalPage() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                <span className="text-slate-500 block text-[11px]">Rombel / Kelas:</span>
+                <span className="text-slate-500 block text-[11px]">Rombel Reguler:</span>
                 <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                  {selectedSchedule.class_group_name || selectedSchedule.class_name || '-'}
+                  {getScheduleClassGroupDisplay(selectedSchedule)}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 block text-[11px]">Lokasi Ruangan:</span>
                 <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                  {selectedSchedule.room_name || '-'}
+                  {getScheduleRoomDisplay(selectedSchedule)}
                 </span>
+              </div>
+            </div>
+
+            {/* Status Administrasi KBM (Presensi & Jurnal) */}
+            <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="text-slate-500 block text-[11px] font-semibold">
+                Status Administrasi KBM:
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300">Presensi Siswa:</span>
+                {attendanceFilledMap.get(Number(selectedSchedule.id)) ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold border border-emerald-200/60">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Sudah Diisi
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 text-xs font-bold border border-rose-200/60">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Belum Diisi
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300">Jurnal Mengajar:</span>
+                {journalFilledMap.get(Number(selectedSchedule.id)) ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300 text-xs font-bold border border-teal-200/60">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Sudah Diisi
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-xs font-bold border border-amber-200/60">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Belum Diisi
+                  </span>
+                )}
               </div>
             </div>
 

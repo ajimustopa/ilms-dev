@@ -10,7 +10,28 @@ const ToastContext = createContext(null);
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback(({ message, type = 'info', duration = 3500, title = null }) => {
+  const addToast = useCallback((payload, extraOpts = {}) => {
+    let message = '';
+    let type = 'info';
+    let duration = 3500;
+    let title = null;
+
+    if (typeof payload === 'string' || typeof payload === 'number') {
+      message = String(payload);
+      if (typeof extraOpts === 'string') {
+        title = extraOpts;
+      } else if (extraOpts && typeof extraOpts === 'object') {
+        type = extraOpts.type || 'info';
+        duration = extraOpts.duration !== undefined ? extraOpts.duration : 3500;
+        title = extraOpts.title || null;
+      }
+    } else if (payload && typeof payload === 'object') {
+      message = typeof payload.message === 'string' ? payload.message : (payload.message ? String(payload.message) : '');
+      type = payload.type === 'danger' ? 'error' : (payload.type || extraOpts.type || 'info');
+      duration = payload.duration !== undefined ? payload.duration : (extraOpts.duration !== undefined ? extraOpts.duration : 3500);
+      title = payload.title || extraOpts.title || null;
+    }
+
     const id = Date.now() + Math.random().toString(36).slice(2, 7);
     setToasts((prev) => [...prev, { id, message, type, duration, title }]);
 
@@ -27,11 +48,11 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   const toast = {
-    show: (msg, opts) => addToast({ message: msg, ...opts }),
-    success: (msg, title = 'Berhasil') => addToast({ message: msg, type: 'success', title }),
-    error: (msg, title = 'Gagal') => addToast({ message: msg, type: 'error', title }),
-    warning: (msg, title = 'Perhatian') => addToast({ message: msg, type: 'warning', title }),
-    info: (msg, title = 'Informasi') => addToast({ message: msg, type: 'info', title })
+    show: (msg, opts) => addToast(msg, opts),
+    success: (msg, title = 'Berhasil') => addToast(msg, typeof title === 'string' ? { type: 'success', title } : { type: 'success', ...title }),
+    error: (msg, title = 'Gagal') => addToast(msg, typeof title === 'string' ? { type: 'error', title } : { type: 'error', ...title }),
+    warning: (msg, title = 'Perhatian') => addToast(msg, typeof title === 'string' ? { type: 'warning', title } : { type: 'warning', ...title }),
+    info: (msg, title = 'Informasi') => addToast(msg, typeof title === 'string' ? { type: 'info', title } : { type: 'info', ...title })
   };
 
   const icons = {
@@ -68,12 +89,14 @@ export const ToastProvider = ({ children }) => {
             <div className="flex-1 min-w-0">
               {t.title && (
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
-                  {t.title}
+                  {typeof t.title === 'string' ? t.title : String(t.title)}
                 </p>
               )}
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug mt-0.5">
-                {t.message}
-              </p>
+              {t.message ? (
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug mt-0.5">
+                  {typeof t.message === 'string' ? t.message : String(t.message)}
+                </p>
+              ) : null}
             </div>
             <button
               type="button"

@@ -216,10 +216,14 @@ akademikV1Router.use('/', akademikStudentsRoutes);
 
 // 3.2 Kurikulum & Timetable Engine
 akademikV1Router.use('/', akademikCurriculumRoutes);
+akademikV1Router.use('/curriculum', akademikCurriculumRoutes);
 akademikV1Router.use('/timetable', akademikTimetableRoutes);
 
 // 3.3 Penilaian
 akademikV1Router.use('/', akademikScoresRoutes);
+akademikV1Router.use('/scores', akademikScoresRoutes);
+akademikV1Router.use('/scoring', akademikScoresRoutes);
+akademikV1Router.use('/curriculum', akademikScoresRoutes);
 
 // 3.4 Rapor
 akademikV1Router.use('/', akademikReportCardsRoutes);

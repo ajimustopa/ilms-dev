@@ -115,8 +115,11 @@ export default function AbsensiPage() {
   const { user } = useTeacherAuth();
   const { activeContext } = useTeacherContext();
 
-  // 1. Tab Navigasi Aktif ('presensi' | 'izin')
+  // 1. Tab Navigasi Aktif ('presensi' | 'izin' | 'lembur')
   const initialTab = useMemo(() => {
+    if (location.pathname.includes('/lembur') || searchParams.get('tab') === 'lembur') {
+      return 'lembur';
+    }
     if (location.pathname.includes('/izin') || location.pathname.includes('/cuti') || searchParams.get('tab') === 'izin') {
       return 'izin';
     }
@@ -127,7 +130,9 @@ export default function AbsensiPage() {
 
   useEffect(() => {
     const qTab = searchParams.get('tab');
-    if (qTab === 'izin' || location.pathname.includes('/izin') || location.pathname.includes('/cuti')) {
+    if (qTab === 'lembur' || location.pathname.includes('/lembur')) {
+      setActiveTab('lembur');
+    } else if (qTab === 'izin' || location.pathname.includes('/izin') || location.pathname.includes('/cuti')) {
       setActiveTab('izin');
     } else if (qTab === 'presensi') {
       setActiveTab('presensi');
@@ -170,6 +175,17 @@ export default function AbsensiPage() {
   const [loadingMonthly, setLoadingMonthly] = useState(false);
   const [monthlyFilterStatus, setMonthlyFilterStatus] = useState('all');
   const [monthlySearch, setMonthlySearch] = useState('');
+
+  // Klarifikasi / Lupa Absen State
+  const [clarificationModalOpen, setClarificationModalOpen] = useState(false);
+  const [clarificationForm, setClarificationForm] = useState({
+    attendance_date: new Date().toISOString().slice(0, 10),
+    entry_type: 'manual_forgot_in', // 'manual_forgot_in' | 'manual_forgot_out' | 'manual_correction'
+    check_in_time: '07:30',
+    check_out_time: '16:00',
+    clarification_reason: ''
+  });
+  const [submittingClarification, setSubmittingClarification] = useState(false);
 
   // Request Location
   const requestLocation = useCallback(() => {
@@ -296,15 +312,54 @@ export default function AbsensiPage() {
   const hasCheckedIn = Boolean(todayAttendance?.check_in_time);
   const hasCheckedOut = Boolean(todayAttendance?.check_out_time);
 
-  // Evaluasi Waktu Jam Pulang Resmi
+  // Evaluasi Waktu Jam Pulang:
+  // Untuk skema jadwal FLEKSIBEL: Pegawai boleh kapan saja absen pulang (setelah absen masuk), tidak perlu menunggu jam pulang baku.
   const officialEndTime = workSchedule?.end_time || '15:30:00';
   const isTimeForCheckOut = useMemo(() => {
+    if (workSchedule?.is_flexible) {
+      return true;
+    }
     const now = currentTime;
     const currentMins = now.getHours() * 60 + now.getMinutes();
     const [eH, eM] = String(officialEndTime).split(':').map(Number);
     const endMins = (eH || 15) * 60 + (eM || 30);
     return currentMins >= endMins;
-  }, [currentTime, officialEndTime]);
+  }, [currentTime, officialEndTime, workSchedule]);
+
+  // Submit Klarifikasi Lupa Absen
+  const handleSubmitClarification = async (e) => {
+    e.preventDefault();
+    if (!clarificationForm.clarification_reason?.trim()) {
+      toast.error('Alasan / keterangan lupa absen wajib diisi.');
+      return;
+    }
+
+    setSubmittingClarification(true);
+    try {
+      await attendanceService.submitClarification({
+        attendance_date: clarificationForm.attendance_date,
+        entry_type: clarificationForm.entry_type,
+        check_in_time: clarificationForm.check_in_time,
+        check_out_time: clarificationForm.check_out_time,
+        clarification_reason: clarificationForm.clarification_reason.trim()
+      });
+      toast.success('Pengajuan catatan presensi terlewat berhasil dikirim dan menunggu konfirmasi HRD.');
+      setClarificationModalOpen(false);
+      setClarificationForm({
+        attendance_date: new Date().toISOString().slice(0, 10),
+        entry_type: 'manual_forgot_in',
+        check_in_time: '07:30',
+        check_out_time: '16:00',
+        clarification_reason: ''
+      });
+      fetchTodayStatus();
+      fetchMonthlyAttendance(selectedMonth, selectedYear);
+    } catch (err) {
+      toast.error(err?.message || 'Gagal mengirim pengajuan klarifikasi.');
+    } finally {
+      setSubmittingClarification(false);
+    }
+  };
 
   // Handle Check-in Action
   const handleCheckIn = async () => {
@@ -580,65 +635,134 @@ export default function AbsensiPage() {
     }
   };
 
+  // ==========================================
+  // TAB 3: PENGAJUAN LEMBUR STATE
+  // ==========================================
+  const [loadingOvertimes, setLoadingOvertimes] = useState(false);
+  const [overtimeRecords, setOvertimeRecords] = useState([]);
+  const [overtimeForm, setOvertimeForm] = useState({
+    overtime_date: todayIsoStr,
+    start_time: '17:00',
+    end_time: '20:00',
+    hours: '3.0',
+    task_description: ''
+  });
+  const [submittingOvertime, setSubmittingOvertime] = useState(false);
+
+  const fetchMyOvertimes = useCallback(async () => {
+    setLoadingOvertimes(true);
+    try {
+      const res = await attendanceService.getMyOvertimes();
+      const list = Array.isArray(res) ? res : res?.data || [];
+      setOvertimeRecords(list);
+    } catch {
+      setOvertimeRecords([]);
+    } finally {
+      setLoadingOvertimes(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'lembur') {
+      fetchMyOvertimes();
+    }
+  }, [activeTab, fetchMyOvertimes]);
+
+  const handleSubmitOvertime = async (e) => {
+    e.preventDefault();
+    if (!overtimeForm.task_description.trim()) {
+      toast.error('Uraian tugas/kegiatan lembur wajib diisi.');
+      return;
+    }
+
+    setSubmittingOvertime(true);
+    try {
+      await attendanceService.submitOvertime({
+        overtime_date: overtimeForm.overtime_date,
+        start_time: overtimeForm.start_time,
+        end_time: overtimeForm.end_time,
+        hours: parseFloat(overtimeForm.hours) || 1.0,
+        task_description: overtimeForm.task_description.trim(),
+        notes: overtimeForm.task_description.trim()
+      });
+      toast.success('Pengajuan lembur berhasil dikirim ke HRD.');
+      setOvertimeForm((prev) => ({ ...prev, task_description: '' }));
+      fetchMyOvertimes();
+    } catch (err) {
+      toast.error(err?.message || 'Gagal mengirim pengajuan lembur.');
+    } finally {
+      setSubmittingOvertime(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* 1. Header & Tab Navigation Atas */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Presensi & Pengajuan Izin
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-              Kelola kehadiran harian GPS dan pengajuan ketidakhadiran dinas / cuti.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <SelectorKonteks />
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 pb-1 border-b border-slate-200/70 dark:border-slate-800">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            Presensi &amp; Pengajuan Izin
+          </h1>
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Kehadiran harian GPS, pengajuan ketidakhadiran, dan lembur.
+          </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-          <div className="flex items-center gap-2">
+        {/* Segmented Tab Bar Ramping (Mobile & Desktop) */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="p-1 bg-slate-100 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 w-full sm:w-auto shrink-0 shadow-2xs">
             <button
               type="button"
               onClick={() => handleTabChange('presensi')}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`flex-1 sm:flex-initial h-8 sm:h-8.5 px-2.5 sm:px-3.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all select-none ${
                 activeTab === 'presensi'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-slate-200/60 dark:ring-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50'
               }`}
             >
-              <MapPin className="w-4 h-4 text-emerald-700" />
-              <span>Presensi Mandiri (Presensi Saya)</span>
-              {activeTab === 'presensi' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+              <MapPin className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'presensi' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
+              <span className="truncate">
+                <span className="inline sm:hidden">Presensi</span>
+                <span className="hidden sm:inline">Presensi Diri (GPS)</span>
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => handleTabChange('izin')}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+              className={`flex-1 sm:flex-initial h-8 sm:h-8.5 px-2.5 sm:px-3.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all select-none ${
                 activeTab === 'izin'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-slate-200/60 dark:ring-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50'
               }`}
             >
-              <FileText className="w-4 h-4 text-emerald-700" />
-              <span>Pengajuan Cuti / Izin</span>
+              <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'izin' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
+              <span className="truncate">
+                <span className="inline sm:hidden">Cuti / Izin</span>
+                <span className="hidden sm:inline">Pengajuan Cuti / Izin</span>
+              </span>
               {leaveQuotaStats.pendingCount > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] rounded bg-amber-100 text-amber-800 font-mono font-bold">
-                  {leaveQuotaStats.pendingCount} Review
+                <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 font-bold">
+                  {leaveQuotaStats.pendingCount}
                 </span>
               )}
             </button>
-          </div>
 
-          <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Mesin Geofence Aktif</span>
-            </span>
+            <button
+              type="button"
+              onClick={() => handleTabChange('lembur')}
+              className={`flex-1 sm:flex-initial h-8 sm:h-8.5 px-2.5 sm:px-3.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all select-none ${
+                activeTab === 'lembur'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs ring-1 ring-slate-200/60 dark:ring-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50'
+              }`}
+            >
+              <Clock className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'lembur' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
+              <span className="truncate">
+                <span className="inline sm:hidden">Lembur</span>
+                <span className="hidden sm:inline">Pengajuan Lembur</span>
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -686,15 +810,17 @@ export default function AbsensiPage() {
                   <Clock className="w-4 h-4 text-emerald-700 shrink-0" />
                   <div>
                     <span className="font-semibold text-emerald-900">
-                      Batas Masuk: {workSchedule?.start_time ? formatShortTime(workSchedule.start_time) : '07:30'} WIB
+                      {workSchedule?.is_flexible
+                        ? `Jadwal Fleksibel (Target ${workSchedule?.flexible_target_hours || 8} Jam)`
+                        : `Batas Masuk: ${workSchedule?.start_time ? formatShortTime(workSchedule.start_time) : '07:30'} WIB`}
                     </span>
                     <p className="text-[11px] text-emerald-800">
-                      {workSchedule?.shift_name || 'Jam Kerja Guru Reguler'}
+                      {workSchedule?.name || (workSchedule?.is_flexible ? 'Bebas Jam Masuk • Akumulasi Kerja' : 'Jam Kerja Guru Reguler')}
                     </p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold text-[10.5px] uppercase">
-                  Tepat Waktu
+                  {workSchedule?.is_flexible ? 'Fleksibel' : 'Tepat Waktu'}
                 </span>
               </div>
             </Card>
@@ -876,6 +1002,18 @@ export default function AbsensiPage() {
                 )}
               </div>
 
+              {/* Tombol Pengajuan Lupa Absen / Klarifikasi Jam Terlewat */}
+              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => setClarificationModalOpen(true)}
+                  className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50/80 hover:bg-emerald-100/80 border border-emerald-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Lupa Absen? Ajukan Klarifikasi Jam Presensi</span>
+                </button>
+              </div>
+
               <p className="text-center text-[11px] text-slate-500 mt-2 flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                 <span>Terverifikasi Geofencing Server Aldepos</span>
@@ -888,7 +1026,9 @@ export default function AbsensiPage() {
               <div className="space-y-1">
                 <span className="font-semibold text-slate-800">Ketentuan Presensi Tenaga Pendidik:</span>
                 <p className="text-[11.5px] leading-relaxed text-slate-600">
-                  Presensi kepulangan dibuka mulai pukul <strong>{formatShortTime(officialEndTime)} WIB</strong>. Jika terkendala GPS, segera lakukan konfirmasi manual ke Tata Usaha (TU) sekolah.
+                  {workSchedule?.is_flexible
+                    ? 'Skema Jam Fleksibel: Anda dapat melakukan presensi pulang kapan saja setelah presensi masuk tercatat. Durasi jam kerja dihitung secara otomatis.'
+                    : `Presensi kepulangan dibuka mulai pukul ${formatShortTime(officialEndTime)} WIB. Jika terlupa melakukan presensi masuk/pulang, gunakan fitur Pengajuan Klarifikasi untuk diverifikasi oleh HRD.`}
                 </p>
               </div>
             </div>
@@ -1094,7 +1234,22 @@ export default function AbsensiPage() {
                               </div>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
-                              {isLate ? (
+                              {item.clarification_status === 'pending' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  Menunggu Konfirmasi HRD
+                                </span>
+                              ) : item.clarification_status === 'approved' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-300">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  Klarifikasi Disetujui
+                                </span>
+                              ) : item.clarification_status === 'rejected' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-rose-50 text-rose-900 border border-rose-300">
+                                  <AlertCircle className="w-3 h-3 text-rose-600" />
+                                  Klarifikasi Ditolak
+                                </span>
+                              ) : isLate ? (
                                 <StatusBadge status="danger" size="sm">
                                   Terlambat {item.late_minutes}m
                                 </StatusBadge>
@@ -1108,8 +1263,12 @@ export default function AbsensiPage() {
                                 </StatusBadge>
                               )}
                             </td>
-                            <td className="py-3 px-3 text-[11px] text-slate-500 max-w-xs truncate">
-                              {item.notes || '-'}
+                            <td className="py-3 px-3 text-[11px] text-slate-500 max-w-xs truncate" title={item.clarification_reason || item.notes || ''}>
+                              {item.clarification_reason ? (
+                                <span className="text-amber-800 font-medium">[Klarifikasi] {item.clarification_reason}</span>
+                              ) : (
+                                item.notes || '-'
+                              )}
                             </td>
                           </tr>
                         );
@@ -1549,6 +1708,210 @@ export default function AbsensiPage() {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* KONTEN TAB 3: PENGAJUAN LEMBUR MANDIRI GURU                               */}
+      {/* ========================================================================= */}
+      {activeTab === 'lembur' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Kolom Kiri: Riwayat Pengajuan Lembur Pribadi (8 Kolom) */}
+          <div className="lg:col-span-8 space-y-4">
+            <Card className="p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Riwayat Pengajuan Lembur Saya</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Daftar permohonan lembur mandiri dan status persetujuan dari HRD / Kepala Sekolah.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchMyOvertimes}
+                  className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg border border-slate-200 transition-colors self-start sm:self-auto"
+                  title="Muat Ulang"
+                >
+                  <RotateCw className={`w-4 h-4 ${loadingOvertimes ? 'animate-spin text-emerald-600' : ''}`} />
+                </button>
+              </div>
+
+              {loadingOvertimes ? (
+                <div className="py-12 text-center text-slate-400">
+                  <RotateCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
+                  <p className="text-xs">Memuat riwayat lembur...</p>
+                </div>
+              ) : overtimeRecords.length === 0 ? (
+                <div className="py-12 text-center text-slate-400">
+                  <Clock className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                  <h4 className="text-xs font-bold text-slate-700">Belum Ada Pengajuan Lembur</h4>
+                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto mt-1">
+                    Silakan gunakan formulir di samping untuk mengajukan penugasan lembur di luar jam dinas.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="py-2.5 px-3">Tanggal Lembur</th>
+                        <th className="py-2.5 px-3">Jam & Durasi</th>
+                        <th className="py-2.5 px-3">Uraian Tugas</th>
+                        <th className="py-2.5 px-3">Status HRD</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {overtimeRecords.map((ov) => (
+                        <tr key={ov.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-3 font-mono font-medium text-slate-800">
+                            {formatIndonesianDate(ov.overtime_date, false)}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-emerald-700">{parseFloat(ov.hours || 0).toFixed(1)} Jam</span>
+                            {ov.start_time && ov.end_time && (
+                              <span className="block text-[10px] text-slate-400 font-mono">
+                                {ov.start_time.slice(0, 5)} - {ov.end_time.slice(0, 5)} WIB
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 max-w-xs">
+                            <p className="text-slate-700 line-clamp-2">{ov.task_description || ov.notes || '-'}</p>
+                            {ov.rejection_reason && (
+                              <p className="text-[10.5px] text-rose-600 font-medium mt-0.5">
+                                Catatan Ditolak: {ov.rejection_reason}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            {ov.status === 'approved' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" /> Disetujui
+                              </span>
+                            ) : ov.status === 'rejected' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                <AlertCircle className="w-3 h-3" /> Ditolak
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                <Clock className="w-3 h-3" /> Menunggu HRD
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Kolom Kanan: Form Pengajuan Lembur (4 Kolom) */}
+          <div className="lg:col-span-4 space-y-4">
+            <Card className="p-5 border-t-2 border-t-emerald-600">
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+                <Clock className="w-5 h-5 text-emerald-700" />
+                <h3 className="text-sm font-bold text-slate-900">Formulir Pengajuan Lembur</h3>
+              </div>
+
+              <form onSubmit={handleSubmitOvertime} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-800 mb-1">
+                    Tanggal Lembur <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={overtimeForm.overtime_date}
+                    onChange={(e) => setOvertimeForm({ ...overtimeForm, overtime_date: e.target.value })}
+                    className="w-full p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-800 mb-1">Jam Mulai (WIB)</label>
+                    <input
+                      type="time"
+                      value={overtimeForm.start_time}
+                      onChange={(e) => {
+                        const st = e.target.value;
+                        const et = overtimeForm.end_time || '20:00';
+                        const startParts = st.split(':');
+                        const endParts = et.split(':');
+                        const startMin = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1] || 0, 10);
+                        const endMin = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1] || 0, 10);
+                        const diff = endMin >= startMin ? (endMin - startMin) / 60 : ((24 * 60 - startMin) + endMin) / 60;
+                        setOvertimeForm({ ...overtimeForm, start_time: st, hours: String(Math.max(0.5, parseFloat(diff.toFixed(2)))) });
+                      }}
+                      className="w-full p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-800 mb-1">Jam Selesai (WIB)</label>
+                    <input
+                      type="time"
+                      value={overtimeForm.end_time}
+                      onChange={(e) => {
+                        const et = e.target.value;
+                        const st = overtimeForm.start_time || '17:00';
+                        const startParts = st.split(':');
+                        const endParts = et.split(':');
+                        const startMin = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1] || 0, 10);
+                        const endMin = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1] || 0, 10);
+                        const diff = endMin >= startMin ? (endMin - startMin) / 60 : ((24 * 60 - startMin) + endMin) / 60;
+                        setOvertimeForm({ ...overtimeForm, end_time: et, hours: String(Math.max(0.5, parseFloat(diff.toFixed(2)))) });
+                      }}
+                      className="w-full p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-800 mb-1">
+                    Durasi Total (Jam) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="12"
+                    required
+                    value={overtimeForm.hours}
+                    onChange={(e) => setOvertimeForm({ ...overtimeForm, hours: e.target.value })}
+                    className="w-full p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-bold text-emerald-700 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-800 mb-1">
+                    Uraian Tugas / Kegiatan Lembur <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={overtimeForm.task_description}
+                    onChange={(e) => setOvertimeForm({ ...overtimeForm, task_description: e.target.value })}
+                    placeholder="Contoh: Koreksi ujian santri, pendampingan ekstrakurikuler sore..."
+                    className="w-full p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-emerald-600 resize-none"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    disabled={submittingOvertime}
+                    leftIcon={<Send className="w-4 h-4" />}
+                    className="w-full text-xs rounded-lg py-2 font-bold justify-center"
+                  >
+                    {submittingOvertime ? 'Mengirim...' : 'Kirim Pengajuan Lembur'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Modal Detail Pengajuan */}
       {selectedLeaveDetail && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1611,6 +1974,164 @@ export default function AbsensiPage() {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL: PENGAJUAN KLARIFIKASI LUPA ABSEN (CATATAN HRD)
+          ========================================================================= */}
+      {clarificationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Klarifikasi Presensi Terlewat / Lupa Absen
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Informasikan jam masuk/pulang riil untuk dikonfirmasi oleh HRD
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClarificationModalOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitClarification} className="mt-4 space-y-4">
+              {/* Jenis Masalah / Terlewat */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase mb-1.5">
+                  Jenis Presensi Terlewat <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'manual_forgot_in', label: 'Lupa Masuk', desc: 'Sudah di lokasi tapi lupa check-in' },
+                    { id: 'manual_forgot_out', label: 'Lupa Pulang', desc: 'Pulang tapi lupa check-out' },
+                    { id: 'manual_correction', label: 'Lupa Keduanya', desc: 'Lupa absen seharian penuh' }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setClarificationForm({ ...clarificationForm, entry_type: t.id })}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        clarificationForm.entry_type === t.id
+                          ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-1 ring-amber-500 font-bold'
+                          : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">{t.label}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tanggal Absensi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase mb-1">
+                  Tanggal Presensi <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={clarificationForm.attendance_date}
+                  onChange={(e) => setClarificationForm({ ...clarificationForm, attendance_date: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800"
+                />
+              </div>
+
+              {/* Jam Masuk & Jam Pulang Riil */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase mb-1">
+                    Jam Masuk Sebenarnya
+                  </label>
+                  <input
+                    type="time"
+                    required={clarificationForm.entry_type !== 'manual_forgot_out'}
+                    value={clarificationForm.check_in_time}
+                    onChange={(e) => setClarificationForm({ ...clarificationForm, check_in_time: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase mb-1">
+                    Jam Pulang Sebenarnya
+                  </label>
+                  <input
+                    type="time"
+                    required={clarificationForm.entry_type !== 'manual_forgot_in'}
+                    value={clarificationForm.check_out_time}
+                    onChange={(e) => setClarificationForm({ ...clarificationForm, check_out_time: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Alasan / Catatan Klarifikasi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase mb-1">
+                  Alasan / Keterangan Terlewat <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={clarificationForm.clarification_reason}
+                  onChange={(e) => setClarificationForm({ ...clarificationForm, clarification_reason: e.target.value })}
+                  placeholder="Contoh: Langsung mendampingi santri upacara bendera di lapangan sehingga lupa presensi masuk di aplikasi..."
+                  className="w-full p-2.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 placeholder:text-slate-400 resize-none"
+                />
+                <p className="text-[10.5px] text-slate-500 mt-1">
+                  Catatan ini akan diteruskan ke Tim HRD/Kepala Unit untuk diverifikasi dan dikonfirmasi.
+                </p>
+              </div>
+
+              {/* Banner Info Verifikasi */}
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  Data ini akan ditandai dengan status <strong>"Menunggu Konfirmasi HRD"</strong> sebelum diresmikan ke rekap kehadiran bulanan.
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setClarificationModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-200 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingClarification}
+                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {submittingClarification ? (
+                    <>
+                      <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengirim...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Kirim Klarifikasi ke HRD</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

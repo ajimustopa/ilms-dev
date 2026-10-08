@@ -2168,6 +2168,7 @@ class CurriculumService {
 
       enriched.push({
         ...r,
+        class_group_id: assigned_classes[0]?.id || null,
         teacher_name,
         teacher_nip,
         day_name: dayNamesEn[r.day_of_week] || String(r.day_of_week),
@@ -3637,9 +3638,293 @@ class CurriculumService {
     await db('teaching_journals').where({ id }).del();
     return { id, message: 'Jurnal mengajar berhasil dihapus' };
   }
+
+  // ==========================================
+  // 14. Monitoring KBM Harian & Supervisi Kurikulum
+  // ==========================================
+  async getKbmMonitoringToday(query = {}, user = null) {
+    const today = query.date || new Date().toISOString().split('T')[0];
+    const schoolUnitId = query.satuan_pendidikan_id || (user?.school_units && user.school_units[0]?.id) || null;
+
+    const dateObj = new Date(today);
+    const dayIndex = dateObj.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const dayNumber = dayIndex === 0 ? 7 : dayIndex; // 1=Senin, ..., 7=Minggu
+    const dayMap = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    const dayOfWeek = dayMap[dayIndex];
+
+    let schedulesQuery = db('subject_schedules')
+      .leftJoin('subjects', 'subject_schedules.subject_id', 'subjects.id')
+      .leftJoin('subject_schedule_class_groups', 'subject_schedules.id', 'subject_schedule_class_groups.schedule_id')
+      .leftJoin('class_groups', 'subject_schedule_class_groups.class_group_id', 'class_groups.id')
+      .select(
+        'subject_schedules.*',
+        'subjects.name as subject_name',
+        'subjects.code as subject_code',
+        'class_groups.id as class_group_id',
+        'class_groups.name as class_group_name',
+        'class_groups.grade_level_id as class_group_grade_level_id'
+      )
+      .where((builder) => {
+        builder.where('subject_schedules.day_of_week', dayNumber)
+          .orWhere('subject_schedules.day_of_week', dayOfWeek);
+      })
+      .andWhere('subject_schedules.is_active', 1);
+
+    if (schoolUnitId) {
+      schedulesQuery = schedulesQuery.where('subject_schedules.satuan_pendidikan_id', schoolUnitId);
+    }
+    if (query.grade_level_id) {
+      schedulesQuery = schedulesQuery.where('class_groups.grade_level_id', query.grade_level_id);
+    }
+    if (query.class_group_id) {
+      schedulesQuery = schedulesQuery.where('class_groups.id', query.class_group_id);
+    }
+
+    const schedules = await schedulesQuery.orderBy('subject_schedules.start_time', 'asc');
+
+    const journals = await db('teaching_journals').where({ teaching_date: today });
+    const journalsMap = {};
+    journals.forEach(j => {
+      journalsMap[j.schedule_id] = j;
+    });
+
+    const lessonAtts = await db('lesson_attendances').where({ date: today });
+    const attMap = {};
+    lessonAtts.forEach(att => {
+      if (!attMap[att.subject_schedule_id]) {
+        attMap[att.subject_schedule_id] = [];
+      }
+      attMap[att.subject_schedule_id].push(att);
+    });
+
+    const classGroupsCount = await db('student_class_enrollments')
+      .where('status', 'aktif')
+      .groupBy('class_group_id')
+      .select('class_group_id', db.raw('count(*) as total_students'));
+    const studentCountMap = {};
+    classGroupsCount.forEach(c => {
+      studentCountMap[c.class_group_id] = parseInt(c.total_students, 10);
+    });
+
+    let filledJournalsCount = 0;
+    let verifiedJournalsCount = 0;
+    let pendingVerificationCount = 0;
+    let totalPresentStudents = 0;
+    let totalActiveStudents = 0;
+
+    const enrichedSessions = [];
+    for (const s of schedules) {
+      let teacher_name = 'Guru Pengampu';
+      let teacher_nip = null;
+      let teacher_phone = null;
+      if (s.teacher_employee_id) {
+        try {
+          const emp = await employeesService.getEmployeeById(s.teacher_employee_id);
+          teacher_name = emp?.full_name || 'Guru Pengampu';
+          teacher_nip = emp?.nip || emp?.employee_code || null;
+          teacher_phone = emp?.phone || null;
+        } catch (e) {}
+      }
+
+      const journal = journalsMap[s.id] || null;
+      const attList = attMap[s.id] || [];
+      const totalInClass = studentCountMap[s.class_group_id] || attList.length || 0;
+
+      let presentCount = 0;
+      let sickCount = 0;
+      let permittedCount = 0;
+      let absentCount = 0;
+
+      attList.forEach(a => {
+        if (a.status === 'present' || a.status === 'hadir') presentCount++;
+        else if (a.status === 'sick' || a.status === 'sakit') sickCount++;
+        else if (a.status === 'permitted' || a.status === 'izin') permittedCount++;
+        else if (a.status === 'absent' || a.status === 'alpa') absentCount++;
+      });
+
+      if (attList.length > 0) {
+        totalPresentStudents += presentCount;
+        totalActiveStudents += (presentCount + sickCount + permittedCount + absentCount);
+      }
+
+      if (journal) {
+        filledJournalsCount++;
+        if (journal.curriculum_status === 'verified') {
+          verifiedJournalsCount++;
+        } else {
+          pendingVerificationCount++;
+        }
+      }
+
+      const presentRate = (attList.length > 0)
+        ? Math.round((presentCount / (presentCount + sickCount + permittedCount + absentCount || 1)) * 100)
+        : null;
+
+      enrichedSessions.push({
+        id: s.id,
+        schedule_id: s.id,
+        satuan_pendidikan_id: s.satuan_pendidikan_id,
+        day_of_week: s.day_of_week,
+        time_slot: s.period_label || s.time_slot,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        room: s.room_name || s.room,
+        subject_id: s.subject_id,
+        subject_name: s.subject_name,
+        subject_code: s.subject_code,
+        class_group_id: s.class_group_id,
+        class_group_name: s.class_group_name,
+        teacher_employee_id: s.teacher_employee_id,
+        teacher_name,
+        teacher_nip,
+        teacher_phone,
+        has_journal: !!journal,
+        journal: journal ? {
+          id: journal.id,
+          meeting_number: journal.meeting_number,
+          topic_material: journal.topic_material,
+          learning_objective_id: journal.learning_objective_id,
+          general_notes: journal.general_notes,
+          kbm_status: journal.kbm_status || 'completed',
+          curriculum_status: journal.curriculum_status || 'unverified',
+          curriculum_notes: journal.curriculum_notes || null,
+          verified_at: journal.verified_at || null,
+          has_homework: !!journal.has_homework,
+          homework_title: journal.homework_title || null,
+          homework_deadline: journal.homework_deadline || null
+        } : null,
+        attendance: {
+          has_recorded: attList.length > 0,
+          total_students: totalInClass,
+          present_count: presentCount,
+          sick_count: sickCount,
+          permitted_count: permittedCount,
+          absent_count: absentCount,
+          present_rate: presentRate
+        }
+      });
+    }
+
+    const totalSchedules = schedules.length;
+    const overallStudentRate = totalActiveStudents > 0
+      ? Math.round((totalPresentStudents / totalActiveStudents) * 100)
+      : 100;
+    const journalComplianceRate = totalSchedules > 0
+      ? Math.round((filledJournalsCount / totalSchedules) * 100)
+      : 0;
+
+    const earlyWarningRes = await this.getEarlyWarningStudents({ satuan_pendidikan_id: schoolUnitId, limit: 5 });
+
+    return {
+      date: today,
+      day_of_week: dayOfWeek,
+      kpi: {
+        total_schedules: totalSchedules,
+        filled_journals_count: filledJournalsCount,
+        unfilled_journals_count: totalSchedules - filledJournalsCount,
+        verified_journals_count: verifiedJournalsCount,
+        pending_verification_count: pendingVerificationCount,
+        journal_compliance_rate: journalComplianceRate,
+        student_attendance_rate: overallStudentRate,
+        total_present_students: totalPresentStudents,
+        total_active_students: totalActiveStudents,
+        early_warning_count: earlyWarningRes.length || 0
+      },
+      sessions: enrichedSessions
+    };
+  }
+
+  async verifyTeachingJournal(id, payload, user = null) {
+    const journal = await db('teaching_journals').where({ id }).first();
+    if (!journal) {
+      const error = new Error('Jurnal mengajar tidak ditemukan');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const {
+      status = 'verified',
+      notes = ''
+    } = payload;
+
+    await db('teaching_journals').where({ id }).update({
+      curriculum_status: status,
+      curriculum_notes: notes ? notes.trim() : null,
+      verified_by_user_id: user?.id || null,
+      verified_at: status === 'verified' ? db.fn.now() : null,
+      updated_at: db.fn.now()
+    });
+
+    return this.getTeachingJournalById(id, user);
+  }
+
+  async getEarlyWarningStudents(query = {}) {
+    let baseQuery = db('lesson_attendances')
+      .join('students', 'lesson_attendances.student_id', 'students.id')
+      .leftJoin('student_class_enrollments', function() {
+        this.on('students.id', '=', 'student_class_enrollments.student_id')
+          .andOn('student_class_enrollments.status', '=', db.raw('?', ['aktif']));
+      })
+      .leftJoin('class_groups', 'student_class_enrollments.class_group_id', 'class_groups.id')
+      .select(
+        'students.id as student_id',
+        'students.full_name as student_name',
+        'students.nisn',
+        'students.nis',
+        'students.photo_url',
+        'class_groups.name as class_group_name',
+        db.raw("SUM(CASE WHEN lesson_attendances.status IN ('absent', 'alpa') THEN 1 ELSE 0 END) as absent_count"),
+        db.raw("SUM(CASE WHEN lesson_attendances.status IN ('sick', 'sakit') THEN 1 ELSE 0 END) as sick_count"),
+        db.raw("SUM(CASE WHEN lesson_attendances.status IN ('permitted', 'izin') THEN 1 ELSE 0 END) as permitted_count"),
+        db.raw("SUM(CASE WHEN lesson_attendances.status IN ('present', 'hadir') THEN 1 ELSE 0 END) as present_count"),
+        db.raw("COUNT(lesson_attendances.id) as total_sessions")
+      )
+      .groupBy('students.id', 'students.full_name', 'students.nisn', 'students.nis', 'students.photo_url', 'class_groups.name')
+      .havingRaw("SUM(CASE WHEN lesson_attendances.status IN ('absent', 'alpa') THEN 1 ELSE 0 END) >= 2 OR (COUNT(lesson_attendances.id) > 5 AND (SUM(CASE WHEN lesson_attendances.status IN ('present', 'hadir') THEN 1 ELSE 0 END) / COUNT(lesson_attendances.id)) < 0.85)");
+
+    if (query.satuan_pendidikan_id) {
+      baseQuery = baseQuery.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+
+    const rows = await baseQuery.orderBy('absent_count', 'desc').limit(query.limit || 20);
+    return rows.map(r => {
+      const total = parseInt(r.total_sessions, 10) || 1;
+      const present = parseInt(r.present_count, 10) || 0;
+      const absent = parseInt(r.absent_count, 10) || 0;
+      const rate = Math.round((present / total) * 100);
+      return {
+        ...r,
+        present_rate: rate,
+        risk_level: absent >= 3 ? 'high' : 'medium'
+      };
+    });
+  }
+
+  async getAggregateAttendanceMatrix(query = {}) {
+    let baseQuery = db('class_groups')
+      .leftJoin('student_class_enrollments', function() {
+        this.on('class_groups.id', '=', 'student_class_enrollments.class_group_id')
+          .andOn('student_class_enrollments.status', '=', db.raw('?', ['aktif']));
+      })
+      .select(
+        'class_groups.id',
+        'class_groups.name',
+        'class_groups.grade_level_id',
+        db.raw('COUNT(student_class_enrollments.id) as total_enrolled')
+      )
+      .groupBy('class_groups.id', 'class_groups.name', 'class_groups.grade_level_id');
+
+    if (query.satuan_pendidikan_id) {
+      baseQuery = baseQuery.where('class_groups.satuan_pendidikan_id', query.satuan_pendidikan_id);
+    }
+
+    const classes = await baseQuery.orderBy('class_groups.name', 'asc');
+    return classes;
+  }
 }
 
 module.exports = new CurriculumService();
+
 
 
 

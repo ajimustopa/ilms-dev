@@ -1,0 +1,470 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      "colors": {
+        "inverse-primary": "#79db8d",
+        "tertiary": "#b00032",
+        "surface-container-high": "#dde9ff",
+        "secondary-container": "#b1f2be",
+        "surface-tint": "#006d30",
+        "on-surface": "#0d1c2f",
+        "on-surface-variant": "#3f493f",
+        "secondary-fixed-dim": "#96d5a3",
+        "on-secondary-container": "#347047",
+        "error": "#ba1a1a",
+        "primary-fixed": "#95f8a7",
+        "inverse-on-surface": "#ebf1ff",
+        "surface-dim": "#ccdbf4",
+        "error-container": "#ffdad6",
+        "outline-variant": "#becabc",
+        "primary-fixed-dim": "#79db8d",
+        "on-secondary-fixed-variant": "#12512c",
+        "on-tertiary-fixed-variant": "#920028",
+        "secondary-fixed": "#b1f2be",
+        "surface-variant": "#d5e3fd",
+        "tertiary-fixed": "#ffdada",
+        "background": "#f8f9ff",
+        "inverse-surface": "#233144",
+        "on-primary": "#ffffff",
+        "on-background": "#0d1c2f",
+        "surface-container-lowest": "#ffffff",
+        "on-tertiary-container": "#fff0f0",
+        "surface": "#f8f9ff",
+        "on-tertiary": "#ffffff",
+        "surface-bright": "#f8f9ff",
+        "tertiary-fixed-dim": "#ffb3b6",
+        "on-error": "#ffffff",
+        "primary": "#00652c",
+        "surface-container-highest": "#d5e3fd",
+        "secondary": "#2e6a41",
+        "on-secondary": "#ffffff",
+        "on-secondary-fixed": "#00210d",
+        "on-error-container": "#93000a",
+        "tertiary-container": "da1544",
+        "on-tertiary-fixed": "#40000c",
+        "surface-container-low": "#eff4ff",
+        "outline": "#6f7a6e",
+        "on-primary-fixed": "#00210a",
+        "surface-container": "#e6eeff",
+        "on-primary-container": "#d3ffd5",
+        "on-primary-fixed-variant": "#005323",
+        "primary-container": "#15803d"
+      },
+      "borderRadius": {
+        "DEFAULT": "0.25rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "full": "9999px"
+      },
+      "spacing": {
+        "space-lg": "1.25rem",
+        "space-md": "0.75rem",
+        "margin-md": "1.5rem",
+        "gutter": "1rem",
+        "space-xs": "0.25rem",
+        "gutter-md": "1.5rem",
+        "gutter-lg": "2rem",
+        "margin": "1rem",
+        "margin-lg": "2rem",
+        "space-xl": "2rem",
+        "space-sm": "0.5rem"
+      },
+      "fontFamily": {
+        "label-sm": ["Inter"],
+        "label-md": ["Inter"],
+        "headline-lg": ["Inter"],
+        "body-md": ["Inter"],
+        "body-sm": ["Inter"],
+        "headline-lg-mobile": ["Inter"],
+        "headline-md": ["Inter"],
+        "display-lg": ["Inter"],
+        "label-lg": ["Inter"],
+        "body-lg": ["Inter"],
+        "headline-sm": ["Inter"]
+      },
+      "fontSize": {
+        "label-sm": ["10px", {"lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600"}],
+        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+        "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+        "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400"}],
+        "body-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+        "headline-md": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+        "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "500"}],
+        "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}],
+        "headline-sm": ["18px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "600"}]
+      }
+    }
+  }
+}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest border-b border-outline-variant"><div class="h-16 max-w-[1440px] mx-auto px-margin-lg flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYwmerU3WEN35Wlr4upA_DrL1vu-vcgFhyHIb6atT-Ft2vNA4ogW26GVIbPCMMGtvP6tb-YN691SvjBEGIj01pWXZUOFbgsil_5G9heuI0H4mqjUVGXazsBRP7HadcoOpwFhDlNE9UhfCLuiSzmFVlS7FPQYH0QjZsD2EXcd1q8bkSrsCpC1pxaH2JB-H4OvIX8YGUzub4JsFV8_O6oDL5qS-NELZF26-cL1SBpQZQNBDt0JX6fHYAaQ" alt="Aldepos Islamic Boarding School" class="h-8 w-auto object-contain"><div class="flex flex-col"><span class="font-label-lg text-label-lg font-bold text-on-surface tracking-tight leading-none">ALDEPOS</span><span class="font-label-sm text-label-sm text-primary font-semibold tracking-wider uppercase mt-space-xs">ILMS Portal</span></div></div><div class="h-6 w-px bg-outline-variant hidden sm:block"></div><button class="hidden md:flex items-center gap-space-sm px-space-sm py-space-xs rounded bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface border border-outline-variant transition-colors" type="button"><span class="material-symbols-outlined text-[18px] text-primary">domain</span><span class="font-label-md text-label-md font-medium">KMI Putra (Pesantren)</span><span class="material-symbols-outlined text-[16px]">unfold_more</span></button></div><div class="hidden lg:flex items-center flex-1 max-w-md"><div class="w-full flex items-center justify-between px-space-md py-space-xs rounded bg-surface-container-low border border-outline-variant text-on-surface-variant focus-within:border-primary focus-within:bg-surface-container-lowest transition-colors"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">search</span><input class="bg-transparent border-0 outline-none font-body-sm text-body-sm text-on-surface placeholder:text-outline w-56" placeholder="Search modules, santri, curriculum..." type="text"></div><kbd class="px-space-xs py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant uppercase">Ctrl K</kbd></div></div><nav class="hidden xl:flex items-center gap-space-lg h-16" data-active-classes="text-primary font-semibold border-b-2 border-primary"><a aria-current="page" class="transition-colors py-space-sm text-primary font-semibold border-b-2 border-primary" data-path="app-launcher" href="#">Launcher</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors py-space-sm" data-path="academic-board" href="#">Academic</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors py-space-sm" data-path="tahfidz-tracker" href="#">Tahfidz</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors py-space-sm" data-path="finance-portal" href="#">Finance</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors py-space-sm" data-path="boarding-quarter" href="#">Boarding</a></nav><div class="flex items-center gap-space-sm"><button aria-label="Notifications" class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors relative" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary"></span></button><button aria-label="Theme toggle" class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">light_mode</span></button><div class="h-6 w-px bg-outline-variant"></div><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ring-2 ring-surface-container-lowest"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden sm:flex flex-col text-left"><span class="font-label-md text-label-md font-semibold text-on-surface leading-tight">Ust. Ahmad F.</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Superadmin</span></div></div></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-64px)]"><div class="max-w-[1440px] mx-auto px-margin-lg py-margin-lg"><div class="flex flex-col w-full">
+<!-- Interactive & Layout Canvas Container -->
+<div class="w-full max-w-7xl mx-auto space-y-8">
+<!-- 1. GREETING AREA (Authoritative Institutional Banner) -->
+<section class="relative overflow-hidden rounded-xl bg-on-secondary-fixed-variant text-on-primary border border-primary/20 shadow-sm p-6 sm:p-8">
+<!-- Tone-on-tone Hairline Islamic Lattice Overlay (SVG) -->
+<div aria-hidden="true" class="absolute inset-0 pointer-events-none opacity-[0.07]">
+<svg class="w-full h-full object-cover" height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern height="48" id="islamic-star-mesh" patternUnits="userSpaceOnUse" width="48">
+<path d="M24 0 L31.2 16.8 L48 24 L31.2 31.2 L24 48 L16.8 31.2 L0 24 L16.8 16.8 Z" fill="none" stroke="#ffffff" stroke-width="1.2"></path>
+<circle cx="24" cy="24" fill="none" r="7" stroke="#ffffff" stroke-width="0.8"></circle>
+<path d="M0 0 L10 10 M48 0 L38 10 M0 48 L10 38 M48 48 L38 38" stroke="#ffffff" stroke-width="0.8"></path>
+</pattern>
+</defs>
+<rect fill="url(#islamic-star-mesh)" height="100%" width="100%"></rect>
+</svg>
+</div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-3">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-primary tracking-tight">
+              Selamat datang, Ahmad Fauzi
+            </h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-sm text-label-sm font-semibold bg-primary text-secondary-fixed border border-secondary-fixed-dim/40 tracking-wide uppercase">
+              Admin Yayasan
+            </span>
+</div>
+<p class="font-body-md text-body-md text-secondary-fixed-dim flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="">Tahun Ajaran 2026/2027</span>
+<span class="text-secondary-fixed-dim/50">•</span>
+<span class="font-medium text-on-primary">Semester Ganjil</span>
+</p>
+</div>
+<!-- System Status Indicator Tag -->
+<div class="hidden sm:flex items-center gap-2.5 bg-black/20 backdrop-blur-sm px-3.5 py-2 rounded-lg border border-white/10 self-start md:self-auto">
+<span class="w-2 h-2 rounded-full bg-primary-fixed animate-pulse"></span>
+<div class="flex flex-col text-right">
+<span class="font-label-sm text-label-sm text-on-primary font-semibold leading-tight">Sistem Terintegrasi Penuh</span>
+<span class="font-label-sm text-label-sm text-secondary-fixed-dim text-[11px] leading-tight">Semua unit beroperasi normal</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. SECTION: TERAKHIR DIBUKA -->
+<section>
+<div class="flex items-center justify-between mb-3">
+<h2 class="font-label-md text-label-md uppercase tracking-wider text-outline font-bold">
+          Terakhir Dibuka
+        </h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Akses Cepat 4 Modul Teratas</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+<!-- Item A: Administrasi Sistem -->
+<button class="group flex items-center gap-3 p-3 bg-surface-container-lowest rounded-xl border border-outline-variant hover:border-primary transition-all text-left shadow-sm hover:shadow" type="button">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div class="min-w-0 flex-1">
+<div class="font-label-lg text-label-lg font-semibold text-on-surface truncate">Administrasi Sistem</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Hak Akses &amp; Master Konfigurasi</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-[18px]">chevron_right</span>
+</button>
+<!-- Item B: Keuangan & Kasir -->
+<button class="group flex items-center gap-3 p-3 bg-surface-container-lowest rounded-xl border border-outline-variant hover:border-primary transition-all text-left shadow-sm hover:shadow" type="button">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">calculate</span>
+</div>
+<div class="min-w-0 flex-1">
+<div class="font-label-lg text-label-lg font-semibold text-on-surface truncate">Keuangan &amp; Kasir</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">SPP, Syahriah &amp; Neraca Keuangan</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-[18px]">chevron_right</span>
+</button>
+<!-- Item C: Akademik & Kurikulum -->
+<button class="group flex items-center gap-3 p-3 bg-surface-container-lowest rounded-xl border border-outline-variant hover:border-primary transition-all text-left shadow-sm hover:shadow" type="button">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">school</span>
+</div>
+<div class="min-w-0 flex-1">
+<div class="font-label-lg text-label-lg font-semibold text-on-surface truncate">Akademik &amp; Kurikulum</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Rombel, Nilai &amp; Jadwal KMI</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-[18px]">chevron_right</span>
+</button>
+<!-- Item D: Tahfidz & Al-Qur'an -->
+<button class="group flex items-center gap-3 p-3 bg-surface-container-lowest rounded-xl border border-outline-variant hover:border-primary transition-all text-left shadow-sm hover:shadow" type="button">
+<div class="w-9 h-9 rounded-lg bg-surface-container-low text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+</div>
+<div class="min-w-0 flex-1">
+<div class="font-label-lg text-label-lg font-semibold text-on-surface truncate">Tahfidz &amp; Al-Qur'an</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Ziyadah, Muraja'ah &amp; Mutqin</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors text-[18px]">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- 3. SECTION: MODUL UTAMA (12 Modul) -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Modul Utama</h2>
+<span class="px-2.5 py-0.5 rounded-full font-label-sm text-label-sm font-semibold bg-surface-container text-on-surface-variant border border-outline-variant">
+          12 modul
+        </span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 pt-1">
+<!-- 1. Administrasi Sistem -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">shield</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Administrasi Sistem
+          </span>
+</div>
+<!-- 2. Keuangan & Kasir (INSPECTED HOVER STATE AS REQUESTED) -->
+<div class="module-card relative flex flex-col items-center cursor-pointer p-3 rounded-xl bg-surface-container-low">
+<!-- Active Tooltip pointing up -->
+<div class="absolute -top-12 z-20 pointer-events-none hidden md:flex flex-col items-center animate-fade-in">
+<div class="bg-on-surface text-surface px-3 py-1.5 rounded-lg font-label-sm text-label-sm font-medium shadow-lg whitespace-nowrap text-center max-w-[260px] truncate border border-outline">
+              Manajemen SPP, kasir unit, perbankan pesantren &amp; laporan keuangan
+            </div>
+<div class="w-2 h-2 bg-on-surface rotate-45 -mt-1"></div>
+</div>
+<!-- Highlighted State Icon Tile (-translate-y-1, solid primary fill, white icon, crisp shadow) -->
+<div class="w-[72px] h-[72px] rounded-2xl bg-primary border border-primary text-on-primary flex items-center justify-center -translate-y-1 shadow-md">
+<span class="material-symbols-outlined text-[32px]">calculate</span>
+</div>
+<span class="font-label-lg text-label-lg font-semibold text-primary mt-2.5 text-center leading-snug line-clamp-2">
+            Keuangan &amp; Kasir
+          </span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-1"></span>
+</div>
+<!-- 3. Akademik & Kurikulum -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">school</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Akademik &amp; Kurikulum
+          </span>
+</div>
+<!-- 4. SDM & Kepegawaian -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">group</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            SDM &amp; Kepegawaian
+          </span>
+</div>
+<!-- 5. Sarana & Prasarana -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors" style="transform: scale(1);">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">domain_add</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Sarana &amp; Prasarana
+          </span>
+</div>
+<!-- 6. Perpustakaan Digital -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors" style="transform: scale(1);">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">local_library</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Perpustakaan Digital
+          </span>
+</div>
+<!-- 7. Manajemen & Mutu -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">monitoring</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Manajemen &amp; Mutu
+          </span>
+</div>
+<!-- 8. Portal Guru -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">co_present</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Portal Guru
+          </span>
+</div>
+<!-- 9. Kantin Digital -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">restaurant</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Kantin Digital
+          </span>
+</div>
+<!-- 10. Dapur & Logistik -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors" style="transform: scale(1);">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">inventory_2</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Dapur &amp; Logistik
+          </span>
+</div>
+<!-- 11. Website Utama -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">public</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Website Utama
+          </span>
+</div>
+<!-- 12. Tahfidz & Al-Qur'an -->
+<div class="module-card group flex flex-col items-center cursor-pointer p-3 rounded-xl hover:bg-surface-container-low transition-colors">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container-low border border-outline-variant text-primary flex items-center justify-center transition-all duration-200 group-hover:-translate-y-1 group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary group-hover:shadow-md">
+<span class="material-symbols-outlined text-[32px]">menu_book</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface mt-2.5 text-center leading-snug line-clamp-2">
+            Tahfidz &amp; Al-Qur'an
+          </span>
+</div>
+</div>
+</section>
+<!-- 4. SECTION: SEGERA HADIR (5 Modul) -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Segera Hadir</h2>
+<span class="px-2.5 py-0.5 rounded-full font-label-sm text-label-sm font-semibold bg-surface-container text-on-surface-variant border border-outline-variant">
+          5 modul
+        </span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 pt-1">
+<!-- 1. Kesiswaan & Prestasi -->
+<div class="flex flex-col items-center p-3 rounded-xl opacity-75">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container border border-outline-variant text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">military_tech</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface-variant mt-2.5 text-center leading-snug line-clamp-2">
+            Kesiswaan &amp; Prestasi
+          </span>
+<span class="font-label-sm text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold mx-auto mt-1.5 block">
+            Segera Hadir
+          </span>
+</div>
+<!-- 2. Ujian Daring & Bank Soal -->
+<div class="flex flex-col items-center p-3 rounded-xl opacity-75">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container border border-outline-variant text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">quiz</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface-variant mt-2.5 text-center leading-snug line-clamp-2">
+            Ujian Daring &amp; Soal
+          </span>
+<span class="font-label-sm text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold mx-auto mt-1.5 block">
+            Segera Hadir
+          </span>
+</div>
+<!-- 3. PPDB & Seleksi -->
+<div class="flex flex-col items-center p-3 rounded-xl opacity-75">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container border border-outline-variant text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">person_add</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface-variant mt-2.5 text-center leading-snug line-clamp-2">
+            PPDB &amp; Seleksi
+          </span>
+<span class="font-label-sm text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold mx-auto mt-1.5 block">
+            Segera Hadir
+          </span>
+</div>
+<!-- 4. Bimbingan & Konseling -->
+<div class="flex flex-col items-center p-3 rounded-xl opacity-75">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container border border-outline-variant text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">psychology</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface-variant mt-2.5 text-center leading-snug line-clamp-2">
+            Bimbingan Konseling
+          </span>
+<span class="font-label-sm text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold mx-auto mt-1.5 block">
+            Segera Hadir
+          </span>
+</div>
+<!-- 5. Tracer Study & Alumni -->
+<div class="flex flex-col items-center p-3 rounded-xl opacity-75">
+<div class="w-[72px] h-[72px] rounded-2xl bg-surface-container border border-outline-variant text-outline flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">diversity_3</span>
+</div>
+<span class="font-label-lg text-label-lg font-medium text-on-surface-variant mt-2.5 text-center leading-snug line-clamp-2">
+            Tracer &amp; Alumni
+          </span>
+<span class="font-label-sm text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold mx-auto mt-1.5 block">
+            Segera Hadir
+          </span>
+</div>
+</div>
+</section>
+<!-- 5. INSTITUTIONAL MOTION SPECIFICATION NOTE -->
+<section class="mt-8 border border-outline-variant rounded-xl p-4 bg-surface-container-low flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5">tune</span>
+<div>
+<span class="font-label-md text-label-md font-bold text-on-surface block">Catatan Spesifikasi Interaksi &amp; Transisi UI</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Tiles pop in with a 30ms stagger (opacity + 8px rise, 250ms); hover lifts 2px and icon tile fills solid emerald with white icon; press scales 0.96; search filtering animates tiles out/in (200ms); dropdowns scale-fade 150ms; respect prefers-reduced-motion.
+          </p>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end md:self-center flex-shrink-0">
+<span class="font-label-sm text-label-sm px-2.5 py-1 bg-surface-container-lowest rounded font-mono text-outline border border-outline-variant">
+          SPEC-LAUNCHER-V3.4
+        </span>
+</div>
+</section>
+<!-- 6. FOOTER BAR -->
+<footer class="pt-6 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3 text-on-surface-variant">
+<span class="font-body-sm text-body-sm font-medium">
+        Kolaborasi • Integrasi • Layanan Terbaik
+      </span>
+<span class="font-body-sm text-body-sm">
+        © 2026 Yayasan Pondok Pesantren Terpadu Aldepos • <strong class="font-semibold text-on-surface">Aldepos ILMS v3.4.2</strong>
+</span>
+</footer>
+</div>
+</div>
+<script>
+  // Micro-interaction handlers for launcher cards and search filter prototype
+  document.addEventListener('DOMContentLoaded', () => {
+    const moduleCards = document.querySelectorAll('.module-card');
+    
+    // Press state micro-scale feedback
+    moduleCards.forEach(card => {
+      card.addEventListener('mousedown', () => {
+        card.style.transform = 'scale(0.96)';
+        card.style.transition = 'transform 100ms ease';
+      });
+      card.addEventListener('mouseup', () => {
+        card.style.transform = 'scale(1)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'scale(1)';
+      });
+    });
+
+    // Simple search demo listening to global or mock keystrokes
+    const searchInputs = document.querySelectorAll('input[type="text"]');
+    searchInputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        moduleCards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          if (query === '' || text.includes(query)) {
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            card.style.display = 'flex';
+          } else {
+            card.style.opacity = '0.2';
+            card.style.pointerEvents = 'none';
+          }
+        });
+      });
+    });
+  });
+</script></div></main><footer class="w-full bg-surface-container-lowest border-t border-outline-variant py-space-lg"><div class="max-w-[1440px] mx-auto px-margin-lg flex flex-col md:flex-row items-center justify-between gap-space-md text-on-surface-variant font-body-sm text-body-sm"><div class="flex items-center gap-space-md"><span class="">© 2025 Aldepos Integrated Learning Management System (ILMS).</span><span class="hidden md:inline text-outline-variant">•</span><span class="hidden md:inline font-label-sm text-label-sm text-secondary font-medium">Foundation Edition v4.8</span></div><div class="flex items-center gap-space-lg font-label-md text-label-md"><a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Security Policy</a><a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Audit Log</a><a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">System Status</a></div></div></footer>
+
+</body></html>

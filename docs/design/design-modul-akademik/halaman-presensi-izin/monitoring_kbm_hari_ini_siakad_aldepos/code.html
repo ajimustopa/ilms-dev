@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SIAKAD ALDEPOS - Presensi Santri &amp; Monitoring KBM</title>
+<!-- Tailwind CSS CDN with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b'
+            },
+            sidebar: {
+              base: '#0c1322',
+              card: '#151f32',
+              hover: '#1e293b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<style data-purpose="custom-scrollbars">
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .custom-sidebar-scroll::-webkit-scrollbar-track {
+      background: #0c1322;
+    }
+    .custom-sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #1e293b;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+<!-- BEGIN: LeftSidebar -->
+<!-- Dark Navy Left Sidebar mimicking exact layout specifications -->
+<aside class="w-64 bg-[#0c1322] flex-shrink-0 flex flex-col justify-between border-r border-slate-800 select-none z-30" data-purpose="main-sidebar">
+<!-- Top Part: Logo & School Switcher -->
+<div class="flex flex-col">
+<!-- App Brand Logo Header -->
+<div class="px-4 py-4 flex items-center justify-between border-b border-slate-800/80">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-sm tracking-wider">
+            A
+          </div>
+<div class="leading-tight">
+<h1 class="text-xs font-bold text-white tracking-wide uppercase">Akademik &amp; Kesiswaan</h1>
+<p class="text-[10px] text-slate-400 font-semibold tracking-wider">SIAKAD ALDEPOS</p>
+</div>
+</div>
+<button class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 transition" title="Toggle Sidebar">
+<i class="w-4 h-4" data-lucide="panel-left-close"></i>
+</button>
+</div>
+<!-- Satuan Pendidikan Selector -->
+<div class="p-3 border-b border-slate-800/60">
+<div class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 px-1">
+          Satuan Pendidikan Aktif
+        </div>
+<div class="flex items-center justify-between px-3 py-2 bg-slate-900/90 hover:bg-slate-800/80 rounded-lg border border-slate-800 cursor-pointer transition">
+<div class="flex items-center space-x-2.5 overflow-hidden">
+<span class="text-xs font-medium text-slate-200 truncate">SMP Aldepos Islamic Boarding School</span>
+</div>
+<i class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" data-lucide="chevron-down"></i>
+</div>
+</div>
+<!-- Nav Menu Items List (Scrollable) -->
+<div class="overflow-y-auto max-h-[calc(100vh-250px)] px-2 py-3 space-y-0.5 custom-sidebar-scroll text-[12.5px] font-medium text-slate-400">
+<div class="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Menu Akademik
+        </div>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="layout-grid"></i>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="graduation-cap"></i>
+<span>Data Siswa &amp; Wali</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="users"></i>
+<span>Rombongan Belajar</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="award"></i>
+<span>Kenaikan &amp; Kelulusan</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="database"></i>
+<span>Master Data</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="book-open"></i>
+<span>Kurikulum &amp; Mapel</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="clock"></i>
+<span>Jadwal Pelajaran</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="clipboard-pen"></i>
+<span>Input Nilai Mapel</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="sparkles"></i>
+<span>Input Nilai Ekstrakurikuler</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="file-spreadsheet"></i>
+<span>Rapor Semester</span>
+</a>
+<!-- Active Presensi & Izin State -->
+<a class="flex items-center px-3 py-2.5 rounded-xl font-semibold bg-emerald-600 text-white shadow-md shadow-emerald-900/30" href="#">
+<i class="w-4 h-4 mr-3 text-white" data-lucide="clock-check"></i>
+<span>Presensi &amp; Izin</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="heart-handshake"></i>
+<span>Kesiswaan &amp; BK</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="activity"></i>
+<span>Ekstrakurikuler</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="calendar"></i>
+<span>Kalender Akademik</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-lg hover:text-slate-200 hover:bg-slate-800/60 transition group" href="#">
+<i class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-200" data-lucide="history"></i>
+<span>Riwayat &amp; Impor Data</span>
+</a>
+</div>
+</div>
+<!-- Bottom Sidebar Section -->
+<div class="p-3 border-t border-slate-800 bg-[#090e1a]">
+<a class="flex items-center px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition text-xs mb-2" href="#">
+<i class="w-4 h-4 mr-2.5" data-lucide="grid"></i>
+<span>Kembali ke Launcher</span>
+</a>
+<div class="pt-2 border-t border-slate-800/80 flex items-center justify-between px-1">
+<div class="flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-full bg-emerald-700/80 text-white flex items-center justify-center font-bold text-xs ring-1 ring-emerald-500/50">
+            S
+          </div>
+<div class="leading-tight">
+<p class="text-xs font-semibold text-slate-200">Super Admin</p>
+<p class="text-[10px] text-slate-400">super_admin</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-200 p-1">
+<i class="w-4 h-4" data-lucide="log-out"></i>
+</button>
+</div>
+</div>
+</aside>
+<!-- END: LeftSidebar -->
+<!-- BEGIN: MainContentWrapper -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+<!-- BEGIN: TopNavbar -->
+<!-- Crisp top navbar matching the reference header bar -->
+<header class="h-14 bg-white border-b border-slate-200 px-5 flex items-center justify-between flex-shrink-0 z-20" data-purpose="top-navbar">
+<div class="flex items-center space-x-2">
+<!-- Ciutkan Navigasi Button -->
+<button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs">
+<i class="w-3.5 h-3.5 text-slate-500" data-lucide="panel-left"></i>
+<span>Ciutkan Navigasi</span>
+</button>
+<!-- Portal Modul Button -->
+<button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs">
+<i class="w-3.5 h-3.5 text-slate-500" data-lucide="layout-grid"></i>
+<span>Portal Modul</span>
+</button>
+<!-- Satuan Pendidikan Badge -->
+<div class="hidden lg:flex items-center space-x-2 px-3 py-1 bg-slate-50 border border-slate-200/80 rounded-lg">
+<div class="p-1 rounded bg-emerald-100 text-emerald-800">
+<i class="w-3.5 h-3.5" data-lucide="landmark"></i>
+</div>
+<div class="leading-none">
+<p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Satuan Pendidikan</p>
+<p class="text-xs font-semibold text-slate-800">SMP Aldepos Islamic Boarding School</p>
+</div>
+<div class="w-2 h-2 rounded-full bg-emerald-500 ml-1"></div>
+</div>
+</div>
+<!-- Right Header Elements: Academic Year & Profile -->
+<div class="flex items-center space-x-3">
+<!-- TA Badge -->
+<div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-800 shadow-2xs">
+<i class="w-3.5 h-3.5 text-emerald-600" data-lucide="calendar-days"></i>
+<span>TA 2026/2027</span>
+<span class="text-emerald-400">•</span>
+<i class="w-3.5 h-3.5 text-emerald-600" data-lucide="clock-3"></i>
+<span class="font-semibold">Semester Ganjil</span>
+</div>
+<!-- Super Admin Badge Dropdown -->
+<div class="flex items-center space-x-2 pl-2 border-l border-slate-200 cursor-pointer">
+<div class="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-100">
+            S
+          </div>
+<span class="text-xs font-semibold text-slate-800 hidden md:inline">Super Admin</span>
+<i class="w-3.5 h-3.5 text-slate-500" data-lucide="chevron-down"></i>
+</div>
+</div>
+</header>
+<!-- END: TopNavbar -->
+<!-- BEGIN: SubPageHeader -->
+<!-- Content Title Bar and Enterprise Module Pill Tabs -->
+<div class="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0" data-purpose="content-header">
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+<!-- Left: Module Title with Emerald Glow Icon -->
+<div class="flex items-center space-x-3.5">
+<div class="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
+<i class="w-6 h-6" data-lucide="clock"></i>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<h1 class="text-xl font-bold text-slate-900 tracking-tight">Presensi Santri &amp; Monitoring KBM</h1>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 tracking-wide uppercase border border-emerald-200">Live KBM</span>
+</div>
+<p class="text-xs text-slate-500 mt-0.5">Pusat pemantauan presensi harian, jurnal mengajar sesi KBM, verifikasi kurikulum, dan permohonan izin santri.</p>
+</div>
+</div>
+<!-- Right: Modern Pill Navigation Switcher -->
+<nav class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/90 overflow-x-auto" data-purpose="module-tabs">
+<!-- Active Pill -->
+<button class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-emerald-800 shadow-xs transition whitespace-nowrap border border-slate-200/60">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+</span>
+<span>Monitoring KBM Hari Ini</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition whitespace-nowrap">
+            Presensi &amp; Jurnal Sesi
+          </button>
+<button class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition whitespace-nowrap">
+            Presensi Harian Rombel
+          </button>
+<button class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition whitespace-nowrap">
+            Rekapitulasi &amp; Analitik
+          </button>
+<button class="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 transition whitespace-nowrap">
+<span>Pusat Izin Santri</span>
+<span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white leading-tight">3 Baru</span>
+</button>
+</nav>
+</div>
+</div>
+<!-- END: SubPageHeader -->
+<!-- BEGIN: MainScrollableArea -->
+<main class="flex-1 overflow-y-auto p-6 space-y-6" data-purpose="dashboard-workspace">
+<!-- BEGIN: KpiMetricsRibbon -->
+<!-- 4 High-Density Enterprise KPI Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-purpose="kpi-ribbon">
+<!-- KPI 1: Kehadiran Santri -->
+<div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-slate-500">Tingkat Kehadiran Santri</span>
+<span class="p-1 rounded-md bg-emerald-50 text-emerald-700">
+<i class="w-4 h-4" data-lucide="user-check"></i>
+</span>
+</div>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-black text-slate-900 tracking-tight">97.2%</span>
+<span class="text-xs font-semibold text-emerald-600 flex items-center">
+<i class="w-3.5 h-3.5 mr-0.5" data-lucide="trending-up"></i> +0.8%
+            </span>
+</div>
+<div class="w-full bg-slate-100 h-1.5 rounded-full my-2.5 overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full" style="width: 97.2%"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] text-slate-500">
+<span>1.244 / 1.280 Hadir</span>
+<div class="flex space-x-1 font-medium">
+<span class="text-amber-600 bg-amber-50 px-1 rounded">S: 18</span>
+<span class="text-blue-600 bg-blue-50 px-1 rounded">I: 12</span>
+<span class="text-rose-600 bg-rose-50 px-1 rounded">A: 6</span>
+</div>
+</div>
+</div>
+<!-- KPI 2: Kepatuhan Jurnal KBM -->
+<div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-slate-500">Kepatuhan Jurnal KBM Guru</span>
+<span class="p-1 rounded-md bg-blue-50 text-blue-700">
+<i class="w-4 h-4" data-lucide="book-marked"></i>
+</span>
+</div>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-black text-slate-900 tracking-tight">38 <span class="text-sm font-normal text-slate-500">/ 42 Sesi</span></span>
+<span class="text-xs font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">90.5%</span>
+</div>
+<div class="w-full bg-slate-100 h-1.5 rounded-full my-2.5 overflow-hidden">
+<div class="bg-blue-600 h-full rounded-full" style="width: 90.5%"></div>
+</div>
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-amber-700 font-semibold flex items-center">
+<i class="w-3 h-3 mr-1 text-amber-500" data-lucide="alert-circle"></i> 4 Belum Diisi
+            </span>
+<span class="text-slate-400">Target 100% jam 14:00</span>
+</div>
+</div>
+<!-- KPI 3: Sesi Berlangsung -->
+<div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-slate-500">Sesi KBM Berlangsung</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 animate-pulse">
+              Aktif Sekarang
+            </span>
+</div>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-black text-slate-900 tracking-tight">Jam Ke-4</span>
+<span class="text-xs font-medium text-slate-500">10:15 - 11:45</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+<span class="font-medium text-slate-700">8 Rombel Aktif</span>
+<span class="text-emerald-700 font-semibold text-[11px] bg-emerald-50 px-2 py-0.5 rounded-full">
+              Seluruh Guru Hadir
+            </span>
+</div>
+<p class="text-[10px] text-slate-400 mt-1">Sesi istirahat dzuhur berikutnya: 11:45 WIB</p>
+</div>
+<!-- KPI 4: Peringatan Absensi (EWS) -->
+<div class="bg-white rounded-xl p-4 border border-rose-200 bg-rose-50/20 shadow-xs flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-semibold text-rose-700 flex items-center">
+<i class="w-3.5 h-3.5 mr-1 text-rose-600" data-lucide="shield-alert"></i> Early Warning BK
+            </span>
+<span class="p-1 rounded-md bg-rose-100 text-rose-700">
+<i class="w-4 h-4" data-lucide="bell"></i>
+</span>
+</div>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-black text-rose-700 tracking-tight">5 Santri</span>
+<span class="text-xs text-rose-600 font-medium">Alpa &gt;2x Pekan Ini</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-rose-100 flex items-center justify-between text-xs">
+<span class="text-[11px] text-slate-600">Butuh Konseling BK</span>
+<button class="text-xs font-bold text-rose-700 hover:text-rose-900 underline flex items-center">
+              Periksa <i class="w-3 h-3 ml-0.5" data-lucide="chevron-right"></i>
+</button>
+</div>
+</div>
+</section>
+<!-- END: KpiMetricsRibbon -->
+<!-- BEGIN: MonitoringControlPanel -->
+<!-- Interactive Filter Bar, Date Pickers, & Bulk Action Tools -->
+<section class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs" data-purpose="filter-toolbar"><div class="flex flex-col space-y-3.5"><div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div class="flex flex-wrap items-center gap-2.5 flex-1"><button class="inline-flex items-center space-x-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 rounded-lg shadow-2xs transition"><i class="w-3.5 h-3.5 text-emerald-600" data-lucide="calendar"></i><span>Hari Ini - Kamis, 10 Okt 2026</span><i class="w-3 h-3 text-slate-400" data-lucide="chevron-down"></i></button><div class="relative min-w-[150px]"><select class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 pr-8 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 appearance-none"><option selected="">Semua Tingkat (10, 11, 12)</option><option>Kelas 10 (Ula)</option><option>Kelas 11 (Wustha)</option><option>Kelas 12 (Ulya)</option></select><i class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" data-lucide="chevron-down"></i></div><div class="relative min-w-[170px]"><select class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 pr-8 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 appearance-none"><option selected="">Semua Status Sesi</option><option>Sedang Berjalan (Jam Ke-4)</option><option>Terverifikasi Kurikulum</option><option>Menunggu Review</option><option>Belum Terisi</option></select><i class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" data-lucide="chevron-down"></i></div><div class="relative flex-1 min-w-[220px]"><input class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 pl-8 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400" placeholder="Cari nama Guru atau Mata Pelajaran..." type="text"/><i class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" data-lucide="search"></i></div></div><div class="flex items-center space-x-2 self-start lg:self-center"><div class="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200/90"><button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-emerald-800 shadow-xs border border-slate-200/60"><i class="w-3.5 h-3.5 text-emerald-600" data-lucide="list"></i><span>Daftar Per Sesi Jam</span></button><button class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900"><i class="w-3.5 h-3.5 text-slate-400" data-lucide="grid"></i><span>Matriks Per Rombel</span></button></div><button class="inline-flex items-center space-x-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs"><i class="w-3.5 h-3.5 text-slate-500" data-lucide="file-spreadsheet"></i><span class="hidden sm:inline">Export Rekap Excel/PDF</span></button><button class="inline-flex items-center space-x-1.5 px-3 py-2 border border-emerald-200 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition shadow-2xs"><i class="w-3.5 h-3.5 text-emerald-600" data-lucide="bell-ring"></i><span class="hidden sm:inline">Kirim Notifikasi Massal</span></button></div></div></div></section>
+<!-- END: MonitoringControlPanel -->
+<!-- BEGIN: SplitContentGrid -->
+<div class="space-y-6"><section class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs"><div class="px-5 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50"><div><div class="flex flex-wrap items-center gap-2"><h2 class="text-sm font-bold text-slate-900 tracking-tight">Monitoring KBM Sesi Berlangsung &amp; Selesai Hari Ini</h2><span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">42 Total Sesi KBM Terjadwal</span></div><p class="text-xs text-slate-500 mt-0.5">Pemantauan real-time status kehadiran santri, jurnal materi, dan supervisi kurikulum madrasah.</p></div><div class="flex items-center flex-wrap gap-2 text-xs"><span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span>34 Terisi</span><span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1"></span>4 Menunggu Review</span><span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1"></span>4 Belum Diisi</span></div></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200"><tr><th class="py-3.5 px-4 w-36" scope="col">Sesi &amp; Jam</th><th class="py-3.5 px-4 w-44" scope="col">Rombel &amp; Ruang</th><th class="py-3.5 px-4 w-64" scope="col">Mapel &amp; Guru Pengampu</th><th class="py-3.5 px-4 w-48" scope="col">Kehadiran Santri</th><th class="py-3.5 px-4" scope="col">Jurnal KBM Guru (Materi &amp; Aktivitas)</th><th class="py-3.5 px-4 w-48" scope="col">Status Verifikasi Kurikulum</th><th class="py-3.5 px-4 text-right w-28" scope="col">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100 font-medium text-slate-700"><tr class="hover:bg-slate-50/70 transition bg-emerald-50/20"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><div class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 w-fit"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Jam Ke-4 (Aktif)</span></div><span class="text-xs font-bold text-slate-800">10:15 - 11:45</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">11-A IPA</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Lab Bahasa &amp; Multimedia</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">AF</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Bahasa Inggris</p><p class="text-[11px] text-slate-500 truncate">Ust. Ahmad Fauzi, S.Pd</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-emerald-700">31/32 Hadir</span><span class="text-slate-400 font-mono text-[10px]">96.8%</span></div><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: 96.8%"></div></div><span class="inline-block text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">1 Sakit (Klinik)</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><p class="font-semibold text-slate-900 text-xs">TP 11.2 Analytical Exposition Text</p><p class="text-[11px] text-slate-500 line-clamp-1">Presentasi public speaking santri per kelompok isu lingkungan.</p><span class="text-[10px] text-emerald-700 font-semibold flex items-center mt-0.5"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check"></i> Terlaksana 100%</span></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><span class="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-200"><i class="w-2.5 h-2.5 mr-1 text-amber-600" data-lucide="clock-3"></i> Menunggu Review</span><div><button class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-bold shadow-2xs transition inline-flex items-center space-x-1"><span>Review Jurnal</span><i class="w-3 h-3" data-lucide="arrow-up-right"></i></button></div></div></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr><tr class="hover:bg-slate-50/70 transition"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 w-fit">Jam Ke-4 (Aktif)</span><span class="text-xs font-bold text-slate-800">10:15 - 11:45</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">10-A Tahfidz</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Gedung A • R. 201</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs flex-shrink-0">RD</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Fiqih Ushul</p><p class="text-[11px] text-slate-500 truncate">Ust. Dr. H. Fauzi, Lc., M.A.</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-emerald-700">32/32 Hadir</span><span class="text-slate-400 font-mono text-[10px]">100%</span></div><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div></div><span class="inline-block text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">Lengkap Sempurna</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><p class="font-semibold text-slate-900 text-xs">Bab 3: Kaidah Fiqhiyyah Muamalah</p><p class="text-[11px] text-slate-500 line-clamp-1">Bedah kitab Ghoyah wa Taqrib pasal aqad modern.</p><span class="text-[10px] text-emerald-700 font-semibold flex items-center mt-0.5"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check"></i> Terlaksana 100%</span></div></td><td class="py-3.5 px-4"><span class="inline-flex items-center text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="w-2.5 h-2.5 mr-1 text-emerald-600" data-lucide="badge-check"></i> Terverifikasi Kurikulum</span></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr><tr class="hover:bg-slate-50/70 transition bg-rose-50/20"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 w-fit">Jam Ke-4 (Aktif)</span><span class="text-xs font-bold text-slate-800">10:15 - 11:45</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">12-B IPS</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Gedung B • R. 302</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs flex-shrink-0">SM</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Sosiologi Terapan</p><p class="text-[11px] text-slate-500 truncate">Usth. Salma Maryam, M.Si</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-rose-700">Belum Ada Input Presensi</span></div><div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"><div class="bg-rose-500 h-full rounded-full" style="width: 0%"></div></div><span class="text-[10px] text-rose-600 font-semibold">Terlambat 30 Menit</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><span class="inline-flex items-center text-[11px] text-rose-700 font-semibold"><i class="w-3 h-3 mr-1 text-rose-500" data-lucide="alert-circle"></i> Jurnal Belum Diisi Guru</span><p class="text-[10px] text-slate-400">Guru pengampu belum mengirim log presensi &amp; materi hari ini.</p></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><span class="inline-flex items-center text-[10px] font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded border border-rose-200"><i class="w-2.5 h-2.5 mr-1 text-rose-600" data-lucide="x-circle"></i> Belum Diisi</span><div><button class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold shadow-2xs transition inline-flex items-center space-x-1"><i class="w-3 h-3" data-lucide="message-square"></i><span>Kirim Pengingat WA</span></button></div></div></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr><tr class="hover:bg-slate-50/70 transition"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 w-fit">Jam Ke-3 (Selesai)</span><span class="text-xs font-bold text-slate-800">08:30 - 10:00</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">10-B Bahasa</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Gedung C • R. 104</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">RL</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Bahasa Arab Balaghah</p><p class="text-[11px] text-slate-500 truncate">Ust. Ridwan, Lc.</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-emerald-700">31/31 Hadir</span><span class="text-slate-400 font-mono text-[10px]">100%</span></div><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div></div><span class="inline-block text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">Lengkap Sempurna</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><p class="font-semibold text-slate-900 text-xs">Stilistika Bahasa Arab - Al-Majaz</p><p class="text-[11px] text-slate-500 line-clamp-1">Praktek identifikasi majaz mursal dalam Surat An-Naba.</p><span class="text-[10px] text-emerald-700 font-semibold flex items-center mt-0.5"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check"></i> Terlaksana 100%</span></div></td><td class="py-3.5 px-4"><span class="inline-flex items-center text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="w-2.5 h-2.5 mr-1 text-emerald-600" data-lucide="badge-check"></i> Terverifikasi Kurikulum</span></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr><tr class="hover:bg-slate-50/70 transition"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 w-fit">Jam Ke-2 (Selesai)</span><span class="text-xs font-bold text-slate-800">07:45 - 08:30</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">10-C Sains</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Lab Fisika Dasar</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs flex-shrink-0">SN</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Matematika Terapan</p><p class="text-[11px] text-slate-500 truncate">Usth. Siti Nurul, S.Pd</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-emerald-700">29/30 Hadir</span><span class="text-slate-400 font-mono text-[10px]">96.7%</span></div><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: 96.7%"></div></div><span class="inline-block text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">1 Izin MHQ</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><p class="font-semibold text-slate-900 text-xs">Fungsi Kuadrat &amp; Kurva Parabola</p><p class="text-[11px] text-slate-500 line-clamp-1">Latihan kalkulasi lintasan proyektil dan pemodelan grafik.</p><span class="text-[10px] text-emerald-700 font-semibold flex items-center mt-0.5"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check"></i> Terlaksana 100%</span></div></td><td class="py-3.5 px-4"><span class="inline-flex items-center text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="w-2.5 h-2.5 mr-1 text-emerald-600" data-lucide="badge-check"></i> Terverifikasi Kurikulum</span></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr><tr class="hover:bg-slate-50/70 transition"><td class="py-3.5 px-4"><div class="flex flex-col space-y-1"><span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 w-fit">Jam Ke-1 (Selesai)</span><span class="text-xs font-bold text-slate-800">07:00 - 07:45</span></div></td><td class="py-3.5 px-4"><p class="font-bold text-slate-900">11-A Tahfidz</p><p class="text-[11px] text-slate-500 flex items-center space-x-1"><i class="w-3 h-3 text-slate-400" data-lucide="map-pin"></i><span>Masjid Utama Lt. 2</span></p></td><td class="py-3.5 px-4"><div class="flex items-center space-x-2.5"><div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs flex-shrink-0">SM</div><div class="min-w-0"><p class="font-bold text-slate-900 truncate">Tahsin &amp; Matan Jazariyyah</p><p class="text-[11px] text-slate-500 truncate">Syeikh Mahir Al-Azhari</p></div></div></td><td class="py-3.5 px-4"><div class="space-y-1.5"><div class="flex items-center justify-between text-[11px]"><span class="font-bold text-emerald-700">28/28 Hadir</span><span class="text-slate-400 font-mono text-[10px]">100%</span></div><div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div></div><span class="inline-block text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">Halaqah Pagi Penuh</span></div></td><td class="py-3.5 px-4"><div class="space-y-0.5"><p class="font-semibold text-slate-900 text-xs">Bab Sifat-sifat Huruf Isti'la</p><p class="text-[11px] text-slate-500 line-clamp-1">Setoran hafalan matan bait 18-24 dan koreksi makharijul huruf.</p><span class="text-[10px] text-emerald-700 font-semibold flex items-center mt-0.5"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check"></i> Terlaksana 100%</span></div></td><td class="py-3.5 px-4"><span class="inline-flex items-center text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="w-2.5 h-2.5 mr-1 text-emerald-600" data-lucide="badge-check"></i> Terverifikasi Kurikulum</span></td><td class="py-3.5 px-4 text-right"><div class="flex items-center justify-end space-x-1"><button class="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded transition" title="Detail Sesi"><i class="w-4 h-4" data-lucide="eye"></i></button><button class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition" title="Menu Lainnya"><i class="w-4 h-4" data-lucide="more-vertical"></i></button></div></td></tr></tbody></table></div><div class="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500"><div class="flex items-center space-x-2"><span class="font-medium">Menampilkan 6 dari 42 Sesi KBM Terjadwal</span><span class="text-slate-300">•</span><span>Sinkronisasi otomatis setiap 60 detik</span></div><div class="flex items-center space-x-1"><button class="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-50" disabled="">&lt;</button><button class="px-2.5 py-1 rounded border border-emerald-600 bg-emerald-600 text-white font-bold">1</button><button class="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100">2</button><button class="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100">3</button><button class="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100">4</button><button class="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100">&gt;</button></div></div></section><section class="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden"><div class="bg-[#0c1322] px-6 py-4 text-white flex items-center justify-between"><div class="flex items-center space-x-3"><div class="w-9 h-9 rounded-lg bg-emerald-600/80 border border-emerald-500/50 flex items-center justify-center text-white"><i class="w-5 h-5" data-lucide="clipboard-check"></i></div><div><div class="flex items-center space-x-2"><h3 class="text-sm font-bold text-white tracking-wide">Supervisi &amp; Review Jurnal KBM</h3><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">Menunggu Review Kurikulum</span></div><p class="text-xs text-slate-400 mt-0.5">Kelas 11-A IPA • Bahasa Inggris • Ust. Ahmad Fauzi, S.Pd</p></div></div><div class="flex items-center space-x-2"><span class="text-[11px] text-slate-400 hidden sm:inline">Sesi Sedang Berjalan</span><button class="p-1 text-slate-400 hover:text-white rounded transition"><i class="w-4 h-4" data-lucide="maximize-2"></i></button></div></div><div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6"><div class="lg:col-span-7 space-y-4"><div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200"><div class="space-y-0.5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Jadwal &amp; Jam</p><p class="text-xs font-bold text-slate-800">Jam Ke-4 (10:15 - 11:45)</p></div><div class="space-y-0.5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ruang Pembelajaran</p><p class="text-xs font-bold text-slate-800">Lab Bahasa &amp; Multimedia</p></div><div class="space-y-0.5"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status Pelaksanaan</p><p class="text-xs font-bold text-emerald-700 flex items-center"><i class="w-3 h-3 mr-1 text-emerald-600" data-lucide="check-circle"></i> 100% Terlaksana</p></div></div><div class="space-y-1.5"><label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Tujuan Pembelajaran (TP) / Indikator Capaian</label><div class="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800"><span class="font-bold text-emerald-700">TP 11.2:</span> Mengidentifikasi struktur teks eksposisi analitis (Analytical Exposition Text) dan mempraktikkan public speaking serta pemaparan argumen persuasif per regu.</div></div><div class="space-y-1.5"><label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Deskripsi Aktivitas &amp; Media Pembelajaran</label><div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 space-y-1.5"><p>Santri berkolaborasi dalam kelompok beranggotakan 4 orang menyusun mind-map analisis fenomena krisis air bersih, dilanjutkan presentasi lisan menggunakan proyektor interaktif dan sesi tanya jawab antar santri.</p><div class="flex items-center space-x-2 pt-1"><span class="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-semibold text-slate-600">Media: LCD Proyektor</span><span class="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-semibold text-slate-600">Lembar Kerja Kelompok (LKPD)</span></div></div></div><div class="space-y-1.5"><label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Catatan Kendala &amp; Refleksi Guru Pengampu</label><div class="p-3 bg-amber-50/40 rounded-lg border border-amber-200 text-xs text-slate-700"><p class="italic text-amber-900 font-medium">"Proyektor sempat kendala koneksi kabel HDMI 5 menit pada awal sesi, namun telah ditangani teknisi IT dan seluruh target materi tersampaikan 100%."</p></div></div></div><div class="lg:col-span-5 space-y-4 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6"><div class="space-y-4"><div><div class="flex items-center justify-between mb-2"><label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Presensi Santri di Sesi Ini</label><span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">31 Hadir / 1 Sakit</span></div><div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs"><div class="flex items-center justify-between pb-2 border-b border-slate-200"><span class="text-slate-600 font-medium">Tingkat Kehadiran Kelas</span><span class="font-bold text-slate-900 font-mono">96.8%</span></div><div class="mt-2"><p class="text-[11px] font-semibold text-slate-700 mb-1">Santri Tidak Hadir:</p><div class="flex items-center justify-between bg-white p-2 rounded border border-amber-200"><div class="flex items-center space-x-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="font-semibold text-slate-800 text-xs">M. Zikri Ramadhan</span></div><span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Sakit (Di Klinik UKS)</span></div></div></div></div><div class="space-y-1.5"><div class="flex items-center justify-between"><label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Catatan Supervisi Kurikulum</label><span class="text-[10px] text-slate-400">(Opsional)</span></div><textarea class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-slate-400" rows="3">Rencana pembelajaran dan aktivitas presentasi sangat selaras dengan TP 11.2. Tingkatkan keterlibatan santri di barisan belakang.</textarea><div class="flex items-center space-x-1.5"><button class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold transition">+ Sesuai Silabus</button><button class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold transition">+ Media Sangat Baik</button><button class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-semibold transition">+ Remedial Terjadwal</button></div></div></div><div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-2.5"><button class="px-3.5 py-2 border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold rounded-lg text-xs transition shadow-2xs">Minta Revisi Jurnal</button><button class="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs shadow-sm transition"><i class="w-3.5 h-3.5" data-lucide="check-check"></i><span>Verifikasi &amp; Setujui Jurnal</span></button></div></div></div></section></div>
+<!-- END: SplitContentGrid -->
+</main>
+<!-- END: MainScrollableArea -->
+</div>
+<!-- END: MainContentWrapper -->
+<!-- BEGIN: ScriptInitializers -->
+<script data-purpose="lucide-icons-renderer">
+    // Initialize Lucide icons throughout the DOM
+    lucide.createIcons();
+  </script>
+<!-- END: ScriptInitializers -->
+</body></html>

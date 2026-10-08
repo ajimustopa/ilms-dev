@@ -1004,7 +1004,65 @@ class CurriculumController {
       next(err);
     }
   }
+
+  // 14. Monitoring KBM & Supervisi Kurikulum
+  async getKbmMonitoringToday(req, res, next) {
+    try {
+      const data = await curriculumService.getKbmMonitoringToday(req.query, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Data monitoring KBM hari ini berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyTeachingJournal(req, res, next) {
+    try {
+      const data = await curriculumService.verifyTeachingJournal(req.params.id, req.body, req.user);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Status supervisi jurnal mengajar berhasil diperbarui',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getEarlyWarningStudents(req, res, next) {
+    try {
+      const data = await curriculumService.getEarlyWarningStudents(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Data santri berisiko absensi (EWS) berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAggregateAttendanceMatrix(req, res, next) {
+    try {
+      const data = await curriculumService.getAggregateAttendanceMatrix(req.query);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Matriks rekapitulasi rombel berhasil diambil',
+        errors: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new CurriculumController();
+
 

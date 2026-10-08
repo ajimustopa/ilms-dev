@@ -302,8 +302,24 @@ class UsersService {
    * Helper penetapan hak akses (Baku vs Kustom Matrix)
    */
   async applyUserAccess(userId, payload) {
-    const { assignment_method, role_id, school_unit_id, app_permissions, roles } = payload;
-    const targetSchoolUnitId = school_unit_id && school_unit_id !== 'all' && school_unit_id !== 'yayasan' ? Number(school_unit_id) : null;
+    const { assignment_method, role_id, school_unit_id, school_unit_ids, school_scope_type, app_permissions, roles } = payload;
+    
+    // Tentukan list satuan pendidikan sasaran
+    let targetSchoolUnitIds = [];
+    if (school_scope_type === 'yayasan') {
+      targetSchoolUnitIds = [null];
+    } else if (Array.isArray(school_unit_ids) && school_unit_ids.length > 0) {
+      targetSchoolUnitIds = school_unit_ids
+        .map((id) => (id && id !== 'all' && id !== 'yayasan' ? Number(id) : null))
+        .filter((id) => id !== null);
+      if (targetSchoolUnitIds.length === 0) {
+        targetSchoolUnitIds = [null];
+      }
+    } else if (school_unit_id && school_unit_id !== 'all' && school_unit_id !== 'yayasan') {
+      targetSchoolUnitIds = [Number(school_unit_id)];
+    } else {
+      targetSchoolUnitIds = [null];
+    }
 
     // Bersihkan penugasan lama
     await db('user_school_roles').where({ user_id: userId }).del();
@@ -350,13 +366,15 @@ class UsersService {
         }
       }
 
-      await db('user_school_roles').insert({
-        user_id: userId,
-        school_unit_id: targetSchoolUnitId,
-        role_id: customRole.id,
-        created_at: db.fn.now(),
-        updated_at: db.fn.now()
-      });
+      for (const unitId of targetSchoolUnitIds) {
+        await db('user_school_roles').insert({
+          user_id: userId,
+          school_unit_id: unitId,
+          role_id: customRole.id,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now()
+        });
+      }
     } else {
       // METODE 1: Pilih Role yang Sudah Ditetapkan (Preset Standar)
       if (roles && Array.isArray(roles) && roles.length > 0) {
@@ -370,13 +388,15 @@ class UsersService {
           });
         }
       } else if (role_id) {
-        await db('user_school_roles').insert({
-          user_id: userId,
-          school_unit_id: targetSchoolUnitId,
-          role_id: Number(role_id),
-          created_at: db.fn.now(),
-          updated_at: db.fn.now()
-        });
+        for (const unitId of targetSchoolUnitIds) {
+          await db('user_school_roles').insert({
+            user_id: userId,
+            school_unit_id: unitId,
+            role_id: Number(role_id),
+            created_at: db.fn.now(),
+            updated_at: db.fn.now()
+          });
+        }
       }
     }
   }

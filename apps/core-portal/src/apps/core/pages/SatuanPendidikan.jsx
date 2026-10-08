@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../shared/services/api';
+import { useAuth } from '../../../shared/store/AuthContext';
 import StatusPill from '../../../shared/components/StatusPill';
 import FlatAlertBanner from '../../../shared/components/FlatAlertBanner';
 import {
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function SatuanPendidikan() {
+  const { refreshSchoolUnits } = useAuth();
   const [schools, setSchools] = useState([]);
   const [historyList, setHistoryList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +148,9 @@ export default function SatuanPendidikan() {
 
       setShowFormModal(false);
       fetchSchools();
+      if (typeof refreshSchoolUnits === 'function') {
+        refreshSchoolUnits();
+      }
     } catch (err) {
       setFormError(
         err.response?.data?.message ||
@@ -183,6 +188,9 @@ export default function SatuanPendidikan() {
       setShowStatusModal(false);
       setTargetSchool(null);
       fetchSchools();
+      if (typeof refreshSchoolUnits === 'function') {
+        refreshSchoolUnits();
+      }
     } catch (err) {
       setFormError(
         err.response?.data?.message ||

@@ -55,7 +55,7 @@ export const ListItem = forwardRef(({
             ) : avatar
           ) : (
             <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
-              {icon}
+              {React.isValidElement(icon) ? icon : (typeof icon === 'function' || typeof icon === 'object' ? React.createElement(icon, { className: 'w-5 h-5', 'aria-hidden': true }) : icon)}
             </div>
           )}
         </div>

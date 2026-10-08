@@ -20,12 +20,24 @@ import {
   Tag,
   MapPin,
   Building2,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 
 export default function KepegawaianLayout() {
   const { user, activeSchoolUnit, schoolUnits, changeActiveSchoolUnit, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const handleReload = () => {
+    setIsReloading(true);
+    setReloadKey((prev) => prev + 1);
+    window.dispatchEvent(new CustomEvent('app:reload-data'));
+    setTimeout(() => {
+      setIsReloading(false);
+    }, 650);
+  };
 
   const currentRole = user?.school_roles?.[0]?.role_name || user?.account_type || 'hrd';
 
@@ -99,10 +111,10 @@ export default function KepegawaianLayout() {
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* Sidebar Kiri */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800">
+      {/* Sidebar Kiri - Fixed & Sticky */}
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 sticky top-0 h-screen z-30">
         {/* Brand Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md">
               K
@@ -115,7 +127,7 @@ export default function KepegawaianLayout() {
         </div>
 
         {/* Role Badge Indicator */}
-        <div className="px-5 py-3 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="px-5 py-3 bg-slate-950/60 border-b border-slate-800/80 flex items-center justify-between shrink-0">
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Peran Aktif</span>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/20 text-indigo-300 border border-indigo-500/30">
             {currentRole}
@@ -149,7 +161,7 @@ export default function KepegawaianLayout() {
         </nav>
 
         {/* Footer Sidebar */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/50 text-[11px] text-slate-500 flex items-center justify-between">
+        <div className="p-4 border-t border-slate-800 bg-slate-950/50 text-[11px] text-slate-500 flex items-center justify-between shrink-0">
           <span>v1.0.0 &bull; Kepegawaian</span>
           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
         </div>
@@ -175,7 +187,25 @@ export default function KepegawaianLayout() {
           </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Tombol Reload Data / Refresh Database Halaman Aktif */}
+            <button
+              type="button"
+              onClick={handleReload}
+              disabled={isReloading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-emerald-800 transition shadow-2xs active:scale-95 disabled:opacity-60 group"
+              title="Muat ulang seluruh data database pada halaman ini"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-600 transition-transform ${
+                  isReloading ? 'animate-spin text-emerald-600' : ''
+                }`}
+              />
+              <span className="hidden sm:inline">
+                {isReloading ? 'Memuat Data...' : 'Reload Data'}
+              </span>
+            </button>
+
             {/* Dropdown Satuan Pendidikan Aktif */}
             {schoolUnits && schoolUnits.length > 0 && (
               <div className="relative">
@@ -314,7 +344,7 @@ export default function KepegawaianLayout() {
 
         {/* Konten Halaman */}
         <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
+          <Outlet key={reloadKey} context={{ reloadKey, handleReload }} />
         </main>
       </div>
     </div>

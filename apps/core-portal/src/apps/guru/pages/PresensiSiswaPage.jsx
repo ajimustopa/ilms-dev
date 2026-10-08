@@ -41,6 +41,7 @@ import { scheduleService } from '../services/scheduleService';
 import { journalService } from '../services/journalService';
 import { scoreService } from '../services/scoreService';
 import { formatIndonesianDate, formatShortTime } from '../utils/dateHelper';
+import { getScheduleClassGroupDisplay, getScheduleRoomDisplay } from '../utils/scheduleHelper';
 import {
   PageHeader,
   SelectorKonteks,
@@ -167,8 +168,12 @@ export default function PresensiSiswaPage() {
   const loadSchedules = useCallback(async () => {
     setIsLoadingSchedules(true);
     try {
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+
       const res = await scheduleService.getMySchedules({
-        satuan_pendidikan_id: activeContext?.satuanPendidikanId,
+        satuan_pendidikan_id: unitParam,
         academic_year_id: activeContext?.academicYearId
       });
       const schedList = res?.schedules || (Array.isArray(res) ? res : []);
@@ -463,11 +468,7 @@ export default function PresensiSiswaPage() {
       } catch {}
       return updated;
     });
-    toast.show({
-      type: 'info',
-      title: 'Semua Siswa Disetel Hadir',
-      message: `${students.length} santri ditandai hadir.`
-    });
+    toast.info(`${students.length} santri ditandai hadir.`, 'Semua Siswa Disetel Hadir');
   };
 
   // Tambah Metoda Ajar Baru
@@ -571,29 +572,17 @@ export default function PresensiSiswaPage() {
   // Simpan Terpadu: Presensi Siswa & Jurnal Mengajar
   const handleSaveAll = async () => {
     if (!selectedScheduleId || !selectedClassGroupId || !selectedDate) {
-      toast.show({
-        type: 'danger',
-        title: 'Data Tidak Lengkap',
-        message: 'Pastikan jadwal, rombel, dan tanggal telah dipilih.'
-      });
+      toast.error('Pastikan jadwal, rombel, dan tanggal telah dipilih.', 'Data Tidak Lengkap');
       return;
     }
 
     if (students.length === 0) {
-      toast.show({
-        type: 'warning',
-        title: 'Tidak Ada Siswa',
-        message: 'Rombel ini belum memiliki santri terdaftar.'
-      });
+      toast.warning('Rombel ini belum memiliki santri terdaftar.', 'Tidak Ada Siswa');
       return;
     }
 
     if (!journalData.topic_material.trim()) {
-      toast.show({
-        type: 'warning',
-        title: 'Materi Jurnal Wajib Diisi',
-        message: 'Silakan pilih Tujuan Pembelajaran (TP) atau tuliskan topik materi yang diajarkan.'
-      });
+      toast.warning('Silakan pilih Tujuan Pembelajaran (TP) atau tuliskan topik materi yang diajarkan.', 'Materi Jurnal Wajib Diisi');
       setIsJournalOpen(true);
       return;
     }
@@ -652,21 +641,18 @@ export default function PresensiSiswaPage() {
       setIsExistingAttendance(true);
       setLastSavedTime(new Date());
 
-      toast.show({
-        type: 'success',
-        title: 'Presensi & Jurnal Tersimpan',
-        message: `Presensi ${attendances.length} siswa dan Jurnal KBM Pertemuan ke-${journalData.meeting_number} berhasil disimpan.`
-      });
+      toast.success(
+        `Presensi ${attendances.length} siswa dan Jurnal KBM Pertemuan ke-${journalData.meeting_number} berhasil disimpan.`,
+        'Presensi & Jurnal Tersimpan'
+      );
     } catch (err) {
       console.error('Error saving attendance and journal:', err);
-      toast.show({
-        type: 'danger',
-        title: 'Gagal Menyimpan',
-        message:
-          err.response?.data?.message ||
+      toast.error(
+        err.response?.data?.message ||
           err.message ||
-          'Koneksi gagal. Isian Anda tersimpan sementara di penyimpanan lokal.'
-      });
+          'Koneksi gagal. Isian Anda tersimpan sementara di penyimpanan lokal.',
+        'Gagal Menyimpan'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -716,7 +702,6 @@ export default function PresensiSiswaPage() {
               <span>Tersimpan {formatShortTime(lastSavedTime)}</span>
             </span>
           )}
-          <SelectorKonteks />
         </div>
       </div>
 
@@ -742,7 +727,7 @@ export default function PresensiSiswaPage() {
                 {currentSchedule?.subject_name || currentSchedule?.subject_code || 'Mata Pelajaran'}
               </h2>
               <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold">
-                Kelas {currentSchedule?.class_group_name || currentSchedule?.class_name || '-'}
+                {getScheduleClassGroupDisplay(currentSchedule)}
               </span>
             </div>
 
@@ -756,12 +741,10 @@ export default function PresensiSiswaPage() {
                 {formatShortTime(currentSchedule?.start_time)} -{' '}
                 {formatShortTime(currentSchedule?.end_time)} WIB
               </span>
-              {currentSchedule?.room_name && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  Ruang {currentSchedule.room_name}
-                </span>
-              )}
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                {getScheduleRoomDisplay(currentSchedule)}
+              </span>
             </div>
           </div>
 
@@ -781,7 +764,7 @@ export default function PresensiSiswaPage() {
               >
                 {schedules.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.subject_name || s.subject_code} ({s.class_group_name || s.class_name}) •{' '}
+                    {s.subject_name || s.subject_code} ({getScheduleClassGroupDisplay(s)}) •{' '}
                     {formatShortTime(s.start_time)}
                   </option>
                 ))}
@@ -1009,89 +992,89 @@ export default function PresensiSiswaPage() {
       {/* ========================================================================= */}
       {/* 5. LIVE ATTENDANCE COUNTERS & SEGMENTED PROGRESS BAR                      */}
       {/* ========================================================================= */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-3 shadow-2xs space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
               Rekapitulasi Kehadiran Sesi Ini
             </h3>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-400">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-slate-500 hidden sm:inline">Tingkat Hadir:</span>
+            <span className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/60">
               {counts.presentRate}%
             </span>
-            <span className="text-xs text-slate-500">Tingkat Hadir</span>
           </div>
         </div>
 
         {/* Multi-segmented Attendance Progress Bar */}
-        <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 flex overflow-hidden gap-0.5 p-0.5">
+        <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 flex overflow-hidden gap-0.5">
           <div
-            className="h-full bg-emerald-600 rounded-xs transition-all duration-300"
+            className="h-full bg-emerald-600 transition-all duration-300"
             style={{ width: `${counts.presentPct}%` }}
             title={`Hadir: ${counts.present}`}
           />
           <div
-            className="h-full bg-indigo-600 rounded-xs transition-all duration-300"
+            className="h-full bg-indigo-600 transition-all duration-300"
             style={{ width: `${counts.sickPct}%` }}
             title={`Sakit: ${counts.sick}`}
           />
           <div
-            className="h-full bg-amber-500 rounded-xs transition-all duration-300"
+            className="h-full bg-amber-500 transition-all duration-300"
             style={{ width: `${counts.permittedPct}%` }}
             title={`Izin: ${counts.permitted}`}
           />
           <div
-            className="h-full bg-rose-600 rounded-xs transition-all duration-300"
+            className="h-full bg-rose-600 transition-all duration-300"
             style={{ width: `${counts.absentPct}%` }}
             title={`Alpa: ${counts.absent}`}
           />
         </div>
 
-        {/* 5 Pill Breakdown Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-center">
-          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
+        {/* 5 Compact Pill Counters in 1 Row on Mobile and Desktop */}
+        <div className="grid grid-cols-5 gap-1 sm:gap-2 text-center pt-0.5">
+          <div className="py-1 px-1 sm:py-1.5 sm:px-2 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/50 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-0.5">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">
               Hadir
             </span>
-            <span className="text-lg font-bold font-mono text-emerald-800 dark:text-emerald-300 mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 dark:text-emerald-300">
               {counts.present}
             </span>
           </div>
 
-          <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-400">
+          <div className="py-1 px-1 sm:py-1.5 sm:px-2 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-0.5">
+            <span className="text-[10px] sm:text-xs font-semibold text-indigo-700 dark:text-indigo-400 truncate">
               Sakit
             </span>
-            <span className="text-lg font-bold font-mono text-indigo-800 dark:text-indigo-300 mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-mono text-indigo-800 dark:text-indigo-300">
               {counts.sick}
             </span>
           </div>
 
-          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">
+          <div className="py-1 px-1 sm:py-1.5 sm:px-2 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/50 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-0.5">
+            <span className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">
               Izin
             </span>
-            <span className="text-lg font-bold font-mono text-amber-800 dark:text-amber-300 mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-mono text-amber-800 dark:text-amber-300">
               {counts.permitted}
             </span>
           </div>
 
-          <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-400">
+          <div className="py-1 px-1 sm:py-1.5 sm:px-2 rounded-lg bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/70 dark:border-rose-800/50 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-0.5">
+            <span className="text-[10px] sm:text-xs font-semibold text-rose-700 dark:text-rose-400 truncate">
               Alpa
             </span>
-            <span className="text-lg font-bold font-mono text-rose-800 dark:text-rose-300 mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-mono text-rose-800 dark:text-rose-300">
               {counts.absent}
             </span>
           </div>
 
-          <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center col-span-2 sm:col-span-1">
-            <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400">
-              Total Rombel
+          <div className="py-1 px-1 sm:py-1.5 sm:px-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-0.5">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">
+              Total
             </span>
-            <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100 mt-0.5">
+            <span className="text-xs sm:text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
               {counts.total}
             </span>
           </div>
@@ -1457,44 +1440,35 @@ export default function PresensiSiswaPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 8. STICKY BOTTOM SAVE ACTION BAR (48px Height)                            */}
+      {/* 8. FOOTER SAVE ACTION (SATU TOMBOL DI PALING BAWAH)                       */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
-              {counts.present} dari {counts.total} Santri Hadir ({counts.presentRate}%)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => navigate('/guru/jadwal')}
-              className="hidden sm:inline-flex min-h-[44px]"
-            >
-              Batal
-            </Button>
-
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleSaveAll}
-              disabled={isSaving}
-              leftIcon={
-                isSaving ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )
-              }
-              className="min-h-[48px] px-5 font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.99]"
-            >
-              {isSaving ? 'Menyimpan...' : 'Simpan Presensi & Jurnal'}
-            </Button>
-          </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <span className="font-semibold text-slate-800 dark:text-slate-200">
+            {counts.present} dari {counts.total} Santri Hadir ({counts.presentRate}%)
+          </span>
+          <span className="hidden sm:inline text-slate-400">•</span>
+          <span className="hidden sm:inline text-slate-500">
+            {counts.sick} Sakit, {counts.permitted} Izin, {counts.absent} Alpa
+          </span>
         </div>
+
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={handleSaveAll}
+          disabled={isSaving}
+          leftIcon={
+            isSaving ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )
+          }
+          className="w-full sm:w-auto font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white min-h-[46px] px-8 text-sm active:scale-[0.99]"
+        >
+          {isSaving ? 'Menyimpan...' : 'Simpan Presensi & Jurnal'}
+        </Button>
       </div>
     </div>
   );

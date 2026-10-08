@@ -29,10 +29,19 @@ export default function Dashboard() {
         api.get('/core/activity-logs/admin?limit=5')
       ]);
 
+      const usersData = usersRes.status === 'fulfilled' ? usersRes.value.data?.data : null;
+      const usersCount = usersData?.pagination?.total_items ?? usersData?.items?.length ?? (Array.isArray(usersData) ? usersData.length : 0);
+
+      const schoolsData = schoolsRes.status === 'fulfilled' ? schoolsRes.value.data?.data : null;
+      const schoolsCount = schoolsData?.pagination?.total_items ?? schoolsData?.items?.length ?? (Array.isArray(schoolsData) ? schoolsData.length : 0);
+
+      const subsData = subsRes.status === 'fulfilled' ? subsRes.value.data?.data : null;
+      const subsCount = subsData?.pagination?.total_items ?? subsData?.items?.length ?? (Array.isArray(subsData) ? subsData.length : 0);
+
       setStats({
-        totalUsers: usersRes.status === 'fulfilled' ? usersRes.value.data?.data?.pagination?.total_items || 0 : 0,
-        totalSchools: schoolsRes.status === 'fulfilled' ? schoolsRes.value.data?.data?.items?.length || 0 : 0,
-        totalSubscribers: subsRes.status === 'fulfilled' ? subsRes.value.data?.data?.length || 0 : 0,
+        totalUsers: usersCount,
+        totalSchools: schoolsCount,
+        totalSubscribers: subsCount,
       });
 
       if (logsRes.status === 'fulfilled' && logsRes.value.data?.data?.items) {

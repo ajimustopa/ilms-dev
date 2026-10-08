@@ -132,11 +132,15 @@ export default function PengumumanPage() {
     setLoading(true);
     setError(null);
     try {
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+
       const res = await announcementService.getTeacherAnnouncements({
         page,
         limit: 12,
         search: debouncedSearch || undefined,
-        school_unit_id: activeContext?.satuanPendidikanId || undefined,
+        school_unit_id: unitParam,
         category: selectedCategory !== 'all' ? selectedCategory : undefined
       });
 
@@ -158,7 +162,7 @@ export default function PengumumanPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, activeContext?.satuanPendidikanId, selectedCategory]);
+  }, [debouncedSearch, activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanIds, activeContext?.isAllUnits, selectedCategory]);
 
   useEffect(() => {
     fetchList(1);

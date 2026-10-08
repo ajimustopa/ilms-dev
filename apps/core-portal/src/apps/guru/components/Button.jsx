@@ -12,6 +12,7 @@ export const Button = forwardRef(({
   size = 'md', // 'sm' | 'md' | 'lg'
   loading = false,
   disabled = false,
+  icon = null,
   leftIcon = null,
   rightIcon = null,
   fullWidth = false,
@@ -30,7 +31,9 @@ export const Button = forwardRef(({
     outline: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 shadow-2xs',
     ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 active:bg-slate-200',
-    'brand-subtle': 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-200'
+    'brand-subtle': 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:bg-emerald-200 border border-emerald-200',
+    white: 'bg-white text-emerald-950 hover:bg-emerald-50 active:bg-emerald-100 border border-white/60 shadow-xs',
+    'white-glass': 'bg-white/15 text-white hover:bg-white/25 active:bg-white/30 border border-white/30 backdrop-blur-sm'
   };
 
   const sizes = {
@@ -40,6 +43,19 @@ export const Button = forwardRef(({
   };
 
   const widthStyle = fullWidth ? 'w-full' : '';
+
+  const renderIcon = (ic) => {
+    if (!ic) return null;
+    if (React.isValidElement(ic)) return ic;
+    if (typeof ic === 'function' || typeof ic === 'object') {
+      const IconComponent = ic;
+      return <IconComponent className="w-4 h-4 shrink-0" aria-hidden="true" />;
+    }
+    return null;
+  };
+
+  const effectiveLeftIcon = renderIcon(leftIcon || icon);
+  const effectiveRightIcon = renderIcon(rightIcon);
 
   return (
     <button
@@ -59,9 +75,9 @@ export const Button = forwardRef(({
         </>
       ) : (
         <>
-          {leftIcon && <span className="shrink-0 text-current">{leftIcon}</span>}
-          <span>{children}</span>
-          {rightIcon && <span className="shrink-0 text-current">{rightIcon}</span>}
+          {effectiveLeftIcon && <span className="shrink-0 text-current flex items-center">{effectiveLeftIcon}</span>}
+          {children && <span>{children}</span>}
+          {effectiveRightIcon && <span className="shrink-0 text-current flex items-center">{effectiveRightIcon}</span>}
         </>
       )}
     </button>

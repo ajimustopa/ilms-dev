@@ -15,14 +15,26 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [modalAlert, setModalAlert] = useState(null);
 
-  const addToast = useCallback((message, type = 'info', duration = 3800) => {
-    const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    setToasts((prev) => [...prev, { id, message, type, duration, createdAt: Date.now() }]);
+  const addToast = useCallback((payload, type = 'info', duration = 3800) => {
+    let message = '';
+    let finalType = type || 'info';
+    let finalDuration = duration;
 
-    if (duration > 0) {
+    if (typeof payload === 'string' || typeof payload === 'number') {
+      message = String(payload);
+    } else if (payload && typeof payload === 'object') {
+      message = typeof payload.message === 'string' ? payload.message : (payload.message ? String(payload.message) : '');
+      finalType = payload.type || type || 'info';
+      if (payload.duration !== undefined) finalDuration = payload.duration;
+    }
+
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    setToasts((prev) => [...prev, { id, message, type: finalType, duration: finalDuration, createdAt: Date.now() }]);
+
+    if (finalDuration > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, duration);
+      }, finalDuration);
     }
   }, []);
 
@@ -32,16 +44,24 @@ export function ToastProvider({ children }) {
 
   // Modal alert dialog yang menarik untuk konfirmasi / info penting
   const showModal = useCallback((options) => {
-    if (typeof options === 'string') {
-      const isSuccess = /berhasil|sukses|saved|success/i.test(options);
-      const isError = /gagal|error|wajib|tidak boleh|harus/i.test(options);
-      options = {
+    let finalOpt = options;
+    if (typeof options === 'string' || typeof options === 'number') {
+      const str = String(options);
+      const isSuccess = /berhasil|sukses|saved|success/i.test(str);
+      const isError = /gagal|error|wajib|tidak boleh|harus/i.test(str);
+      finalOpt = {
         title: isSuccess ? 'Berhasil Disimpan!' : isError ? 'Perhatian' : 'Informasi',
-        message: options,
+        message: str,
         type: isSuccess ? 'success' : isError ? 'error' : 'info'
       };
+    } else if (options && typeof options === 'object') {
+      finalOpt = {
+        title: options.title || 'Informasi',
+        message: typeof options.message === 'string' ? options.message : (options.message ? String(options.message) : ''),
+        type: options.type || 'info'
+      };
     }
-    setModalAlert(options);
+    setModalAlert(finalOpt);
   }, []);
 
   const closeModal = useCallback(() => {
@@ -49,20 +69,24 @@ export function ToastProvider({ children }) {
   }, []);
 
   const toast = {
+    show: (msg, opts) => addToast(msg, opts?.type || 'info', opts?.duration),
     success: (msg, dur) => {
       addToast(msg, 'success', dur);
       // Tampilkan toast dan trigger modal jika pesan penting
-      if (/berhasil|sukses/i.test(msg)) {
-        showModal({ title: 'Berhasil Disimpan!', message: msg, type: 'success' });
+      const text = typeof msg === 'string' ? msg : (msg?.message || '');
+      if (/berhasil|sukses/i.test(text)) {
+        showModal({ title: 'Berhasil Disimpan!', message: text, type: 'success' });
       }
     },
     error: (msg, dur) => {
       addToast(msg, 'error', dur);
-      showModal({ title: 'Terjadi Kesalahan', message: msg, type: 'error' });
+      const text = typeof msg === 'string' ? msg : (msg?.message || '');
+      showModal({ title: 'Terjadi Kesalahan', message: text, type: 'error' });
     },
     warning: (msg, dur) => {
       addToast(msg, 'warning', dur);
-      showModal({ title: 'Perhatian', message: msg, type: 'warning' });
+      const text = typeof msg === 'string' ? msg : (msg?.message || '');
+      showModal({ title: 'Perhatian', message: text, type: 'warning' });
     },
     info: (msg, dur) => {
       addToast(msg, 'info', dur);

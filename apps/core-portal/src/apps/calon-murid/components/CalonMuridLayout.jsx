@@ -225,7 +225,6 @@ export default function CalonMuridLayout() {
                   <button
                     onClick={() => {
                       logout();
-                      navigate('/calon-murid/login');
                     }}
                     className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
                   >

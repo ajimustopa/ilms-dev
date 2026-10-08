@@ -151,7 +151,7 @@ export default function Dashboard() {
       )}
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
@@ -167,6 +167,44 @@ export default function Dashboard() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
           >
             <span>Buka Data Pegawai</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center mb-3">
+              <Clock className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Jadwal Presensi (3 Metode)</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Penetapan jadwal massal, custom per pegawai, dan jadwal fleksibel bebas jam masuk.
+            </p>
+          </div>
+          <Link
+            to="/kepegawaian/attendance-settings"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-800"
+          >
+            <span>Atur Jadwal & GPS</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center mb-3">
+              <CalendarRange className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Presensi, Cuti & Lembur</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Monitoring absensi harian GTK real-time, approval cuti izin, dan verifikasi lembur.
+            </p>
+          </div>
+          <Link
+            to="/kepegawaian/attendance"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-800"
+          >
+            <span>Monitoring Presensi</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

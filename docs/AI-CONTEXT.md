@@ -98,7 +98,16 @@ Diperbarui: 2026-09-29
 - **Monolith Router:** Single React Router (`apps/core-portal/src/router.jsx`) memuat 13 modul terpisah via `lazyLoad()`.
 - **Shared UI / State:** `apps/core-portal/src/shared/` (Layout, Header Shell, AuthContext, Axios Client dengan auto token refresh).
 - **Sub-Aplikasi Guru:** Folder `apps/core-portal/src/apps/guru/` bertindak sebagai frontend interface khusus guru yang memadukan modul Akademik + Kepegawaian (presensi GPS radius, jadwal pribadi, input nilai & TP).
-- **STATUS:** `Sesuai dokumen (Catatan: Guru adalah sub-interface frontend, bukan modul database terpisah)`.
+- **Aldepos ILMS Portal & Launcher Architecture:**
+  - Nama Produk Resmi: **Aldepos ILMS**
+  - **Login Portal:** `apps/core-portal/src/apps/core/pages/Login.jsx` dan subkomponen di `apps/core-portal/src/apps/core/pages/login/` (`LoginBrandPanel.jsx`, `LoginFormCard.jsx`, `LoginMobileHeader.jsx`, `LoginForgotModal.jsx`).
+  - **Launcher (Dashboard Utama Ekosistem):** `apps/core-portal/src/pages/Launcher.jsx` dan subkomponen di `apps/core-portal/src/pages/launcher/components/` (`LauncherTopBar.jsx`, `LauncherGreeting.jsx`, `UnitSwitcher.jsx`, `AvatarMenu.jsx`, `ModuleTile.jsx`, `LauncherRecentShelf.jsx`, `LauncherEmptyAccess.jsx`, `LauncherSkeleton.jsx`, `LauncherFooter.jsx`).
+  - **Komponen Brand & Modal Bersama:** `apps/core-portal/src/shared/components/brand/` (`BrandLogo.jsx`, `LatticePattern.jsx`) dan `apps/core-portal/src/shared/components/BottomSheet.jsx`.
+  - **Prosedur Menambah Modul Baru ke Portal:**
+    1. Daftarkan metadata modul di registry `apps/core-portal/src/pages/launcher/launcherModules.js` (`LAUNCHER_MODULES`).
+    2. Daftarkan pemetaan izin role di `apps/core-portal/src/pages/launcher/accessControl.js` (`MODULE_ACCESS_MAP`).
+    3. Daftarkan rute lazy-loaded di `apps/core-portal/src/router.jsx`.
+- **STATUS:** `Sesuai dokumen`.
 
 ---
 
@@ -107,5 +116,6 @@ Untuk SETIAP tugas yang menyentuh tampilan/UI (membuat halaman baru, komponen ba
 
 ---
 
-<!-- updated: 2026-09-11 - Pendaftaran Komponen Bersama UI & Pointer Panduan Desain UI apps/core-portal/PANDUAN-DESAIN-UI.md -->
+<!-- updated: 2026-10-08 - Dokumentasi Arsitektur Redesign Login & Launcher Aldepos ILMS serta Registrasi Modul launcherModules.js -->
+
 

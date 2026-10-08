@@ -246,7 +246,7 @@ class AttendanceService {
   }
 
   async approveLeaveRequest(id, payload, user = null) {
-    const { approval_status } = payload;
+    const { approval_status, rejection_reason } = payload;
     if (!['disetujui', 'ditolak'].includes(approval_status)) {
       const error = new Error("approval_status harus 'disetujui' atau 'ditolak'");
       error.statusCode = 422;
@@ -262,26 +262,75 @@ class AttendanceService {
 
     const approverEmployeeId = user?.ref_type === 'staff' ? user.ref_id : null;
 
-    await db('student_leave_requests').where({ id }).update({
+    const updatePayload = {
       approval_status,
       approved_by_employee_id: approverEmployeeId,
       updated_at: db.fn.now()
-    });
+    };
+    if (rejection_reason !== undefined) {
+      updatePayload.rejection_reason = rejection_reason ? rejection_reason.trim() : null;
+    }
 
-    // Jika disetujui, otomatis sinkronisasi ke tabel presensi hari itu
+    await db('student_leave_requests').where({ id }).update(updatePayload);
+
+    // Jika disetujui, otomatis sinkronisasi ke tabel presensi harian & presensi sesi untuk seluruh rentang tanggal
     if (approval_status === 'disetujui') {
       const enrollment = await db('student_class_enrollments')
         .where({ student_id: leave.student_id, status: 'aktif' })
         .first();
 
       if (enrollment) {
-        await this.recordAttendance({
-          student_id: leave.student_id,
-          class_group_id: enrollment.class_group_id,
-          attendance_date: leave.leave_date,
-          status: leave.leave_type, // 'izin' atau 'sakit'
-          notes: `Disetujui dari pengajuan izin #${id}: ${leave.reason || ''}`
-        }, user);
+        const startDate = new Date(leave.leave_date);
+        const endDate = leave.end_date ? new Date(leave.end_date) : new Date(leave.leave_date);
+
+        const curDate = new Date(startDate);
+        while (curDate <= endDate) {
+          const dateStr = curDate.toISOString().split('T')[0];
+
+          // 1. Sync Harian
+          await this.recordAttendance({
+            student_id: leave.student_id,
+            class_group_id: enrollment.class_group_id,
+            attendance_date: dateStr,
+            status: leave.leave_type, // 'izin' atau 'sakit'
+            notes: `Disetujui dari pengajuan izin #${id}: ${leave.reason || ''}`
+          }, user);
+
+          // 2. Sync ke Lesson Attendances jika ada sesi jadwal pada hari tersebut
+          const dayMap = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+          const dayName = dayMap[curDate.getDay()];
+          const schedules = await db('subject_schedules')
+            .where({ class_group_id: enrollment.class_group_id, day_of_week: dayName, is_active: 1 });
+
+          for (const sch of schedules) {
+            const lessonStatus = leave.leave_type === 'sakit' ? 'sick' : 'permitted';
+            const existingLesson = await db('lesson_attendances')
+              .where({ student_id: leave.student_id, subject_schedule_id: sch.id, date: dateStr })
+              .first();
+
+            if (existingLesson) {
+              await db('lesson_attendances').where({ id: existingLesson.id }).update({
+                status: lessonStatus,
+                notes: `Izin resmi #${id}: ${leave.reason || ''}`,
+                updated_at: db.fn.now()
+              });
+            } else {
+              await db('lesson_attendances').insert({
+                student_id: leave.student_id,
+                class_group_id: enrollment.class_group_id,
+                subject_schedule_id: sch.id,
+                date: dateStr,
+                status: lessonStatus,
+                notes: `Izin resmi #${id}: ${leave.reason || ''}`,
+                recorded_by: approverEmployeeId,
+                created_at: db.fn.now(),
+                updated_at: db.fn.now()
+              });
+            }
+          }
+
+          curDate.setDate(curDate.getDate() + 1);
+        }
       }
     }
 

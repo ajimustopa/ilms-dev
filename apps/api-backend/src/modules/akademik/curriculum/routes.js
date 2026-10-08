@@ -110,8 +110,15 @@ router.get('/teaching-journals', authenticate, curriculumController.listTeaching
 router.get('/teaching-journals/:id', authenticate, curriculumController.getTeachingJournalById);
 router.post('/teaching-journals', authenticate, curriculumController.createTeachingJournal);
 router.put('/teaching-journals/:id', authenticate, curriculumController.updateTeachingJournal);
+router.put('/teaching-journals/:id/verify', authenticate, requirePermission('akademik.curriculum.manage', 'akademik.subjects.manage', 'akademik.view', 'superadmin'), curriculumController.verifyTeachingJournal);
 router.delete('/teaching-journals/:id', authenticate, curriculumController.deleteTeachingJournal);
 
+// 14. Monitoring KBM & Analitik Supervisi
+router.get('/kbm-monitoring/today', authenticate, curriculumController.getKbmMonitoringToday);
+router.get('/early-warning-students', authenticate, curriculumController.getEarlyWarningStudents);
+router.get('/attendance-matrix', authenticate, curriculumController.getAggregateAttendanceMatrix);
+
 module.exports = router;
+
 
 

@@ -94,8 +94,12 @@ export default function JurnalPage() {
     setFetchError(null);
 
     try {
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+
       const params = {
-        satuan_pendidikan_id: activeContext?.satuanPendidikanId,
+        satuan_pendidikan_id: unitParam,
         academic_year_id: activeContext?.academicYearId
       };
 
@@ -125,7 +129,7 @@ export default function JurnalPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeContext?.satuanPendidikanId, activeContext?.academicYearId, selectedSubjectId, quickDateFilter, startDate, endDate]);
+  }, [activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanIds, activeContext?.academicYearId, activeContext?.isAllUnits, selectedSubjectId, quickDateFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchJournals();
@@ -277,12 +281,12 @@ export default function JurnalPage() {
         }
       />
 
-      {/* Bar Pemilih Konteks & Filter */}
+      {/* Bar Filter Mapel */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <SelectorKonteks />
-
-          {/* Filter Mapel */}
+          <div className="text-xs font-semibold text-slate-400">
+            Filter Sesuai Mata Pelajaran:
+          </div>
           <div className="min-w-[150px] max-w-[240px]">
             <select
               value={selectedSubjectId}

@@ -107,7 +107,9 @@ export default function DataPegawai() {
     setErrorMsg('');
     try {
       let queryParams = `?page=${page}&per_page=20`;
-      if (activeSchoolUnit?.id) queryParams += `&school_unit_id=${activeSchoolUnit.id}`;
+      if (activeSchoolUnit?.id && activeSchoolUnit.id !== 'all') {
+        queryParams += `&school_unit_id=${activeSchoolUnit.id}`;
+      }
       if (search) queryParams += `&search=${encodeURIComponent(search)}`;
       if (employmentStatus) queryParams += `&employment_status=${employmentStatus}`;
       if (accountStatus) queryParams += `&account_status=${accountStatus}`;

@@ -158,6 +158,7 @@ export default function JadwalPelajaran() {
   const [classGroups, setClassGroups] = useState([]);
   const [allSchoolClassGroups, setAllSchoolClassGroups] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedTeacherId, setSelectedTeacherId] = useState('');
   const [selectedDay, setSelectedDay] = useState('');
   const [subjectsList, setSubjectsList] = useState([]);
   const [extrasList, setExtrasList] = useState([]);
@@ -673,6 +674,7 @@ export default function JadwalPelajaran() {
   useEffect(() => {
     setSelectedPresetId('');
     setSelectedClassId('');
+    setSelectedTeacherId('');
     setSelectedDay('');
     setActivePreset(null);
     fetchInitialMaster();
@@ -687,7 +689,7 @@ export default function JadwalPelajaran() {
       fetchGeneratorRuns();
       fetchClassGroupsForCurrentYear(selectedYearId);
     }
-  }, [selectedYearId, selectedPresetId, selectedClassId, selectedDay, activeSchoolUnit]);
+  }, [selectedYearId, selectedPresetId, selectedClassId, selectedTeacherId, selectedDay, activeSchoolUnit]);
 
   const fetchClassGroupsForCurrentYear = async (yearId) => {
     if (!yearId) return;
@@ -869,6 +871,7 @@ export default function JadwalPelajaran() {
           academic_year_id: selectedYearId || undefined,
           preset_id: effectivePresetId, // Mutlak undefined saat mode Semua Unit
           class_group_id: selectedClassId || undefined,
+          teacher_employee_id: selectedTeacherId || undefined,
           day_of_week: selectedDay || undefined
         }
       });
@@ -3904,7 +3907,9 @@ export default function JadwalPelajaran() {
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
+                className={`px-3 py-1.5 border rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 transition cursor-pointer ${
+                  selectedClassId ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
+                }`}
               >
                 <option value="">Semua Rombel</option>
                 {classGroups.map((cg) => (
@@ -3914,17 +3919,54 @@ export default function JadwalPelajaran() {
                 ))}
               </select>
 
+              {/* Guru */}
+              <select
+                value={selectedTeacherId}
+                onChange={(e) => setSelectedTeacherId(e.target.value)}
+                className={`px-3 py-1.5 border rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 transition cursor-pointer max-w-[220px] truncate ${
+                  selectedTeacherId ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
+                }`}
+              >
+                <option value="">Semua Guru</option>
+                {[...teachers]
+                  .sort((a, b) => (a.full_name || a.name || '').localeCompare(b.full_name || b.name || ''))
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.full_name || t.name} {t.nip ? `(${t.nip})` : ''}
+                    </option>
+                  ))}
+              </select>
+
               {/* Hari */}
               <select
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500"
+                className={`px-3 py-1.5 border rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 transition cursor-pointer ${
+                  selectedDay ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
+                }`}
               >
                 <option value="">Semua Hari</option>
                 {DAYS.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
+
+              {/* Tombol Reset Filter */}
+              {(selectedClassId || selectedTeacherId || selectedDay) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedClassId('');
+                    setSelectedTeacherId('');
+                    setSelectedDay('');
+                  }}
+                  className="px-2.5 py-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition font-bold text-xs flex items-center gap-1 border border-slate-200 shadow-2xs"
+                  title="Reset semua filter rombel, guru, dan hari"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Reset Filter</span>
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -4035,9 +4077,24 @@ export default function JadwalPelajaran() {
               )}
             </div>
 
-            <span className="text-xs text-slate-500">
-              Menampilkan <b>{schedules.length} Sesi</b> pada opsi <b>{currentSelectedPreset?.name || 'Reguler'}</b>
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">
+                Menampilkan <b>{schedules.length} Sesi</b> pada opsi <b>{currentSelectedPreset?.name || 'Reguler'}</b>
+              </span>
+              {selectedTeacherId && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                  👨‍🏫 Guru: {teachers.find(t => String(t.id) === String(selectedTeacherId))?.full_name || teachers.find(t => String(t.id) === String(selectedTeacherId))?.name || 'Terpilih'}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeacherId('')}
+                    className="hover:text-rose-600 font-black ml-1 text-xs cursor-pointer"
+                    title="Hapus filter guru"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* ========================================================= */}
@@ -4072,7 +4129,7 @@ export default function JadwalPelajaran() {
             const targetClassList = (!activeSchoolUnit?.id && allSchoolClassGroups.length > 0) ? allSchoolClassGroups : classGroups;
             const rows = matrixPerspective === 'class'
               ? targetClassList.filter(c => !c.type || c.type === 'reguler')
-              : teachers.filter(t => schedules.some(s => s.teacher_employee_id === t.id));
+              : (selectedTeacherId ? teachers.filter(t => String(t.id) === String(selectedTeacherId)) : teachers.filter(t => schedules.some(s => s.teacher_employee_id === t.id)));
 
             // Helper Pembuat Warna Harmonis Berdasarkan String Nama Mapel / Guru
             const getSubjectColor = (subjectName, isEkskul) => {
@@ -5804,37 +5861,267 @@ export default function JadwalPelajaran() {
             })()}
 
             <form onSubmit={handleSaveSchedule} className="space-y-4 text-xs">
-              {/* PANEL INFORMASI SESI WAKTU & GURU (TEKS INFORMATIF ELEGAN) */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span className="font-extrabold text-slate-800 text-xs">
-                      {DAYS.find(d => d.id === form.day_of_week)?.name || 'Hari'}
-                    </span>
-                    <span className="text-slate-400 font-normal">|</span>
-                    <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg text-[11px]">
-                      {form.period_label || 'Slot Jam Pelajaran'}
-                    </span>
-                  </div>
-                  <div className="font-mono font-bold text-slate-700 text-xs bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
-                    {formatTime24(form.start_time)} - {formatTime24(form.end_time)}
-                  </div>
-                </div>
+              {/* ========================================================================= */}
+              {/* PANEL ALOKASI HARI, SLOT MULAI & PILIHAN SESI BLOK (JP) DENGAN ANTI-BENTROK */}
+              {/* ========================================================================= */}
+              {(() => {
+                const currentDaySlots = timeSlots
+                  .filter(s => s.day_of_week === form.day_of_week && s.type === 'lesson')
+                  .sort((a, b) => (a.period_index || 0) - (b.period_index || 0));
 
-                <div className="flex items-center justify-between text-[11px] pt-0.5">
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Guru Pengampu:</span>
-                    <span className="font-bold text-slate-900">
-                      {teachers.find(t => String(t.id) === String(form.teacher_employee_id))?.full_name || 'Mengikuti Pembagian Tugas Mengajar'}
-                    </span>
+                // Helper cek apakah slot tertentu sudah terisi oleh rombel / guru
+                const checkSlotOccupancy = (slot) => {
+                  if (!slot) return null;
+                  const [slotSh, slotSm] = (slot.start_time || '00:00').split(':').map(Number);
+                  const [slotEh, slotEm] = (slot.end_time || '00:00').split(':').map(Number);
+                  const sStart = slotSh * 60 + slotSm;
+                  const sEnd = slotEh * 60 + slotEm;
+
+                  return schedules.find(sch => {
+                    if (editingSchedule && sch.id === editingSchedule.id) return false;
+                    if (sch.day_of_week !== parseInt(form.day_of_week, 10)) return false;
+                    if (sch.is_active === false) return false;
+
+                    const [schSh, schSm] = sch.start_time.split(':').map(Number);
+                    const [schEh, schEm] = sch.end_time.split(':').map(Number);
+                    const schStart = schSh * 60 + schSm;
+                    const schEnd = schEh * 60 + schEm;
+
+                    const isOverlap = (sStart < schEnd) && (sEnd > schStart);
+                    if (!isOverlap) return false;
+
+                    // Cek kesamaan rombel
+                    const schCids = sch.class_groups ? sch.class_groups.map(c => c.id) : [];
+                    const hasClassOverlap = form.class_group_ids && form.class_group_ids.some(cid => schCids.includes(cid));
+
+                    // Cek kesamaan guru
+                    const hasTeacherOverlap = form.teacher_employee_id && String(sch.teacher_employee_id) === String(form.teacher_employee_id);
+
+                    return hasClassOverlap || hasTeacherOverlap;
+                  });
+                };
+
+                // Cari index slot mulai yang aktif
+                let startSlotIdx = currentDaySlots.findIndex(s => s.start_time === form.start_time);
+                if (startSlotIdx === -1 && currentDaySlots.length > 0) {
+                  startSlotIdx = 0;
+                }
+
+                const currentStartSlot = currentDaySlots[startSlotIdx] || currentDaySlots[0];
+
+                // Hitung berapa JP yang saat ini terpilih berdasarkan form.end_time
+                let currentJpCount = 1;
+                if (currentStartSlot) {
+                  const endSlotIdx = currentDaySlots.findIndex(s => s.end_time === form.end_time);
+                  if (endSlotIdx >= startSlotIdx) {
+                    currentJpCount = endSlotIdx - startSlotIdx + 1;
+                  }
+                }
+
+                // Opsi Sesi / JP (1 JP s.d 4 JP)
+                const jpOptions = [1, 2, 3, 4].map(jp => {
+                  const targetEndIdx = startSlotIdx + jp - 1;
+                  const targetEndSlot = currentDaySlots[targetEndIdx];
+
+                  if (!targetEndSlot) {
+                    return {
+                      jp,
+                      label: `${jp} Sesi (${jp} JP)`,
+                      isAvailable: false,
+                      reason: 'Melebihi batas jam pelajaran hari ini',
+                      startTime: currentStartSlot?.start_time,
+                      endTime: null,
+                      periodLabel: null
+                    };
+                  }
+
+                  // Cek apakah ada slot di antara startSlotIdx s.d targetEndIdx yang terisi
+                  let blockedBy = null;
+                  for (let i = startSlotIdx; i <= targetEndIdx; i++) {
+                    const occ = checkSlotOccupancy(currentDaySlots[i]);
+                    if (occ) {
+                      blockedBy = occ;
+                      break;
+                    }
+                  }
+
+                  const periodLabel = jp === 1
+                    ? (currentStartSlot.label || `Jam Ke-${currentStartSlot.period_index}`)
+                    : `Jam Ke ${currentStartSlot.period_index} - ${targetEndSlot.period_index}`;
+
+                  return {
+                    jp,
+                    label: jp === 1 ? '1 Sesi (1 JP)' : `${jp} Sesi (${jp} JP Blok)`,
+                    isAvailable: !blockedBy,
+                    blockedBy,
+                    startTime: currentStartSlot.start_time,
+                    endTime: targetEndSlot.end_time,
+                    periodLabel
+                  };
+                });
+
+                return (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-2xs">
+                    {/* BARIS 1: PILIHAN HARI & SLOT JAM MULAI */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1 text-[11px]">
+                          Hari Pelajaran *
+                        </label>
+                        <select
+                          value={form.day_of_week}
+                          onChange={(e) => {
+                            const newDay = parseInt(e.target.value, 10);
+                            const newDaySlots = timeSlots
+                              .filter(s => s.day_of_week === newDay && s.type === 'lesson')
+                              .sort((a, b) => (a.period_index || 0) - (b.period_index || 0));
+                            const firstSlot = newDaySlots[0];
+                            const secondSlot = newDaySlots[1] || firstSlot;
+
+                            setForm({
+                              ...form,
+                              day_of_week: newDay,
+                              start_time: firstSlot?.start_time || '07:30',
+                              end_time: secondSlot?.end_time || firstSlot?.end_time || '09:00',
+                              period_label: secondSlot && secondSlot !== firstSlot
+                                ? `Jam Ke ${firstSlot?.period_index || 1} - ${secondSlot?.period_index || 2}`
+                                : (firstSlot?.label || 'Jam Ke-1')
+                            });
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                        >
+                          {DAYS.slice(0, 6).map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1 text-[11px]">
+                          Mulai dari Jam Pelajaran *
+                        </label>
+                        <select
+                          value={currentStartSlot?.start_time || form.start_time}
+                          onChange={(e) => {
+                            const selectedStartTime = e.target.value;
+                            const newStartIdx = currentDaySlots.findIndex(s => s.start_time === selectedStartTime);
+                            const startSlot = currentDaySlots[newStartIdx];
+                            if (startSlot) {
+                              // Usahakan 2 JP jika slot berikutnya tersedia dan kosong
+                              const nextSlot = currentDaySlots[newStartIdx + 1];
+                              const nextOcc = nextSlot ? checkSlotOccupancy(nextSlot) : null;
+                              const canUse2Jp = nextSlot && !nextOcc;
+
+                              const targetEndSlot = canUse2Jp ? nextSlot : startSlot;
+                              const newPeriodLabel = canUse2Jp
+                                ? `Jam Ke ${startSlot.period_index} - ${nextSlot.period_index}`
+                                : (startSlot.label || `Jam Ke-${startSlot.period_index}`);
+
+                              setForm({
+                                ...form,
+                                start_time: startSlot.start_time,
+                                end_time: targetEndSlot.end_time,
+                                period_label: newPeriodLabel
+                              });
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                        >
+                          {currentDaySlots.map(s => {
+                            const occ = checkSlotOccupancy(s);
+                            return (
+                              <option key={s.id || s.period_index} value={s.start_time}>
+                                {s.label || `Jam Ke-${s.period_index}`} ({formatTime24(s.start_time)} - {formatTime24(s.end_time)}) {occ ? `🔴 Terisi: ${occ.subject_name || occ.extra_name || 'Mapel'}` : '🟢 Kosong'}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* BARIS 2: PILIHAN BERAPA SESI YANG DIGUNAKAN (DURASI JP BLOK) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
+                          <span>Durasi Alokasi Sesi (JP) *</span>
+                          <span className="text-[10px] font-normal text-slate-500">
+                            (Pilih 1 kali untuk blok multi-jam)
+                          </span>
+                        </label>
+                        <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-md">
+                          {formatTime24(form.start_time)} - {formatTime24(form.end_time)} ({currentJpCount} JP)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {jpOptions.map((opt) => {
+                          const isSelected = currentJpCount === opt.jp && opt.isAvailable;
+                          const isOccupied = !opt.isAvailable;
+
+                          return (
+                            <button
+                              key={opt.jp}
+                              type="button"
+                              disabled={isOccupied}
+                              onClick={() => {
+                                if (opt.isAvailable) {
+                                  setForm({
+                                    ...form,
+                                    start_time: opt.startTime,
+                                    end_time: opt.endTime,
+                                    period_label: opt.periodLabel
+                                  });
+                                }
+                              }}
+                              className={`p-2 rounded-xl border text-left transition flex flex-col justify-between relative ${
+                                isSelected
+                                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                                  : isOccupied
+                                  ? 'bg-slate-100/80 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                                  : 'bg-white hover:bg-emerald-50/60 border-slate-200 text-slate-800 hover:border-emerald-300 shadow-2xs cursor-pointer'
+                              }`}
+                              title={isOccupied ? (opt.blockedBy ? `Sesi terisi oleh: ${opt.blockedBy.subject_name || opt.blockedBy.extra_name || 'Mapel'}` : opt.reason) : ''}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className={`text-[9px] font-black uppercase tracking-tight ${
+                                  isSelected ? 'text-white' : isOccupied ? 'text-slate-400' : 'text-emerald-700'
+                                }`}>
+                                  {opt.jp === 2 ? '✨ 2 JP (Blok)' : `${opt.jp} JP`}
+                                </span>
+                                {isSelected ? (
+                                  <Check className="w-3.5 h-3.5 text-white" />
+                                ) : isOccupied ? (
+                                  <span className="text-[8px] font-bold bg-rose-100 text-rose-700 px-1 py-0.2 rounded">
+                                    Terisi
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div className={`font-extrabold text-[11px] mt-0.5 truncate ${
+                                isSelected ? 'text-white' : isOccupied ? 'text-slate-400' : 'text-slate-900'
+                              }`}>
+                                {opt.jp === 1 ? '1 Pertemuan' : `Blok ${opt.jp} Jam`}
+                              </div>
+
+                              <div className={`text-[8.5px] font-mono mt-0.5 ${
+                                isSelected ? 'text-emerald-100' : isOccupied ? 'text-slate-400' : 'text-slate-500'
+                              }`}>
+                                {opt.endTime ? `${formatTime24(opt.startTime)}-${formatTime24(opt.endTime)}` : 'Tidak tersedia'}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* INDIKATOR STATUS PERIODE / LABEL */}
+                      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 px-1">
+                        <span>Label Jadwal: <b className="text-slate-800">{form.period_label || 'Jam Ke-1'}</b></span>
+                        <span>Guru: <b className="text-slate-800">{teachers.find(t => String(t.id) === String(form.teacher_employee_id))?.full_name || 'Sesuai SK Mengajar'}</b></span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    *Otomatis dari SK Mengajar
-                  </span>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* 1. INPUT MATA PELAJARAN (INTERAKTIF DENGAN GRID & LIVE SEARCH) */}
               <div className="relative">

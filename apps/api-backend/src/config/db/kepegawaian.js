@@ -4,15 +4,7 @@ const knex = require('knex');
 const { assertDevDatabase } = require('./dbGuard');
 
 try {
-  const devEnvPath = path.join(__dirname, '../../../.env.dev');
-  const rootDevEnvPath = path.join(__dirname, '../../../../.env.dev');
-  if (fs.existsSync(devEnvPath)) {
-    require('dotenv').config({ path: devEnvPath, override: true });
-  } else if (fs.existsSync(rootDevEnvPath)) {
-    require('dotenv').config({ path: rootDevEnvPath, override: true });
-  } else {
-    require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
-  }
+  require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
 } catch (e) {}
 
 function getDbHost() {
@@ -20,9 +12,9 @@ function getDbHost() {
   return (h === 'localhost') ? '127.0.0.1' : h;
 }
 
-const dbUser = process.env.KEPEGAWAIAN_DB_USER || process.env.DB_USER || 'root';
+const dbUser = process.env.KEPEGAWAIAN_DB_USER || process.env.DB_USER || 'kepegawaian_local';
 const dbPassword = process.env.KEPEGAWAIAN_DB_PASSWORD || process.env.DB_PASSWORD || '';
-const dbName = process.env.KEPEGAWAIAN_DB_NAME || process.env.DB_NAME || 'kepegawaian_dev';
+const dbName = process.env.KEPEGAWAIAN_DB_NAME || process.env.DB_NAME || 'kepegawaian_local';
 const dbPort = Number(process.env.KEPEGAWAIAN_DB_PORT || process.env.DB_PORT || 3306);
 
 let knexConfig;

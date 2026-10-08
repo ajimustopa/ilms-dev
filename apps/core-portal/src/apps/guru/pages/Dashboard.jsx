@@ -12,6 +12,10 @@ import {
   formatShortTime
 } from '../utils/dateHelper';
 import {
+  getScheduleClassGroupDisplay,
+  getScheduleRoomDisplay
+} from '../utils/scheduleHelper';
+import {
   StatRibbonCard,
   StatusBadge,
   Button,
@@ -42,7 +46,9 @@ import {
   Table as TableIcon,
   LayoutList,
   Compass,
-  CalendarCheck
+  CalendarCheck,
+  Layers,
+  GraduationCap
 } from 'lucide-react';
 
 /**
@@ -102,6 +108,7 @@ export default function Dashboard() {
   const [todaySchedules, setTodaySchedules] = useState([]);
   const [totalStudentsCount, setTotalStudentsCount] = useState(0);
   const [totalRombelsCount, setTotalRombelsCount] = useState(0);
+  const [rombelNames, setRombelNames] = useState([]);
   const [schedulesError, setSchedulesError] = useState(null);
 
   // 3. Granular State: Announcements
@@ -155,13 +162,18 @@ export default function Dashboard() {
     setLoadingSchedules(true);
     setSchedulesError(null);
     try {
+      // Jika multi-unit terpilih atau 'Semua Satuan Pendidikan', jangan batasi query ke 1 unit tunggal
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+
       const [schedRes, assignRes] = await Promise.allSettled([
         scheduleService.getMySchedules({
-          satuan_pendidikan_id: activeContext?.satuanPendidikanId || undefined,
+          satuan_pendidikan_id: unitParam,
           academic_year_id: activeContext?.academicYearId || undefined
         }),
         scheduleService.getMyTeachingAssignments({
-          satuan_pendidikan_id: activeContext?.satuanPendidikanId || undefined,
+          satuan_pendidikan_id: unitParam,
           academic_year_id: activeContext?.academicYearId || undefined
         })
       ]);
@@ -189,44 +201,84 @@ export default function Dashboard() {
       todayList.sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
       setTodaySchedules(todayList);
 
-      // Hitung total rombel & santri diampu dari assignments
+      // Hitung total rombel & santri diampu dari assignments & scheduleList
+      let assignments = [];
+      let homerooms = [];
       if (assignRes.status === 'fulfilled') {
         const aVal = assignRes.value?.data || assignRes.value || {};
-        const assignments = aVal.assignments || [];
-        const homerooms = aVal.homeroom_classes || [];
-
-        const uniqueRombelIds = new Set();
-        let studentSum = 0;
-
-        assignments.forEach((a) => {
-          if (a.class_group_id) {
-            uniqueRombelIds.add(String(a.class_group_id));
-            if (a.student_count) studentSum += Number(a.student_count) || 0;
-          }
-        });
-        homerooms.forEach((h) => {
-          if (h.id) uniqueRombelIds.add(String(h.id));
-        });
-
-        setTotalRombelsCount(uniqueRombelIds.size);
-        setTotalStudentsCount(studentSum > 0 ? studentSum : uniqueRombelIds.size * 32);
+        assignments = aVal.assignments || (Array.isArray(aVal) ? aVal : []);
+        homerooms = aVal.homeroom_classes || [];
       }
+
+      const uniqueRombelIds = new Set();
+      const namesList = [];
+      let studentSum = 0;
+
+      // 1. Dari assignments
+      assignments.forEach((a) => {
+        const rId = a.class_group_id || a.class_group_name || a.name;
+        if (rId && !uniqueRombelIds.has(String(rId))) {
+          uniqueRombelIds.add(String(rId));
+          if (a.class_group_name || a.name) namesList.push(a.class_group_name || a.name);
+        }
+        const count = Number(a.student_count || a.students_count || a.total_students || 0);
+        if (count > 0) studentSum += count;
+      });
+
+      // 2. Dari wali kelas (homeroom)
+      homerooms.forEach((h) => {
+        if (h.id && !uniqueRombelIds.has(String(h.id))) {
+          uniqueRombelIds.add(String(h.id));
+          if (h.name) namesList.push(h.name);
+        }
+      });
+
+      // 3. Dari jadwal mengajar mingguan (scheduleList)
+      scheduleList.forEach((s) => {
+        if (Array.isArray(s.class_groups) && s.class_groups.length > 0) {
+          s.class_groups.forEach((cg) => {
+            const cgId = cg.id || cg.name;
+            if (cgId && !uniqueRombelIds.has(String(cgId))) {
+              uniqueRombelIds.add(String(cgId));
+              if (cg.name) namesList.push(cg.name);
+            }
+          });
+        } else {
+          const rName = getScheduleClassGroupDisplay(s);
+          const rId = s.class_group_id || rName;
+          if (rId && rId !== '-' && rId !== 'Rombel Reguler' && !uniqueRombelIds.has(String(rId))) {
+            uniqueRombelIds.add(String(rId));
+            namesList.push(rName);
+          }
+        }
+      });
+
+      const finalRombelCount = uniqueRombelIds.size;
+      const finalStudentCount = studentSum > 0 ? studentSum : finalRombelCount * 32;
+
+      setTotalRombelsCount(finalRombelCount);
+      setTotalStudentsCount(finalStudentCount);
+      setRombelNames(namesList.slice(0, 5));
     } catch (err) {
       setSchedulesError(err?.message || 'Gagal memuat jadwal mengajar.');
       setTodaySchedules([]);
     } finally {
       setLoadingSchedules(false);
     }
-  }, [activeContext?.satuanPendidikanId, activeContext?.academicYearId]);
+  }, [activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanIds, activeContext?.academicYearId, activeContext?.isAllUnits]);
 
   // Fetch Pengumuman Internal Guru
   const fetchAnnouncements = useCallback(async () => {
     setLoadingAnnouncements(true);
     setAnnouncementsError(null);
     try {
+      const selectedUnitIds = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+      const isMultiOrAll = activeContext?.isAllUnits || selectedUnitIds.length !== 1;
+      const unitParam = isMultiOrAll ? undefined : activeContext?.satuanPendidikanId;
+
       const res = await announcementService.getTeacherAnnouncements({
         limit: 3,
-        school_unit_id: activeContext?.satuanPendidikanId || undefined
+        school_unit_id: unitParam
       });
       const items = res?.items || (Array.isArray(res) ? res : res?.data || []);
       setAnnouncements(items);
@@ -236,7 +288,7 @@ export default function Dashboard() {
     } finally {
       setLoadingAnnouncements(false);
     }
-  }, [activeContext?.satuanPendidikanId]);
+  }, [activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanIds, activeContext?.isAllUnits]);
 
   useEffect(() => {
     fetchAttendance();
@@ -284,8 +336,8 @@ export default function Dashboard() {
       if (searchSchedule.trim()) {
         const q = searchSchedule.toLowerCase();
         const mapel = String(item.subject_name || item.mata_pelajaran || '').toLowerCase();
-        const rombel = String(item.class_name || item.class_group_name || '').toLowerCase();
-        const ruang = String(item.room_name || item.ruang || '').toLowerCase();
+        const rombel = getScheduleClassGroupDisplay(item).toLowerCase();
+        const ruang = getScheduleRoomDisplay(item).toLowerCase();
         return mapel.includes(q) || rombel.includes(q) || ruang.includes(q);
       }
       return true;
@@ -331,10 +383,12 @@ export default function Dashboard() {
     // 2. Tindakan Sesi KBM hari ini yang sedang berlangsung
     const ongoingSession = enrichedTodaySchedules.find((s) => s.sessionStatus.code === 'ongoing');
     if (ongoingSession) {
+      const rombelLabel = getScheduleClassGroupDisplay(ongoingSession);
+      const roomLabel = getScheduleRoomDisplay(ongoingSession);
       items.push({
         id: `action-kbm-${ongoingSession.id}`,
         title: `Presensi KBM ${ongoingSession.subject_name || 'Mapel'}`,
-        description: `Sesi ${ongoingSession.class_name || 'Kelas'} sedang berlangsung di ${ongoingSession.room_name || 'Ruang Kelas'}.`,
+        description: `Sesi ${rombelLabel} sedang berlangsung di ${roomLabel}.`,
         badge: 'Berlangsung',
         badgeType: 'warning',
         actionLabel: 'Buka Presensi Kelas',
@@ -349,9 +403,10 @@ export default function Dashboard() {
     );
     if (finishedWithoutJournal.length > 0) {
       const first = finishedWithoutJournal[0];
+      const firstRombel = getScheduleClassGroupDisplay(first);
       items.push({
         id: `action-journal-${first.id}`,
-        title: `Jurnal ${first.subject_name || 'Mapel'} (${first.class_name || 'Kelas'})`,
+        title: `Jurnal ${first.subject_name || 'Mapel'} (${firstRombel})`,
         description: `${finishedWithoutJournal.length} sesi mengajar hari ini menunggu pengisian materi jurnal KBM.`,
         badge: 'Jurnal',
         badgeType: 'info',
@@ -400,271 +455,218 @@ export default function Dashboard() {
             {todayDateStr} • {activeContext?.satuanPendidikanName || 'Unit Sekolah'}
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <SelectorKonteks />
-        </div>
       </div>
 
-      {/* 2. Hero Card: Sesi Terdekat / Sesi Sedang Berlangsung */}
-      {loadingSchedules ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs animate-pulse">
-          <div className="h-6 bg-slate-200 rounded w-1/3 mb-3"></div>
-          <div className="h-4 bg-slate-200 rounded w-1/2 mb-4"></div>
-          <div className="h-10 bg-slate-200 rounded w-36"></div>
-        </div>
-      ) : heroSession ? (
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-sm border border-emerald-700/50 p-5 sm:p-6">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-            {/* Info Kiri */}
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-400/30 text-emerald-200 text-xs font-semibold uppercase tracking-wide">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                  </span>
-                  {heroSession.isHeroOngoing ? 'SESI SEDANG BERLANGSUNG' : 'SESI BERIKUTNYA'}
-                </span>
 
-                <span className="text-xs px-2 py-0.5 rounded font-mono font-bold bg-white/10 text-emerald-100 border border-white/10">
-                  {formatShortTime(heroSession.start_time)} - {formatShortTime(heroSession.end_time)} WIB
-                </span>
-              </div>
 
-              <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight">
-                  {heroSession.subject_name || heroSession.mata_pelajaran || 'Mata Pelajaran'} ({heroSession.class_name || heroSession.class_group_name || 'Kelas'})
-                </h2>
-                <div className="flex items-center gap-3 text-xs text-emerald-100/90 mt-1 flex-wrap font-medium">
-                  {heroSession.room_name && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                      <span>Ruang {heroSession.room_name}</span>
-                    </span>
-                  )}
-                  {heroSession.period_label && (
-                    <span>• {heroSession.period_label}</span>
-                  )}
-                  <span>• Tatap Muka KBM</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tombol CTA */}
-            <div className="shrink-0 flex items-center gap-2.5">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() =>
-                  navigate(
-                    `/guru/absensi-kelas?schedule_id=${heroSession.id || ''}&class_group_id=${heroSession.class_group_id || ''}`
-                  )
-                }
-                leftIcon={<UserCheck className="w-4 h-4 text-emerald-700" />}
-                className="bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm"
-              >
-                Buka Presensi Kelas
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Fallback Banner saat tidak ada sesi mengajar aktif */
-        <div className="rounded-xl bg-slate-900 text-white p-5 sm:p-6 border border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold">
-              <Compass className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Agenda Mengajar Selesai</span>
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-white">
-              Tidak ada sesi mengajar aktif saat ini.
-            </h2>
-            <p className="text-xs text-slate-400">
-              Gunakan waktu untuk persiapan materi ajar, memeriksa tugas siswa, atau input capaian TP.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/guru/jadwal')}
-            leftIcon={<CalendarDays className="w-4 h-4 text-slate-300" />}
-            className="text-white border-slate-700 hover:bg-slate-800 text-xs shrink-0 self-start sm:self-auto rounded-lg"
-          >
-            Lihat Jadwal Pekanan
-          </Button>
-        </div>
-      )}
-
-      {/* 3. Empat Kartu Aksi Cepat (Quick Actions) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* Aksi 1: Presensi Mandiri */}
+      {/* 3. Akses Cepat (Quick Actions) - Icon Persegi & Tanpa Deskripsi */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+        {/* Aksi 1: Presensi Guru */}
         <Link
           to="/guru/absensi-diri"
-          className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-300 hover:shadow-sm transition-all group block"
+          className="p-2 sm:p-3 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-400 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group active:scale-95"
         >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">Presensi Guru</span>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors shrink-0" />
-              </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                {hasCheckedIn
-                  ? `Masuk: ${formatShortTime(attendanceData?.check_in_time)}`
-                  : 'Belum Check-In GPS'}
-              </p>
-            </div>
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100/80 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white group-hover:scale-105 transition-all shadow-2xs">
+            <MapPin className="w-5 h-5" />
           </div>
+          <span className="font-bold text-slate-800 text-[11px] sm:text-xs tracking-tight mt-1.5 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+            Presensi Guru
+          </span>
         </Link>
 
         {/* Aksi 2: Presensi Santri KBM */}
         <Link
           to="/guru/absensi-kelas"
-          className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-300 hover:shadow-sm transition-all group block"
+          className="p-2 sm:p-3 rounded-xl bg-white border border-slate-200/80 hover:border-teal-400 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group active:scale-95"
         >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-700 border border-teal-100 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">Presensi Kelas</span>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-teal-600 transition-colors shrink-0" />
-              </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                Jurnal & Absensi Santri
-              </p>
-            </div>
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-teal-50 text-teal-700 border border-teal-100/80 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white group-hover:scale-105 transition-all shadow-2xs">
+            <UserCheck className="w-5 h-5" />
           </div>
+          <span className="font-bold text-slate-800 text-[11px] sm:text-xs tracking-tight mt-1.5 line-clamp-1 group-hover:text-teal-700 transition-colors">
+            Presensi Kelas
+          </span>
         </Link>
 
-        {/* Aksi 3: Input Nilai & TP */}
+        {/* Aksi 3: Input Nilai */}
         <Link
           to="/guru/penilaian"
-          className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200/80 hover:border-indigo-300 hover:shadow-sm transition-all group block"
+          className="p-2 sm:p-3 rounded-xl bg-white border border-slate-200/80 hover:border-indigo-400 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group active:scale-95"
         >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-              <Award className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">Input Nilai</span>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" />
-              </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                STS, SAS & Asesmen TP
-              </p>
-            </div>
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100/80 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105 transition-all shadow-2xs">
+            <Award className="w-5 h-5" />
           </div>
+          <span className="font-bold text-slate-800 text-[11px] sm:text-xs tracking-tight mt-1.5 line-clamp-1 group-hover:text-indigo-700 transition-colors">
+            Input Nilai
+          </span>
         </Link>
 
-        {/* Aksi 4: Pengajuan Izin / Cuti */}
+        {/* Aksi 4: Izin & Cuti */}
         <Link
           to="/guru/absensi-diri"
-          className="p-3.5 sm:p-4 rounded-xl bg-white border border-slate-200/80 hover:border-amber-300 hover:shadow-sm transition-all group block"
+          className="p-2 sm:p-3 rounded-xl bg-white border border-slate-200/80 hover:border-amber-400 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group active:scale-95"
         >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">Izin & Cuti</span>
-                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition-colors shrink-0" />
-              </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                Form Izin & Dinas Luar
-              </p>
-            </div>
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-700 border border-amber-100/80 flex items-center justify-center shrink-0 group-hover:bg-amber-600 group-hover:text-white group-hover:scale-105 transition-all shadow-2xs">
+            <FileText className="w-5 h-5" />
           </div>
+          <span className="font-bold text-slate-800 text-[11px] sm:text-xs tracking-tight mt-1.5 line-clamp-1 group-hover:text-amber-700 transition-colors">
+            Izin & Cuti
+          </span>
         </Link>
       </div>
 
-      {/* 4. Tiga StatRibbonCard (Jam Ajar, Santri Diampu, Kehadiran) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stat 1: Jam Ajar Pekan Ini */}
-        {loadingSchedules ? (
+      {/* 4. METRIK BEBAN MENGAJAR: MOBILE 1-ROW COMPACT & DESKTOP 3-GRID RIBBON */}
+      {loadingSchedules ? (
+        <div className="space-y-3">
           <SkeletonCard />
-        ) : (
-          <StatRibbonCard
-            label="JAM AJAR PEKAN INI"
-            value={<span className="tnum font-bold text-2xl text-slate-900">{totalWeeklyJp} <span className="text-xs text-slate-500 font-medium">JP</span></span>}
-            context={
-              <div className="space-y-1.5 mt-1">
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Target 24 JP terpenuhi</span>
-                  <span className="text-emerald-700 font-bold tnum">
-                    {Math.min(100, Math.round((totalWeeklyJp / 24) * 100))}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (totalWeeklyJp / 24) * 100)}%` }}
-                  />
+        </div>
+      ) : (
+        <>
+          {/* Tampilan Mobile: 1 Baris Ramping (Ultra-Compact & Colorful) */}
+          <div className="sm:hidden grid grid-cols-3 gap-1.5 p-1.5 bg-slate-900/5 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            {/* Cardlet 1: Beban KBM (Emerald) */}
+            <Link
+              to="/guru/jadwal"
+              className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-500/20 shadow-2xs min-w-0 active:scale-95 transition-all"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-tight truncate">
+                  Beban KBM
+                </span>
+                <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Clock className="w-3 h-3" />
                 </div>
               </div>
-            }
-            status="success"
-            icon={Hourglass}
-            to="/guru/jadwal"
-          />
-        )}
-
-        {/* Stat 2: Total Santri Diampu */}
-        {loadingSchedules ? (
-          <SkeletonCard />
-        ) : (
-          <StatRibbonCard
-            label="TOTAL SANTRI DIAMPU"
-            value={<span className="tnum font-bold text-2xl text-slate-900">{totalStudentsCount} <span className="text-xs text-slate-500 font-medium">Santri</span></span>}
-            context={
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                <span>{totalRombelsCount} Rombel Terdaftar</span>
-                <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 text-[10px]">
-                  Aktif TA Ini
+              <div className="mt-1 flex items-baseline justify-between gap-1">
+                <span className="font-mono font-extrabold text-xs text-emerald-950 dark:text-emerald-100">
+                  {totalWeeklyJp} <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">JP</span>
+                </span>
+                <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-1 py-0.2 rounded">
+                  {Math.min(100, Math.round((totalWeeklyJp / 24) * 100))}%
                 </span>
               </div>
-            }
-            status="info"
-            icon={Users}
-            to="/guru/siswa"
-          />
-        )}
+            </Link>
 
-        {/* Stat 3: Kehadiran Mengajar */}
-        {loadingAttendance ? (
-          <SkeletonCard />
-        ) : (
-          <StatRibbonCard
-            label="KEHADIRAN MENGAJAR"
-            value={<span className="tnum font-bold text-2xl text-slate-900">{monthlyAttendanceRate}%</span>}
-            context={
-              <div className="space-y-1.5 mt-1">
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>{presentDaysCount} Hari Hadir Bulan Ini</span>
-                  <span className="text-emerald-700 font-bold flex items-center gap-0.5">
-                    <TrendingUp className="w-3 h-3" /> Stabil
-                  </span>
+            {/* Cardlet 2: Rombel (Indigo) */}
+            <Link
+              to="/guru/jadwal"
+              className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-blue-500/10 border border-indigo-500/20 shadow-2xs min-w-0 active:scale-95 transition-all"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-tight truncate">
+                  Rombel
+                </span>
+                <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Layers className="w-3 h-3" />
                 </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              </div>
+              <div className="mt-1 flex items-baseline justify-between gap-1">
+                <span className="font-mono font-extrabold text-xs text-indigo-950 dark:text-indigo-100">
+                  {totalRombelsCount} <span className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-400">Kelas</span>
+                </span>
+                <span className="text-[9px] font-medium text-indigo-600 dark:text-indigo-300 truncate max-w-[45px]">
+                  {rombelNames[0] || 'Aktif'}
+                </span>
+              </div>
+            </Link>
+
+            {/* Cardlet 3: Santri (Amber) */}
+            <Link
+              to="/guru/siswa"
+              className="flex flex-col justify-between p-2 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-orange-500/10 border border-amber-500/20 shadow-2xs min-w-0 active:scale-95 transition-all"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-tight truncate">
+                  Santri
+                </span>
+                <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <GraduationCap className="w-3 h-3" />
+                </div>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between gap-1">
+                <span className="font-mono font-extrabold text-xs text-amber-950 dark:text-amber-100">
+                  {totalStudentsCount}
+                </span>
+                <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/50 px-1 py-0.2 rounded">
+                  Santri
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Tampilan Desktop / Tablet: 3 Kartu StatRibbonCard Penuh */}
+          <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+            {/* Stat 1: Total Beban Mengajar */}
+            <StatRibbonCard
+              label="TOTAL BEBAN MENGAJAR"
+              value={
+                <span className="tnum font-bold text-2xl text-slate-900">
+                  {totalWeeklyJp} <span className="text-xs text-slate-500 font-medium">JP</span>
+                </span>
+              }
+              status="success"
+              icon={Clock}
+              context="/ Pekan"
+              badge={`${Math.min(100, Math.round((totalWeeklyJp / 24) * 100))}% Beban Kerja`}
+              to="/guru/jadwal"
+            >
+              <div className="mt-2.5 space-y-1">
+                <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <div
-                    className="bg-teal-600 h-full rounded-full transition-all"
-                    style={{ width: `${monthlyAttendanceRate}%` }}
+                    className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((totalWeeklyJp / 24) * 100))}%`
+                    }}
                   />
                 </div>
               </div>
-            }
-            status="success"
-            icon={CheckCircle2}
-            to="/guru/absensi-diri"
-          />
-        )}
-      </div>
+            </StatRibbonCard>
+
+            {/* Stat 2: Rombongan Belajar */}
+            <StatRibbonCard
+              label="ROMBONGAN BELAJAR"
+              value={
+                <span className="tnum font-bold text-2xl text-slate-900">
+                  {totalRombelsCount} <span className="text-xs text-slate-500 font-medium">Rombel</span>
+                </span>
+              }
+              status="info"
+              icon={Layers}
+              context="Kelas Terjadwal"
+              to="/guru/jadwal"
+            >
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                {rombelNames.length > 0 ? (
+                  rombelNames.map((r, i) => (
+                    <span
+                      key={i}
+                      className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      {r}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-slate-400">Aktif Semester Ini</span>
+                )}
+              </div>
+            </StatRibbonCard>
+
+            {/* Stat 3: Santri Diampu */}
+            <StatRibbonCard
+              label="SANTRI DIAMPU"
+              value={
+                <span className="tnum font-bold text-2xl text-slate-900">
+                  {totalStudentsCount} <span className="text-xs text-slate-500 font-medium">Santri</span>
+                </span>
+              }
+              status="success"
+              icon={GraduationCap}
+              context="Santri Binaan KBM"
+              badge="Aktif"
+              to="/guru/siswa"
+            />
+          </div>
+        </>
+      )}
 
       {/* 5. Layout Dua Kolom: Jadwal Mengajar (Kiri) & Widget Sidebar (Kanan) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -873,10 +875,11 @@ export default function Dashboard() {
                           </td>
                           <td className="py-3.5 px-3.5 whitespace-nowrap">
                             <div className="font-semibold text-slate-900">
-                              {item.class_name || item.class_group_name || 'Kelas'}
+                              {getScheduleClassGroupDisplay(item)}
                             </div>
-                            <div className="text-[11px] text-slate-500">
-                              {item.room_name ? `R. ${item.room_name}` : 'Ruang Kelas'}
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span>{getScheduleRoomDisplay(item)}</span>
                             </div>
                           </td>
                           <td className="py-3.5 px-3.5 whitespace-nowrap">
@@ -903,25 +906,15 @@ export default function Dashboard() {
                               <Button
                                 variant={isOngoing ? 'primary' : 'outline'}
                                 size="sm"
-                                onClick={() =>
+                                onClick={() => {
+                                  const cgId = item.class_group_id || (item.class_groups && item.class_groups[0]?.id) || '';
                                   navigate(
-                                    `/guru/absensi-kelas?schedule_id=${item.id || ''}&class_group_id=${item.class_group_id || ''}`
-                                  )
-                                }
-                                className="text-xs rounded-lg py-1 px-2.5"
+                                    `/guru/absensi-kelas?schedule_id=${item.id || ''}&class_group_id=${cgId}`
+                                  );
+                                }}
+                                className="text-xs rounded-lg py-1 px-2.5 font-bold shadow-2xs"
                               >
-                                Buka Presensi
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  navigate(`/guru/jurnal-mengajar?schedule_id=${item.id || ''}`)
-                                }
-                                title="Isi Jurnal Mengajar"
-                                className="text-xs rounded-lg py-1 px-2 text-slate-600"
-                              >
-                                Jurnal
+                                Presensi & Jurnal
                               </Button>
                             </div>
                           </td>
@@ -952,14 +945,17 @@ export default function Dashboard() {
                               {item.subject_name || item.mata_pelajaran || 'Mata Pelajaran'}
                             </h3>
                             <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
-                              {item.class_name || item.class_group_name || 'Kelas'}
+                              {getScheduleClassGroupDisplay(item)}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 font-medium">
+                          <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2 font-medium">
                             <span className="tnum font-mono font-semibold text-slate-700">
                               {formatShortTime(item.start_time)} - {formatShortTime(item.end_time)} WIB
                             </span>
-                            {item.room_name && <span>• Ruang {item.room_name}</span>}
+                            <span className="flex items-center gap-1">
+                              • <MapPin className="w-3 h-3 text-slate-400 shrink-0 inline" />
+                              {getScheduleRoomDisplay(item)}
+                            </span>
                           </p>
                         </div>
                         <span className="shrink-0">

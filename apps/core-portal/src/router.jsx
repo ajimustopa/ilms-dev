@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
   // 2. Core Login & Shortcut
   {
     path: '/core/login',
-    element: <LoginGate />,
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/login',
@@ -80,7 +80,7 @@ export const router = createBrowserRouter([
   // 3. Core Service
   {
     path: '/core',
-    element: <ProtectedRoute redirectTo="/core/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./shared/components/Layout')),
@@ -141,11 +141,11 @@ export const router = createBrowserRouter([
   // 4. Kepegawaian Login & Module
   {
     path: '/kepegawaian/login',
-    element: lazyLoad(() => import('./apps/kepegawaian/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/kepegawaian',
-    element: <ProtectedRoute redirectTo="/kepegawaian/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/kepegawaian/components/KepegawaianLayout')),
@@ -276,11 +276,11 @@ export const router = createBrowserRouter([
   // 5. Akademik Login & Module
   {
     path: '/akademik/login',
-    element: lazyLoad(() => import('./apps/akademik/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/akademik',
-    element: <ProtectedRoute redirectTo="/akademik/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/akademik/components/AkademikLayout')),
@@ -433,11 +433,11 @@ export const router = createBrowserRouter([
   // 7. Keuangan Login & Module
   {
     path: '/keuangan/login',
-    element: lazyLoad(() => import('./apps/keuangan/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/keuangan',
-    element: <ProtectedRoute redirectTo="/keuangan/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/keuangan/components/KeuanganLayout')),
@@ -594,11 +594,11 @@ export const router = createBrowserRouter([
   // 8. Tahfidz Login & Module
   {
     path: '/alquran/login',
-    element: lazyLoad(() => import('./apps/alquran/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/alquran',
-    element: <ProtectedRoute redirectTo="/alquran/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/alquran/components/AlquranLayout')),
@@ -659,11 +659,11 @@ export const router = createBrowserRouter([
   // 9. Kantin Login & Module
   {
     path: '/kantin/login',
-    element: lazyLoad(() => import('./apps/kantin/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/kantin',
-    element: <ProtectedRoute redirectTo="/kantin/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/kantin/components/KantinLayout')),
@@ -800,11 +800,11 @@ export const router = createBrowserRouter([
   // 10. Sarpras Login & Module
   {
     path: '/sarpras/login',
-    element: lazyLoad(() => import('./apps/sarpras/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/sarpras',
-    element: <ProtectedRoute redirectTo="/sarpras/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/sarpras/components/SarprasLayout')),
@@ -881,11 +881,11 @@ export const router = createBrowserRouter([
   // 11. Dapur Login & Module
   {
     path: '/dapur/login',
-    element: lazyLoad(() => import('./apps/dapur/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/dapur',
-    element: <ProtectedRoute redirectTo="/dapur/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/dapur/components/DapurLayout')),
@@ -948,11 +948,11 @@ export const router = createBrowserRouter([
   // 13. Perpustakaan Login & Module
   {
     path: '/perpustakaan/login',
-    element: lazyLoad(() => import('./apps/perpustakaan/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/perpustakaan',
-    element: <ProtectedRoute redirectTo="/perpustakaan/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/perpustakaan/components/PerpustakaanLayout')),
@@ -1025,11 +1025,11 @@ export const router = createBrowserRouter([
   // 14. Manajemen Login & Module
   {
     path: '/manajemen/login',
-    element: lazyLoad(() => import('./apps/manajemen/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/manajemen',
-    element: <ProtectedRoute redirectTo="/manajemen/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/manajemen/components/ManajemenLayout')),
@@ -1114,11 +1114,11 @@ export const router = createBrowserRouter([
   // 15. Portal Guru (Mobile-First Modular Architecture)
   {
     path: '/guru/login',
-    element: lazyLoad(() => import('./apps/guru/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/guru',
-    element: <ProtectedRoute redirectTo="/guru/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/guru/components/GuruLayout')),
@@ -1260,11 +1260,11 @@ export const router = createBrowserRouter([
   // 16. Portal Calon Murid & Santri (PSB)
   {
     path: '/calon-murid/login',
-    element: lazyLoad(() => import('./apps/calon-murid/pages/Login')),
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/calon-murid',
-    element: <ProtectedRoute redirectTo="/calon-murid/login" />,
+    element: <ProtectedRoute redirectTo="/login" />,
     children: [
       {
         element: lazyLoad(() => import('./apps/calon-murid/components/CalonMuridLayout')),

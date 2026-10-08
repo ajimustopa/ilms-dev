@@ -80,13 +80,19 @@ export default function SantriPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // 1. Ekstrak Daftar Rombel yang Diampu Guru
+  // 1. Ekstrak Daftar Rombel yang Diampu Guru (Mendukung Multi-Unit)
   const availableClasses = useMemo(() => {
     const map = new Map();
 
+    const selectedUnitIds = activeContext?.satuanPendidikanIds?.length > 0
+      ? activeContext.satuanPendidikanIds.map(String)
+      : (activeContext?.satuanPendidikanId ? [String(activeContext.satuanPendidikanId)] : []);
+
+    const isAllUnits = activeContext?.isAllUnits || selectedUnitIds.length === 0;
+
     // Dari penugasan wali kelas
     homeroomClasses.forEach((h) => {
-      const matchUnit = !activeContext?.satuanPendidikanId || String(h.satuan_pendidikan_id) === String(activeContext.satuanPendidikanId);
+      const matchUnit = isAllUnits || (h.satuan_pendidikan_id && selectedUnitIds.includes(String(h.satuan_pendidikan_id)));
       const matchYear = !activeContext?.academicYearId || String(h.academic_year_id) === String(activeContext.academicYearId);
       if (matchUnit && matchYear && h.class_group_id) {
         map.set(String(h.class_group_id), {
@@ -99,7 +105,7 @@ export default function SantriPage() {
 
     // Dari penugasan mengajar mata pelajaran
     teachingAssignments.forEach((a) => {
-      const matchUnit = !activeContext?.satuanPendidikanId || String(a.satuan_pendidikan_id) === String(activeContext.satuanPendidikanId);
+      const matchUnit = isAllUnits || (a.satuan_pendidikan_id && selectedUnitIds.includes(String(a.satuan_pendidikan_id)));
       const matchYear = !activeContext?.academicYearId || String(a.academic_year_id) === String(activeContext.academicYearId);
       if (matchUnit && matchYear && a.class_group_id) {
         if (!map.has(String(a.class_group_id))) {

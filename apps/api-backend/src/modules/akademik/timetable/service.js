@@ -977,27 +977,71 @@ class TimetableService {
     }
     await clearQuery.del();
 
-    for (const e of entries) {
+    // Urutkan dan gabungkan slot berurutan (consecutive slots / 2 JP+) menjadi 1 sesi blok KBM
+    const rawEntries = [...entries];
+    rawEntries.sort((a, b) => {
+      if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+      return String(a.start_time || '').localeCompare(String(b.start_time || ''));
+    });
+
+    const mergedBlocks = [];
+    for (const e of rawEntries) {
+      const joinedClasses = e.joined_class_group_ids
+        ? (typeof e.joined_class_group_ids === 'string' ? JSON.parse(e.joined_class_group_ids) : e.joined_class_group_ids)
+        : [e.class_group_id];
+      const classKey = (joinedClasses || []).filter(Boolean).sort().join(',');
+
+      const last = mergedBlocks[mergedBlocks.length - 1];
+      if (
+        last &&
+        last.day_of_week === e.day_of_week &&
+        String(last.teacher_employee_id || '') === String(e.teacher_employee_id || '') &&
+        String(last.subject_id || '') === String(e.subject_id || '') &&
+        String(last.extracurricular_id || '') === String(e.extracurricular_id || '') &&
+        last.classKey === classKey &&
+        last.end_time === e.start_time
+      ) {
+        last.end_time = e.end_time;
+        last.last_period_index = e.period_index;
+        last.period_label = `Jam Ke ${last.first_period_index} - ${e.period_index}`;
+      } else {
+        mergedBlocks.push({
+          day_of_week: e.day_of_week,
+          start_time: e.start_time,
+          end_time: e.end_time,
+          first_period_index: e.period_index,
+          last_period_index: e.period_index,
+          period_label: `Jam Ke-${e.period_index}`,
+          subject_id: e.subject_id || null,
+          extracurricular_id: e.extracurricular_id || null,
+          teacher_employee_id: e.teacher_employee_id || null,
+          room_name: e.room_name,
+          classKey,
+          joinedClasses: (joinedClasses || []).filter(Boolean)
+        });
+      }
+    }
+
+    for (const block of mergedBlocks) {
       const [schId] = await db('subject_schedules').insert({
         satuan_pendidikan_id: run.satuan_pendidikan_id,
         academic_year_id: run.academic_year_id,
         preset_id: targetPresetId,
-        schedule_type: e.subject_id ? 'mapel' : 'ekskul',
-        subject_id: e.subject_id || null,
-        extracurricular_id: e.extracurricular_id || null,
-        teacher_employee_id: e.teacher_employee_id || null,
-        day_of_week: e.day_of_week,
-        start_time: e.start_time,
-        end_time: e.end_time,
-        period_label: `Jam Ke-${e.period_index}`,
-        room_name: e.room_name,
+        schedule_type: block.subject_id ? 'mapel' : 'ekskul',
+        subject_id: block.subject_id,
+        extracurricular_id: block.extracurricular_id,
+        teacher_employee_id: block.teacher_employee_id,
+        day_of_week: block.day_of_week,
+        start_time: block.start_time,
+        end_time: block.end_time,
+        period_label: block.period_label,
+        room_name: block.room_name,
         is_active: true,
         created_at: db.fn.now(),
         updated_at: db.fn.now()
       });
 
-      const joinedClasses = e.joined_class_group_ids ? (typeof e.joined_class_group_ids === 'string' ? JSON.parse(e.joined_class_group_ids) : e.joined_class_group_ids) : [e.class_group_id];
-      for (const cid of joinedClasses) {
+      for (const cid of block.joinedClasses) {
         if (cid) {
           await db('subject_schedule_class_groups').insert({
             schedule_id: schId,

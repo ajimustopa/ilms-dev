@@ -19,7 +19,7 @@ import PengaturanCms from './pages/PengaturanCms';
 
 export const websiteUtamaRoutes = {
   path: '/website-utama',
-  element: <ProtectedRoute redirectTo="/core/login" />,
+  element: <ProtectedRoute redirectTo="/login" />,
   children: [
     {
       element: <WebsiteUtamaLayout />,

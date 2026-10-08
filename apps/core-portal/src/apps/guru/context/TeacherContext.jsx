@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import api from '../../../shared/services/api';
 import { scheduleService } from '../services/scheduleService';
 import { useTeacherAuth } from '../hooks/useTeacherAuth';
 import { getIndonesianDayName } from '../utils/dateHelper';
+import { getScheduleClassGroupDisplay, getScheduleRoomDisplay } from '../utils/scheduleHelper';
 
 const TeacherContext = createContext(null);
 
@@ -78,20 +80,42 @@ function parseTimeToMinutes(timeStr) {
 }
 
 export const DEFAULT_SCHOOL_UNITS = [
-  { id: 1, name: 'SMP IT Aldepos Boarding School', code: 'SMP-IT', jenjang: 'SMP' },
-  { id: 2, name: 'SMA IT Aldepos Boarding School', code: 'SMA-IT', jenjang: 'SMA' },
-  { id: 3, name: 'SD IT Aldepos', code: 'SD-IT', jenjang: 'SD' },
-  { id: 4, name: 'Pondok Pesantren Aldepos (Tahfidz)', code: 'PONTREN', jenjang: 'Pesantren' }
+  { id: 1, name: 'SMP Aldepos Islamic Boarding School', code: 'SMP-IT', level: 'SMP', jenjang: 'SMP' },
+  { id: 2, name: 'SMA Aldepos Islamic Boarding School', code: 'SMA-IT', level: 'SMA', jenjang: 'SMA' }
 ];
 
 export const DEFAULT_ACADEMIC_YEARS = [
-  { id: 1, name: '2026/2027', is_active: true },
-  { id: 2, name: '2025/2026', is_active: false }
+  { id: 2, name: '2026/2027', is_active: true },
+  { id: 1, name: '2025/2026', is_active: false }
+];
+
+export const DEFAULT_SEMESTERS = [
+  { id: 1, name: 'Semester Ganjil', semester_type: 'ganjil', is_active: true },
+  { id: 2, name: 'Semester Genap', semester_type: 'genap', is_active: false }
 ];
 
 /**
+ * Helper format nama gabungan beberapa satuan pendidikan terpilih
+ */
+export function formatUnitsLabel(selectedUnitIds = [], allUnits = []) {
+  if (!selectedUnitIds || selectedUnitIds.length === 0) return 'Semua Satuan Pendidikan';
+  const unitsList = allUnits && allUnits.length > 0 ? allUnits : DEFAULT_SCHOOL_UNITS;
+  if (unitsList.length > 0 && selectedUnitIds.length >= unitsList.length) {
+    return 'Semua Satuan Pendidikan';
+  }
+  const matched = unitsList.filter((u) => selectedUnitIds.some((id) => String(id) === String(u.id)));
+  if (matched.length === 0) return 'Semua Satuan Pendidikan';
+  if (matched.length === 1) return matched[0].name;
+  
+  const shortNames = matched.map((u) => u.code || u.jenjang || u.name.replace(' Aldepos Islamic Boarding School', '').replace(' Aldepos', ''));
+  return shortNames.join(' & ');
+}
+
+/**
  * TeacherProvider Context
- * Menyimpan dan menyinkronkan konteks aktif guru, data jadwal ter-cache, dan sesi mengajar terdekat (WIB).
+ * Menyimpan dan menyinkronkan konteks aktif guru merujuk pada:
+ * - Satuan Pendidikan dari Core Admin (/core/school-units) - Mendukung Multi-Select Satuan Pendidikan
+ * - Tahun Ajaran & Semester dari Master Akademik (/akademik/academic-years & /akademik/semesters)
  */
 export const TeacherProvider = ({ children }) => {
   const { user } = useTeacherAuth();
@@ -101,115 +125,170 @@ export const TeacherProvider = ({ children }) => {
   const [homeroomClasses, setHomeroomClasses] = useState([]);
   const [availableUnits, setAvailableUnits] = useState(DEFAULT_SCHOOL_UNITS);
   const [availableAcademicYears, setAvailableAcademicYears] = useState(DEFAULT_ACADEMIC_YEARS);
+  const [availableSemesters, setAvailableSemesters] = useState(DEFAULT_SEMESTERS);
 
   // Cache Jadwal Mengajar (Diambil sekali pada mount, diperbarui via refreshSchedules)
   const [cachedSchedules, setCachedSchedules] = useState([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
 
-  // Active Selected Context
+  // Active Selected Context (Mendukung Multi-Unit)
   const [activeContext, setActiveContext] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const unitIds = Array.isArray(parsed.satuanPendidikanIds) && parsed.satuanPendidikanIds.length > 0
+          ? parsed.satuanPendidikanIds
+          : (parsed.satuanPendidikanId ? [parsed.satuanPendidikanId] : [1, 2]);
+
+        const isAll = unitIds.length >= DEFAULT_SCHOOL_UNITS.length;
+        return {
+          ...parsed,
+          satuanPendidikanIds: unitIds,
+          satuanPendidikanId: unitIds.length === 1 ? unitIds[0] : (unitIds[0] || 1),
+          satuanPendidikanName: parsed.satuanPendidikanName || formatUnitsLabel(unitIds, DEFAULT_SCHOOL_UNITS),
+          isAllUnits: isAll
+        };
+      }
     } catch {
       // fallback
     }
     return {
+      satuanPendidikanIds: [1, 2],
       satuanPendidikanId: 1,
-      satuanPendidikanName: 'SMP IT Aldepos Boarding School',
-      academicYearId: 1,
+      satuanPendidikanName: 'Semua Satuan Pendidikan',
+      isAllUnits: true,
+      academicYearId: 2,
       academicYearName: '2026/2027',
-      semester: 'Ganjil' // 'Ganjil' | 'Genap'
+      semester: 'Ganjil',
+      semesterId: null,
+      semesterName: 'Semester Ganjil'
     };
   });
 
-  // 1. Fetch Konteks & Penugasan Guru
+  /**
+   * Helper mengambil data Tahun Ajaran dan Semester untuk unit sekolah tertentu dari modul Akademik
+   */
+  const fetchAcademicDataForUnit = useCallback(async (unitId) => {
+    try {
+      const params = unitId ? { satuan_pendidikan_id: unitId } : {};
+      const [yearsRes, semsRes] = await Promise.all([
+        api.get('/akademik/academic-years', { params }).catch(() => null),
+        api.get('/akademik/semesters', { params }).catch(() => null)
+      ]);
+
+      const rawYears = yearsRes?.data?.data || [];
+      const rawSems = semsRes?.data?.data || [];
+
+      const years = Array.isArray(rawYears) && rawYears.length > 0
+        ? rawYears.map((y) => ({
+            id: y.id,
+            name: y.name,
+            is_active: Boolean(y.is_active),
+            satuan_pendidikan_id: y.satuan_pendidikan_id
+          }))
+        : DEFAULT_ACADEMIC_YEARS;
+
+      const sems = Array.isArray(rawSems) && rawSems.length > 0
+        ? rawSems.map((s) => ({
+            id: s.id,
+            name: s.name,
+            semester_type: s.semester_type || (s.name.toLowerCase().includes('genap') ? 'genap' : 'ganjil'),
+            is_active: Boolean(s.is_active),
+            satuan_pendidikan_id: s.satuan_pendidikan_id,
+            academic_year_id: s.academic_year_id
+          }))
+        : DEFAULT_SEMESTERS;
+
+      return { years, semesters: sems };
+    } catch (err) {
+      console.warn('Gagal memuat tahun ajaran & semester untuk unit:', unitId, err);
+      return { years: DEFAULT_ACADEMIC_YEARS, semesters: DEFAULT_SEMESTERS };
+    }
+  }, []);
+
+  // 1. Fetch Konteks (Satuan Pendidikan dari Core & Master Akademik) & Penugasan Guru
   const fetchContextData = useCallback(async () => {
     setLoadingContext(true);
     try {
-      const res = await scheduleService.getMyTeachingAssignments();
-      const data = res?.data || res || {};
-      const assignments = data.assignments || [];
-      const homerooms = data.homeroom_classes || [];
+      // a. Ambil Satuan Pendidikan langsung dari Master Core Service (/core/school-units)
+      const [unitsRes, assignmentsRes] = await Promise.all([
+        api.get('/core/school-units').catch(() => null),
+        scheduleService.getMyTeachingAssignments().catch(() => null)
+      ]);
 
-      setTeachingAssignments(assignments);
-      setHomeroomClasses(homerooms);
-
-      // Extract unique Units from assignments & user profile
-      const unitMap = new Map();
-      if (user?.school_units && Array.isArray(user.school_units) && user.school_units.length > 0) {
-        user.school_units.forEach((u) => {
-          unitMap.set(String(u.id), { id: u.id, name: u.name || u.nama, jenjang: u.jenjang });
-        });
+      const rawUnits = unitsRes?.data?.data?.items || unitsRes?.data?.data || [];
+      let units = [];
+      if (Array.isArray(rawUnits) && rawUnits.length > 0) {
+        units = rawUnits
+          .filter((u) => u.is_active !== 0 && u.is_active !== false)
+          .map((u) => ({
+            id: u.id,
+            name: u.name,
+            code: u.code || u.level || '',
+            level: u.level || '',
+            jenjang: u.level || u.jenjang || ''
+          }));
       }
-      assignments.forEach((a) => {
-        if (a.satuan_pendidikan_id) {
-          unitMap.set(String(a.satuan_pendidikan_id), {
-            id: a.satuan_pendidikan_id,
-            name: a.satuan_pendidikan_name || `Unit #${a.satuan_pendidikan_id}`,
-            jenjang: a.jenjang || ''
-          });
-        }
-      });
-      homerooms.forEach((h) => {
-        if (h.satuan_pendidikan_id) {
-          unitMap.set(String(h.satuan_pendidikan_id), {
-            id: h.satuan_pendidikan_id,
-            name: h.satuan_pendidikan_name || `Unit #${h.satuan_pendidikan_id}`,
-            jenjang: h.jenjang || ''
-          });
-        }
-      });
 
-      const units = Array.from(unitMap.values());
+      // Jika user memiliki batasan school_units spesifik dan bukan admin yayasan/super admin
+      const isUniversalAdmin = user?.is_super_admin || user?.account_type === 'super_admin' || user?.account_type === 'admin_yayasan';
+      if (!isUniversalAdmin && user?.school_units && Array.isArray(user.school_units) && user.school_units.length > 0 && units.length > 0) {
+        const allowedIds = new Set(user.school_units.map((su) => String(su.id || su.school_unit_id)));
+        const filtered = units.filter((u) => allowedIds.has(String(u.id)));
+        if (filtered.length > 0) {
+          units = filtered;
+        }
+      }
+
       const finalUnits = units.length > 0 ? units : DEFAULT_SCHOOL_UNITS;
       setAvailableUnits(finalUnits);
 
-      // Extract unique Academic Years
-      const yearMap = new Map();
-      assignments.forEach((a) => {
-        if (a.academic_year_id && a.academic_year_name) {
-          yearMap.set(String(a.academic_year_id), {
-            id: a.academic_year_id,
-            name: a.academic_year_name
-          });
-        }
-      });
-      homerooms.forEach((h) => {
-        if (h.academic_year_id && h.academic_year_name) {
-          yearMap.set(String(h.academic_year_id), {
-            id: h.academic_year_id,
-            name: h.academic_year_name
-          });
-        }
-      });
-      const years = Array.from(yearMap.values());
-      const finalYears = years.length > 0 ? years : DEFAULT_ACADEMIC_YEARS;
+      // b. Penugasan mengajar & wali kelas
+      const assignData = assignmentsRes?.data || assignmentsRes || {};
+      const assignments = assignData.assignments || [];
+      const homerooms = assignData.homeroom_classes || [];
+      setTeachingAssignments(assignments);
+      setHomeroomClasses(homerooms);
+
+      // c. Tentukan unit yang sedang aktif
+      const currentUnitId = activeContext?.satuanPendidikanId || finalUnits[0]?.id || 1;
+      const currentUnitObj = finalUnits.find((u) => String(u.id) === String(currentUnitId)) || finalUnits[0];
+
+      // d. Ambil Tahun Ajaran dan Semester dari Master Akademik (/akademik/academic-years & /akademik/semesters)
+      const { years: finalYears, semesters: finalSems } = await fetchAcademicDataForUnit(currentUnitObj?.id);
       setAvailableAcademicYears(finalYears);
+      setAvailableSemesters(finalSems);
 
-      // Auto-set default context if not set yet
+      // e. Auto-set default context sinkron dengan Master
       setActiveContext((prev) => {
-        let newUnitId = prev.satuanPendidikanId;
-        let newUnitName = prev.satuanPendidikanName;
-        let newYearId = prev.academicYearId;
-        let newYearName = prev.academicYearName;
+        let validUnitIds = (prev.satuanPendidikanIds || []).filter((id) =>
+          finalUnits.some((u) => String(u.id) === String(id))
+        );
+        if (validUnitIds.length === 0) {
+          validUnitIds = finalUnits.map((u) => u.id);
+        }
 
-        if (!newUnitId && finalUnits.length > 0) {
-          newUnitId = finalUnits[0].id;
-          newUnitName = finalUnits[0].name;
-        }
-        if (!newYearId && finalYears.length > 0) {
-          newYearId = finalYears[0].id;
-          newYearName = finalYears[0].name;
-        }
+        const isAll = validUnitIds.length >= finalUnits.length;
+        const activeYear = finalYears.find((y) => y.is_active) || finalYears.find((y) => String(y.id) === String(prev.academicYearId)) || finalYears[0];
+        const activeSem = finalSems.find((s) => s.is_active) || finalSems[0];
+
+        const semLabel = prev.semester || (activeSem?.name?.toLowerCase().includes('genap') ? 'Genap' : 'Ganjil');
+        const unitLabel = formatUnitsLabel(validUnitIds, finalUnits);
 
         const updated = {
           ...prev,
-          satuanPendidikanId: newUnitId || 1,
-          satuanPendidikanName: newUnitName || 'SMP IT Aldepos Boarding School',
-          academicYearId: newYearId || 1,
-          academicYearName: newYearName || '2026/2027'
+          satuanPendidikanIds: validUnitIds,
+          satuanPendidikanId: validUnitIds.length === 1 ? validUnitIds[0] : (validUnitIds[0] || 1),
+          satuanPendidikanName: unitLabel,
+          isAllUnits: isAll,
+          academicYearId: activeYear ? activeYear.id : 2,
+          academicYearName: activeYear ? activeYear.name : '2026/2027',
+          semester: semLabel,
+          semesterId: activeSem ? activeSem.id : null,
+          semesterName: activeSem ? activeSem.name : `Semester ${semLabel}`
         };
+
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         } catch {
@@ -217,15 +296,15 @@ export const TeacherProvider = ({ children }) => {
         }
         return updated;
       });
-    } catch {
-      setTeachingAssignments([]);
-      setHomeroomClasses([]);
+    } catch (err) {
+      console.error('Error fetching teacher context data:', err);
       setAvailableUnits(DEFAULT_SCHOOL_UNITS);
       setAvailableAcademicYears(DEFAULT_ACADEMIC_YEARS);
+      setAvailableSemesters(DEFAULT_SEMESTERS);
     } finally {
       setLoadingContext(false);
     }
-  }, [user]);
+  }, [user, fetchAcademicDataForUnit]);
 
   // 2. Fetch Seluruh Jadwal Mengajar (Di-cache untuk evaluasi sesi countdown)
   const fetchSchedules = useCallback(async () => {
@@ -322,8 +401,8 @@ export const TeacherProvider = ({ children }) => {
     if (ongoingSession) {
       const s = ongoingSession.session;
       const subjectName = s.subject_name || s.mata_pelajaran || s.nama_mapel || 'Mata Pelajaran';
-      const className = s.class_name || s.rombel_name || s.kelas || 'Kelas';
-      const room = s.room_name || s.ruang || s.room || null;
+      const className = getScheduleClassGroupDisplay(s);
+      const room = getScheduleRoomDisplay(s);
 
       return {
         hasActiveSession: true,
@@ -341,8 +420,8 @@ export const TeacherProvider = ({ children }) => {
     if (upcomingSession) {
       const s = upcomingSession.session;
       const subjectName = s.subject_name || s.mata_pelajaran || s.nama_mapel || 'Mata Pelajaran';
-      const className = s.class_name || s.rombel_name || s.kelas || 'Kelas';
-      const room = s.room_name || s.ruang || s.room || null;
+      const className = getScheduleClassGroupDisplay(s);
+      const room = getScheduleRoomDisplay(s);
 
       return {
         hasActiveSession: true,
@@ -360,6 +439,25 @@ export const TeacherProvider = ({ children }) => {
     return { hasActiveSession: false };
   }, [cachedSchedules, timeHeartbeat]);
 
+  const activeSchoolUnits = useMemo(() => {
+    const ids = activeContext?.satuanPendidikanIds || (activeContext?.satuanPendidikanId ? [activeContext.satuanPendidikanId] : []);
+    return availableUnits.filter((u) => ids.some((id) => String(id) === String(u.id)));
+  }, [availableUnits, activeContext?.satuanPendidikanIds, activeContext?.satuanPendidikanId]);
+
+  const activeSchoolUnit = useMemo(() => {
+    return availableUnits.find((u) => String(u.id) === String(activeContext?.satuanPendidikanId)) || {
+      id: activeContext?.satuanPendidikanId,
+      name: activeContext?.satuanPendidikanName
+    };
+  }, [availableUnits, activeContext?.satuanPendidikanId, activeContext?.satuanPendidikanName]);
+
+  const activeAcademicYear = useMemo(() => {
+    return availableAcademicYears.find((y) => String(y.id) === String(activeContext?.academicYearId)) || {
+      id: activeContext?.academicYearId,
+      name: activeContext?.academicYearName
+    };
+  }, [availableAcademicYears, activeContext?.academicYearId, activeContext?.academicYearName]);
+
   return (
     <TeacherContext.Provider
       value={{
@@ -367,7 +465,13 @@ export const TeacherProvider = ({ children }) => {
         updateContext,
         availableUnits,
         availableAcademicYears,
+        availableSemesters,
+        fetchAcademicDataForUnit,
+        activeSchoolUnit,
+        activeSchoolUnits,
+        activeAcademicYear,
         teachingAssignments,
+        myTeachingAssignments: teachingAssignments,
         homeroomClasses,
         loadingContext,
         refreshContext: fetchContextData,
@@ -387,16 +491,24 @@ export const useTeacherContext = () => {
   if (!context) {
     return {
       activeContext: {
-        satuanPendidikanId: null,
-        satuanPendidikanName: 'Semua Unit',
-        academicYearId: null,
+        satuanPendidikanIds: [1, 2],
+        satuanPendidikanId: 1,
+        satuanPendidikanName: 'Semua Satuan Pendidikan',
+        isAllUnits: true,
+        academicYearId: 2,
         academicYearName: '2026/2027',
         semester: 'Ganjil'
       },
       updateContext: () => { },
-      availableUnits: [],
-      availableAcademicYears: [],
+      availableUnits: DEFAULT_SCHOOL_UNITS,
+      availableAcademicYears: DEFAULT_ACADEMIC_YEARS,
+      availableSemesters: DEFAULT_SEMESTERS,
+      fetchAcademicDataForUnit: async () => ({ years: DEFAULT_ACADEMIC_YEARS, semesters: DEFAULT_SEMESTERS }),
+      activeSchoolUnit: DEFAULT_SCHOOL_UNITS[0],
+      activeSchoolUnits: DEFAULT_SCHOOL_UNITS,
+      activeAcademicYear: DEFAULT_ACADEMIC_YEARS[0],
       teachingAssignments: [],
+      myTeachingAssignments: [],
       homeroomClasses: [],
       loadingContext: false,
       refreshContext: () => { },
