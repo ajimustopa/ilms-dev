@@ -3,6 +3,8 @@ const path = require('path');
 const db = require('../../../config/db/kepegawaian');
 const calendarService = require('./calendarService');
 const auditService = require('./auditService');
+const { formatDbDate } = require('../leave/dateHelper');
+const { mapLeaveTypeToAttendance } = require('./attendanceLeaveMapper');
 const { resolveActor, assertEmployeeActor, isUnitInScope } = require('../common/actorHelper');
 const { saveLeaveAttachment } = require('../leave/attachmentHelper');
 const XLSX = require('xlsx');
@@ -4283,6 +4285,134 @@ class AttendanceService {
     };
   }
 
+  /**
+   * Materialize approved leave requests into employee_attendances table upon period closing (SPEC §8.2, §10.3)
+   * Idempotent: Can be called multiple times without creating duplicate records or overwriting present check-ins.
+   */
+  async materializeLeaveIntoAttendance(periodData = {}, trxOrDb = null, user = {}) {
+    const trx = trxOrDb || db;
+    const m = parseInt(periodData.periodMonth || periodData.month, 10);
+    const y = parseInt(periodData.periodYear || periodData.year, 10);
+    const unitId = periodData.schoolUnitId || periodData.school_unit_id || null;
+
+    if (!m || !y) {
+      throw new Error('Field periodMonth/month dan periodYear/year wajib diisi untuk materialisasi cuti');
+    }
+
+    const startDate = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const endDate = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    let leaveQuery = trx('employee_leave_requests')
+      .where('status', 'approved')
+      .where('start_date', '<=', endDate)
+      .where('end_date', '>=', startDate);
+
+    if (unitId) {
+      leaveQuery = leaveQuery.where('school_unit_id', unitId);
+    }
+
+    const approvedLeaves = await leaveQuery;
+    let createdCount = 0;
+    let updatedCount = 0;
+    let preservedPresentCount = 0;
+
+    for (const leave of approvedLeaves) {
+      const lStart = formatDbDate(leave.start_date);
+      const lEnd = formatDbDate(leave.end_date);
+
+      const mapping = mapLeaveTypeToAttendance(leave.leave_type);
+
+      // Parse breakdown jika ada
+      let breakdownMap = {};
+      if (leave.day_breakdown) {
+        const bd = typeof leave.day_breakdown === 'string' ? JSON.parse(leave.day_breakdown) : leave.day_breakdown;
+        if (Array.isArray(bd)) {
+          bd.forEach(b => {
+            if (b.date) breakdownMap[b.date] = b;
+          });
+        }
+      }
+
+      // Hitung semua tanggal dalam rentang cuti yang jatuh dalam bulan periode ini
+      const cur = new Date(`${lStart}T00:00:00Z`);
+      const maxEnd = new Date(`${lEnd}T00:00:00Z`);
+
+      while (cur <= maxEnd) {
+        const dStr = cur.toISOString().slice(0, 10);
+        cur.setUTCDate(cur.getUTCDate() + 1);
+
+        if (dStr < startDate || dStr > endDate) {
+          continue;
+        }
+
+        // Jika ada breakdown, cek apakah tanggal ini valid/dihitung (bukan WEEKEND_OFF pada HK)
+        if (breakdownMap[dStr]) {
+          const bdItem = breakdownMap[dStr];
+          if (bdItem.state === 'WEEKEND_OFF' || bdItem.state === 'HOLIDAY_OFF' || bdItem.state === 'NO_SCHEDULE') {
+            continue; // Skip tanggal yang tidak dihitung sebagai cuti
+          }
+        }
+
+        const existing = await trx('employee_attendances')
+          .where({ employee_id: leave.employee_id, attendance_date: dStr })
+          .first();
+
+        if (existing) {
+          // Aturan SPEC §8.1 & §8.2: Cuti TIDAK PERNAH menimpa status 'present'
+          if (existing.status === 'present' || existing.check_in_time) {
+            preservedPresentCount++;
+            if (!existing.leave_request_id) {
+              await trx('employee_attendances')
+                .where({ id: existing.id })
+                .update({ leave_request_id: leave.id, updated_at: trx.fn.now() });
+            }
+          } else {
+            // Update non-present row dengan status cuti
+            await trx('employee_attendances')
+              .where({ id: existing.id })
+              .update({
+                status: mapping.status,
+                sub_status: mapping.sub_status,
+                entry_type: mapping.entry_type,
+                leave_request_id: leave.id,
+                check_in_notes: existing.check_in_notes || leave.reason || 'Materialisasi cuti otomatis saat tutup periode',
+                updated_at: trx.fn.now()
+              });
+            updatedCount++;
+          }
+        } else {
+          // Insert baris baru untuk cuti
+          await trx('employee_attendances').insert({
+            employee_id: leave.employee_id,
+            school_unit_id: leave.school_unit_id || 1,
+            attendance_date: dStr,
+            status: mapping.status,
+            sub_status: mapping.sub_status,
+            entry_type: mapping.entry_type,
+            leave_request_id: leave.id,
+            is_within_radius: 1,
+            is_late: 0,
+            late_minutes: 0,
+            check_in_notes: leave.reason || 'Materialisasi cuti otomatis saat tutup periode',
+            created_at: trx.fn.now(),
+            updated_at: trx.fn.now()
+          });
+          createdCount++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      period: `${m}/${y}`,
+      processed_leaves_count: approvedLeaves.length,
+      created_attendance_rows: createdCount,
+      updated_attendance_rows: updatedCount,
+      preserved_present_rows: preservedPresentCount
+    };
+  }
+
   async lockPeriod(payload = {}, user = {}) {
     const { month, year, school_unit_id, notes, allow_override } = payload;
     if (!month || !year) {
@@ -4312,50 +4442,83 @@ class AttendanceService {
       throw error;
     }
 
-    // Ambil summary snapshot
-    const summary = await this.getMonthlySummary({ month: m, year: y, school_unit_id: unitId }, user);
+    let lockRecordResult = null;
 
-    let queryExisting = db('attendance_period_locks')
-      .where({ period_month: m, period_year: y });
-    if (unitId) queryExisting = queryExisting.where({ school_unit_id: unitId });
-    else queryExisting = queryExisting.whereNull('school_unit_id');
+    // Jalankan materialisasi cuti dan penguncian periode dalam satu transaksi Knex
+    await db.transaction(async (trx) => {
+      // 1. Materialisasi cuti disetujui ke tabel employee_attendances
+      const matResult = await this.materializeLeaveIntoAttendance({ periodMonth: m, periodYear: y, schoolUnitId: unitId }, trx, user);
 
-    const existing = await queryExisting.first();
-    let lockId = null;
+      // 2. Audit log materialisasi
+      await trx('attendance_audit_logs').insert({
+        action: 'LEAVE_MATERIALIZED_ON_PERIOD_LOCK',
+        performed_by: user.id || null,
+        reason: notes || `Materialisasi cuti disetujui saat penguncian periode presensi ${m}/${y}`,
+        new_values: JSON.stringify(matResult),
+        created_at: trx.fn.now()
+      });
 
-    const lockData = {
-      school_unit_id: unitId,
-      period_month: m,
-      period_year: y,
-      status: 'locked',
-      locked_by: user.id || null,
-      locked_at: db.fn.now(),
-      summary_snapshot: JSON.stringify(summary),
-      notes: notes || 'Periode presensi resmi dikunci oleh HRD',
-      updated_at: db.fn.now()
-    };
+      // 3. Ambil summary snapshot setelah cuti termaterialisasi
+      const summary = await this.getMonthlySummary({ month: m, year: y, school_unit_id: unitId }, user);
 
-    if (existing) {
-      await db('attendance_period_locks').where({ id: existing.id }).update(lockData);
-      lockId = existing.id;
-    } else {
-      lockData.created_at = db.fn.now();
-      const [newId] = await db('attendance_period_locks').insert(lockData);
-      lockId = newId;
-    }
+      let queryExisting = trx('attendance_period_locks')
+        .where({ period_month: m, period_year: y });
+      if (unitId) queryExisting = queryExisting.where({ school_unit_id: unitId });
+      else queryExisting = queryExisting.whereNull('school_unit_id');
 
-    await auditService.log({
-      action: 'PERIOD_LOCKED',
-      performedBy: user.id || null,
-      oldValues: existing || null,
-      newValues: lockData,
-      reason: notes || `Penguncian periode presensi ${m}/${y}`
+      const existing = await queryExisting.first();
+      let lockId = null;
+
+      const lockData = {
+        school_unit_id: unitId,
+        period_month: m,
+        period_year: y,
+        status: 'locked',
+        locked_by: user.id || null,
+        locked_at: trx.fn.now(),
+        summary_snapshot: JSON.stringify(summary),
+        notes: notes || 'Periode presensi resmi dikunci oleh HRD',
+        updated_at: trx.fn.now()
+      };
+
+      if (existing) {
+        await trx('attendance_period_locks').where({ id: existing.id }).update(lockData);
+        lockId = existing.id;
+      } else {
+        lockData.created_at = trx.fn.now();
+        const [newId] = await trx('attendance_period_locks').insert(lockData);
+        lockId = newId;
+      }
+
+      await trx('attendance_audit_logs').insert({
+        action: 'PERIOD_LOCKED',
+        performed_by: user.id || null,
+        reason: notes || `Penguncian periode presensi ${m}/${y}`,
+        old_values: existing ? JSON.stringify({
+          id: existing.id,
+          status: existing.status,
+          period_month: existing.period_month,
+          period_year: existing.period_year,
+          school_unit_id: existing.school_unit_id
+        }) : null,
+        new_values: JSON.stringify({
+          school_unit_id: unitId,
+          period_month: m,
+          period_year: y,
+          status: 'locked',
+          locked_by: user.id || null,
+          notes: notes || 'Periode presensi resmi dikunci oleh HRD'
+        }),
+        created_at: trx.fn.now()
+      });
+
+      lockRecordResult = await trx('attendance_period_locks').where({ id: lockId }).first();
     });
 
     return {
       success: true,
       message: `Periode presensi ${m}/${y} berhasil dikunci`,
-      data: await db('attendance_period_locks').where({ id: lockId }).first()
+      data: lockRecordResult
     };
   }
 

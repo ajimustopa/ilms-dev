@@ -95,6 +95,45 @@ class LeaveService {
   }
 
   /**
+   * Check if any month in a date range touches a locked attendance period (SPEC §8 #3, V6)
+   */
+  async isPeriodLockedForDateRange(startDateStr, endDateStr, schoolUnitId = null) {
+    if (!startDateStr) return false;
+    const endStr = endDateStr || startDateStr;
+    const startObj = new Date(`${String(startDateStr).slice(0, 10)}T00:00:00Z`);
+    const endObj = new Date(`${String(endStr).slice(0, 10)}T00:00:00Z`);
+
+    const monthsSet = new Set();
+    const cur = new Date(startObj);
+    while (cur <= endObj) {
+      const y = cur.getUTCFullYear();
+      const m = cur.getUTCMonth() + 1;
+      monthsSet.add(`${y}-${m}`);
+      cur.setUTCDate(cur.getUTCDate() + 15);
+    }
+    const endY = endObj.getUTCFullYear();
+    const endM = endObj.getUTCMonth() + 1;
+    monthsSet.add(`${endY}-${endM}`);
+
+    for (const ym of monthsSet) {
+      const [y, m] = ym.split('-').map(Number);
+      const lock = await db('attendance_period_locks')
+        .where({ period_year: y, period_month: m })
+        .whereIn('status', ['locked', 'submitted_to_payroll'])
+        .where(function () {
+          if (schoolUnitId) {
+            this.whereNull('school_unit_id').orWhere('school_unit_id', schoolUnitId);
+          }
+        })
+        .first();
+
+      if (lock) return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Adapter to build dayFacts map for duration calculator using calendar & holiday service
    */
   async buildDayFacts(employeeId, schoolUnitId, startDate, endDate, workScheduleId = null) {
@@ -1127,7 +1166,7 @@ class LeaveService {
     }
 
     // Check period lock
-    const isLocked = await this.isPeriodLockedForDate(request.start_date, request.school_unit_id);
+    const isLocked = await this.isPeriodLockedForDateRange(request.start_date, request.end_date, request.school_unit_id);
     if (isLocked) {
       const err = new Error('Periode presensi untuk tanggal cuti ini telah terkunci');
       err.code = 'PERIOD_LOCKED';
@@ -1644,7 +1683,7 @@ class LeaveService {
     const daysAhead = diffInDays(today, request.start_date);
 
     if (request.status === 'approved') {
-      const isLocked = await this.isPeriodLockedForDate(request.start_date, request.school_unit_id);
+      const isLocked = await this.isPeriodLockedForDateRange(request.start_date, request.end_date, request.school_unit_id);
       if (isLocked) {
         const err = new Error('Periode presensi telah terkunci. Pembatalan cuti disetujui tidak dapat diproses.');
         err.code = 'PERIOD_LOCKED';

@@ -7,6 +7,8 @@ const db = require('../../../config/db/kepegawaian');
 const DAYS_MAP = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 const holidayService = require('../leave/holidayService');
+const { formatDbDate } = require('../leave/dateHelper');
+const { mapLeaveTypeToAttendance } = require('./attendanceLeaveMapper');
 
 class CalendarService {
   /**
@@ -173,10 +175,12 @@ class CalendarService {
       const schedule = this._computeScheduleForDay(customAssignment, schoolUnitId, dayName, massSchedule);
 
       const leave = approvedLeaves.find(l => {
-        const lStart = l.start_date instanceof Date ? l.start_date.toISOString().split('T')[0] : String(l.start_date).slice(0, 10);
-        const lEnd = l.end_date instanceof Date ? l.end_date.toISOString().split('T')[0] : String(l.end_date).slice(0, 10);
+        const lStart = formatDbDate(l.start_date);
+        const lEnd = formatDbDate(l.end_date);
         return dStr >= lStart && dStr <= lEnd;
       });
+
+      const leaveMapping = leave ? mapLeaveTypeToAttendance(leave.leave_type) : null;
 
       const holidaysForDay = (offHolidaysMap && offHolidaysMap[dStr]) || [];
       const isHolidayOff = holidaysForDay.length > 0;
@@ -195,6 +199,11 @@ class CalendarService {
         holidays: holidaysForDay,
         is_on_approved_leave: !!leave,
         leave_info: leave ? { id: leave.id, leave_type: leave.leave_type, reason: leave.reason } : null,
+        leave_request_id: leave ? leave.id : null,
+        leave_type_code: leave ? leave.leave_type : null,
+        leave_portion: leave ? (leave.start_portion || 'full') : null,
+        attendance_status: leave ? leaveMapping.status : (isHolidayOff ? 'holiday' : (schedule.is_off_day ? 'off' : 'present')),
+        attendance_sub_status: leave ? leaveMapping.sub_status : null,
         schedule
       });
 
