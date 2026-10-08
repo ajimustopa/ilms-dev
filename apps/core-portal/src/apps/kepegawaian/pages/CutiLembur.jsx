@@ -21,6 +21,7 @@ import OvertimeTab from './cuti-lembur/OvertimeTab';
 import HolidaysTab from './cuti-lembur/HolidaysTab';
 import LeaveSettingsTab from './cuti-lembur/LeaveSettingsTab';
 import LeaveReportsTab from './cuti-lembur/LeaveReportsTab';
+import KalenderKetidakhadiranTab from './cuti-lembur/KalenderKetidakhadiranTab';
 import CreateLeaveModal from './cuti-lembur/CreateLeaveModal';
 import CreateOvertimeModal from './cuti-lembur/CreateOvertimeModal';
 
@@ -85,8 +86,9 @@ export default function CutiLembur() {
     { id: 'leaves', label: 'Pengajuan Cuti & Izin', icon: CalendarRange, badge: pendingLeaveCount },
     { id: 'overtimes', label: 'Penugasan Lembur', icon: Clock, badge: pendingOvertimeCount },
     { id: 'balances', label: 'Saldo Cuti', icon: PieChart },
-    { id: 'holidays', label: 'Kalender', icon: CalendarIcon },
-    { id: 'reports', label: 'Laporan', icon: FileText },
+    { id: 'calendar', label: 'Kalender Ketidakhadiran', icon: CalendarIcon },
+    { id: 'reports', label: 'Laporan & Analitik', icon: FileText },
+    { id: 'holidays', label: 'Hari Libur', icon: CalendarRange },
     ...(isHr ? [{ id: 'settings', label: 'Pengaturan', icon: Sliders }] : [])
   ];
 
@@ -235,12 +237,16 @@ export default function CutiLembur() {
           <LeaveBalancesTab />
         )}
 
-        {activeTab === 'holidays' && (
-          <HolidaysTab />
+        {activeTab === 'calendar' && (
+          <KalenderKetidakhadiranTab activeSchoolUnit={activeSchoolUnit} currentUser={user} />
         )}
 
         {activeTab === 'reports' && (
-          <LeaveReportsTab />
+          <LeaveReportsTab activeSchoolUnit={activeSchoolUnit} />
+        )}
+
+        {activeTab === 'holidays' && (
+          <HolidaysTab />
         )}
 
         {activeTab === 'settings' && isHr && (
